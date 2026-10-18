@@ -248,6 +248,8 @@ public sealed class RetroApp
             Raylib.TakeScreenshot(_autotestShot);
             foreach (var group in _library.Entries.GroupBy(e => e.Machine.Name))
                 Console.WriteLine($"biblioteca: {group.Key}: {string.Join(", ", group.Select(e => e.Name))}");
+            foreach (var e in _library.Entries.Where(e => FusionsOf(e.ProfileId).Count > 0))
+                Console.WriteLine($"con fusión: {e.Name}: {string.Join(", ", FusionsOf(e.ProfileId))}");
             QuitRequested = true;
         }
     }
@@ -669,6 +671,8 @@ public sealed class RetroApp
     /// </summary>
     private void DrawMachineList()
     {
+        DrawFusedGames();
+        ImGui.Spacing();
         string? lastCpu = null;
         foreach (var mi in MachineCatalog.All)
         {
@@ -707,8 +711,13 @@ public sealed class RetroApp
                     {
                         if (g.NotYet != null)
                             ImGui.TextDisabled($"{g.Name}: {g.NotYet}");
-                        else if (ImGui.MenuItem(g.Name + "##" + g.Path))
-                            OpenFile(g.Path);
+                        else
+                        {
+                            var fusions = FusionsOf(g.ProfileId);
+                            string tag = fusions.Count > 0 ? "  · fusión: " + string.Join(", ", fusions) : "";
+                            if (ImGui.MenuItem(g.Name + tag + "##" + g.Path))
+                                OpenFile(g.Path);
+                        }
                     }
                 }
             }
@@ -736,6 +745,66 @@ public sealed class RetroApp
         if (ImGui.MenuItem(_library.Scanning ? "Buscando juegos..." : "Volver a buscar en la carpeta de juegos", "", false, !_library.Scanning))
             _library.Rescan(_library.Folder);
         ImGui.TextDisabled("Abrir cualquier archivo (Archivo > Abrir) detecta la máquina sola.");
+    }
+
+    /// <summary>The newest version of each game made in the AI studio.</summary>
+    private static List<Retro.Studio.StudioGame> StudioGames() =>
+        Retro.Studio.StudioLibrary.AllVersions().GroupBy(g => g.Id).Select(g => g.OrderByDescending(v => v.Version).First()).ToList();
+
+    /// <summary>Names of the fusions (classic recipes and AI studio games) that use a profile.</summary>
+    private static List<string> FusionsOf(string? profileId)
+    {
+        if (profileId == null)
+            return new List<string>();
+        return Retro.Fusion.RecipeLibrary.All().Where(r => r.Games.Any(g => g.Profile == profileId)).Select(r => r.Name)
+            .Concat(StudioGames().Where(s => s.Games.Any(g => g.Profile == profileId)).Select(s => s.Title))
+            .Distinct().ToList();
+    }
+
+    /// <summary>
+    /// "Juegos que ya tienen fusión": every classic recipe and AI studio game, with the games it
+    /// mixes; the ones whose games are all in the user's folder play with a click.
+    /// </summary>
+    private void DrawFusedGames()
+    {
+        var have = _library.Entries.Where(e => e.ProfileId != null).Select(e => e.ProfileId!).ToHashSet();
+        var recipes = Retro.Fusion.RecipeLibrary.All();
+        var studio = StudioGames();
+        int ready = recipes.Count(r => r.Games.All(g => have.Contains(g.Profile))) + studio.Count(s => s.Games.All(g => have.Contains(g.Profile)));
+        if (!ImGui.BeginMenu($"   Juegos que ya tienen fusión  ({ready} para jugar)##fusionados"))
+            return;
+        string Names(IEnumerable<Retro.Fusion.RecipeGame> games) =>
+            string.Join(" + ", games.Select(g => Retro.Fusion.ProfileLibrary.Find(g.Profile)?.Name ?? g.Profile));
+        string Missing(IEnumerable<Retro.Fusion.RecipeGame> games) =>
+            string.Join(", ", games.Where(g => !have.Contains(g.Profile)).Select(g => Retro.Fusion.ProfileLibrary.Find(g.Profile)?.Name ?? g.Profile));
+        ImGui.TextDisabled("Fusión clásica (los juegos corren a la vez, conectados por reglas):");
+        foreach (var r in recipes)
+        {
+            if (r.Games.All(g => have.Contains(g.Profile)))
+            {
+                if (ImGui.MenuItem($"{r.Name}   ({Names(r.Games)})##receta-{r.Id}"))
+                    _fusion.StartByRecipeId(r.Id);
+            }
+            else
+                ImGui.TextDisabled($"   {r.Name}: falta {Missing(r.Games)} en tu carpeta");
+        }
+        ImGui.Separator();
+        ImGui.TextDisabled("Creados con IA (un juego nuevo que mezcla los originales):");
+        if (studio.Count == 0)
+            ImGui.TextDisabled("   Ninguno todavía: Fusión > Crear juego fusionado con IA.");
+        foreach (var s in studio)
+        {
+            if (s.Games.All(g => have.Contains(g.Profile)))
+            {
+                if (ImGui.MenuItem($"{s.Title}   ({Names(s.Games)})##estudio-{s.Id}"))
+                    _studio.PlayById(s.Id);
+            }
+            else
+                ImGui.TextDisabled($"   {s.Title}: falta {Missing(s.Games)} en tu carpeta");
+        }
+        ImGui.Separator();
+        ImGui.TextDisabled("Para mezclar otros juegos: Fusión > Fusión clásica (todos los juegos de tu carpeta).");
+        ImGui.EndMenu();
     }
 
     private static string StatePath(string machineId, int slot)
