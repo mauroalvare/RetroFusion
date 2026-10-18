@@ -89,3 +89,12 @@ repetido en el CLI y en las fusiones. `Retro.Machines` concentra los dos para qu
 el CLI, las fusiones y la compatibilidad identifiquen y arranquen igual. La matriz
 encontró enseguida un error que eso evita: las cintas `.cdt` de Amstrad (contenedor TZX)
 se identificaban como Spectrum.
+
+## D-012 Las máquinas informan las escrituras de la CPU (`IWriteWatch`) (2026-10-18)
+
+Para saber qué rutina escribe una variable (y más adelante watchpoints y mapas de calor)
+las máquinas implementan `IWriteWatch`: un `Action<dirección, valor, pc>` opcional que se
+llama en cada escritura efectiva de la CPU, con la dirección de la instrucción que la hizo.
+Es nulo por defecto, así que no cuesta nada si nadie escucha. Es un contrato nuevo de
+`Retro.Core`: toda máquina nueva debería implementarlo.
+

@@ -103,6 +103,36 @@ public sealed class CompatRunner
         ["invaders"] = new[] { "COIN", "P1 START", "P1 LEFT", "P1 RIGHT", "P1 FIRE" },
     };
 
+    /// <summary>
+    /// Boots the script's game and plays its steps, leaving the machine at the end of the
+    /// script (where the lab and agents start their experiments). Returns null and the
+    /// reason when it cannot get there.
+    /// </summary>
+    public (IMachine? machine, string? sha256, string? problem) Start(CompatScript s)
+    {
+        string path = Path.Combine(_gamesRoot, s.File);
+        if (!System.IO.File.Exists(path))
+            return (null, null, $"no está {s.File} en {_gamesRoot}");
+        var files = MediaArchive.Open(path);
+        MediaFile? media = s.Machine == "invaders" ? null
+            : files.FirstOrDefault(f => s.Member != null && (f.Name.Equals(s.Member, StringComparison.OrdinalIgnoreCase) || Path.GetFileName(f.Name).Equals(s.Member, StringComparison.OrdinalIgnoreCase)));
+        LaunchResult launch;
+        try { launch = MachineLauncher.Launch(s.Machine, files, media, _firmware, Path.GetDirectoryName(path)); }
+        catch (Exception e) when (e is NotSupportedException or InvalidDataException or FileNotFoundException) { return (null, null, e.Message); }
+        var m = launch.Machine;
+        if (launch.IsTape && s.Boot != "none" && m is Spectrum48 zx)
+            MachineLauncher.LoadTape(zx, s.BootFrames);
+        var sink = new short[8192];
+        for (int f = 0; f < s.Frames; f++)
+        {
+            foreach (var st in s.Steps.Where(st => st.Frame == f))
+                m.QueueKeys(st.Hold, st.Keys.Replace('_', ' ').Split('+'));
+            m.RunFrame(null);
+            m.DrainAudio(sink);
+        }
+        return (m, Convert.ToHexString(SHA256.HashData(launch.Media.Data)).ToLowerInvariant(), null);
+    }
+
     public CompatResult Run(CompatScript s)
     {
         var r = new CompatResult

@@ -1,0 +1,348 @@
+{
+  "game": "Manic Miner",
+  "machine": "zx48",
+  "script": "zx48-manicminer",
+  "sha256": "3c9bbf17c2a9f4c0aa10e2799d127c05d1b24de639a14adedc935c5667dfa724",
+  "generated": "2026-10-18 10:00 UTC",
+  "method": "Serie de 2401 muestras cada 5 cuadros sin tocar nada (12000 cuadros); corridas desde el mismo estado con cada dirección apretada 30 y 60 cuadros, comparadas con la corrida sin entradas; rango $5B00-$FFFF.",
+  "findings": [
+    {
+      "kind": "position-x",
+      "address": "806C",
+      "nature": "stored-value",
+      "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, O y P lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: O 162→161, P 162→163; 60 cuadros: O 162→161, P 162→165"
+      ],
+      "confidence": 0.8,
+      "confidenceLabel": "alta",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $806C y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$8CFD ×3"
+      ]
+    },
+    {
+      "kind": "lives",
+      "address": "8457",
+      "nature": "stored-value",
+      "hypothesis": "Vidas (o intentos): valor chico que solo baja de a uno.",
+      "evidence": [
+        "empieza en 2 y baja de a 1 1 vez/veces en 12000 cuadros sin tocar nada (muestras 7290)",
+        "cuando baja, 1 candidato(s) de tiempo se recargan cerca (reinicio de nivel o vida)"
+      ],
+      "confidence": 0.7000000000000001,
+      "confidenceLabel": "media",
+      "expectedEffect": "Subirlo da vidas extra; congelarlo da vidas infinitas.",
+      "howToVerify": "Escribir 4 en $8457 y ver si el contador de vidas en pantalla cambia; perder una vida y ver que baja.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": []
+    },
+    {
+      "kind": "timer",
+      "address": "80BC",
+      "nature": "stored-value",
+      "hypothesis": "Tiempo, aire o energía que se consume solo y se recarga al (re)empezar.",
+      "evidence": [
+        "baja de a 1 43 veces y sube 1 en 12000 cuadros sin tocar nada (de 62 a 46)",
+        "se recarga cuando baja un candidato de vidas"
+      ],
+      "confidence": 0.7,
+      "confidenceLabel": "media",
+      "expectedEffect": "Congelarlo detiene el tiempo o da energía infinita.",
+      "howToVerify": "Congelar $80BC en 62 y ver si la barra o el número de tiempo deja de bajar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$8A4F ×6"
+      ]
+    },
+    {
+      "kind": "position-x",
+      "address": "8069",
+      "nature": "stored-value",
+      "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, O y P lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: O 0→0, P 0→3; 60 cuadros: O 0→0, P 0→1"
+      ],
+      "confidence": 0.5,
+      "confidenceLabel": "media",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $8069 y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$8CD2 ×10",
+        "$8D01 ×3"
+      ]
+    },
+    {
+      "kind": "position-x",
+      "address": "6AA2",
+      "nature": "derived",
+      "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, O y P lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: O 124→128, P 124→0",
+        "se reescribe 713 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
+      ],
+      "confidence": 0.25,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $6AA2 y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$8753 ×362",
+        "$92AC ×351"
+      ]
+    },
+    {
+      "kind": "position-x",
+      "address": "6EC2",
+      "nature": "derived",
+      "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, O y P lo llevan a valores distintos, en el mismo sentido en cada prueba: 60 cuadros: O 110→192, P 110→0",
+        "se reescribe 712 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
+      ],
+      "confidence": 0.25,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $6EC2 y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$8753 ×361",
+        "$92AC ×351"
+      ]
+    },
+    {
+      "kind": "position-x",
+      "address": "6FC2",
+      "nature": "derived",
+      "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, O y P lo llevan a valores distintos, en el mismo sentido en cada prueba: 60 cuadros: O 119→192, P 119→0",
+        "se reescribe 712 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
+      ],
+      "confidence": 0.25,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $6FC2 y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$8753 ×361",
+        "$92AC ×351"
+      ]
+    },
+    {
+      "kind": "position-y",
+      "address": "5C09",
+      "nature": "derived",
+      "hypothesis": "Posición vertical del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, Q y A lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: Q 0→0, A 0→5; 60 cuadros: Q 0→0, A 0→5",
+        "se reescribe 723 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
+      ],
+      "confidence": 0.25,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $5C09 y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$8748 ×362",
+        "$8F9F ×361"
+      ]
+    },
+    {
+      "kind": "position-y",
+      "address": "5C1D",
+      "nature": "derived",
+      "hypothesis": "Posición vertical del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, Q y A lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: Q 0→0, A 0→6; 60 cuadros: Q 0→0, A 0→6",
+        "se reescribe 723 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
+      ],
+      "confidence": 0.25,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $5C1D y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$8748 ×362",
+        "$8F9F ×361"
+      ]
+    },
+    {
+      "kind": "position-y",
+      "address": "5C30",
+      "nature": "derived",
+      "hypothesis": "Posición vertical del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, Q y A lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: Q 0→0, A 0→3; 60 cuadros: Q 0→0, A 0→3",
+        "se reescribe 723 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
+      ],
+      "confidence": 0.25,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $5C30 y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$8748 ×362",
+        "$8F9F ×361"
+      ]
+    },
+    {
+      "kind": "position-y",
+      "address": "5C98",
+      "nature": "derived",
+      "hypothesis": "Posición vertical del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, Q y A lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: Q 0→0, A 0→4; 60 cuadros: Q 0→0, A 0→4",
+        "se reescribe 723 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
+      ],
+      "confidence": 0.25,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $5C98 y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$8748 ×362",
+        "$8F9F ×361"
+      ]
+    },
+    {
+      "kind": "position-y",
+      "address": "5CDE",
+      "nature": "derived",
+      "hypothesis": "Posición vertical del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, Q y A lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: Q 0→0, A 0→5; 60 cuadros: Q 0→0, A 0→5",
+        "se reescribe 723 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
+      ],
+      "confidence": 0.25,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $5CDE y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$8748 ×362",
+        "$8F9F ×361"
+      ]
+    },
+    {
+      "kind": "position-y",
+      "address": "5CEE",
+      "nature": "derived",
+      "hypothesis": "Posición vertical del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, Q y A lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: Q 0→0, A 0→70; 60 cuadros: Q 0→0, A 0→70",
+        "se reescribe 452 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
+      ],
+      "confidence": 0.25,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $5CEE y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$8748 ×362",
+        "$8DC4 ×48",
+        "$8DC2 ×42"
+      ]
+    },
+    {
+      "kind": "position-y",
+      "address": "5CEF",
+      "nature": "derived",
+      "hypothesis": "Posición vertical del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, Q y A lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: Q 0→0, A 0→70; 60 cuadros: Q 0→0, A 0→70",
+        "se reescribe 444 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
+      ],
+      "confidence": 0.25,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $5CEF y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$8748 ×362",
+        "$8DC4 ×42",
+        "$8DC2 ×40"
+      ]
+    },
+    {
+      "kind": "position-y",
+      "address": "5D0E",
+      "nature": "derived",
+      "hypothesis": "Posición vertical del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, Q y A lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: Q 0→0, A 0→70; 60 cuadros: Q 0→0, A 0→70",
+        "se reescribe 452 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
+      ],
+      "confidence": 0.25,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $5D0E y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$8748 ×362",
+        "$8DC8 ×48",
+        "$8DC6 ×42"
+      ]
+    },
+    {
+      "kind": "position-x",
+      "address": "5DA1",
+      "nature": "derived",
+      "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, O y P lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: O 0→7, P 0→0",
+        "se reescribe 362 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
+      ],
+      "confidence": 0.1,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $5DA1 y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$8748 ×362"
+      ]
+    },
+    {
+      "kind": "position-x",
+      "address": "5DA2",
+      "nature": "derived",
+      "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, O y P lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: O 7→7, P 7→0",
+        "se reescribe 713 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
+      ],
+      "confidence": 0.1,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $5DA2 y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$8748 ×362",
+        "$926F ×351"
+      ]
+    },
+    {
+      "kind": "position-x",
+      "address": "5DA3",
+      "nature": "derived",
+      "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, O y P lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: O 7→0, P 7→7",
+        "se reescribe 717 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
+      ],
+      "confidence": 0.1,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $5DA3 y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$8748 ×362",
+        "$926F ×355"
+      ]
+    }
+  ],
+  "notes": []
+}

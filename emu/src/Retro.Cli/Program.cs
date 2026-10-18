@@ -68,6 +68,9 @@ if (command == "compat")
     return RunCompat(mediaPath, Opt("juegos") ?? @"C:\Users\mauro\Downloads\ROMs", Opt("salida"), Opt("md"), Opt("capturas") ?? "out/compat",
         Opt("solo"), Opt("descubrir") != null, Opt("dos-veces") != null, int.Parse(Opt("paralelo") ?? "4"));
 
+if (command == "lab")
+    return RunLab(mediaPath, Opt("juegos") ?? @"C:\Users\mauro\Downloads\ROMs", Opt("salida"), int.Parse(Opt("cuadros") ?? "3000"));
+
 if (command == "fuse")
     return RunFusion(mediaPath, Opt("games") ?? ".", Opt("ticks"), Opt("screenshot"), Opt("shot-every"), Opt("shot-prefix"), opts.GetValueOrDefault("press"), Opt("layout"));
 
@@ -339,6 +342,43 @@ static int RunCompat(string scriptsPath, string gamesDir, string? jsonOut, strin
     foreach (var g in results.GroupBy(r => r.Machine).OrderBy(g => g.Key))
         Console.WriteLine($"  {g.Key}: {g.Count()} archivos; " + string.Join(", ",
             Retro.Compat.CompatLevels.All.Select(l => $"{Retro.Compat.CompatLevels.Spanish(l)} {g.Count(r => r.Levels[l].Status == "ok")}")));
+    return 0;
+}
+
+// Reverse engineering lab: plays a compatibility script to reach the game, then looks
+// for lives, timers and positions by experiment and writes the findings with evidence.
+static int RunLab(string scriptPath, string gamesDir, string? jsonOut, int idleFrames)
+{
+    var script = Retro.Compat.CompatScript.Load(scriptPath);
+    var runner = new Retro.Compat.CompatRunner(gamesDir, Path.GetDirectoryName(FindRom("48.rom"))!, null);
+    var (m, sha, problem) = runner.Start(script);
+    if (m == null)
+    {
+        Console.Error.WriteLine($"No se pudo llegar al juego: {problem}");
+        return 3;
+    }
+    Console.WriteLine($"{script.Game} ({script.Machine}), estado al final del guion {script.Id}; observando {idleFrames} cuadros...");
+    var sw = Stopwatch.StartNew();
+    var report = Retro.Compat.MemoryLab.Analyze(m, script.Machine, new Retro.Compat.MemoryLab.Options(IdleFrames: idleFrames));
+    report.Game = script.Game;
+    report.Script = script.Id;
+    report.Sha256 = sha;
+    Console.WriteLine($"Listo en {sw.Elapsed.TotalSeconds:F1} s. {report.Method}");
+    foreach (var f in report.Findings.Take(25))
+    {
+        Console.WriteLine($"  ${f.Address} {f.Kind,-11} confianza {f.ConfidenceLabel} ({f.Confidence:F2}) {f.Hypothesis}");
+        foreach (var e in f.Evidence)
+            Console.WriteLine($"      evidencia: {e}");
+        if (f.Writers.Count > 0)
+            Console.WriteLine($"      lo escriben: {string.Join(", ", f.Writers)}");
+    }
+    foreach (var n in report.Notes)
+        Console.WriteLine("  nota: " + n);
+    if (jsonOut != null)
+    {
+        report.Save(jsonOut);
+        Console.WriteLine("Hallazgos: " + jsonOut);
+    }
     return 0;
 }
 

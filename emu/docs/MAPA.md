@@ -30,6 +30,7 @@ Fuente única de rutas y comandos de desarrollo. El diseño interno está en
 | `src/Retro.Cli` | `retro-cli`: ejecución sin ventana |
 | `tests/*` | NUnit: `Retro.Cpu.Z80.Tests`, `I8080.Tests`, `M6502.Tests`, `Zx.Tests`, `Arcade.Tests`, `C64.Tests`, `Compat.Tests`, `Fusion.Tests`, `Studio.Tests` |
 | `compat/juegos/*.json` | Un guion de compatibilidad por archivo de juego (106 hoy; los curados tienen `"curated": true`) |
+| `lab/*.json` | Hallazgos del laboratorio de ingeniería inversa por juego (hipótesis, evidencia, confianza, quién escribe) |
 | `compat/resultados.json` | Último resultado de la matriz con toda la evidencia (lo genera `retro-cli compat`) |
 | `testdata/` | Suites de CPU (FUSE, ZEX, 8080; las grandes de 6502 se bajan aparte) |
 | `roms/` | Firmware redistribuible: `48.rom`, `c64/` (Open ROMs + licencia) |
@@ -66,6 +67,9 @@ $C studio manic-invaders --games <carpeta-juegos> --shots out/s
 $C compat compat/juegos --juegos C:/Users/mauro/Downloads/ROMs --salida compat/resultados.json --md docs/COMPATIBILIDAD.md --capturas out/compat --dos-veces
 $C compat compat/juegos --juegos C:/Users/mauro/Downloads/ROMs --descubrir --solo nada   # solo crea guiones para archivos nuevos
 $C compat compat/juegos --solo c64-pac --juegos ... --salida compat/resultados.json       # unos pocos, fusionando con el resultado anterior
+
+# laboratorio de ingeniería inversa: llega al juego con un guion y busca vidas, tiempo y posiciones
+$C lab compat/juegos/zx48-manicminer.json --cuadros 12000 --salida lab/zx48-manicminer.json
 
 # paquetes autocontenidos (Windows y Linux) en emu/dist
 pwsh tools/publish.ps1 -Version 0.4.0

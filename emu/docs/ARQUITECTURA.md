@@ -207,6 +207,29 @@ pantalla vacía) → título → responde a los controles → jugable → listo 
 - **Descubrimiento:** `--descubrir` crea guiones para los archivos sin guion (sin pasos ni
   comprobaciones: llegan como mucho a "imagen" y "responde") y salta el contenido excluido.
 
+## Laboratorio de ingeniería inversa (MemoryLab)
+
+`retro-cli lab <guion>` juega el guion de compatibilidad hasta el punto de partida y,
+desde un estado guardado, hace experimentos:
+
+- **Serie en reposo:** una foto de la RAM cada 5 cuadros sin tocar nada. Un valor chico
+  que solo baja de a uno es candidato a vidas; uno que baja con regularidad y a veces se
+  recarga, a tiempo/aire/energía. Si cuando bajan las vidas se recargan temporizadores
+  (reinicio de vida o nivel), la confianza de ambos sube.
+- **Corridas diferenciales:** desde el mismo estado, cada dirección apretada 30 y 60
+  cuadros, comparada con la corrida sin entradas. Una dirección que las dos direcciones
+  opuestas llevan a valores distintos, en el mismo sentido en ambas pruebas, es candidata
+  a posición. Si también cambia sola en reposo, es un personaje que sigue caminando (no un
+  temporizador).
+- **Quién escribe:** con `IWriteWatch` (Spectrum, C64 y arcade informan cada escritura de
+  la CPU con la dirección de la instrucción) se anotan las rutinas que escriben cada
+  candidato. Lo que se reescribe todos los cuadros se marca como buffer o valor derivado.
+
+Cada hallazgo guarda hipótesis, evidencia, confianza, edición (SHA-256), efecto esperado y
+cómo comprobarlo y revertirlo (`emu/lab/<guion>.json`). Probado a ciegas con Manic Miner
+(encontró posición $806C, vidas $8457 y aire $80BC, las del perfil verificado) y con
+Pac-Man de C64 (vidas $001A, X $003C, Y $003F, a verificar en T-022).
+
 ## Cinta: señal, no atajos
 
 TAP y TZX se convierten en una secuencia de segmentos de la forma (nivel, duración en

@@ -14,7 +14,7 @@ namespace Retro.Systems.Arcade;
 /// sound triggers (OUT 3/5) and the watchdog (OUT 6). The monitor is mounted rotated
 /// 90 degrees counter-clockwise behind a coloured cellophane overlay.
 /// </summary>
-public sealed class SpaceInvaders : IMachine, I8080Bus, IMemoryView, ICodePatch
+public sealed class SpaceInvaders : IMachine, I8080Bus, IMemoryView, ICodePatch, IWriteWatch
 {
     public const int CpuClock = 1_996_800;
     public const int CyclesPerLine = 128;
@@ -112,6 +112,7 @@ public sealed class SpaceInvaders : IMachine, I8080Bus, IMemoryView, ICodePatch
         if (a >= 0x2400)
             RenderTo(CurrentLine());
         _ram[a - 0x2000] = value;
+        WriteWatch?.Invoke((ushort)a, value, _instructionPc);
     }
 
     public byte In(byte port) => port switch
@@ -203,8 +204,12 @@ public sealed class SpaceInvaders : IMachine, I8080Bus, IMemoryView, ICodePatch
     public IReadOnlyList<uint> CodeEntryPoints { get; } = new uint[] { 0x0000, 0x0008, 0x0010 };
     public bool[]? ExecutedMap { get; set; }
 
+    public Action<ushort, byte, ushort>? WriteWatch { get; set; }
+    private ushort _instructionPc;
+
     private void ExecuteOne()
     {
+        _instructionPc = _cpu.PC;
         if (ExecutedMap != null)
             ExecutedMap[_cpu.PC] = true;
         long cycle = FrameCycle;

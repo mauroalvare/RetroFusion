@@ -54,6 +54,15 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 - La sonda prueba una lista fija de entradas por máquina; un juego que espera otra tecla
   figura como que no responde.
 
+### Laboratorio de ingeniería inversa
+
+- Por ahora clasifica vidas, tiempo/energía y posiciones X/Y. Puntaje, nivel/habitación,
+  munición, inventario y tablas de entidades necesitan experimentos guiados (juntar algo,
+  pasar de nivel) que todavía no hace (T-017).
+- Las vidas solo aparecen si el personaje muere durante la observación (subir `--cuadros`).
+- Las hipótesis no se comprueban solas todavía: escribir el valor y ver el efecto es el
+  siguiente paso (T-017, T-024).
+
 ## Fusiones y estudio
 
 - Las recetas por reglas admiten 2 o 3 juegos (`FusionRecipe` lo valida). T-023.

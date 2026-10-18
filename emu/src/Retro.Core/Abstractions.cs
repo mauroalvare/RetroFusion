@@ -208,3 +208,14 @@ public interface IMediaLoader
     /// <summary>0 = not this format, 100 = certain.</summary>
     int Probe(string fileName, ReadOnlySpan<byte> data);
 }
+
+/// <summary>
+/// Optional for a machine: reports every CPU write to memory with the address of the
+/// instruction that made it. Used by the reverse engineering lab and watchpoints; when
+/// nobody listens (null) it costs nothing.
+/// </summary>
+public interface IWriteWatch
+{
+    /// <summary>address written, value, address of the instruction that wrote it.</summary>
+    Action<ushort, byte, ushort>? WriteWatch { get; set; }
+}

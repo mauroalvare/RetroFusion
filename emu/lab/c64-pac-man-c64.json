@@ -1,0 +1,431 @@
+{
+  "game": "Pac-Man",
+  "machine": "c64",
+  "script": "c64-pac-man-c64",
+  "sha256": "1f743c4874a521d116d9d45f8401b36655339b8244d61ac1948059cd4561eee6",
+  "generated": "2026-10-18 10:01 UTC",
+  "method": "Serie de 1201 muestras cada 5 cuadros sin tocar nada (6000 cuadros); corridas desde el mismo estado con cada dirección apretada 30 y 60 cuadros, comparadas con la corrida sin entradas; rango $0002-$CFFF.",
+  "findings": [
+    {
+      "kind": "lives",
+      "address": "001A",
+      "nature": "stored-value",
+      "hypothesis": "Vidas (o intentos): valor chico que solo baja de a uno.",
+      "evidence": [
+        "empieza en 2 y baja de a 1 2 vez/veces en 6000 cuadros sin tocar nada (muestras 820, 2075)",
+        "cuando baja, 3 candidato(s) de tiempo se recargan cerca (reinicio de nivel o vida)"
+      ],
+      "confidence": 0.8,
+      "confidenceLabel": "alta",
+      "expectedEffect": "Subirlo da vidas extra; congelarlo da vidas infinitas.",
+      "howToVerify": "Escribir 4 en $001A y ver si el contador de vidas en pantalla cambia; perder una vida y ver que baja.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$8D57 ×2"
+      ]
+    },
+    {
+      "kind": "position-y",
+      "address": "003F",
+      "nature": "stored-value",
+      "hypothesis": "Posición vertical del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, JOY2 UP y JOY2 DOWN lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: JOY2 UP 164→140, JOY2 DOWN 164→180; 60 cuadros: JOY2 UP 164→116, JOY2 DOWN 164→180"
+      ],
+      "confidence": 0.8,
+      "confidenceLabel": "alta",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $003F y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$939A ×19",
+        "$8DF8 ×1",
+        "$8E27 ×1"
+      ]
+    },
+    {
+      "kind": "position-y",
+      "address": "0045",
+      "nature": "stored-value",
+      "hypothesis": "Posición vertical del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, JOY2 UP y JOY2 DOWN lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: JOY2 UP 164→140, JOY2 DOWN 164→180; 60 cuadros: JOY2 UP 164→116, JOY2 DOWN 164→180"
+      ],
+      "confidence": 0.8,
+      "confidenceLabel": "alta",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $0045 y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$925B ×16",
+        "$925D ×16",
+        "$8DF8 ×1",
+        "$8E27 ×1"
+      ]
+    },
+    {
+      "kind": "timer",
+      "address": "0087",
+      "nature": "stored-value",
+      "hypothesis": "Tiempo, aire o energía que se consume solo y se recarga al (re)empezar.",
+      "evidence": [
+        "baja de a 1 204 veces y sube 4 en 6000 cuadros sin tocar nada (de 0 a 99)",
+        "se recarga cuando baja un candidato de vidas"
+      ],
+      "confidence": 0.7,
+      "confidenceLabel": "media",
+      "expectedEffect": "Congelarlo detiene el tiempo o da energía infinita.",
+      "howToVerify": "Congelar $0087 en 0 y ver si la barra o el número de tiempo deja de bajar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$8A32 ×130",
+        "$9801 ×96",
+        "$98BF ×2",
+        "$8DF8 ×1",
+        "$8E7D ×1"
+      ]
+    },
+    {
+      "kind": "timer",
+      "address": "0088",
+      "nature": "stored-value",
+      "hypothesis": "Tiempo, aire o energía que se consume solo y se recarga al (re)empezar.",
+      "evidence": [
+        "baja de a 1 183 veces y sube 4 en 6000 cuadros sin tocar nada (de 15 a 129)",
+        "se recarga cuando baja un candidato de vidas"
+      ],
+      "confidence": 0.7,
+      "confidenceLabel": "media",
+      "expectedEffect": "Congelarlo detiene el tiempo o da energía infinita.",
+      "howToVerify": "Congelar $0088 en 15 y ver si la barra o el número de tiempo deja de bajar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$9801 ×282",
+        "$8A32 ×32",
+        "$98BF ×1",
+        "$8DF8 ×1",
+        "$8E7D ×1"
+      ]
+    },
+    {
+      "kind": "position-x",
+      "address": "003C",
+      "nature": "stored-value",
+      "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, JOY2 LEFT y JOY2 RIGHT lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: JOY2 LEFT 217→217, JOY2 RIGHT 217→220; 60 cuadros: JOY2 LEFT 217→217, JOY2 RIGHT 217→223",
+        "sin tocar nada también cambia sola (baja de a 1 20 veces y sube 2 en 6000 cuadros sin tocar nada (de 217 a 217)): el personaje sigue moviéndose solo"
+      ],
+      "confidence": 0.65,
+      "confidenceLabel": "media",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $003C y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$92AB ×12",
+        "$92E8 ×10",
+        "$9274 ×2",
+        "$8DF8 ×1",
+        "$8E27 ×1"
+      ]
+    },
+    {
+      "kind": "position-y",
+      "address": "003D",
+      "nature": "stored-value",
+      "hypothesis": "Posición vertical del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, JOY2 UP y JOY2 DOWN lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: JOY2 UP 6→6, JOY2 DOWN 6→7; 60 cuadros: JOY2 UP 6→5, JOY2 DOWN 6→7"
+      ],
+      "confidence": 0.65,
+      "confidenceLabel": "media",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $003D y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$92EE ×10",
+        "$927A ×2",
+        "$8DF8 ×1",
+        "$8E27 ×1"
+      ]
+    },
+    {
+      "kind": "position-y",
+      "address": "002C",
+      "nature": "derived",
+      "hypothesis": "Posición vertical del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, JOY2 UP y JOY2 DOWN lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: JOY2 UP 164→140, JOY2 DOWN 164→180; 60 cuadros: JOY2 UP 164→90, JOY2 DOWN 164→180",
+        "se reescribe 3192 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
+      ],
+      "confidence": 0.55,
+      "confidenceLabel": "media",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $002C y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$99D3 ×1858",
+        "$935F ×1233",
+        "$8F44 ×98",
+        "$8D11 ×2",
+        "$8D04 ×1"
+      ]
+    },
+    {
+      "kind": "position-y",
+      "address": "311C",
+      "nature": "derived",
+      "hypothesis": "Posición vertical del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, JOY2 UP y JOY2 DOWN lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: JOY2 UP 62→254, JOY2 DOWN 62→130; 60 cuadros: JOY2 UP 62→254, JOY2 DOWN 62→130",
+        "se reescribe 1621 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
+      ],
+      "confidence": 0.55,
+      "confidenceLabel": "media",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $311C y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$875A ×1620",
+        "$9123 ×1"
+      ]
+    },
+    {
+      "kind": "position-y",
+      "address": "580A",
+      "nature": "derived",
+      "hypothesis": "Posición vertical del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, JOY2 UP y JOY2 DOWN lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: JOY2 UP 62→254, JOY2 DOWN 62→130; 60 cuadros: JOY2 UP 62→254, JOY2 DOWN 62→130",
+        "se reescribe 1233 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
+      ],
+      "confidence": 0.55,
+      "confidenceLabel": "media",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $580A y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$934F ×1233"
+      ]
+    },
+    {
+      "kind": "position-x",
+      "address": "003E",
+      "nature": "stored-value",
+      "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, JOY2 LEFT y JOY2 RIGHT lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: JOY2 LEFT 0→0, JOY2 RIGHT 0→2; 60 cuadros: JOY2 LEFT 0→0, JOY2 RIGHT 0→3"
+      ],
+      "confidence": 0.5,
+      "confidenceLabel": "media",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $003E y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$92D9 ×64",
+        "$92B3 ×42",
+        "$92D5 ×10",
+        "$92A3 ×6",
+        "$8DF8 ×1"
+      ]
+    },
+    {
+      "kind": "position-x",
+      "address": "0040",
+      "nature": "stored-value",
+      "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, JOY2 LEFT y JOY2 RIGHT lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: JOY2 LEFT 82→82, JOY2 RIGHT 82→94; 60 cuadros: JOY2 LEFT 82→82, JOY2 RIGHT 82→106"
+      ],
+      "confidence": 0.5,
+      "confidenceLabel": "media",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $0040 y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$939E ×19",
+        "$8DF8 ×1",
+        "$8E27 ×1"
+      ]
+    },
+    {
+      "kind": "position-x",
+      "address": "004A",
+      "nature": "stored-value",
+      "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, JOY2 LEFT y JOY2 RIGHT lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: JOY2 LEFT 82→82, JOY2 RIGHT 82→96; 60 cuadros: JOY2 LEFT 82→82, JOY2 RIGHT 82→109"
+      ],
+      "confidence": 0.5,
+      "confidenceLabel": "media",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $004A y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$92CD ×84",
+        "$9299 ×54",
+        "$8DF8 ×1",
+        "$8E27 ×1"
+      ]
+    },
+    {
+      "kind": "position-x",
+      "address": "004F",
+      "nature": "stored-value",
+      "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, JOY2 LEFT y JOY2 RIGHT lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: JOY2 LEFT 4→4, JOY2 RIGHT 4→8; 60 cuadros: JOY2 LEFT 4→4, JOY2 RIGHT 4→8"
+      ],
+      "confidence": 0.5,
+      "confidenceLabel": "media",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $004F y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$9208 ×78",
+        "$91E1 ×76",
+        "$8DF8 ×1",
+        "$8E27 ×1"
+      ]
+    },
+    {
+      "kind": "position-y",
+      "address": "003C",
+      "nature": "stored-value",
+      "hypothesis": "Posición vertical del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, JOY2 UP y JOY2 DOWN lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: JOY2 UP 217→97, JOY2 DOWN 217→41"
+      ],
+      "confidence": 0.5,
+      "confidenceLabel": "media",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $003C y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$92AB ×12",
+        "$92E8 ×10",
+        "$9274 ×2",
+        "$8DF8 ×1",
+        "$8E27 ×1"
+      ]
+    },
+    {
+      "kind": "position-y",
+      "address": "00B3",
+      "nature": "stored-value",
+      "hypothesis": "Posición vertical del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, JOY2 UP y JOY2 DOWN lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: JOY2 UP 0→1, JOY2 DOWN 0→0; 60 cuadros: JOY2 UP 0→1, JOY2 DOWN 0→0"
+      ],
+      "confidence": 0.5,
+      "confidenceLabel": "media",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $00B3 y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$93B7 ×2",
+        "$90EF ×2",
+        "$8DF8 ×1"
+      ]
+    },
+    {
+      "kind": "timer",
+      "address": "000C",
+      "nature": "stored-value",
+      "hypothesis": "Tiempo, aire o energía que se consume solo y se recarga al (re)empezar.",
+      "evidence": [
+        "baja de a 1 167 veces y sube 1 en 6000 cuadros sin tocar nada (de 0 a 59)"
+      ],
+      "confidence": 0.5,
+      "confidenceLabel": "media",
+      "expectedEffect": "Congelarlo detiene el tiempo o da energía infinita.",
+      "howToVerify": "Congelar $000C en 0 y ver si la barra o el número de tiempo deja de bajar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": []
+    },
+    {
+      "kind": "timer",
+      "address": "0069",
+      "nature": "stored-value",
+      "hypothesis": "Tiempo, aire o energía que se consume solo y se recarga al (re)empezar.",
+      "evidence": [
+        "baja de a 1 114 veces y sube 4 en 6000 cuadros sin tocar nada (de 0 a 32)"
+      ],
+      "confidence": 0.5,
+      "confidenceLabel": "media",
+      "expectedEffect": "Congelarlo detiene el tiempo o da energía infinita.",
+      "howToVerify": "Congelar $0069 en 0 y ver si la barra o el número de tiempo deja de bajar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$9621 ×72",
+        "$989C ×2",
+        "$9B0D ×1",
+        "$8DF8 ×1"
+      ]
+    },
+    {
+      "kind": "position-x",
+      "address": "0018",
+      "nature": "derived",
+      "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, JOY2 LEFT y JOY2 RIGHT lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: JOY2 LEFT 11→11, JOY2 RIGHT 11→12; 60 cuadros: JOY2 LEFT 11→11, JOY2 RIGHT 11→12",
+        "se reescribe 6716 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
+      ],
+      "confidence": 0.25,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $0018 y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$94E4 ×2203",
+        "$9525 ×2203",
+        "$93ED ×1233",
+        "$9534 ×971",
+        "$95B0 ×98"
+      ]
+    },
+    {
+      "kind": "position-x",
+      "address": "0061",
+      "nature": "derived",
+      "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, JOY2 LEFT y JOY2 RIGHT lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: JOY2 LEFT 82→82, JOY2 RIGHT 82→95; 60 cuadros: JOY2 LEFT 82→82, JOY2 RIGHT 82→108",
+        "se reescribe 2204 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
+      ],
+      "confidence": 0.25,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $0061 y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$94E0 ×2203",
+        "$8DF8 ×1"
+      ]
+    },
+    {
+      "kind": "position-x",
+      "address": "01F3",
+      "nature": "derived",
+      "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, JOY2 LEFT y JOY2 RIGHT lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: JOY2 LEFT 53→53, JOY2 RIGHT 53→52; 60 cuadros: JOY2 LEFT 53→53, JOY2 RIGHT 53→52",
+        "se reescribe 2222 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
+      ],
+      "confidence": 0.25,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $01F3 y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$9527 ×2203",
+        "$9489 ×12",
+        "$8D95 ×4",
+        "$8DF3 ×1",
+        "$8DFD ×1"
+      ]
+    }
+  ],
+  "notes": []
+}
