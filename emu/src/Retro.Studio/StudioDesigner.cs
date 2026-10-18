@@ -80,6 +80,7 @@ public sealed class StudioDesigner
             {
                 "zx48" => "Imagen: 256x192 (ZX Spectrum, g.area dentro de un cuadro de 352x296 con borde).",
                 "invaders" => "Imagen: 224x256, vertical (placa arcade).",
+                "c64" => "Imagen: 320x200 (Commodore 64, g.area dentro de un cuadro de 384x272 con borde).",
                 _ => "",
             });
             sb.AppendLine("Variables (g.get / g.set):");

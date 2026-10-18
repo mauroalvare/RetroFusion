@@ -26,6 +26,20 @@ public class StudioGameTests
     }
 
     [Test]
+    public void PacManMina_CrossesCpusAndPassesThePlaytest()
+    {
+        var (sources, romDir) = Games();
+        if (!sources.ContainsKey("pacman-c64"))
+            Assert.Ignore("Hace falta Pac_Man_C64_ROM_EN.zip en ROMs/.");
+        var report = StudioValidator.Run(StudioLibrary.BuiltIn.Single(g => g.Id == "pacman-mina"), sources, romDir);
+        TestContext.Out.WriteLine(report.Summary);
+        Assert.That(report.Error, Is.Null);
+        Assert.That(report.Ok, Is.True, string.Join("; ", report.Problems));
+        // the dots Pac-Man eats on the C64 are found by their colour inside the C64 picture area
+        Assert.That(report.Robots!.Single(r => r.Name == "explorador").Score, Is.GreaterThan(0), "comiendo puntos se suman puntos");
+    }
+
+    [Test]
     public void ManicInvaders_StartsOnTheTitleAndUsesTheOriginalCaverns()
     {
         var (sources, romDir) = Games();

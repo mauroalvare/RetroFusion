@@ -36,8 +36,8 @@ Cada juego (por la ranura de la receta) es un objeto `g`:
 
 | Miembro | Qué hace |
 |---|---|
-| `g.name`, `g.profile`, `g.machine` | Nombre, id del perfil, máquina (`zx48`, `invaders`) |
-| `g.area` | `{x, y, w, h}`: dónde está la imagen del juego dentro de su cuadro (sin el borde del Spectrum). Las coordenadas de las ayudas del perfil son relativas a esta área. |
+| `g.name`, `g.profile`, `g.machine` | Nombre, id del perfil, máquina (`zx48`, `invaders`, `c64`) |
+| `g.area` | `{x, y, w, h}`: dónde está la imagen del juego dentro de su cuadro (sin el borde del Spectrum ni del C64: en el C64 son los 320x200 del medio de un cuadro de 384x272). Las coordenadas de las ayudas del perfil son relativas a esta área. |
 | `g.control(nombre, apretado)` | Aprieta o suelta un control del perfil (`left`, `right`, `jump`, `fire`, `start`...) o una tecla de la máquina (`'P'`, `'SPACE'`, `'P1 FIRE'`...). Queda apretado hasta que lo sueltes. |
 | `g.tap(nombre, cuadros)` | Aprieta un control durante N cuadros del juego y lo suelta solo. |
 | `g.get(variable)`, `g.set(variable, valor)` | Lee o escribe una variable del perfil (vidas, puntaje...). Las de solo lectura no se escriben. |

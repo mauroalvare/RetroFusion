@@ -131,11 +131,13 @@ public sealed class StudioSession : IFusionRun
     internal IEnumerable<SlotState> SlotStates => _slots;
     internal Canvas Canvas => _canvas;
 
-    /// <summary>Where the game's own picture is inside its frame (without the Spectrum border).</summary>
+    /// <summary>Where the game's own picture is inside its frame (without the Spectrum or C64 border).</summary>
     internal static (int x, int y, int w, int h) PictureArea(IMachine m) => m switch
     {
         Spectrum48 => (Spectrum48.BorderSide, Spectrum48.BorderTop, 256, 192),
         SpaceInvaders => (0, 0, SpaceInvaders.ScreenWidth, SpaceInvaders.ScreenHeight),
+        // 25-row display: VIC X 24 (32 border pixels in) and raster line 51 (36 lines down)
+        Retro.Systems.C64.C64 => (32, 51 - Retro.Systems.C64.Vic.FirstVisibleLine, 320, 200),
         _ => (0, 0, m.Video.Width, m.Video.Height),
     };
 
