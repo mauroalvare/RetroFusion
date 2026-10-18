@@ -264,7 +264,22 @@ public static class ProfileLibrary
         return list;
     }
 
-    public static GameProfile? Find(string id) => All().FirstOrDefault(p => p.Id == id);
+    private static readonly Dictionary<string, GameProfile> Remembered = new();
+
+    /// <summary>Keeps a profile made on the spot (a game nobody prepared yet) for this session: recipes can name it.</summary>
+    public static void Remember(GameProfile profile)
+    {
+        lock (Remembered)
+            Remembered[profile.Id] = profile;
+    }
+
+    public static GameProfile? Find(string id)
+    {
+        if (All().FirstOrDefault(p => p.Id == id) is { } found)
+            return found;
+        lock (Remembered)
+            return Remembered.GetValueOrDefault(id);
+    }
 
     /// <summary>The profile of a game: one made for that very copy (same SHA-256) first, then one that matches by name.</summary>
     public static GameProfile? ForFiles(IReadOnlyList<MediaFile> files)

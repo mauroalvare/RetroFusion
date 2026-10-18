@@ -22,7 +22,10 @@ public sealed class FusionWindow
     private bool _open;
     private string _folder;
     private readonly List<GameSource> _games = new();
-    private readonly List<(string name, string why, string path)> _unprofiled = new();
+    /// <summary>Profile id -> file of the games with no verified variables yet.</summary>
+    private readonly Dictionary<string, string> _unprepared = new();
+    /// <summary>Profile id -> label in the list (the file name is added when two games share a name).</summary>
+    private readonly Dictionary<string, string> _labels = new();
     private Task<Retro.Compat.PrepareResult>? _prepareTask;
     private CancellationTokenSource? _prepareCts;
     private string _preparing = "";
@@ -61,31 +64,23 @@ public sealed class FusionWindow
     private void Scan()
     {
         _games.Clear();
-        _unprofiled.Clear();
+        _unprepared.Clear();
         if (!Directory.Exists(_folder))
         {
             _status = "La carpeta no existe.";
             return;
         }
-        foreach (var path in Directory.GetFiles(_folder))
+        _labels.Clear();
+        var catalog = Retro.Compat.GameCatalog.Scan(_folder);
+        foreach (var g in catalog)
         {
-            List<MediaFile> files;
-            try { files = MediaArchive.Open(path); }
-            catch (Exception) { continue; }
-            if (files.Count == 0)
-                continue;
-            var p = ProfileLibrary.ForFiles(files);
-            if (p != null)
-            {
-                if (_games.All(g => g.Profile.Id != p.Id))
-                    _games.Add(new GameSource(p, files, _folder));
-            }
-            else if (!Retro.Compat.CompatDiscovery.IsExcluded(path) && Retro.Compat.GamePreparer.Choose(files) is { machine: { } machine })
-            {
-                _unprofiled.Add((Path.GetFileName(path), $"{Retro.Machines.MachineCatalog.Get(machine).Name}, sin perfil todavía", path));
-            }
+            _games.Add(g.Source);
+            if (!g.Prepared)
+                _unprepared[g.Profile.Id] = g.Path;
+            bool twin = catalog.Count(o => o.Profile.Name == g.Profile.Name) > 1;
+            _labels[g.Profile.Id] = twin ? $"{g.Profile.Name} · {Path.GetFileName(g.Path)}" : g.Profile.Name;
         }
-        _status = $"{_games.Count} juegos con perfil verificado" + (_unprofiled.Count > 0 ? $"; {_unprofiled.Count} se pueden preparar." : ".");
+        _status = $"{_games.Count} juegos que este emulador puede correr ({_games.Count - _unprepared.Count} preparados con variables verificadas).";
     }
 
     /// <summary>Command line --fusion: starts a recipe with the games found in the folder.</summary>
@@ -163,7 +158,8 @@ public sealed class FusionWindow
         foreach (var g in _games)
         {
             bool on = _chosen.Contains(g.Profile.Id);
-            if (ImGui.Checkbox($"{g.Profile.Name}##{g.Profile.Id}", ref on))
+            bool basic = _unprepared.TryGetValue(g.Profile.Id, out var file);
+            if (ImGui.Checkbox($"{_labels.GetValueOrDefault(g.Profile.Id, g.Profile.Name)}##{g.Profile.Id}", ref on))
             {
                 if (on) _chosen.Add(g.Profile.Id);
                 else _chosen.Remove(g.Profile.Id);
@@ -171,7 +167,17 @@ public sealed class FusionWindow
                 _designErrors.Clear();
             }
             if (ImGui.IsItemHovered())
-                ImGui.SetTooltip(g.Profile.Description + "\nVariables: " + string.Join(", ", g.Profile.Variables.Keys));
+                ImGui.SetTooltip(g.Profile.Description + "\nVariables: " + (g.Profile.Variables.Count > 0 ? string.Join(", ", g.Profile.Variables.Keys) : "ninguna todavía"));
+            if (basic)
+            {
+                ImGui.SameLine();
+                ImGui.BeginDisabled(_prepareTask != null);
+                if (ImGui.SmallButton($"Preparar##{g.Profile.Id}"))
+                    StartPrepare(g.Profile.Name, file!);
+                ImGui.EndDisabled();
+                if (ImGui.IsItemHovered())
+                    ImGui.SetTooltip("Llega solo a la partida, encuentra vidas, puntaje, tiempo y posición, y comprueba cada una escribiendo valores. Tarda uno o dos minutos.");
+            }
         }
         DrawUnprofiled();
         var chosen = Chosen();
@@ -194,34 +200,17 @@ public sealed class FusionWindow
         DrawDesigner(chosen);
     }
 
-    /// <summary>Games without a profile: "Preparar" finds the way to the game, its variables, and saves a profile for that copy.</summary>
+    /// <summary>Progress of "Preparar" (the buttons are next to the games without verified variables).</summary>
     private void DrawUnprofiled()
     {
-        if (_unprofiled.Count == 0 && _prepareTask == null)
+        if (_unprepared.Count > 0 && _prepareTask == null)
+            Hint("Los juegos con \"Preparar\" se pueden fusionar ya (controles compartidos, cualquier vista); preparalos para reglas que lean sus vidas, puntaje o posición.");
+        if (_prepareTask == null)
             return;
-        ImGui.Spacing();
-        ImGui.TextUnformatted("Juegos sin perfil:");
-        Hint("\"Preparar\" llega solo a la partida (probando teclas y, si hace falta, con la IA que elegiste para las fusiones), " +
-             "encuentra las vidas, el puntaje, el tiempo y la posición, comprueba cada una escribiendo valores y guarda un perfil para tu copia. Tarda uno o dos minutos.");
-        bool busy = _prepareTask != null;
-        foreach (var (name, why, path) in _unprofiled)
-        {
-            ImGui.PushID(path);
-            ImGui.BeginDisabled(busy);
-            if (ImGui.SmallButton("Preparar"))
-                StartPrepare(name, path);
-            ImGui.EndDisabled();
-            ImGui.SameLine();
-            Hint($"{name}  ({why})");
-            ImGui.PopID();
-        }
-        if (busy)
-        {
-            ImGui.TextColored(new Vector4(1, 0.85f, 0.3f, 1), $"Preparando {_preparing}...");
-            Hint(_prepareProgress);
-            if (ImGui.Button("Cancelar la preparación"))
-                _prepareCts?.Cancel();
-        }
+        ImGui.TextColored(new Vector4(1, 0.85f, 0.3f, 1), $"Preparando {_preparing}...");
+        Hint(_prepareProgress);
+        if (ImGui.Button("Cancelar la preparación"))
+            _prepareCts?.Cancel();
     }
 
     /// <summary>Command line --preparar: opens the window and prepares that file.</summary>

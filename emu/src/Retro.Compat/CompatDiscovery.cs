@@ -16,6 +16,8 @@ public static class CompatDiscovery
     {
         "fundamentally loathsome", "fundamentally-loathsome", "cheril", "phantomasa", "sila tsikl", "sila-tsikl",
         "nanako descends", "nanako-descends",
+        // Bootee (NES) stars Cheril: left out until the user decides (HANDOFF, decisiones pendientes)
+        "bootee",
     };
 
     public static bool IsExcluded(string path) =>

@@ -97,21 +97,11 @@ public sealed class StudioWindow
             _status = "La carpeta no existe.";
             return;
         }
-        foreach (var path in Directory.GetFiles(_folder))
+        foreach (var g in Retro.Compat.GameCatalog.Scan(_folder))
         {
-            List<MediaFile> files;
-            try { files = MediaArchive.Open(path); }
-            catch (Exception) { continue; }
-            if (files.Count == 0)
-                continue;
-            var p = ProfileLibrary.ForFiles(files);
-            if (p != null)
-            {
-                if (_games.All(g => g.Profile.Id != p.Id))
-                    _games.Add(new GameSource(p, files, _folder));
-            }
-            else if (files.Any(f => Retro.Systems.Spectrum.SpectrumMedia.Probe(f) > 0))
-                _unprofiled.Add(Path.GetFileName(path));
+            _games.Add(g.Source);
+            if (!g.Prepared)
+                _unprofiled.Add(g.Profile.Name);
         }
         _status = $"{_games.Count} juegos listos para fusionar.";
     }
@@ -193,7 +183,7 @@ public sealed class StudioWindow
             }
         }
         foreach (var name in _unprofiled)
-            AiPicker.Hint($"   {name}: sin perfil todavía. Abrilo y usá Código > Buscar variables para que se pueda fusionar.");
+            AiPicker.Hint($"   {name}: sin preparar (sin variables todavía). Se puede usar; para que el guion lea sus vidas o su puntaje, preparalo en Fusión > Fusión clásica.");
         if (_chosen.Count < 2)
         {
             ImGui.Spacing();

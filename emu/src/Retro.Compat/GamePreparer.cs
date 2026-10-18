@@ -182,6 +182,15 @@ public static class GamePreparer
         return best == null ? (null, null, "ninguna máquina disponible reconoce este archivo") : (best.Machine.Id, best.File, best.Reason);
     }
 
+    /// <summary>A readable title from the file name ("Spy_vs_Spy_C64_EN.zip" → "Spy vs Spy").</summary>
+    public static string GameNameOf(string path, string? machine)
+    {
+        string name = Path.GetFileNameWithoutExtension(path);
+        if (name.EndsWith(".tzx", StringComparison.OrdinalIgnoreCase) || name.EndsWith(".tap", StringComparison.OrdinalIgnoreCase))
+            name = name[..^4];
+        return machine == "invaders" ? "Space Invaders" : CompatDiscovery.GameName(name);
+    }
+
     public static string Sha256Of(MediaFile f) => Convert.ToHexString(SHA256.HashData(f.Data)).ToLowerInvariant();
 
     public static async Task<PrepareResult> PrepareAsync(string path, PrepareOptions o, Action<string>? progress, CancellationToken ct)
@@ -194,10 +203,7 @@ public static class GamePreparer
         }
         var files = MediaArchive.Open(path);
         var (machine, media, reason) = Choose(files);
-        string name = Path.GetFileNameWithoutExtension(path);
-        if (name.EndsWith(".tzx", StringComparison.OrdinalIgnoreCase) || name.EndsWith(".tap", StringComparison.OrdinalIgnoreCase))
-            name = name[..^4];
-        r.Game = machine == "invaders" ? "Space Invaders" : CompatDiscovery.GameName(name);
+        r.Game = GameNameOf(path, machine);
         if (machine == null || media == null)
         {
             r.Problem = reason;

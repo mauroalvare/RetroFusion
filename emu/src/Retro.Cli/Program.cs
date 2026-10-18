@@ -26,6 +26,7 @@ static int Usage()
                     [--capturas carpeta] [--solo id1,id2] [--descubrir] [--dos-veces] [--paralelo n]
           retro-cli lab <guion.json> [--juegos carpeta] [--cuadros n] [--salida hallazgos.json]
                     [--hipotesis tipo:dirección[:codificación:bytes]]... [--sin-verificar]
+          retro-cli juegos <carpeta>   todos los juegos que se pueden fusionar, con el id de su perfil
           retro-cli preparar <juego> [--ia sub-claude|sub-codex|sub-google|claude|ollama|agent|ninguna]
                     [--carpeta carpeta-del-agente] [--rondas n] [--perfiles carpeta] [--sin-guardar]
                     prepara un juego para las fusiones: llega a la partida (prueba de teclas y la IA
@@ -84,6 +85,9 @@ if (command == "compat")
 if (command == "lab")
     return RunLab(mediaPath, Opt("juegos") ?? @"C:\Users\mauro\Downloads\ROMs", Opt("salida"), int.Parse(Opt("cuadros") ?? "3000"),
         Opt("sin-verificar") == null, opts.GetValueOrDefault("hipotesis") ?? new List<string>());
+
+if (command == "juegos")
+    return ListGames(mediaPath);
 
 if (command == "preparar")
     return await RunPrepare(mediaPath, Opt("ia"), Opt("perfiles"), int.Parse(Opt("rondas") ?? "14"), Opt("sin-guardar") == null, Opt("carpeta"));
@@ -470,6 +474,23 @@ static int RunLab(string scriptPath, string gamesDir, string? jsonOut, int idleF
     return 0;
 }
 
+// Every game of a folder this emulator can run, with the profile id recipes use.
+static int ListGames(string folder)
+{
+    var games = Retro.Compat.GameCatalog.Scan(folder);
+    if (games.Count == 0)
+    {
+        Console.Error.WriteLine($"No hay juegos que este emulador pueda correr en {folder}.");
+        return 2;
+    }
+    Console.WriteLine($"{games.Count} juegos en {folder} (el id es el que va en \"profile\" de una receta):");
+    foreach (var g in games.OrderBy(g => g.Profile.Machine).ThenBy(g => g.Profile.Name))
+        Console.WriteLine($"  {g.Profile.Id,-34} {g.Profile.Machine,-9} {(g.Prepared ? "preparado" : "sin preparar"),-12} " +
+                          $"{(g.Profile.Variables.Count > 0 ? string.Join(", ", g.Profile.Variables.Keys) : "sin variables")}  ({Path.GetRelativePath(folder, g.Path)})");
+    Console.WriteLine("Los que no están preparados se fusionan con controles compartidos y cualquier vista; para reglas: retro-cli preparar <juego>.");
+    return 0;
+}
+
 // Prepares any game for the fusions: reaches the game in progress (key trial, then the
 // user's AI), finds and verifies its variables with the lab and saves a profile tied to
 // the SHA-256 of the copy.
@@ -538,16 +559,7 @@ static string GitHead()
 
 static Dictionary<string, Retro.Fusion.GameSource> FindGameSources(string gamesDir)
 {
-    var sources = new Dictionary<string, Retro.Fusion.GameSource>();
-    foreach (var zip in Directory.GetFiles(gamesDir).Where(f => f.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) || SpectrumMedia.Extensions.Contains(Path.GetExtension(f).ToLowerInvariant())))
-    {
-        List<MediaFile> fs;
-        try { fs = MediaArchive.Open(zip); }
-        catch (InvalidDataException) { continue; }
-        var p = Retro.Fusion.ProfileLibrary.ForFiles(fs);
-        if (p != null && !sources.ContainsKey(p.Id))
-            sources[p.Id] = new Retro.Fusion.GameSource(p, fs, gamesDir);
-    }
+    var sources = Retro.Compat.GameCatalog.Scan(gamesDir).ToDictionary(g => g.Profile.Id, g => g.Source);
     return sources;
 }
 
@@ -614,21 +626,13 @@ static int RunFusion(string recipeArg, string gamesDir, string? ticksOpt, string
     }
     if (layout != null)
         recipe.Layout.Mode = layout;
+    // the folder first: games nobody prepared get their basic profile, which recipes can name
+    var sources = FindGameSources(gamesDir);
     var errors = recipe.Validate(Retro.Fusion.ProfileLibrary.Find);
     if (errors.Count > 0)
     {
         Console.Error.WriteLine("Receta inválida:\n  " + string.Join("\n  ", errors));
         return 3;
-    }
-    var sources = new Dictionary<string, Retro.Fusion.GameSource>();
-    foreach (var zip in Directory.GetFiles(gamesDir).Where(f => f.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) || SpectrumMedia.Extensions.Contains(Path.GetExtension(f).ToLowerInvariant())))
-    {
-        List<MediaFile> fs;
-        try { fs = MediaArchive.Open(zip); }
-        catch (InvalidDataException) { continue; }
-        var p = Retro.Fusion.ProfileLibrary.ForFiles(fs);
-        if (p != null && !sources.ContainsKey(p.Id))
-            sources[p.Id] = new Retro.Fusion.GameSource(p, fs, gamesDir);
     }
     var missing = recipe.Games.Where(g => !sources.ContainsKey(g.Profile)).Select(g => g.Profile).ToList();
     if (missing.Count > 0)
