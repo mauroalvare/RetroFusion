@@ -121,7 +121,7 @@ public sealed class PrepareOptions
     public IPlayAdvisor? Advisor { get; set; }
     /// <summary>Rounds of the key trial before asking the AI (all rounds when there is no AI).</summary>
     public int TrialRounds { get; set; } = 3;
-    public int MaxRounds { get; set; } = 14;
+    public int MaxRounds { get; set; } = 24;
     /// <summary>Where the profile is saved; null = the user's profiles folder.</summary>
     public string? ProfilesFolder { get; set; }
     public int LabFrames { get; set; } = 3000;

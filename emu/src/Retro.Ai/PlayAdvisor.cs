@@ -32,7 +32,14 @@ public sealed class AiPlayAdvisor : IPlayAdvisor
         cuadros y después de cada pantalla conviene esperar 100 a 300.
 
         Consejos:
-        - Usá lo que sabés de ese juego y de esa edición (menús, opciones, cómo empezar).
+        - Ahorrá rondas: cada ronda cuesta tiempo. Cuando sepas lo que viene (una serie de
+          preguntas parecidas, un nombre para escribir, los menús que conocés de este juego),
+          mandá todas las acciones juntas en la misma respuesta (hasta 12), no una por ronda.
+        - Si un texto se escribe solo o hay una animación, probá primero saltearla (ESPACIO,
+          RETURN o disparo); si no se puede, esperá de una vez lo que haga falta (600 a 1500
+          cuadros), no de a poco.
+        - Usá lo que sabés de ese juego y de esa edición (menús, opciones, cómo empezar) para
+          anticipar los pasos que siguen hasta la partida.
         - En los menús de trucos de los cracks ("trainer", "infinite lives? Y/N") contestá N:
           los trucos cambian las variables que después se estudian.
         - Si pide un nombre, escribilo con una tecla por acción y terminá con RETURN o ENTER.

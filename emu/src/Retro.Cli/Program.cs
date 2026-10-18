@@ -90,7 +90,7 @@ if (command == "juegos")
     return ListGames(mediaPath);
 
 if (command == "preparar")
-    return await RunPrepare(mediaPath, Opt("ia"), Opt("perfiles"), int.Parse(Opt("rondas") ?? "14"), Opt("sin-guardar") == null, Opt("carpeta"));
+    return await RunPrepare(mediaPath, Opt("ia"), Opt("perfiles"), int.Parse(Opt("rondas") ?? "24"), Opt("sin-guardar") == null, Opt("carpeta"));
 
 if (command == "fuse")
     return RunFusion(mediaPath, Opt("games") ?? ".", Opt("ticks"), Opt("screenshot"), Opt("shot-every"), Opt("shot-prefix"), opts.GetValueOrDefault("press"), Opt("layout"));
