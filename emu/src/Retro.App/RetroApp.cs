@@ -51,6 +51,8 @@ public sealed class RetroApp
 
     // --autotest <seconds> <png>: run, save a screenshot of the whole window, quit.
     private double _autotestSeconds = -1;
+    // --preparar <file>: prepares that game for the fusions from the fusion window
+    private string? _autoPrepare;
     private string? _autotestShot;
     private double _elapsed;
 
@@ -99,6 +101,8 @@ public sealed class RetroApp
                 _autoFusion = args[++i];
             else if (args[i] == "--studio" && i + 1 < args.Length)
                 _autoStudio = args[++i];
+            else if (args[i] == "--preparar" && i + 1 < args.Length)
+                _autoPrepare = args[++i];
             else if (args[i] == "--studio-window")
                 _studio.Open();
             else if (args[i] == "--fusion-window")
@@ -212,6 +216,11 @@ public sealed class RetroApp
         {
             _fusion.StartByRecipeId(_autoFusion);
             _autoFusion = null;
+        }
+        if (_autoPrepare != null)
+        {
+            _fusion.Prepare(_autoPrepare);
+            _autoPrepare = null;
         }
 
         Raylib.BeginDrawing();

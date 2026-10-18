@@ -22,7 +22,11 @@ public sealed class FusionWindow
     private bool _open;
     private string _folder;
     private readonly List<GameSource> _games = new();
-    private readonly List<(string name, string why)> _unprofiled = new();
+    private readonly List<(string name, string why, string path)> _unprofiled = new();
+    private Task<Retro.Compat.PrepareResult>? _prepareTask;
+    private CancellationTokenSource? _prepareCts;
+    private string _preparing = "";
+    private volatile string _prepareProgress = "";
     private readonly HashSet<string> _chosen = new();
     private string _instructions = "";
     private string _status = "";
@@ -76,12 +80,12 @@ public sealed class FusionWindow
                 if (_games.All(g => g.Profile.Id != p.Id))
                     _games.Add(new GameSource(p, files, _folder));
             }
-            else if (files.Any(f => Retro.Systems.Spectrum.SpectrumMedia.Probe(f) > 0))
+            else if (!Retro.Compat.CompatDiscovery.IsExcluded(path) && Retro.Compat.GamePreparer.Choose(files) is { machine: { } machine })
             {
-                _unprofiled.Add((Path.GetFileName(path), "ZX Spectrum, sin perfil todavía"));
+                _unprofiled.Add((Path.GetFileName(path), $"{Retro.Machines.MachineCatalog.Get(machine).Name}, sin perfil todavía", path));
             }
         }
-        _status = $"{_games.Count} juegos con perfil verificado.";
+        _status = $"{_games.Count} juegos con perfil verificado" + (_unprofiled.Count > 0 ? $"; {_unprofiled.Count} se pueden preparar." : ".");
     }
 
     /// <summary>Command line --fusion: starts a recipe with the games found in the folder.</summary>
@@ -169,8 +173,7 @@ public sealed class FusionWindow
             if (ImGui.IsItemHovered())
                 ImGui.SetTooltip(g.Profile.Description + "\nVariables: " + string.Join(", ", g.Profile.Variables.Keys));
         }
-        foreach (var (name, why) in _unprofiled)
-            Hint($"   {name}  ({why}: falta descubrir sus variables con el buscador de memoria)");
+        DrawUnprofiled();
         var chosen = Chosen();
         if (chosen.Count is < 2 or > 3)
         {
@@ -189,6 +192,57 @@ public sealed class FusionWindow
 
         ImGui.Separator();
         DrawDesigner(chosen);
+    }
+
+    /// <summary>Games without a profile: "Preparar" finds the way to the game, its variables, and saves a profile for that copy.</summary>
+    private void DrawUnprofiled()
+    {
+        if (_unprofiled.Count == 0 && _prepareTask == null)
+            return;
+        ImGui.Spacing();
+        ImGui.TextUnformatted("Juegos sin perfil:");
+        Hint("\"Preparar\" llega solo a la partida (probando teclas y, si hace falta, con la IA que elegiste para las fusiones), " +
+             "encuentra las vidas, el puntaje, el tiempo y la posición, comprueba cada una escribiendo valores y guarda un perfil para tu copia. Tarda uno o dos minutos.");
+        bool busy = _prepareTask != null;
+        foreach (var (name, why, path) in _unprofiled)
+        {
+            ImGui.PushID(path);
+            ImGui.BeginDisabled(busy);
+            if (ImGui.SmallButton("Preparar"))
+                StartPrepare(name, path);
+            ImGui.EndDisabled();
+            ImGui.SameLine();
+            Hint($"{name}  ({why})");
+            ImGui.PopID();
+        }
+        if (busy)
+        {
+            ImGui.TextColored(new Vector4(1, 0.85f, 0.3f, 1), $"Preparando {_preparing}...");
+            Hint(_prepareProgress);
+            if (ImGui.Button("Cancelar la preparación"))
+                _prepareCts?.Cancel();
+        }
+    }
+
+    /// <summary>Command line --preparar: opens the window and prepares that file.</summary>
+    public void Prepare(string path)
+    {
+        Open();
+        StartPrepare(Path.GetFileName(path), path);
+    }
+
+    private void StartPrepare(string name, string path)
+    {
+        Retro.Compat.IPlayAdvisor? advisor = _ai.CreateProvider() is { } provider ? new AiPlayAdvisor(provider)
+            : _ai.Provider == "agent" ? new FolderPlayAdvisor(Path.Combine(Path.GetTempPath(), "RetroEmu-preparar", Path.GetFileNameWithoutExtension(path)))
+            : null;
+        var options = new Retro.Compat.PrepareOptions { FirmwareDirectory = _romDir, Advisor = advisor };
+        _preparing = name;
+        _prepareProgress = advisor != null ? $"Primero se prueban las teclas habituales; después decide {advisor.Name}."
+            : "Sin IA (\"copiar y pegar\" no sirve para esto): solo se prueban las teclas habituales.";
+        _prepareCts = new CancellationTokenSource();
+        var ct = _prepareCts.Token;
+        _prepareTask = Task.Run(() => Retro.Compat.GamePreparer.PrepareAsync(path, options, line => _prepareProgress = line, ct));
     }
 
     private void DrawRecipeCard(FusionRecipe r, List<GameSource> chosen, bool saved)
@@ -426,6 +480,26 @@ public sealed class FusionWindow
                     ? $"Lista en {r.Attempts} intento{(r.Attempts > 1 ? "s" : "")}: probala con \"Jugar esta fusión\"."
                     : "La IA no logró una receta válida en 3 intentos. Errores:";
             }
+        }
+        if (_prepareTask is { IsCompleted: true } pt)
+        {
+            _prepareTask = null;
+            if (pt.IsFaulted)
+            {
+                var e = pt.Exception!.GetBaseException();
+                _status = e is OperationCanceledException ? "Preparación cancelada." : $"No se pudo preparar {_preparing}: {e.Message}";
+            }
+            else if (pt.IsCanceled)
+                _status = "Preparación cancelada.";
+            else if (pt.Result is { Ok: true } r)
+            {
+                Scan();
+                _status = $"{_preparing} quedó preparado: {r.Profile!.Variables.Count(v => !v.Value.ReadOnly)} variables verificadas " +
+                          $"({string.Join(", ", r.Profile.Variables.Keys)}). Ya aparece en la lista.";
+            }
+            else
+                _status = $"No se pudo preparar {_preparing}: {pt.Result.Problem}";
+            Console.WriteLine("preparar: " + _status);
         }
         if (_startTask is { IsCompleted: true } st)
         {
