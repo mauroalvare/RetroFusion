@@ -87,18 +87,35 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 
 ### Laboratorio de ingeniería inversa
 
-- Por ahora clasifica vidas, tiempo/energía y posiciones X/Y. Puntaje, nivel/habitación,
-  munición, inventario y tablas de entidades necesitan experimentos guiados (juntar algo,
-  pasar de nivel) que todavía no hace (T-017).
-- Las vidas solo aparecen si el personaje muere durante la observación (subir `--cuadros`).
-- Las hipótesis no se comprueban solas todavía: escribir el valor y ver el efecto es el
-  siguiente paso (T-017, T-024).
+- El puntaje, el nivel y los objetos necesitan un experimento que los haga cambiar (en el
+  guion, o la partida al azar de "Preparar"); un juego que no suma puntos jugando al azar
+  queda sin puntaje.
+- Los nombres son hipótesis aunque la variable esté verificada: en Spy vs Spy el minutero
+  del reloj sale como "vidas" (baja de a uno y recarga los segundos). La verificación
+  prueba que el juego usa el valor, no qué significa.
+- El ancho de un puntaje ASCII o de dígitos se confirma leyendo la pantalla; en máquinas
+  sin texto legible (NES, arcade) se supone de 6 dígitos o de los bytes que cambiaron.
+- Las tablas de entidades donde todos los bytes se mueven (registros de solo X e Y) se
+  descartan como buffers.
+- Las vidas solo aparecen si el personaje muere durante la observación o la partida al
+  azar.
 
 ## Fusiones y estudio
 
 - Las recetas por reglas admiten 2 o 3 juegos (`FusionRecipe` lo valida). T-023.
-- Los perfiles de juegos (`Retro.Fusion/Profiles`) se asocian por nombre de archivo, no
-  por hash de la edición: otra edición del mismo juego podría usar otras direcciones. T-053.
+- Los perfiles incluidos (`Retro.Fusion/Profiles`) se asocian por nombre de archivo; los
+  que hace "Preparar" van por la huella SHA-256 de la copia (otra edición necesita su
+  propio perfil). T-053.
+- Los juegos sin preparar se fusionan sin arranque: empiezan en su título o menú y el
+  jugador los lleva a la partida; las reglas no pueden leer sus variables.
+- "Preparar" sin IA solo pasa arranques simples (una tecla para empezar). Los cracks de
+  C64 con intro, documentos y preguntas de trucos necesitan la IA o un agente; en esta PC
+  no hay ningún CLI de IA con sesión iniciada, así que la app usa la prueba de teclas o la
+  carpeta para agentes. Ghostbusters (C64) exige comprar trampas en la tienda y la maneja
+  con el joystick del puerto 1; Spy vs Spy, un jugador, con el del puerto 2.
+- Los perfiles preparados de Spy vs Spy, Ghostbusters y Cheman tienen posición y tiempo o
+  vidas. Ghostbusters y Cheman quedaron sin puntaje (jugando al azar no suman puntos); el
+  "score" de Spy vs Spy ($B15C) subió una sola vez y puede no ser el puntaje.
 - Hay perfiles de Manic Miner (Spectrum), Space Invaders (arcade) y Pac-Man de C64 (vidas
   verificadas; X e Y son valores derivados, solo lectura). Pac-Man de Spectrum y los demás
   juegos de C64 todavía no tienen perfil. T-022.

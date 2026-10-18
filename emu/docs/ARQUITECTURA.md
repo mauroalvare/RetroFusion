@@ -253,10 +253,52 @@ desde un estado guardado, hace experimentos:
   la CPU con la dirección de la instrucción) se anotan las rutinas que escriben cada
   candidato. Lo que se reescribe todos los cuadros se marca como buffer o valor derivado.
 
-Cada hallazgo guarda hipótesis, evidencia, confianza, edición (SHA-256), efecto esperado y
-cómo comprobarlo y revertirlo (`emu/lab/<guion>.json`). Probado a ciegas con Manic Miner
+- **Experimentos de guion** (`LabExperiments`): la sección `experiments` de un guion juega
+  entradas que deberían cambiar algo (disparar suma puntos, saltar hasta una llave) contra
+  los mismos cuadros sin tocar. Un número que solo sube con las entradas es candidato a
+  puntaje, probado como dígitos ASCII, un dígito por byte, BCD empaquetado o binario; un
+  contador que sube de a uno, a nivel u objeto; uno que baja, a munición.
+- **Tablas de entidades:** grupos de al menos 3 registros de igual tamaño que se mueven
+  solos, con dos campos que se mueven o cuatro registros; cada posición queda marcada como
+  campo de una tabla o variable suelta.
+- **Verificación** (`LabVerifier`): desde el mismo estado, una corrida sin tocar y otra con
+  un valor de prueba escrito en el candidato (las mismas entradas en las dos). Si el juego
+  lo vuelve a su valor en menos de 10 cuadros es una copia o un valor recalculado
+  (descartada); si lo conserva y sigue operando sobre él, cambia la pantalla o el texto
+  muestra el número nuevo, queda verificada; si no se ve ningún efecto, "sin efecto".
+
+Cada hallazgo guarda hipótesis, evidencia, confianza, estado, el experimento que lo
+verificó, edición (SHA-256), efecto esperado y cómo comprobarlo y revertirlo
+(`emu/lab/<guion>.json`). Probado a ciegas con Manic Miner
 (encontró posición $806C, vidas $8457 y aire $80BC, las del perfil verificado) y con
 Pac-Man de C64 (vidas $001A, X $003C, Y $003F, a verificar en T-022).
+
+## Preparar cualquier juego para las fusiones (GamePreparer)
+
+`GameCatalog` recorre la carpeta del usuario y devuelve cada juego que una máquina
+implementada puede correr. El que no tiene perfil verificado recibe uno básico en el
+momento (máquina, controles y arranque, sin variables), con el mismo id que le daría
+"Preparar"; así cualquier juego se puede fusionar con controles compartidos.
+
+`GamePreparer` hace el perfil completo, por rondas sobre la máquina real (las pruebas
+corren en una máquina gemela para que la real solo vea el arranque):
+
+1. `PlayDetector` decide si ya es la partida: izquierda y derecha (o arriba y abajo),
+   mantenidas 40 y 80 cuadros, llevan una dirección de RAM en sentidos opuestos, más lejos
+   cuanto más se mantienen, y dejan pantallas distintas. Prueba los joysticks y teclados
+   de cada máquina.
+2. Si no, un asesor decide qué apretar: primero `KeyTrialAdvisor` (las teclas habituales,
+   eligiendo la que lleva a una pantalla nueva por similitud de texto o dibujo); después la
+   IA del usuario (`AiPlayAdvisor`, con esquema JSON) o un agente por archivos
+   (`FolderPlayAdvisor`: `ronda-NN.md` y `.png`, respuesta en `respuesta-NN.json`). La IA
+   recibe el texto de la pantalla, un dibujo aproximado, el efecto de cada tecla y lo ya
+   hecho.
+3. En la partida corre el laboratorio, una partida al azar fija para el puntaje (y las
+   vidas, que mueren más jugando que quietas) y la verificación.
+4. El perfil lleva solo las variables verificadas (las posiciones que el juego recalcula,
+   de solo lectura), el arranque como pasos `wait`/`press`, los controles y la huella
+   SHA-256 de la copia. Antes de guardarlo, una máquina nueva repite el arranque y tiene
+   que llegar a la partida.
 
 ## Cinta: señal, no atajos
 

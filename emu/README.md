@@ -201,11 +201,20 @@ Miner Willy recorre la Central Cavern mientras los invasores bajan encima de él
 mismas flechas mueven a Willy y al cañón, cada invasor abatido le da aire a Willy, si
 Willy muere perdés una nave y juntar llaves te devuelve naves.
 
-1. **Fusión > Fusionar juegos.** La ventana busca en tu carpeta de juegos los que tienen
-   **perfil**: dónde guarda cada juego sus vidas, puntaje y posición, y qué teclas usa.
-2. Marcá 2 o 3 juegos. Aparecen las recetas que ya existen para esa combinación:
-   **Jugar esta fusión**.
-3. Si la combinación no existe, armala con IA. Escribí lo que querés ("que cada salto de
+1. **Fusión > Fusionar juegos.** La ventana muestra **todos** los juegos de tu carpeta
+   (subcarpetas incluidas) que el emulador puede correr. Los que tienen **perfil** (dónde
+   guarda cada juego sus vidas, puntaje y posición, y qué teclas usa) sirven para reglas;
+   los demás se fusionan igual con controles compartidos y cualquier vista.
+2. **Preparar**, al lado de un juego sin variables, hace el perfil solo: llega a la
+   partida probando las teclas habituales (y, si hace falta, con la IA elegida), encuentra
+   vidas, puntaje, tiempo y posición, comprueba cada una escribiendo valores en la memoria
+   y guarda el perfil para tu copia (por su huella SHA-256) en
+   `%APPDATA%\RetroEmu\profiles`. Tarda uno o dos minutos.
+3. Marcá 2 o 3 juegos. Aparecen las recetas que ya existen para esa combinación:
+   **Jugar esta fusión**. Las fusiones que ya existen también están en **Máquina > Juegos
+   que ya tienen fusión**, y en la lista de cada máquina los juegos con fusión llevan su
+   marca.
+4. Si la combinación no existe, armala con IA. Escribí lo que querés ("que cada salto de
    Willy dispare el cañón", "modo caos", "cooperativo para dos") y elegí la IA:
 
 | IA | Cómo se conecta |
@@ -293,6 +302,23 @@ retro-cli fuse invaders-miner --games ROMs --ticks 1800 --press 120:fire:3 --scr
 ```bash
 retro-cli studio manic-invaders --games ROMs --shots prueba
 ```
+
+```bash
+retro-cli juegos ROMs
+```
+
+```bash
+retro-cli preparar ROMs/Spy_vs_Spy_C64_EN.zip --ia sub-claude
+```
+
+```bash
+retro-cli lab ../compat/juegos/zx48-manicminer.json --cuadros 12000
+```
+
+`juegos` lista todo lo que se puede fusionar con el id que va en una receta; `preparar`
+hace el perfil de un juego (con `--ia agent --carpeta X` responde un agente por archivos, y
+con `--ia ninguna` solo se prueban teclas); `lab` estudia la memoria de un juego y verifica
+cada hallazgo.
 
 Sirve para pruebas automáticas y para que una IA verifique compatibilidad sin mirar la
 pantalla.
