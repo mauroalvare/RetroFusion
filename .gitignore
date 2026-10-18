@@ -27,3 +27,9 @@ emu/roms/samples/
 # --- Pruebas grandes o de licencia dudosa (se bajan aparte)
 emu/testdata/6502/
 emu/testdata/8080/CPUTEST.COM
+
+# --- Coordinación: estado efímero de cada agente (lo duradero va en tareas/ y buzon/)
+coordinacion/latidos/
+coordinacion/reclamos/
+coordinacion/PAUSA
+*.tmp
