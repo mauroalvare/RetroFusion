@@ -19,6 +19,8 @@ src/
   Retro.Systems.Arcade     Placa Taito/Midway de Space Invaders: video, shifter, sonido.
   Retro.Systems.C64        Commodore 64: VIC-II, SID, dos CIA 6526, bancos del 6510,
                            cintas .t64 y programas .prg, compatibilidad con Open ROMs.
+  Retro.Systems.Nes        Nintendo NES: CPU 2A03, PPU 2C02, cartuchos iNES (mappers 0 y 3),
+                           OAM DMA y mandos. Sin APU todavía.
   Retro.Machines           Catálogo de máquinas y formatos, y el lanzador común que arranca una
                            máquina con un juego (app, CLI, fusiones y compatibilidad).
   Retro.Compat             Matriz de compatibilidad reproducible: guiones, ejecutor sin ventana,
@@ -181,6 +183,25 @@ bus) y la suite funcional de Klaus Dormann.
   los punteros del BASIC y lo lanza como `SYS` (A, X, Y y flags desde $030C-$030F, pila en
   $F6 con la dirección de retorno, como el BASIC real: hay programas que dependen de eso)
   o escribiendo `RUN` en el buffer del teclado.
+
+## Nintendo NES (NTSC)
+
+- **Cuadro:** 262 líneas de 341 puntos; la PPU da tres puntos por ciclo de CPU
+  (1.789.773 Hz, unos 29.780 ciclos por cuadro, 60,1 Hz). La CPU marca el paso: cada
+  acceso al bus avanza tres pasos de la PPU. El cuadro termina al acabar la última línea
+  visible.
+- **CPU:** el mismo núcleo 6502 con `DecimalEnabled = false` (el 2A03 no tiene BCD).
+- **Memoria:** 2 KB de RAM espejados hasta $1FFF, registros de la PPU en $2000-$2007
+  (espejados hasta $3FFF), $4014 OAM DMA (la CPU se detiene 513 o 514 ciclos mientras se
+  copian 256 bytes a la OAM por $2004), $4016/$4017 los mandos, 8 KB de PRG RAM en
+  $6000-$7FFF y el cartucho desde $8000.
+- **NMI:** la salida de la PPU (vblank y bit 7 de $2000) va a la línea NMI del 6502, que
+  reacciona al flanco. No hay fuentes de IRQ todavía.
+- **Mandos:** registro de desplazamiento con A, B, Select, Start, arriba, abajo,
+  izquierda, derecha; con el strobe en alto se relee A; después del octavo bit, 1.
+  Teclas de la máquina: `P1 A`, `P1 START`, `P2 LEFT`...
+- **Cartucho:** sin firmware; `NesCartridge` lee iNES y NES 2.0 y hace el espejado de las
+  nametables. Los estados guardados incluyen la CHR RAM y el banco CNROM.
 
 ## Compatibilidad reproducible (Retro.Compat)
 
@@ -403,6 +424,7 @@ con `Poke` en las demás; el archivo original nunca se modifica.
 | 2 | Intel 8080 | Placa arcade de Space Invaders | Hecha (probada con la ROM real) |
 | F | - | Fusiones, IA y visor de código | Hecha para Spectrum 48K y Space Invaders |
 | 3 | 6502 / 6510 | Commodore 64 (.t64, .prg) | Hecha (Pac-Man, Ghostbusters, Spy vs Spy) |
-| 3b | 6502 | Discos .d64 y cartuchos del C64, Atari 800, Apple II, NES | Pendiente |
+| 3n | 2A03 (6502) | NES (.nes, mappers 0 y 3) | Hecha sin sonido (4 homebrew de Mojon Twins llegan al juego) |
+| 3b | 6502 | Discos .d64 y cartuchos del C64, Atari 800, Apple II | Pendiente |
 | 4 | 8086 / 8088 | IBM PC / XT con DOS | Pendiente |
 | 5 | 68000 | Atari ST, Amiga 500 | Pendiente |

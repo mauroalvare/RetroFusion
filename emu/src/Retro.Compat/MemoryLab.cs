@@ -61,6 +61,7 @@ public static class MemoryLab
         "zx48" => (0x5B00, 0xFFFF),
         "c64" => (0x0002, 0xCFFF),
         "invaders" => (0x2000, 0x23FF),
+        "nes" => (0x0000, 0x07FF),
         _ => (0x0000, 0xFFFF),
     };
 
@@ -69,6 +70,7 @@ public static class MemoryLab
         ["zx48"] = ("O", "P", "Q", "A"),
         ["c64"] = ("JOY2 LEFT", "JOY2 RIGHT", "JOY2 UP", "JOY2 DOWN"),
         ["invaders"] = ("P1 LEFT", "P1 RIGHT", "P1 FIRE", "P1 FIRE"),
+        ["nes"] = ("P1 LEFT", "P1 RIGHT", "P1 UP", "P1 DOWN"),
     };
 
     public static LabReport Analyze(IMachine m, string machine, Options? options = null, (string left, string right, string up, string down)? directions = null)

@@ -366,4 +366,21 @@ public sealed class Ppu
             }
         }
     }
+    // ---------------------------------------------------------------- save states
+
+    public void Save(BinaryWriter w)
+    {
+        w.Write(_vram); w.Write(_palette); w.Write(Oam); w.Write(OamAddress);
+        w.Write(_v); w.Write(_t); w.Write(_x); w.Write(_w);
+        w.Write(_ctrl); w.Write(_mask); w.Write(_status); w.Write(_readBuffer); w.Write(_openBus);
+        w.Write(_sprite0HitDot); w.Write(Line); w.Write(Dot); w.Write(FrameNumber); w.Write(FrameReady);
+    }
+
+    public void Load(BinaryReader r)
+    {
+        r.Read(_vram, 0, _vram.Length); r.Read(_palette, 0, _palette.Length); r.Read(Oam, 0, Oam.Length); OamAddress = r.ReadByte();
+        _v = r.ReadInt32(); _t = r.ReadInt32(); _x = r.ReadInt32(); _w = r.ReadBoolean();
+        _ctrl = r.ReadByte(); _mask = r.ReadByte(); _status = r.ReadByte(); _readBuffer = r.ReadByte(); _openBus = r.ReadByte();
+        _sprite0HitDot = r.ReadInt32(); Line = r.ReadInt32(); Dot = r.ReadInt32(); FrameNumber = r.ReadInt64(); FrameReady = r.ReadBoolean();
+    }
 }

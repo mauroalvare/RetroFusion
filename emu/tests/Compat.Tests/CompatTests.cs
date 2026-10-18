@@ -119,11 +119,19 @@ public class CompatTests
     [Test]
     public void FutureMachineAndFutureFormat_StopAtTheRightLevel()
     {
+        var atr = new byte[16 + 720 * 128];
+        atr[0] = 0x96; atr[1] = 0x02;
+        File.WriteAllBytes(Path.Combine(_games, "juego.atr"), atr);
+        var atari = new CompatRunner(_games, _firmware, null).Run(new CompatScript { Id = "a", Machine = "atari800", File = "juego.atr" });
+        Assert.That(atari.Levels["format"].Status, Is.EqualTo("ok"));
+        Assert.That(atari.Levels["load"].Status, Is.EqualTo("untested"));
+        Assert.That(atari.Problems, Has.Some.Contains("falta la máquina atari800"));
+        // the NES exists now: a cut image is recognized but does not load
         File.WriteAllBytes(Path.Combine(_games, "juego.nes"), new byte[] { 0x4E, 0x45, 0x53, 0x1A, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 });
         var nes = new CompatRunner(_games, _firmware, null).Run(new CompatScript { Id = "n", Machine = "nes", File = "juego.nes" });
         Assert.That(nes.Levels["format"].Status, Is.EqualTo("ok"));
-        Assert.That(nes.Levels["load"].Status, Is.EqualTo("untested"));
-        Assert.That(nes.Problems, Has.Some.Contains("falta la máquina nes"));
+        Assert.That(nes.Levels["load"].Status, Is.EqualTo("fail"));
+        Assert.That(nes.Levels["load"].Detail, Does.Contain("cortada"));
         File.WriteAllBytes(Path.Combine(_games, "disco.d64"), new byte[174848]);
         var d64 = new CompatRunner(_games, _firmware, null).Run(new CompatScript { Id = "d", Machine = "c64", File = "disco.d64" });
         Assert.That(d64.Levels["format"].Status, Is.EqualTo("ok"));

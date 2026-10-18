@@ -46,13 +46,20 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 - Los juegos crackeados de la carpeta (Pac-Man y Ghostbusters) tienen menús de trainer
   antes del juego: la secuencia de teclas está en `tests/C64.Tests/GameTests.cs`.
 
-### Nintendo NES (en construcción, T-031)
+### Nintendo NES (T-031: máquina hecha, falta el sonido)
 
-- Hecho: la CPU 2A03 (6502 sin modo decimal, `DecimalEnabled = false`, con prueba) y el
-  lector de cartuchos iNES/NES 2.0 (`Retro.Systems.Nes.NesCartridge`) con mappers 0 (NROM)
-  y 3 (CNROM); los 5 .nes de Mojon Twins se leen bien. También la PPU
-  (`Retro.Systems.Nes.Ppu`, solo con pruebas sintéticas). Falta la APU, los mandos, la
-  máquina y su integración en la app: todavía no corre ningún juego.
+- Corre en la app, el CLI y la matriz: CPU 2A03, PPU, OAM DMA, los dos mandos, PRG RAM y
+  estados guardados. Cadaverion, Cave (CNROM), Cheman y Super Uwol llegan al título y
+  entran al juego con START (capturas del CLI y de la app oculta, 18/10). Bootee no se
+  prueba ni se documenta: la protagoniza Cheril (ver Contenido excluido).
+- **Sin sonido:** la APU no está emulada; sus registros se aceptan y no hacen nada, $4015
+  lee 0 y no hay IRQ del contador de cuadros. La máquina entrega silencio.
+- Solo mappers 0 y 3: un .nes con otro mapper se reconoce y se explica por qué no carga.
+- Sin segundo jugador en la app (el mando 2 existe para el CLI y las fusiones) ni Zapper.
+- La matriz no ve respuesta en Cave con la sonda automática (sí con START a mano en el
+  CLI): falta un guion curado.
+- La DMA de OAM no se alinea con los ciclos de lectura y escritura del 2A03 al detalle
+  (uno o dos ciclos de espera según la paridad del ciclo).
 - PPU: cada línea visible se dibuja entera en su punto 1 con el scroll de ese momento.
   Las divisiones de pantalla hechas en el borrado horizontal o con sprite 0 funcionan;
   los cambios de scroll, paleta o patrones en mitad de una línea no se ven hasta la

@@ -51,6 +51,7 @@ public sealed class EmulatorHost
     public Spectrum48? Zx => Machine as Spectrum48;
     public SpaceInvaders? Invaders => Machine as SpaceInvaders;
     public C64? C64 => Machine as C64;
+    public Retro.Systems.Nes.Nes? Nes => Machine as Retro.Systems.Nes.Nes;
     public DebugController Debug { get; } = new();
     public bool Paused { get; set; }
     public bool TurboWhileLoading { get; set; } = true;
@@ -97,6 +98,15 @@ public sealed class EmulatorHost
             default:
                 throw new NotSupportedException($"{info.Name} todavía no está implementado.");
         }
+    }
+
+    /// <summary>Starts the NES with a cartridge: the machine has no firmware, the program is in the .nes image.</summary>
+    public void StartNes(MachineInfo info, MediaFile file)
+    {
+        var cart = Retro.Systems.Nes.NesCartridge.Load(file.Data);
+        SetMachine(new Retro.Systems.Nes.Nes(cart), info);
+        LoadedMedia = file.Name;
+        Status = $"{file.Name}: {cart.Describe()}. Mando: flechas, Z = B, X = A, Enter = Start, Shift derecho = Select. Todavía sin sonido.";
     }
 
     /// <summary>Starts the Space Invaders board with the game ROM from the user's files.</summary>

@@ -20,7 +20,7 @@ Fuente única de rutas y comandos de desarrollo. El diseño interno está en
 | `RetroEmu.slnx` | Solución con todos los proyectos |
 | `src/Retro.Core` | Interfaces (`IMachine`, `ICpuDebugView`, `IMemoryView`), medios y zips, `MemorySearch`, PNG, mapa de código |
 | `src/Retro.Cpu.Z80`, `Retro.Cpu.I8080`, `Retro.Cpu.M6502` | Núcleos de CPU con desensamblador |
-| `src/Retro.Systems.Spectrum`, `Retro.Systems.Arcade`, `Retro.Systems.C64` | Máquinas |
+| `src/Retro.Systems.Spectrum`, `Retro.Systems.Arcade`, `Retro.Systems.C64`, `Retro.Systems.Nes` | Máquinas |
 | `src/Retro.Machines` | Catálogo de máquinas (qué máquina es cada archivo) y `MachineLauncher` (arranca una máquina con un juego); lo usan la app, el CLI, las fusiones y la compatibilidad |
 | `src/Retro.Compat` | Matriz de compatibilidad: guiones por juego, ejecutor sin ventana con sonda de controles, informe JSON y Markdown, descubrimiento de guiones |
 | `src/Retro.Fusion` | Perfiles de juegos (`Profiles/*.json`), recetas (`Recipes/*.json`), `FusionSession`, `MachineFactory` |
@@ -58,6 +58,7 @@ src/Retro.App/bin/Debug/net10.0/RetroEmu.exe                 # con ventana, para
 
 # retro-cli (C=src/Retro.Cli/bin/Debug/net10.0/retro-cli.exe)
 $C info <archivo|zip>                                        # qué máquina reconoce
+$C run juego.nes --frames 900 --press 300:P1_START:10 --screenshot out/nes.png   # NES sin ventana
 $C run <archivo|zip> --frames 3000 --press 400:SPACE:6 --shot-every 300 --shot-prefix out/x
 $C run <c64.t64> --frames 2000 --text --disasm C000:20 --dump 0400:40
 $C fuse <receta.json> --games <carpeta-juegos> --ticks 600 --screenshot out/f.png

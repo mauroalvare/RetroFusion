@@ -5,6 +5,7 @@
     <ProjectReference Include="..\Retro.Systems.Spectrum\Retro.Systems.Spectrum.csproj" />
     <ProjectReference Include="..\Retro.Systems.Arcade\Retro.Systems.Arcade.csproj" />
     <ProjectReference Include="..\Retro.Systems.C64\Retro.Systems.C64.csproj" />
+    <ProjectReference Include="..\Retro.Systems.Nes\Retro.Systems.Nes.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

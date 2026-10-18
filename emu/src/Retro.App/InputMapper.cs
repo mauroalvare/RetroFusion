@@ -82,6 +82,8 @@ public sealed class InputMapper
             UpdateSpectrum(zx, keyboardEnabled);
         else if (machine is Retro.Systems.C64.C64 c64)
             UpdateC64(c64, keyboardEnabled);
+        else if (machine is Retro.Systems.Nes.Nes nes)
+            UpdateNes(nes, keyboardEnabled);
         else
             UpdateArcade(machine, keyboardEnabled);
     }
@@ -174,6 +176,26 @@ public sealed class InputMapper
         if (left) now.Add(port + "LEFT");
         if (right) now.Add(port + "RIGHT");
         if (fire) now.Add(port + "FIRE");
+        Apply(m, now);
+    }
+
+    /// <summary>NES controller 1: arrows, Z = B, X = A, Enter = Start, right Shift = Select (and a gamepad).</summary>
+    private void UpdateNes(Retro.Systems.Nes.Nes m, bool keyboardEnabled)
+    {
+        var now = new HashSet<string>();
+        bool Key(KeyboardKey k) => keyboardEnabled && Raylib.IsKeyDown(k);
+        bool pad = Raylib.IsGamepadAvailable(0);
+        float ax = pad ? Raylib.GetGamepadAxisMovement(0, GamepadAxis.LeftX) : 0;
+        float ay = pad ? Raylib.GetGamepadAxisMovement(0, GamepadAxis.LeftY) : 0;
+        bool Btn(GamepadButton b) => pad && Raylib.IsGamepadButtonDown(0, b);
+        if (Key(KeyboardKey.Up) || ay < -0.4f || Btn(GamepadButton.LeftFaceUp)) now.Add("P1 UP");
+        if (Key(KeyboardKey.Down) || ay > 0.4f || Btn(GamepadButton.LeftFaceDown)) now.Add("P1 DOWN");
+        if (Key(KeyboardKey.Left) || ax < -0.4f || Btn(GamepadButton.LeftFaceLeft)) now.Add("P1 LEFT");
+        if (Key(KeyboardKey.Right) || ax > 0.4f || Btn(GamepadButton.LeftFaceRight)) now.Add("P1 RIGHT");
+        if (Key(KeyboardKey.X) || Key(KeyboardKey.Space) || Btn(GamepadButton.RightFaceRight)) now.Add("P1 A");
+        if (Key(KeyboardKey.Z) || Key(KeyboardKey.LeftControl) || Btn(GamepadButton.RightFaceDown)) now.Add("P1 B");
+        if (Key(KeyboardKey.Enter) || Key(KeyboardKey.KpEnter) || Btn(GamepadButton.MiddleRight)) now.Add("P1 START");
+        if (Key(KeyboardKey.RightShift) || Key(KeyboardKey.Tab) || Btn(GamepadButton.MiddleLeft)) now.Add("P1 SELECT");
         Apply(m, now);
     }
 

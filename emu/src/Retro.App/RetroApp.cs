@@ -260,6 +260,12 @@ public sealed class RetroApp
             _testAddr = "C000";
             _testHex = "EE 20 D0 4C 00 C0";           // INC $D020 / JMP $C000: border colour loop
         }
+        else if (m.Id == "nes")
+        {
+            _memStart = 0x0000;                       // the 2 KB of RAM
+            _testAddr = "0300";
+            _testHex = "E6 00 4C 00 03";              // INC $00 / JMP $0300
+        }
         else
         {
             _memStart = 0x4000;
@@ -378,7 +384,7 @@ public sealed class RetroApp
                 _errorPopup = MachineCatalog.NotLoadableYet(best) is { } notYet
                     ? $"{fileName} es para {best.Machine.Name} (CPU {best.Machine.Cpu}): {best.Reason}.\nEsa máquina ya anda, pero {notYet}."
                     : $"{fileName} es para {best.Machine.Name} (CPU {best.Machine.Cpu}): {best.Reason}.\n" +
-                      "Esa máquina todavía no está implementada; está en el plan de trabajo (siguen Atari 800, Apple II y NES, con la misma CPU 6502).\n" +
+                      "Esa máquina todavía no está implementada; está en el plan de trabajo (siguen Atari 800 y Apple II, con la misma CPU 6502).\n" +
                       "En Máquina vas a ver qué juegos de tu carpeta corren hoy.";
                 return;
             }
@@ -411,9 +417,14 @@ public sealed class RetroApp
         {
             if (_host.Machine != null)
                 _input.ReleaseAll(_host.Machine);
-            if (_host.Info?.Id != c.Machine.Id || _host.Fusion != null)
-                _host.Start(c.Machine, _romDir);
-            _host.Load(c.File, _autoType);
+            if (c.Machine.Id == "nes")
+                _host.StartNes(c.Machine, c.File);     // a cartridge: a fresh machine for each game
+            else
+            {
+                if (_host.Info?.Id != c.Machine.Id || _host.Fusion != null)
+                    _host.Start(c.Machine, _romDir);
+                _host.Load(c.File, _autoType);
+            }
             _host.Status = $"{c.Machine.Name} (CPU {c.Machine.Cpu}), {c.Reason}  |  {_host.Status}";
         }
         catch (Exception e)

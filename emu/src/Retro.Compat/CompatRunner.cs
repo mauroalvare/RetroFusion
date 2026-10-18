@@ -101,6 +101,7 @@ public sealed class CompatRunner
                            "SPACE", "ENTER", "CAPS SHIFT", "SYMBOL SHIFT", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" },
         ["c64"] = new[] { "JOY2 LEFT", "JOY2 RIGHT", "JOY2 UP", "JOY2 DOWN", "JOY2 FIRE", "JOY1 RIGHT", "JOY1 FIRE", "SPACE", "F1", "RETURN" },
         ["invaders"] = new[] { "COIN", "P1 START", "P1 LEFT", "P1 RIGHT", "P1 FIRE" },
+        ["nes"] = new[] { "P1 START", "P1 LEFT", "P1 RIGHT", "P1 UP", "P1 DOWN", "P1 A", "P1 B", "P1 SELECT" },
     };
 
     /// <summary>

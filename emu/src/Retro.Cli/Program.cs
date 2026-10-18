@@ -7,6 +7,12 @@ using Retro.Systems.Spectrum;
 // of frames (as fast as possible), presses keys on given frames and saves screenshots
 // and audio. Used by automated tests and to check compatibility without a window.
 
+static string NesInfo(byte[] data)
+{
+    try { return "NES: " + Retro.Systems.Nes.NesCartridge.Load(data).Describe(); }
+    catch (InvalidDataException e) { return "NES, no se puede cargar: " + e.Message; }
+}
+
 static int Usage()
 {
     Console.WriteLine("""
@@ -19,8 +25,8 @@ static int Usage()
           retro-cli compat <carpeta-guiones|guion.json> --juegos <carpeta> [--salida r.json] [--md tabla.md]
                     [--capturas carpeta] [--solo id1,id2] [--descubrir] [--dos-veces] [--paralelo n]
 
-        Máquinas: ZX Spectrum 48K (.tap .tzx .z80 .sna), Space Invaders (invaders.zip de MAME)
-        y Commodore 64 (.t64 .prg).
+        Máquinas: ZX Spectrum 48K (.tap .tzx .z80 .sna), Space Invaders (invaders.zip de MAME),
+        Commodore 64 (.t64 .prg) y NES (.nes con mapper 0 o 3; teclas P1_A, P1_START...).
 
         Opciones de run:
           --rom <ruta>             ROM del Spectrum 48K (por defecto roms/48.rom)
@@ -96,6 +102,7 @@ if (command == "info")
         int c64Score = Retro.Systems.C64.C64Media.Probe(c.f);
         string what = score > 0 ? $"ZX Spectrum (confianza {score})"
             : c64Score > 0 ? $"Commodore 64 (confianza {c64Score})"
+            : Retro.Systems.Nes.NesCartridge.IsINes(c.f.Data) ? NesInfo(c.f.Data)
             : isInvaders ? "chip de Space Invaders" : "no reconocido por las máquinas disponibles";
         Console.WriteLine($"[{c.i}] {c.f.Name} ({c.f.Data.Length} bytes) -> {what}");
     }
@@ -108,7 +115,23 @@ IMachine machine;
 Spectrum48? zx = null;
 bool isTape = false;
 var c64Media = files.Where(f => Retro.Systems.C64.C64Media.Probe(f) > 0).OrderBy(f => MediaArchive.DumpScore(f.Name)).FirstOrDefault();
-if (c64Media != null && !isInvaders)
+var nesMedia = files.Where(f => Retro.Systems.Nes.NesCartridge.IsINes(f.Data)).OrderBy(f => MediaArchive.DumpScore(f.Name)).FirstOrDefault();
+if (nesMedia != null && !isInvaders)
+{
+    Retro.Systems.Nes.NesCartridge cart;
+    try { cart = Retro.Systems.Nes.NesCartridge.Load(nesMedia.Data); }
+    catch (InvalidDataException e)
+    {
+        Console.Error.WriteLine("No se pudo cargar: " + e.Message);
+        return 3;
+    }
+    machine = new Retro.Systems.Nes.Nes(cart);
+    Console.WriteLine($"Máquina: {machine.DisplayName}");
+    Console.WriteLine($"Archivo: {nesMedia.Name}");
+    Console.WriteLine(cart.Describe());
+    Console.WriteLine("  aviso: el sonido (APU) todavía no está emulado");
+}
+else if (c64Media != null && !isInvaders)
 {
     var c64 = new Retro.Systems.C64.C64(Retro.Systems.C64.C64Firmware.Find(Path.GetDirectoryName(FindRom("48.rom"))!));
     machine = c64;

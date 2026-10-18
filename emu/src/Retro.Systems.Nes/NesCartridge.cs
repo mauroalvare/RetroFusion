@@ -79,6 +79,9 @@ public sealed class NesCartridge
             _chrBank = value % (_chr.Length / ChrUnit);
     }
 
+    /// <summary>Code editor change to the copy of PRG in memory (the file is not touched).</summary>
+    public void PatchPrg(ushort address, byte value) => _prg[(address - 0x8000) % _prg.Length] = value;
+
     /// <summary>PPU read in $0000-$1FFF (pattern tables).</summary>
     public byte PpuRead(ushort address) => _chr[_chrBank * ChrUnit + (address & 0x1FFF)];
 
@@ -99,6 +102,21 @@ public sealed class NesCartridge
             NesMirroring.Vertical => table & 1,
             _ => table,
         };
+    }
+
+    /// <summary>The changing part of the cartridge: CHR bank and CHR RAM.</summary>
+    public void Save(BinaryWriter w)
+    {
+        w.Write(_chrBank);
+        if (ChrIsRam)
+            w.Write(_chr);
+    }
+
+    public void Load(BinaryReader r)
+    {
+        _chrBank = r.ReadInt32();
+        if (ChrIsRam)
+            r.Read(_chr, 0, _chr.Length);
     }
 
     public string Describe() =>
