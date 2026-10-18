@@ -13,11 +13,13 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 - Jet Set Willy pide la tarjeta de códigos (protección del juego, no fallo de carga).
   Karateka (edición de `clasicos\Spectrum`) se reinicia: falta investigar la edición.
 - Turrican y otros multicarga: solo se comprobó la primera carga.
-- Tres cintas cargan completas y después el Spectrum vuelve a su pantalla de inicio
-  (observado en la matriz): Galaxian de Atarisoft (`clasicos/Spectrum/galaxian.zip`, el
-  `.z80` de Spectrum-seleccion sí anda), Karateka (las dos copias) y Lode Runner
-  "passworded". Típico de cargadores con protección o timing fino; falta investigar si es
-  del emulador (T-015).
+- Dos cintas cargan completas y después el Spectrum vuelve a su pantalla de inicio
+  (observado en la matriz): Karateka (las dos copias, multicarga: vuelve a pedir cinta a
+  la ROM y no se reinicia en mitad de la carga) y Lode Runner "passworded" (cargador
+  propio que usa la rutina de bordes de la ROM). Falta investigar (T-015). Galaxian de
+  Atarisoft, que fallaba igual, ya anda: su cargador turbo espera el borde que cierra el
+  último pulso de cada bloque, que el emulador no generaba cuando la señal quedaba en
+  bajo (arreglado el 18/10, con prueba).
 - Columns y Uwol de Mojon Twins no responden a ninguna de las 29 teclas de la sonda en el
   momento probado (están en una intro o esperan algo distinto): falta un guion curado.
 

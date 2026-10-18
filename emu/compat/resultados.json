@@ -1,6 +1,6 @@
 {
-  "generated": "2026-10-18 15:38 UTC",
-  "commit": "2078ccc+cambios",
+  "generated": "2026-10-18 15:47 UTC",
+  "commit": "fdf4cc7+cambios",
   "gamesFolder": "C:/Users/mauro/Downloads/ROMs",
   "note": "",
   "results": [
@@ -4498,16 +4498,16 @@
           "detail": "Cinta TZX con 4 bloques; LOAD \"\" y cinta completa por la ROM en 3879 cuadros (77 s)"
         },
         "picture": {
-          "status": "fail",
-          "detail": "quedó en la pantalla de inicio del Spectrum"
+          "status": "ok",
+          "detail": "14 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
         },
         "title": {
           "status": "untested",
           "detail": "sin comprobación de título en el guion (mirar la captura)"
         },
         "controls": {
-          "status": "untested",
-          "detail": ""
+          "status": "ok",
+          "detail": "cambian la imagen: S (de 29 probadas)"
         },
         "playable": {
           "status": "untested",
@@ -4518,18 +4518,16 @@
           "detail": "no hay perfil de fusión para este juego"
         }
       },
-      "highest": "load",
-      "problems": [
-        "quedó en la pantalla de inicio del Spectrum"
-      ],
+      "highest": "controls",
+      "problems": [],
       "gameQuirks": [],
       "warnings": [
         "determinista: dos corridas dieron la misma imagen final"
       ],
-      "screenHash": "c31941cec0d7f5b1",
+      "screenHash": "a2ce304faf588841",
       "screenshot": "out/compat/zx48-galaxian-2.png",
       "framesRun": 1500,
-      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones. No es una partida completa.",
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
       "curated": false,
       "notes": ""
     },

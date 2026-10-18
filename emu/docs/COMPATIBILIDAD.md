@@ -1,6 +1,6 @@
 # Matriz de compatibilidad
 
-Generada el 2026-10-18 15:38 UTC (commit 2078ccc+cambios) con `retro-cli compat` sobre `C:/Users/mauro/Downloads/ROMs`. Los datos completos (hash, procedimiento, evidencia de cada nivel) están en `emu/compat/resultados.json`; los guiones, en `emu/compat/juegos/`. No editar a mano: se regenera.
+Generada el 2026-10-18 15:47 UTC (commit fdf4cc7+cambios) con `retro-cli compat` sobre `C:/Users/mauro/Downloads/ROMs`. Los datos completos (hash, procedimiento, evidencia de cada nivel) están en `emu/compat/resultados.json`; los guiones, en `emu/compat/juegos/`. No editar a mano: se regenera.
 
 Niveles, en orden: **formato** reconocido → medio **cargado** → **imagen** (pantalla con contenido y sin signos de fallo) → llega al **título** (comprobación del guion) → **responde** a los controles (una entrada cambia la imagen respecto de la misma corrida sin entradas) → **jugable** (comprobaciones de partida del guion) → listo para **fusionar** (perfil con direcciones verificadas). `sí` = comprobado, **no** = falló, `parcial` = a medias, `·` = no probado. Son pruebas cortas y reproducibles, no partidas completas.
 
@@ -44,7 +44,7 @@ Determinismo: 4 de 4 corridas repetidas dieron exactamente la misma imagen final
 | Cheman ⁽ᵃ⁾ | descargados-autores/NES/mojon-twins--cheman.nes | 380f05602d31 | sí | sí | sí | · | sí | · | · | cambian la imagen: P1 START, P1 UP, P1 DOWN, P1 A, P1 B, P1 SELECT (de 8 probadas) |
 | Super Uwol ⁽ᵃ⁾ | descargados-autores/NES/mojon-twins--super-uwol.nes | 67eaa300c8ab | sí | sí | sí | · | sí | · | · | cambian la imagen: P1 START (de 8 probadas) |
 
-## ZX Spectrum 48K (31 archivos, 31 cargan, 25 responden a controles)
+## ZX Spectrum 48K (31 archivos, 31 cargan, 26 responden a controles)
 
 Determinismo: 31 de 31 corridas repetidas dieron exactamente la misma imagen final.
 
@@ -57,7 +57,7 @@ Determinismo: 31 de 31 corridas repetidas dieron exactamente la misma imagen fin
 | Columns ⁽ᵃ⁾ | descargados-autores/Spectrum/Mojon-Twins--Columns.tzx | c7ef3542e7db | sí | sí | sí | · | **no** | · | · |  |
 | Fase Bonus The Game ⁽ᵃ⁾ | descargados-autores/Spectrum/Fase-Bonus-The-Game--The-Mojon-Twins.tap | 3098a2eb648d | sí | sí | sí | · | sí | · | · | cambian la imagen: 1, 2, 3 (de 29 probadas) |
 | Galaxian ⁽ᵃ⁾ | clasicos/Spectrum-seleccion/galaxian.z80 | b1ff28923968 | sí | sí | sí | · | sí | · | · | cambian la imagen: S (de 29 probadas) |
-| Galaxian ⁽ᵃ⁾ | clasicos/Spectrum/galaxian.zip → Galaxian (1984)(Atarisoft).tzx | 212ea75a105d | sí | sí | **no** | · | · | · | · | quedó en la pantalla de inicio del Spectrum |
+| Galaxian ⁽ᵃ⁾ | clasicos/Spectrum/galaxian.zip → Galaxian (1984)(Atarisoft).tzx | 212ea75a105d | sí | sí | sí | · | sí | · | · | cambian la imagen: S (de 29 probadas) |
 | Horace Goes to the Tower ⁽ᵃ⁾ | descargados-autores/Spectrum/Mojon-Twins--Horace-Goes-to-the-Tower.tzx | 5e30d26c859f | sí | sí | sí | · | sí | · | · | cambian la imagen: 1, 2, 3 (de 29 probadas) |
 | Jet Set Willy ⁽ᵃ⁾ | clasicos/Spectrum-seleccion/jet-set-willy.z80 | 1e16f855d67d | sí | sí | sí | · | sí | · | · | cambian la imagen: 1, 2, 3, 4 (de 29 probadas) |
 | Jet Set Willy ⁽ᵃ⁾ | clasicos/Spectrum/jet-set-willy.zip → Jet Set Willy (1984)(Software Projects).tzx | 0d846f41d311 | sí | sí | sí | · | sí | · | · | cambian la imagen: 1, 2, 3, 4 (de 29 probadas) |

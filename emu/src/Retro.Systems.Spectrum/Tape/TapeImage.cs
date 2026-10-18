@@ -58,18 +58,21 @@ public sealed class TapeImage
     {
         if (milliseconds <= 0)
             return;
-        // A last edge closes the final pulse (as the TZX spec requires), then low.
+        // A last edge always closes the final pulse (as the TZX spec requires): turbo loaders
+        // wait for it after the last bit. If that leaves the signal high, it drops after 1 ms.
+        int total = milliseconds * 3500;
+        _level = !_level;
         if (_level)
         {
+            int first = Math.Min(total, 3500);
+            Add(first, true);
             _level = false;
-            Add(Math.Min(milliseconds * 3500, 3500), false);
-            int rest = milliseconds * 3500 - 3500;
-            if (rest > 0)
-                Add(rest, false);
+            if (total > first)
+                Add(total - first, false);
         }
         else
         {
-            Add(milliseconds * 3500, false);
+            Add(total, false);
         }
     }
 

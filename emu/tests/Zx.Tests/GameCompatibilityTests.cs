@@ -28,9 +28,9 @@ public class GameCompatibilityTests
         }
     }
 
-    private static MediaFile? FindGame(string pattern, string extension)
+    private static MediaFile? FindGame(string pattern, string extension, string subfolder = "")
     {
-        foreach (var dir in GameDirs())
+        foreach (var dir in GameDirs().Select(d => Path.Combine(d, subfolder)).Where(Directory.Exists))
             foreach (var path in Directory.GetFiles(dir, pattern))
                 foreach (var f in MediaArchive.Open(path).OrderBy(f => MediaArchive.DumpScore(f.Name)))
                     if (f.Extension == extension && SpectrumMedia.Probe(f) > 0)
@@ -129,6 +129,20 @@ public class GameCompatibilityTests
         Run(m, 50);
         double back = WhiteCentroid(m, 10, 15);
         Assert.That(back, Is.LessThan(after - 1), $"Willy no volvió a la izquierda ({after:F1} -> {back:F1})");
+    }
+
+    /// <summary>Its turbo loader waits for the edge that closes each block; without it the game reset after loading.</summary>
+    [Test]
+    public void GalaxianAtarisoft_TurboTapeStartsTheGame()
+    {
+        var game = FindGame("galaxian*", ".tzx", Path.Combine("clasicos", "Spectrum"));
+        if (game == null)
+            Assert.Ignore("Galaxian (.tzx) no está en la carpeta ROMs/.");
+        var m = NewMachine();
+        LoadFromTape(m, game!);
+        Run(m, 100);
+        Assert.That(m.Z80.PC, Is.GreaterThanOrEqualTo(0x4000), $"volvió a la ROM (PC={m.Z80.PC:X4}): el cargador falló");
+        Assert.That(ScreenText.ReadAll(m), Does.Not.Contain("1982 Sinclair"));
     }
 
     [Test]

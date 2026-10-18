@@ -114,6 +114,23 @@ public class SpectrumTests
         Assert.That(all, Does.Contain("0 OK, 10:1"), all);
     }
 
+    /// <summary>
+    /// TZX spec: the last pulse of a block is always closed by an edge before the pause.
+    /// Turbo loaders wait for it after the last bit (Galaxian from Atarisoft reset without it).
+    /// </summary>
+    [TestCase(1)]
+    [TestCase(2)]
+    public void Pause_AlwaysClosesTheLastPulseWithAnEdge(int pulses)
+    {
+        var tape = new TapeImage();
+        tape.PulseRepeat(1000, pulses);
+        bool last = tape.Levels[^1];
+        tape.Pause(100);
+        Assert.That(tape.Levels[pulses], Is.Not.EqualTo(last), "el primer tramo de la pausa cambia de nivel");
+        Assert.That(tape.Levels[^1], Is.False, "la pausa termina en bajo");
+        Assert.That(tape.Durations.Skip(pulses).Sum(), Is.EqualTo(100 * 3500));
+    }
+
     [Test]
     public void Tap_RejectsC64RawTape()
     {
