@@ -102,7 +102,11 @@ public sealed class CliAgentProvider : IAiProvider
             sb.AppendLine();
         }
         sb.AppendLine("# Tu tarea");
-        sb.AppendLine("Respondé al último mensaje del usuario. No uses herramientas, no leas ni escribas archivos: respondé solo con texto.");
+        if (request.Images is { Count: > 0 } images)
+            sb.AppendLine("Respondé al último mensaje del usuario. Mirá estas capturas de pantalla (podés leerlas con tu herramienta de leer archivos): " +
+                          string.Join(", ", images) + ". No uses otras herramientas ni escribas archivos: respondé solo con texto.");
+        else
+            sb.AppendLine("Respondé al último mensaje del usuario. No uses herramientas, no leas ni escribas archivos: respondé solo con texto.");
         if (request.Schema is JsonElement schema)
             sb.AppendLine("Tu respuesta tiene que ser SOLO un objeto JSON válido (sin texto antes ni después, sin bloques de código) que cumpla este esquema JSON:\n" +
                           schema.GetRawText());
@@ -117,12 +121,18 @@ public sealed class CliAgentProvider : IAiProvider
         Directory.CreateDirectory(work);
         string lastMessage = Path.Combine(work, $"respuesta-{Guid.NewGuid():N}.txt");
         bool agy = Path.GetFileNameWithoutExtension(exe).Equals("agy", StringComparison.OrdinalIgnoreCase);
+        var images = request.Images ?? Array.Empty<string>();
         List<string> args = _tool.Id switch
         {
-            // json output carries the text in "result" and tells failures (no login, limits) apart
-            "sub-claude" => new() { "-p", "--output-format", "json", "--permission-mode", "dontAsk" },
-            // "-" = the prompt comes from stdin; read-only sandbox by default; no git repo needed
-            "sub-codex" => new() { "exec", "--skip-git-repo-check", "-o", lastMessage, "-" },
+            // json output carries the text in "result" and tells failures (no login, limits) apart;
+            // pictures are read with the Read tool, allowed only for their folder
+            "sub-claude" => images.Count == 0
+                ? new() { "-p", "--output-format", "json", "--permission-mode", "dontAsk" }
+                : new List<string> { "-p", "--output-format", "json", "--permission-mode", "dontAsk", "--allowedTools", "Read" }
+                    .Concat(images.Select(Path.GetDirectoryName).Distinct().SelectMany(d => new[] { "--add-dir", d! })).ToList(),
+            // "-" = the prompt comes from stdin; read-only sandbox by default; no git repo needed; -i attaches pictures
+            "sub-codex" => new List<string> { "exec", "--skip-git-repo-check", "-o", lastMessage }
+                .Concat(images.SelectMany(i => new[] { "-i", i })).Append("-").ToList(),
             // the -p text is appended to stdin, which carries the real prompt
             _ => agy ? new() { "-p", "Respondé la consigna que te paso por la entrada estándar." }
                      : new() { "-p", "Respondé la consigna que te paso por la entrada estándar.", "--output-format", "json" },
@@ -219,6 +229,9 @@ public sealed class CliAgentProvider : IAiProvider
             CreateNoWindow = true,
             StandardOutputEncoding = Encoding.UTF8,
             StandardErrorEncoding = Encoding.UTF8,
+            // the prompt goes in UTF-8 without BOM: on Windows the default is the console code
+            // page, and the tools reject (Codex) or garble the accents of a Spanish prompt
+            StandardInputEncoding = new UTF8Encoding(false),
         };
         string ext = Path.GetExtension(exe).ToLowerInvariant();
         if (ext is ".cmd" or ".bat")

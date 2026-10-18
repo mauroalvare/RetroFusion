@@ -12,8 +12,8 @@ namespace Retro.Ai;
 /// <summary>One turn of a conversation with an AI.</summary>
 public sealed record AiTurn(bool FromUser, string Text);
 
-/// <summary>A request: instructions, the conversation so far and the JSON schema of the answer.</summary>
-public sealed record AiRequest(string System, IReadOnlyList<AiTurn> Turns, JsonElement? Schema);
+/// <summary>A request: instructions, the conversation so far, the JSON schema of the answer and pictures (PNG files) to look at.</summary>
+public sealed record AiRequest(string System, IReadOnlyList<AiTurn> Turns, JsonElement? Schema, IReadOnlyList<string>? Images = null);
 
 public sealed class AiException : Exception
 {

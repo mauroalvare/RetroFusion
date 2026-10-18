@@ -72,7 +72,25 @@ public sealed class AiPlayAdvisor : IPlayAdvisor
     public async Task<PlayAdvice> AdviseAsync(PlayObservation observation, CancellationToken ct)
     {
         _turns.Add(new AiTurn(true, observation.Describe()));
-        string answer = await _ai.CompleteAsync(new AiRequest(Guide, _turns.ToList(), Schema()), ct);
+        string? picture = null;
+        if (observation.Picture != null)
+        {
+            // the screen as it is: the text reader and the sketch miss custom fonts and graphics
+            string dir = Path.Combine(Path.GetTempPath(), "RetroEmu-ia", "pantallas");
+            Directory.CreateDirectory(dir);
+            picture = Path.Combine(dir, $"ronda-{observation.Round:00}-{Guid.NewGuid():N}.png");
+            Retro.Core.PngWriter.Write(picture, observation.Picture, 2);
+        }
+        string answer;
+        try
+        {
+            answer = await _ai.CompleteAsync(new AiRequest(Guide, _turns.ToList(), Schema(), picture != null ? new[] { picture } : null), ct);
+        }
+        finally
+        {
+            if (picture != null)
+                try { File.Delete(picture); } catch (IOException) { }
+        }
         _turns.Add(new AiTurn(false, answer));
         // only the last few rounds travel: the history in each observation already says what was done
         while (_turns.Count > 6)

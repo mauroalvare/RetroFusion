@@ -286,7 +286,9 @@ public static class GamePreparer
             {
                 Say($"La IA falló ({e.Message}); sigo con la prueba de teclas.");
                 history.Add($"Ronda {round}: la IA no respondió ({e.Message}).");
+                r.Problem = null;
                 o.Advisor = null;
+                advisor = trial;
                 advice = await trial.AdviseAsync(observation, ct);
             }
             var done = new List<string>();
