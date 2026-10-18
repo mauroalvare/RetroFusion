@@ -50,8 +50,16 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 
 - Hecho: la CPU 2A03 (6502 sin modo decimal, `DecimalEnabled = false`, con prueba) y el
   lector de cartuchos iNES/NES 2.0 (`Retro.Systems.Nes.NesCartridge`) con mappers 0 (NROM)
-  y 3 (CNROM); los 5 .nes de Mojon Twins se leen bien. Falta la PPU, la APU, los mandos,
-  la máquina y su integración en la app: todavía no corre ningún juego.
+  y 3 (CNROM); los 5 .nes de Mojon Twins se leen bien. También la PPU
+  (`Retro.Systems.Nes.Ppu`, solo con pruebas sintéticas). Falta la APU, los mandos, la
+  máquina y su integración en la app: todavía no corre ningún juego.
+- PPU: cada línea visible se dibuja entera en su punto 1 con el scroll de ese momento.
+  Las divisiones de pantalla hechas en el borrado horizontal o con sprite 0 funcionan;
+  los cambios de scroll, paleta o patrones en mitad de una línea no se ven hasta la
+  siguiente. El desbordamiento de sprites no reproduce el error de evaluación del 2C02
+  (marca el noveno sprite de verdad), no hay colores de énfasis de $2001, la carrera de
+  leer $2002 justo al empezar el vblank no está y la paleta es una aproximación común del
+  2C02 (no medida).
 - CNROM: no se emulan los conflictos de bus al elegir banco (los juegos bien hechos no
   dependen de eso).
 - Sin `nestest.nes` (prueba estándar de la CPU): hay que descargarla y espera la
