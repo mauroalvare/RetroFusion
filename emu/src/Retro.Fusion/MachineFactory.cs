@@ -20,7 +20,10 @@ public static class MachineFactory
     {
         try
         {
-            return Retro.Machines.MachineLauncher.Launch(source.Profile.Machine, source.Files, null, romDirectory, source.Folder).Machine;
+            var member = source.Profile.Match.Member is { } name
+                ? source.Files.FirstOrDefault(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase) || Path.GetFileName(f.Name).Equals(name, StringComparison.OrdinalIgnoreCase))
+                : null;
+            return Retro.Machines.MachineLauncher.Launch(source.Profile.Machine, source.Files, member, romDirectory, source.Folder).Machine;
         }
         catch (InvalidDataException e)
         {
@@ -44,11 +47,12 @@ public static class MachineFactory
                     break;
                 case "press":
                 {
+                    // "press JOY2 FIRE 6", "press CAPS SHIFT+5 4": several keys at once joined with +
                     int frames = int.Parse(parts[^1]);
-                    string key = string.Join(' ', parts[1..^1]);
-                    m.SetKey(key, true);
+                    var keys = string.Join(' ', parts[1..^1]).Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    foreach (var key in keys) m.SetKey(key, true);
                     RunFrames(m, frames);
-                    m.SetKey(key, false);
+                    foreach (var key in keys) m.SetKey(key, false);
                     break;
                 }
                 case "load-tape":

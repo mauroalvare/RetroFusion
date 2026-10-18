@@ -157,8 +157,9 @@ public static class MemoryLab
                 });
                 deathSamples.AddRange(downAt);
             }
-            // timers/energy: goes down regularly; may jump back up when a level (re)starts
-            else if (downs >= 5 && ups <= Math.Max(1, downs / 5) && downsBy1 >= downs * 0.8)
+            // timers/energy: goes down regularly; may jump back up when a level (re)starts, a few
+            // times at most (a value that refills all the time is a cyclic counter)
+            else if (downs >= 5 && ups <= Math.Min(3, Math.Max(1, downs / 5)) && downsBy1 >= downs * 0.8)
             {
                 findings.Add(new LabFinding
                 {
@@ -223,7 +224,7 @@ public static class MemoryLab
                     m.LoadState(state); Run(hold, plus); var b = Snapshot();
                     for (int i = 0; i < len; i++)
                     {
-                        int dm = (sbyte)(a[i] - idle[i]), dp = (sbyte)(b[i] - idle[i]), diff = (sbyte)(b[i] - a[i]);
+                        int dm = (sbyte)(a[i] - idle[i]), dp = (sbyte)(b[i] - idle[i]), diff = dp - dm;   // both sides can go far: no wrap
                         bool opposite = dm != 0 && dp != 0 && Math.Sign(dm) != Math.Sign(dp);
                         bool oneSided = diff != 0 && (dm == 0 || dp == 0);
                         if (!opposite && !oneSided)
@@ -335,6 +336,40 @@ public static class MemoryLab
         if (!findings.Any(f => f.Kind == "lives"))
             report.Notes.Add("No apareció ningún candidato de vidas: durante la observación no murió el personaje. Probar con más cuadros o un guion que lo haga morir.");
         return report;
+    }
+
+    /// <summary>
+    /// Lives in a series of samples: a small number (1-9) that only goes down by one, a few
+    /// times. Used on the idle observation and on runs where somebody plays.
+    /// </summary>
+    public static List<LabFinding> LivesIn(IReadOnlyList<byte[]> samples, int start, int sampleEvery, string what)
+    {
+        var found = new List<LabFinding>();
+        for (int i = 0; i < samples[0].Length; i++)
+        {
+            int first = samples[0][i], downs = 0, other = 0;
+            var downAt = new List<int>();
+            for (int k = 1; k < samples.Count; k++)
+            {
+                int a = samples[k - 1][i], b = samples[k][i];
+                if (a == b) continue;
+                if (b == a - 1) { downs++; downAt.Add(k); }
+                else other++;
+            }
+            if (first is < 1 or > 9 || downs is < 1 or > 3 || other > 0)
+                continue;
+            found.Add(new LabFinding
+            {
+                Kind = "lives", Address = $"{start + i:X4}",
+                Hypothesis = "Vidas (o intentos): valor chico que solo baja de a uno.",
+                Evidence = { $"empieza en {first} y baja de a 1 {downs} vez/veces {what} (cuadros {string.Join(", ", downAt.Select(k => k * sampleEvery))})" },
+                Confidence = 0.5,
+                ExpectedEffect = "Subirlo da vidas extra; congelarlo da vidas infinitas.",
+                HowToVerify = $"Escribir {first + 2} en ${start + i:X4} y ver si el contador de vidas en pantalla cambia; perder una vida y ver que baja.",
+                EventFrame = downAt[0] * sampleEvery,
+            });
+        }
+        return found;
     }
 
     /// <summary>

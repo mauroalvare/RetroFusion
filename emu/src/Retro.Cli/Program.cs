@@ -26,6 +26,10 @@ static int Usage()
                     [--capturas carpeta] [--solo id1,id2] [--descubrir] [--dos-veces] [--paralelo n]
           retro-cli lab <guion.json> [--juegos carpeta] [--cuadros n] [--salida hallazgos.json]
                     [--hipotesis tipo:dirección[:codificación:bytes]]... [--sin-verificar]
+          retro-cli preparar <juego> [--ia sub-claude|sub-codex|sub-google|claude|ollama|agent|ninguna]
+                    [--carpeta carpeta-del-agente] [--rondas n] [--perfiles carpeta] [--sin-guardar]
+                    prepara un juego para las fusiones: llega a la partida (prueba de teclas y la IA
+                    elegida en la app), encuentra y verifica sus variables y guarda un perfil por hash
 
         Máquinas: ZX Spectrum 48K (.tap .tzx .z80 .sna), Space Invaders (invaders.zip de MAME),
         Commodore 64 (.t64 .prg) y NES (.nes con mapper 0 o 3; teclas P1_A, P1_START...).
@@ -80,6 +84,9 @@ if (command == "compat")
 if (command == "lab")
     return RunLab(mediaPath, Opt("juegos") ?? @"C:\Users\mauro\Downloads\ROMs", Opt("salida"), int.Parse(Opt("cuadros") ?? "3000"),
         Opt("sin-verificar") == null, opts.GetValueOrDefault("hipotesis") ?? new List<string>());
+
+if (command == "preparar")
+    return await RunPrepare(mediaPath, Opt("ia"), Opt("perfiles"), int.Parse(Opt("rondas") ?? "14"), Opt("sin-guardar") == null, Opt("carpeta"));
 
 if (command == "fuse")
     return RunFusion(mediaPath, Opt("games") ?? ".", Opt("ticks"), Opt("screenshot"), Opt("shot-every"), Opt("shot-prefix"), opts.GetValueOrDefault("press"), Opt("layout"));
@@ -460,6 +467,54 @@ static int RunLab(string scriptPath, string gamesDir, string? jsonOut, int idleF
         report.Save(jsonOut);
         Console.WriteLine("Hallazgos: " + jsonOut);
     }
+    return 0;
+}
+
+// Prepares any game for the fusions: reaches the game in progress (key trial, then the
+// user's AI), finds and verifies its variables with the lab and saves a profile tied to
+// the SHA-256 of the copy.
+static async Task<int> RunPrepare(string gamePath, string? ia, string? profilesFolder, int rounds, bool save, string? agentFolder)
+{
+    var settings = Retro.Ai.AiSettings.Load();
+    if (ia != null && ia != "ninguna")
+        settings.Provider = ia;
+    var provider = ia == "ninguna" ? null : settings.CreateProvider();
+    Retro.Compat.IPlayAdvisor? advisor = provider != null ? new Retro.Ai.AiPlayAdvisor(provider)
+        : settings.Provider == "agent" && ia != "ninguna"
+            ? new Retro.Ai.FolderPlayAdvisor(agentFolder ?? Path.Combine(Path.GetTempPath(), "RetroEmu-preparar", Path.GetFileNameWithoutExtension(gamePath)))
+            : null;
+    var options = new Retro.Compat.PrepareOptions
+    {
+        FirmwareDirectory = Path.GetDirectoryName(FindRom("48.rom"))!,
+        Advisor = advisor,
+        MaxRounds = rounds,
+        ProfilesFolder = profilesFolder,
+        Save = save,
+    };
+    Console.WriteLine($"Preparando {Path.GetFileName(gamePath)} para las fusiones" +
+                      (advisor != null ? $" (prueba de teclas y después {advisor.Name})." : " (solo prueba de teclas, sin IA)."));
+    var sw = Stopwatch.StartNew();
+    var r = await Retro.Compat.GamePreparer.PrepareAsync(gamePath, options, line => Console.WriteLine("  " + line), CancellationToken.None);
+    Console.WriteLine($"({sw.Elapsed.TotalSeconds:F0} s)");
+    if (r.Lab != null)
+        foreach (var f in r.Lab.Findings.Where(f => f.Status == "verified" || f.Confidence >= 0.45).Take(14))
+        {
+            string where = f.Kind == "entity-table" ? $"${f.Address} x{f.Count} de {f.Stride} bytes" : f.Bytes > 1 ? $"${f.Address} {f.Encoding} {f.Bytes}" : $"${f.Address}";
+            Console.WriteLine($"  {where,-22} {f.Kind,-12} {Retro.Compat.LabReportText.Status(f.Status),-11} {f.Hypothesis}");
+        }
+    if (r.Profile != null)
+    {
+        Console.WriteLine($"Perfil {r.Profile.Id}: arranque {string.Join(", ", r.Profile.Boot)}");
+        foreach (var (name, v) in r.Profile.Variables)
+            Console.WriteLine($"  {name} = ${v.Address} {v.Encoding}{(v.Bytes > 1 ? " " + v.Bytes : "")}{(v.ReadOnly ? " (solo lectura)" : "")}");
+        Console.WriteLine("  controles: " + string.Join(", ", r.Profile.Controls.Select(c => $"{c.Key} = {c.Value}")));
+    }
+    if (!r.Ok)
+    {
+        Console.Error.WriteLine("No se pudo preparar: " + r.Problem);
+        return 6;
+    }
+    Console.WriteLine(r.ProfilePath != null ? "Listo: " + r.ProfilePath : "Listo (sin guardar).");
     return 0;
 }
 

@@ -145,6 +145,18 @@ public sealed class ProfileMatch
 {
     public List<string> Files { get; set; } = new();
     public string? NamePattern { get; set; }
+    /// <summary>SHA-256 of the copies the profile was made and checked with (the most specific match).</summary>
+    public List<string> Sha256 { get; set; } = new();
+    /// <summary>The file to load when the copy is a zip with several (null = the best one).</summary>
+    public string? Member { get; set; }
+
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<byte[], string> Hashes = new();
+
+    public static string HashOf(MediaFile f) =>
+        Hashes.GetValue(f.Data, d => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(d)).ToLowerInvariant());
+
+    public bool MatchesHash(IReadOnlyList<MediaFile> files) =>
+        Sha256.Count > 0 && files.Any(f => Sha256.Contains(HashOf(f), StringComparer.OrdinalIgnoreCase));
 }
 
 /// <summary>
@@ -192,6 +204,8 @@ public sealed class GameProfile
     /// <summary>True when one of the files belongs to this game.</summary>
     public bool Matches(IReadOnlyList<MediaFile> files)
     {
+        if (Match.MatchesHash(files))
+            return true;
         if (Match.Files.Count > 0 && Match.Files.All(n => files.Any(f => f.Name.Equals(n, StringComparison.OrdinalIgnoreCase))))
             return true;
         if (Match.NamePattern != null)
@@ -226,8 +240,10 @@ public static class ProfileLibrary
         }
     }
 
+    /// <summary>%APPDATA%/RetroEmu/profiles, or the folder in RETROEMU_PROFILES.</summary>
     public static string UserFolder =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "RetroEmu", "profiles");
+        Environment.GetEnvironmentVariable("RETROEMU_PROFILES") is { Length: > 0 } custom ? custom
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "RetroEmu", "profiles");
 
     public static IReadOnlyList<GameProfile> All()
     {
@@ -250,11 +266,21 @@ public static class ProfileLibrary
 
     public static GameProfile? Find(string id) => All().FirstOrDefault(p => p.Id == id);
 
-    public static GameProfile? ForFiles(IReadOnlyList<MediaFile> files) => All().FirstOrDefault(p => p.Matches(files));
-
-    public static void Save(GameProfile profile)
+    /// <summary>The profile of a game: one made for that very copy (same SHA-256) first, then one that matches by name.</summary>
+    public static GameProfile? ForFiles(IReadOnlyList<MediaFile> files)
     {
-        Directory.CreateDirectory(UserFolder);
-        File.WriteAllText(Path.Combine(UserFolder, profile.Id + ".json"), profile.ToJson());
+        var all = All();
+        return all.FirstOrDefault(p => p.Match.MatchesHash(files)) ?? all.FirstOrDefault(p => p.Matches(files));
+    }
+
+    public static void Save(GameProfile profile) => SaveTo(profile, UserFolder);
+
+    /// <summary>Writes the profile as &lt;folder&gt;/&lt;id&gt;.json and returns the path.</summary>
+    public static string SaveTo(GameProfile profile, string folder)
+    {
+        Directory.CreateDirectory(folder);
+        string path = Path.Combine(folder, profile.Id + ".json");
+        File.WriteAllText(path, profile.ToJson());
+        return path;
     }
 }

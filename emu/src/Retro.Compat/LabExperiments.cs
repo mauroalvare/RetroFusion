@@ -223,6 +223,12 @@ public static class LabExperiments
             };
             if (note.Length > 0)
                 f.Evidence.Add(note);
+            // one or two steps of one: a counter of objects, enemies or tries, maybe shown on screen
+            if (!round && steps.Count < 3 && steps.All(d => d == 1))
+            {
+                f.Kind = "counter";
+                f.Hypothesis = $"Contador que sube al jugar: objetos, enemigos o puntos ({EncodingName(encoding, bytes)}).";
+            }
             return f;
         }
 

@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Retro.Core\Retro.Core.csproj" />
     <ProjectReference Include="..\Retro.Fusion\Retro.Fusion.csproj" />
+    <ProjectReference Include="..\Retro.Compat\Retro.Compat.csproj" />
   </ItemGroup>
 
   <ItemGroup>

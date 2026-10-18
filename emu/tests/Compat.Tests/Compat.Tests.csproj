@@ -26,6 +26,7 @@
     <ProjectReference Include="..\..\src\Retro.Systems.C64\Retro.Systems.C64.csproj" />
     <ProjectReference Include="..\..\src\Retro.Systems.Spectrum\Retro.Systems.Spectrum.csproj" />
     <ProjectReference Include="..\..\src\Retro.Compat\Retro.Compat.csproj" />
+    <ProjectReference Include="..\..\src\Retro.Ai\Retro.Ai.csproj" />
   </ItemGroup>
 
 </Project>

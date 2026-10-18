@@ -1,0 +1,525 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.RegularExpressions;
+using Retro.Core;
+using Retro.Fusion;
+using Retro.Machines;
+using Retro.Systems.Spectrum;
+
+namespace Retro.Compat;
+
+/// <summary>One input of the boot: hold <see cref="Keys"/> (joined with +) for <see cref="Hold"/> frames, then wait <see cref="Wait"/> frames.</summary>
+public sealed record PlayAction(string Keys, int Hold, int Wait);
+
+/// <summary>What an advisor knows at one round: the screen, what the keys do and what was done.</summary>
+public sealed class PlayObservation
+{
+    public string Game { get; init; } = "";
+    public string Machine { get; init; } = "";
+    public string MachineName { get; init; } = "";
+    public string File { get; init; } = "";
+    public int Round { get; init; }
+    public int FramesSoFar { get; init; }
+    public double FramesPerSecond { get; init; }
+    public IReadOnlyList<string> Keys { get; init; } = Array.Empty<string>();
+    public IReadOnlyList<ControlSet> ControlSets { get; init; } = Array.Empty<ControlSet>();
+    public string? ScreenText { get; init; }
+    public string Sketch { get; init; } = "";
+    public bool PictureMoves { get; init; }
+    /// <summary>For the usual start keys: whether pressing it changes the picture, and whether to one never seen.</summary>
+    public IReadOnlyList<KeyEffect> KeyEffects { get; init; } = Array.Empty<KeyEffect>();
+    public IReadOnlyList<string> History { get; init; } = Array.Empty<string>();
+    public string PlayCheck { get; init; } = "";
+    /// <summary>A copy of the picture, for advisors that can look at images (agents through files).</summary>
+    public VideoFrame? Picture { get; init; }
+
+    /// <summary>Everything as text, for an AI.</summary>
+    public string Describe()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"Juego: {Game} (archivo {File}), máquina {MachineName} a {FramesPerSecond:F0} cuadros por segundo.");
+        sb.AppendLine($"Ronda {Round}; van {FramesSoFar} cuadros desde que arrancó el juego.");
+        sb.AppendLine("Teclas que existen: " + string.Join(", ", Keys));
+        sb.AppendLine("Controles de juego posibles: " + string.Join("; ", ControlSets.Select(c => $"{c.Name}: {c.Left}/{c.Right}/{c.Up}/{c.Down}, disparo {c.Fire}")));
+        sb.AppendLine();
+        sb.AppendLine("Lo que dicen los controles ahora: " + PlayCheck);
+        sb.AppendLine(PictureMoves ? "La pantalla se mueve sola (animación, demo o carga)." : "La pantalla está quieta.");
+        if (!string.IsNullOrWhiteSpace(ScreenText))
+        {
+            sb.AppendLine("Texto que se lee en la pantalla:");
+            sb.AppendLine("```");
+            sb.AppendLine(ScreenText.TrimEnd());
+            sb.AppendLine("```");
+        }
+        else
+            sb.AppendLine("(Esta máquina no tiene un texto legible: guiate por el dibujo.)");
+        sb.AppendLine("Dibujo aproximado de la pantalla (cada carácter es una celda; espacio = fondo, # = lleno):");
+        sb.AppendLine("```");
+        sb.AppendLine(Sketch.TrimEnd());
+        sb.AppendLine("```");
+        if (KeyEffects.Count > 0)
+            sb.AppendLine("Qué pasa si se aprieta cada tecla ahora (6 cuadros y 3 segundos de espera): " +
+                          string.Join("; ", KeyEffects.Select(e => $"{e.Key}: {e.Text}")));
+        if (History.Count > 0)
+        {
+            sb.AppendLine("Lo que ya se hizo:");
+            foreach (var h in History)
+                sb.AppendLine("- " + h);
+        }
+        return sb.ToString();
+    }
+}
+
+public sealed record KeyEffect(string Key, bool Changes, bool NewScreen, string Text);
+
+/// <summary>An advisor's answer: the next inputs, or that the game is already being played.</summary>
+public sealed class PlayAdvice
+{
+    public bool Playing { get; set; }
+    public string Reason { get; set; } = "";
+    public List<PlayAction> Actions { get; set; } = new();
+}
+
+/// <summary>Someone who decides what to press to get from the power-on to playing: the built-in key trial or an AI.</summary>
+public interface IPlayAdvisor
+{
+    string Name { get; }
+    Task<PlayAdvice> AdviseAsync(PlayObservation observation, CancellationToken ct);
+}
+
+/// <summary>
+/// The built-in advisor: presses the first usual start key (fire, space, return, F1, N to
+/// a trainer's questions...) that takes the game to a screen not seen before; when no key
+/// does anything, waits (an intro or a load is going on).
+/// </summary>
+public sealed class KeyTrialAdvisor : IPlayAdvisor
+{
+    private string? _last;
+    private int _streak;
+
+    public string Name => "prueba de teclas";
+
+    public Task<PlayAdvice> AdviseAsync(PlayObservation o, CancellationToken ct)
+    {
+        // the same key three times in a row without getting anywhere (pages of a document, a
+        // menu that cycles) gives way to the next one
+        var usable = o.KeyEffects.Where(e => !(e.Key == _last && _streak >= 3)).ToList();
+        var pick = usable.FirstOrDefault(e => e.NewScreen) ?? usable.FirstOrDefault(e => e.Changes);
+        _streak = pick != null && pick.Key == _last ? _streak + 1 : 1;
+        _last = pick?.Key;
+        var advice = pick != null
+            ? new PlayAdvice { Reason = $"{pick.Key} {pick.Text}", Actions = { new PlayAction(pick.Key, 6, 150) } }
+            : new PlayAdvice { Reason = "ninguna tecla cambia nada: espero", Actions = { new PlayAction("", 0, 300) } };
+        return Task.FromResult(advice);
+    }
+}
+
+public sealed class PrepareOptions
+{
+    public string FirmwareDirectory { get; set; } = "";
+    /// <summary>The user's AI; null = only the built-in key trial.</summary>
+    public IPlayAdvisor? Advisor { get; set; }
+    /// <summary>Rounds of the key trial before asking the AI (all rounds when there is no AI).</summary>
+    public int TrialRounds { get; set; } = 3;
+    public int MaxRounds { get; set; } = 14;
+    /// <summary>Where the profile is saved; null = the user's profiles folder.</summary>
+    public string? ProfilesFolder { get; set; }
+    public int LabFrames { get; set; } = 3000;
+    public bool Save { get; set; } = true;
+}
+
+public sealed class PrepareResult
+{
+    public bool Ok { get; set; }
+    public string? Problem { get; set; }
+    public string Game { get; set; } = "";
+    public string Machine { get; set; } = "";
+    public string File { get; set; } = "";
+    public string? Member { get; set; }
+    public string Sha256 { get; set; } = "";
+    public List<string> Boot { get; set; } = new();
+    public ControlSet? Controls { get; set; }
+    public int Rounds { get; set; }
+    public List<string> Advisors { get; set; } = new();
+    public LabReport? Lab { get; set; }
+    public GameProfile? Profile { get; set; }
+    public string? ProfilePath { get; set; }
+    public List<string> Log { get; set; } = new();
+}
+
+/// <summary>
+/// Prepares any game of the user's folder for the fusions without a profile written by
+/// hand: boots it, finds the way from the power-on to playing (the key trial and then the
+/// user's AI, checking every time with <see cref="PlayDetector"/>), studies it with the lab
+/// (lives, score, time, positions, each verified by experiment) and saves a profile tied to
+/// the SHA-256 of the user's copy. The boot is replayed on a new machine before saving:
+/// the profile only says what was seen working.
+/// </summary>
+public static class GamePreparer
+{
+    /// <summary>Keys tried by the key trial, most usual first.</summary>
+    public static readonly Dictionary<string, string[]> StartKeys = new()
+    {
+        ["c64"] = new[] { "JOY2 FIRE", "SPACE", "RETURN", "F1", "JOY1 FIRE", "N", "RUN/STOP", "Y", "F3", "F5", "F7", "1" },
+        ["zx48"] = new[] { "ENTER", "SPACE", "0", "1", "KEMPSTON FIRE", "N", "S", "Y", "5", "M" },
+        ["nes"] = new[] { "P1 START", "P1 A", "P1 SELECT", "P1 B" },
+        ["invaders"] = new[] { "COIN", "P1 START", "P1 FIRE" },
+    };
+
+    private const int EffectFrames = 180;
+
+    /// <summary>The machine and file of a set of files (the best implemented one), or the reason there is none.</summary>
+    public static (string? machine, MediaFile? media, string reason) Choose(IReadOnlyList<MediaFile> files)
+    {
+        if (MachineCatalog.IdentifySet(files) is { } board)
+            return (board.Machine.Id, files[0], board.Reason);
+        var best = files
+            .SelectMany(MachineCatalog.Identify)
+            .Where(c => c.Confidence >= 50 && MachineLauncher.IsImplemented(c.Machine.Id) && MachineCatalog.NotLoadableYet(c) == null)
+            .OrderByDescending(c => c.Confidence)
+            .ThenBy(c => MediaArchive.DumpScore(c.File.Name))
+            .FirstOrDefault();
+        return best == null ? (null, null, "ninguna máquina disponible reconoce este archivo") : (best.Machine.Id, best.File, best.Reason);
+    }
+
+    public static string Sha256Of(MediaFile f) => Convert.ToHexString(SHA256.HashData(f.Data)).ToLowerInvariant();
+
+    public static async Task<PrepareResult> PrepareAsync(string path, PrepareOptions o, Action<string>? progress, CancellationToken ct)
+    {
+        var r = new PrepareResult();
+        void Say(string text)
+        {
+            r.Log.Add(text);
+            progress?.Invoke(text);
+        }
+        var files = MediaArchive.Open(path);
+        var (machine, media, reason) = Choose(files);
+        string name = Path.GetFileNameWithoutExtension(path);
+        if (name.EndsWith(".tzx", StringComparison.OrdinalIgnoreCase) || name.EndsWith(".tap", StringComparison.OrdinalIgnoreCase))
+            name = name[..^4];
+        r.Game = machine == "invaders" ? "Space Invaders" : CompatDiscovery.GameName(name);
+        if (machine == null || media == null)
+        {
+            r.Problem = reason;
+            return r;
+        }
+        r.Machine = machine;
+        r.File = Path.GetFileName(path);
+        r.Member = files.Count > 1 ? media.Name : null;
+        r.Sha256 = Sha256Of(media);
+        string folder = Path.GetDirectoryName(Path.GetFullPath(path))!;
+        LaunchResult Launch() => MachineLauncher.Launch(machine, files, machine == "invaders" ? null : media, o.FirmwareDirectory, folder);
+        var launch = Launch();
+        var m = launch.Machine;
+        // probes run on a twin, so the real machine only sees the boot (and replays the same)
+        var twin = Launch().Machine;
+        string machineName = MachineCatalog.Get(machine).Name;
+        Say($"{r.Game}: {machineName}, {launch.Media.Name} ({launch.Description}).");
+        if (launch.IsTape && m is Spectrum48 zx)
+        {
+            Say("Cargando la cinta como lo haría una persona (LOAD \"\" y la cinta sonando)...");
+            MachineLauncher.LoadTape(zx);
+            r.Boot.Add("load-tape");
+        }
+        var sink = new short[8192];
+        int frames = 0;
+        void Wait(int n)
+        {
+            for (int i = 0; i < n; i++)
+            {
+                m.RunFrame(null);
+                m.DrainAudio(sink);
+            }
+            frames += n;
+            if (r.Boot.Count > 0 && r.Boot[^1].StartsWith("wait "))
+                r.Boot[^1] = $"wait {int.Parse(r.Boot[^1][5..]) + n}";
+            else
+                r.Boot.Add($"wait {n}");
+        }
+        void Press(string keys, int hold)
+        {
+            var list = keys.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            foreach (var k in list) m.SetKey(k, true);
+            for (int i = 0; i < hold; i++)
+            {
+                m.RunFrame(null);
+                m.DrainAudio(sink);
+            }
+            foreach (var k in list) m.SetKey(k, false);
+            frames += hold;
+            r.Boot.Add($"press {string.Join('+', list)} {hold}");
+        }
+        PlayCheck CheckTwin()
+        {
+            twin.LoadState(m.SaveState());
+            return PlayDetector.Detect(twin, machine);
+        }
+
+        var validKeys = m.Keys.Select(k => k.Name).Concat(PlayDetector.SetsFor(machine).SelectMany(s => s.Keys)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var trial = new KeyTrialAdvisor();
+        var seen = new List<string>();
+        var history = new List<string>();
+        Wait(100);
+        seen.Add(Signature(m));
+        PlayCheck check = CheckTwin();
+        for (int round = 1; round <= o.MaxRounds && !check.Playing; round++)
+        {
+            ct.ThrowIfCancellationRequested();
+            r.Rounds = round;
+            var advisor = o.Advisor != null && round > o.TrialRounds ? o.Advisor : trial;
+            if (!r.Advisors.Contains(advisor.Name))
+                r.Advisors.Add(advisor.Name);
+            var observation = Observe(m, twin, machine, machineName, r.Game, launch.Media.Name, round, frames, seen, history, check);
+            Say($"Ronda {round}: {advisor.Name} mira la pantalla...");
+            PlayAdvice advice;
+            try
+            {
+                advice = await advisor.AdviseAsync(observation, ct);
+            }
+            catch (Exception e) when (e is not OperationCanceledException && advisor != trial)
+            {
+                Say($"La IA falló ({e.Message}); sigo con la prueba de teclas.");
+                history.Add($"Ronda {round}: la IA no respondió ({e.Message}).");
+                o.Advisor = null;
+                advice = await trial.AdviseAsync(observation, ct);
+            }
+            var done = new List<string>();
+            foreach (var a in advice.Actions.Take(16))
+            {
+                var keys = a.Keys.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                var wrong = keys.Where(k => !validKeys.Contains(k)).ToList();
+                if (wrong.Count > 0)
+                {
+                    done.Add($"(tecla inexistente: {string.Join(", ", wrong)})");
+                    continue;
+                }
+                if (keys.Length > 0)
+                {
+                    Press(string.Join('+', keys), Math.Clamp(a.Hold, 1, 120));
+                    done.Add($"{string.Join('+', keys)} {Math.Clamp(a.Hold, 1, 120)} cuadros");
+                }
+                if (a.Wait > 0)
+                {
+                    Wait(Math.Clamp(a.Wait, 1, 3000));
+                    done.Add($"esperar {Math.Clamp(a.Wait, 1, 3000)}");
+                }
+            }
+            if (done.Count == 0)
+            {
+                Wait(120);
+                done.Add("esperar 120 (no hubo acciones válidas)");
+            }
+            seen.Add(Signature(m));
+            check = CheckTwin();
+            string after = check.Playing ? "ya se juega: " + check.Evidence : "todavía no se juega";
+            history.Add($"Ronda {round} ({advisor.Name}): {string.Join(", ", done)}. Motivo: {advice.Reason}. Resultado: {after}." +
+                        (advice.Playing && !check.Playing ? " (Se dijo que era la partida, pero los controles no mueven nada.)" : ""));
+            Say(history[^1]);
+        }
+        if (!check.Playing)
+        {
+            r.Problem = $"No llegué a la partida en {o.MaxRounds} rondas. " + (o.Advisor == null && r.Advisors.Count == 1
+                ? "Con una IA configurada (Claude, ChatGPT o Gemini por suscripción) se puede intentar de nuevo."
+                : "Probá jugarlo a mano para ver qué pide.");
+            return r;
+        }
+        r.Controls = check.Controls;
+        Say($"En la partida después de {frames} cuadros: {check.Evidence}.");
+
+        // ---------------------------------------------------------------- the lab
+        Say("Laboratorio: observando la partida y buscando vidas, tiempo, posiciones y entidades...");
+        var c = check.Controls!;
+        var lab = MemoryLab.Analyze(m, machine, new MemoryLab.Options(IdleFrames: o.LabFrames), (c.Left, c.Right, c.Up, c.Down));
+        lab.Game = r.Game;
+        lab.Script = "preparación automática";
+        lab.Sha256 = r.Sha256;
+        var play = PlayExperiment(c, machine);
+        Say("Laboratorio: jugando al azar (siempre el mismo azar) para encontrar el puntaje...");
+        var (played, idle) = LabExperiments.Run(m, machine, play);
+        int start = MemoryLab.RangeFor(machine).start;
+        var scores = LabExperiments.Scores(played, idle, start, $"\"{play.Description}\"");
+        lab.Findings.AddRange(scores);
+        // somebody playing dies more often than nobody touching: lives seen only then count too
+        var livesInPlay = MemoryLab.LivesIn(played, start, 5, "jugando al azar")
+            .Where(l => lab.Findings.All(f => f.Kind != "lives" || f.Address != l.Address)).ToList();
+        lab.Findings.AddRange(livesInPlay);
+        lab.Method += $" Experimento de puntaje: {play.Description}, {play.Frames} cuadros contra los mismos sin tocar nada.";
+        Say("Laboratorio: verificando cada hipótesis con un experimento...");
+        LabVerifier.VerifyBest(m, lab, scores.Concat(livesInPlay).ToDictionary(f => f, _ => play));
+        r.Lab = lab;
+
+        // ---------------------------------------------------------------- the profile
+        var profile = BuildProfile(r, machineName, lab, c);
+        r.Profile = profile;
+        Say("Comprobando el perfil: arranco una máquina nueva con el arranque guardado...");
+        var replay = MachineFactory.Create(new GameSource(profile, files, folder), o.FirmwareDirectory);
+        MachineFactory.Boot(replay, profile);
+        var again = PlayDetector.Detect(replay, machine, c);
+        if (!again.Playing)
+        {
+            r.Problem = "El arranque guardado no llega a la partida en una máquina nueva (el emulador no se comportó igual dos veces).";
+            Say(r.Problem);
+            return r;
+        }
+        profile.Verified += " Comprobado: una máquina nueva con este arranque llega a la partida (" + again.Evidence + ").";
+        if (o.Save)
+        {
+            string dir = o.ProfilesFolder ?? ProfileLibrary.UserFolder;
+            r.ProfilePath = ProfileLibrary.SaveTo(profile, dir);
+            lab.Save(Path.Combine(dir, "lab", profile.Id + ".json"));
+            Say($"Perfil guardado en {r.ProfilePath}.");
+        }
+        r.Ok = true;
+        return r;
+    }
+
+    /// <summary>What a screen shows, coarse enough that an animation or a scroller does not make it another screen.</summary>
+    public static string Signature(IMachine m) => ScreenReader.Text(m) is { Length: > 0 } text && text.Any(char.IsLetterOrDigit)
+        ? text : ScreenReader.Sketch(m, 32, 12);
+
+    /// <summary>Share of equal characters among the places where either screen shows something (1 = the same screen).</summary>
+    public static double Similarity(string a, string b)
+    {
+        int shown = 0, same = 0;
+        for (int i = 0; i < Math.Max(a.Length, b.Length); i++)
+        {
+            char x = i < a.Length ? a[i] : ' ', y = i < b.Length ? b[i] : ' ';
+            if (char.IsWhiteSpace(x) && char.IsWhiteSpace(y))
+                continue;
+            shown++;
+            if (x == y) same++;
+        }
+        return shown == 0 ? 1 : (double)same / shown;
+    }
+
+    /// <summary>The screen and what each usual key does now, measured on the twin.</summary>
+    private static PlayObservation Observe(IMachine m, IMachine twin, string machine, string machineName, string game, string file, int round,
+        int frames, List<string> seen, List<string> history, PlayCheck check)
+    {
+        byte[] state = m.SaveState();
+        var sink = new short[8192];
+        (string hash, string signature) After(string? key, int n)
+        {
+            twin.LoadState(state);
+            twin.ReleaseAllKeys();
+            if (key != null) twin.SetKey(key, true);
+            for (int i = 0; i < n; i++)
+            {
+                if (i == 6 && key != null) twin.SetKey(key, false);
+                twin.RunFrame(null);
+                twin.DrainAudio(sink);
+            }
+            return (ScreenReader.Hash(twin.Video), Signature(twin));
+        }
+        bool moves = After(null, 30).hash != ScreenReader.Hash(m.Video);
+        var idle = After(null, EffectFrames);
+        var effects = new List<KeyEffect>();
+        foreach (var key in StartKeys.GetValueOrDefault(machine) ?? Array.Empty<string>())
+        {
+            var (h, signature) = After(key, EffectFrames);
+            // same moment, same machine: any difference with the idle run is the key's doing
+            bool changes = h != idle.hash;
+            bool fresh = changes && Similarity(signature, idle.signature) < 0.9 && seen.All(x => Similarity(signature, x) < 0.9);
+            effects.Add(new KeyEffect(key, changes, fresh, !changes ? "no cambia nada" : fresh ? "lleva a una pantalla nueva" : "cambia la pantalla (parecida a una ya vista)"));
+        }
+        return new PlayObservation
+        {
+            Game = game, Machine = machine, MachineName = machineName, File = file, Round = round, FramesSoFar = frames,
+            FramesPerSecond = m.FramesPerSecond,
+            Keys = m.Keys.Select(k => k.Name).ToList(), ControlSets = PlayDetector.SetsFor(machine),
+            ScreenText = ScreenReader.Text(m), Sketch = ScreenReader.Sketch(m), PictureMoves = moves,
+            KeyEffects = effects, History = history.ToList(), PlayCheck = check.Evidence, Picture = Copy(m.Video),
+        };
+    }
+
+    private static VideoFrame Copy(VideoFrame v)
+    {
+        var copy = new VideoFrame(v.Width, v.Height);
+        v.Pixels.CopyTo(copy.Pixels, 0);
+        return copy;
+    }
+
+    /// <summary>Always the same "random" play: directions and fire, to make the score go up.</summary>
+    public static LabExperiment PlayExperiment(ControlSet c, string machine)
+    {
+        var e = new LabExperiment { Kind = "score", Description = $"jugar al azar con {c.Name} y disparar seguido", Frames = 2400 };
+        var rng = new Random(1983);
+        string[] moves = { c.Left, c.Right, c.Up, c.Down };
+        for (int f = 0; f < e.Frames; f += 20)
+        {
+            e.Steps.Add(new CompatStep { Frame = f, Keys = c.Fire, Hold = 4 });
+            e.Steps.Add(new CompatStep { Frame = f + 5, Keys = moves[rng.Next(moves.Length)], Hold = 10 + rng.Next(10) });
+        }
+        return e;
+    }
+
+    public static string Slug(string s) => Regex.Replace(Regex.Replace(s.ToLowerInvariant(), "[^a-z0-9]+", "-"), "-+", "-").Trim('-');
+
+    /// <summary>A profile with the verified variables only (positions the game recomputes are read-only).</summary>
+    public static GameProfile BuildProfile(PrepareResult r, string machineName, LabReport lab, ControlSet c)
+    {
+        var p = new GameProfile
+        {
+            Id = $"{Slug(r.Game)}-{r.Sha256[..8]}",
+            Name = $"{r.Game} ({machineName})",
+            Machine = r.Machine,
+            Match = new ProfileMatch { Sha256 = { r.Sha256 }, Member = r.Member },
+            Boot = r.Boot.ToList(),
+        };
+        LabFinding? Best(string kind) => lab.Findings.Where(f => f.Kind == kind && f.Status == "verified").MaxBy(f => f.Confidence);
+        string Why(LabFinding f) => f.Verification == null ? "" : " Verificada: " + string.Join("; ", f.Verification.Observations.Take(3)) + ".";
+        int MaxFor(LabFinding f) => f.Encoding switch
+        {
+            "bcd" => (int)Math.Min(int.MaxValue, Math.Pow(10, f.Bytes * 2) - 1),
+            "ascii" or "digits" => (int)Math.Min(int.MaxValue, Math.Pow(10, Math.Min(9, f.Bytes)) - 1),
+            "uint16" => 0xFFFF,
+            _ => 0xFF,
+        };
+        void Add(string name, LabFinding? f, string what, int? max = null)
+        {
+            if (f == null)
+                return;
+            p.Variables[name] = new GameVariable
+            {
+                Address = f.Address, Encoding = f.Encoding, Bytes = f.Bytes, Min = 0, Max = max ?? MaxFor(f),
+                Description = what + Why(f),
+            };
+        }
+        Add("lives", Best("lives"), "Vidas (o intentos) que quedan.", 9);
+        if (Best("score") is { } score)
+            Add("score", score, "Puntaje.");
+        else
+            Add("counter", Best("counter"), "Contador que sube al jugar (objetos, enemigos o puntos).");
+        Add("timer", Best("timer"), "Tiempo, aire o energía que se consume solo.");
+        foreach (var (kind, name, what) in new[] { ("position-x", "x", "Posición horizontal del jugador"), ("position-y", "y", "Posición vertical del jugador") })
+        {
+            var stored = Best(kind);
+            if (stored != null)
+            {
+                Add(name, stored, what + ".");
+                continue;
+            }
+            // a position the game recomputes can still be read by the fusion rules
+            var read = lab.Findings.Where(f => f.Kind == kind && f.Status != "verified" && f.Confidence >= 0.4).MaxBy(f => f.Confidence);
+            if (read != null)
+                p.Variables[name] = new GameVariable
+                {
+                    Address = read.Address, Min = 0, Max = 255, ReadOnly = true,
+                    Description = what + " (solo lectura: el juego la recalcula, escribirla no mueve al personaje). " + read.Evidence.FirstOrDefault(),
+                };
+        }
+        p.Controls["left"] = c.Left;
+        p.Controls["right"] = c.Right;
+        if (c.Up != c.Fire) p.Controls["up"] = c.Up;
+        if (c.Down != c.Fire) p.Controls["down"] = c.Down;
+        p.Controls["fire"] = c.Fire;
+        var tables = lab.Findings.Where(f => f.Kind == "entity-table" && f.Status == "verified").ToList();
+        p.Description = $"{r.Game} para {machineName} (copia {r.File}{(r.Member != null ? " > " + r.Member : "")}, SHA-256 {r.Sha256}). " +
+                        $"Perfil preparado automáticamente por RetroEmu: se juega con {c.Name}." +
+                        (tables.Count > 0 ? " Entidades en memoria: " + string.Join("; ", tables.Select(t => $"${t.Address}, {t.Count} registros de {t.Stride} bytes")) + "." : "");
+        p.Verified = $"Preparado el {DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC. Arranque descubierto por {string.Join(" y ", r.Advisors.DefaultIfEmpty("el arranque solo"))} " +
+                     $"en {r.Rounds} ronda(s), comprobado con los controles. Variables halladas por el laboratorio y verificadas escribiendo valores " +
+                     $"y comparando con la misma corrida sin tocar ({p.Variables.Count(v => !v.Value.ReadOnly)} verificadas, {p.Variables.Count(v => v.Value.ReadOnly)} de solo lectura).";
+        return p;
+    }
+}
