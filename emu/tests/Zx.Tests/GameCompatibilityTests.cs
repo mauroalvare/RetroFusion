@@ -145,6 +145,26 @@ public class GameCompatibilityTests
         Assert.That(ScreenText.ReadAll(m), Does.Not.Contain("1982 Sinclair"));
     }
 
+    /// <summary>
+    /// Multiload on .tap: the intro asks the ROM for a 40 KB block a minute after loading.
+    /// The deck has to stop in that block's pilot (as a user would) or the game resets.
+    /// </summary>
+    [Test]
+    public void Karateka_TapeStopsUntilTheIntroAsksForTheNextPart()
+    {
+        var game = FindGame("karateka*", ".tap", Path.Combine("clasicos", "Spectrum"));
+        if (game == null)
+            Assert.Ignore("Karateka (.tap) no está en la carpeta ROMs/.");
+        var m = NewMachine();
+        SpectrumMedia.Load(m, game!);
+        Run(m, 150);
+        m.TypeLoadCommand();
+        Run(m, 20500);
+        Assert.That(m.Tape.AutoStops, Is.GreaterThanOrEqualTo(1), "la cinta no se detuvo sola");
+        Assert.That(m.Z80.PC, Is.GreaterThanOrEqualTo(0x4000), $"volvió a la ROM (PC={m.Z80.PC:X4})");
+        Assert.That(ScreenText.ReadAll(m), Does.Contain("PLAY"), "el juego pide la parte siguiente");
+    }
+
     [Test]
     public void PacMan_LoadsFromTapeAndRunsDemo()
     {

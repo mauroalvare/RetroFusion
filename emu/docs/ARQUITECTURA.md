@@ -271,6 +271,14 @@ casete real.
 Lo que se agrega por comodidad no altera la ejecución:
 
 - **Arranque automático:** la cinta empieza a sonar cuando el PC llega a LD-BYTES ($0556).
+- **Parada automática:** si durante 1,5 s nadie lee el puerto $FE como un cargador (más de
+  200 lecturas por cuadro, o el PC dentro del cargador de la ROM), la cinta se detiene
+  antes del próximo bloque de velocidad normal, o vuelve al principio del bloque si
+  todavía está en su tono guía. Es lo que haría una persona con un juego multicarga en
+  .tap (sin bloques "parar la cinta"); LD-BYTES la vuelve a arrancar. Los bloques turbo
+  o de cargadores propios no se detienen nunca.
+- **Cierre de pulsos:** cada pausa empieza con un borde y la cinta termina con uno, como
+  pide la especificación TZX: muchos cargadores turbo esperan ese último borde.
 - **LOAD "" automático:** se teclea a través de la matriz de teclado, como lo haría una persona.
 - **Turbo:** mientras la cinta suena, el emulador corre más cuadros por segundo real, con
   las mismas instrucciones y el mismo timing interno.

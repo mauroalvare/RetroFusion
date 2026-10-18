@@ -36,7 +36,7 @@ public static class TapLoader
         {
             int len = data[pos] | (data[pos + 1] << 8);
             var block = data.Slice(pos + 2, len);
-            tape.BeginBlock(RomTiming.Describe(block), len);
+            tape.BeginBlock(RomTiming.Describe(block), len, romLoadable: true);
             RomTiming.StandardBlock(tape, block, 1000);
             pos += 2 + len;
         }
@@ -74,7 +74,7 @@ public static class TzxLoader
                 {
                     int pause = U16(data, pos), len = U16(data, pos + 2);
                     var block = Slice(data, pos + 4, len);
-                    tape.BeginBlock(RomTiming.Describe(block), len);
+                    tape.BeginBlock(RomTiming.Describe(block), len, romLoadable: true);
                     RomTiming.StandardBlock(tape, block, pause);
                     pos += 4 + len;
                     break;
@@ -181,6 +181,7 @@ public static class TzxLoader
                     throw new TapeFormatException($"Bloque TZX desconocido 0x{id:X2} en la posición {pos - 1}.");
             }
         }
+        tape.Finish();
         return tape;
     }
 

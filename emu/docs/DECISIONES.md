@@ -90,6 +90,19 @@ el CLI, las fusiones y la compatibilidad identifiquen y arranquen igual. La matr
 encontró enseguida un error que eso evita: las cintas `.cdt` de Amstrad (contenedor TZX)
 se identificaban como Spectrum.
 
+## D-013 La cinta del Spectrum también se detiene sola (2026-10-18)
+
+Karateka (.tap, multicarga) se reiniciaba porque la cinta seguía sonando mientras el
+juego mostraba su presentación: cuando le pedía a la ROM el bloque siguiente, ya había
+pasado. Un .tap no tiene marcas de "parar la cinta", así que el emulador hace lo que haría
+una persona: si nadie lee la cinta como un cargador durante 1,5 s, la detiene antes del
+próximo bloque que la ROM puede leer (o vuelve al principio de ese bloque si está en su
+tono guía), y LD-BYTES la vuelve a arrancar. Se limita a bloques de velocidad normal
+porque un cargador turbo no pasa por LD-BYTES y nadie la volvería a arrancar. La ROM tiene
+una espera de un segundo sin leer (LD-WAIT): el PC dentro del cargador cuenta como carga.
+Cambia lo que ve el usuario (la cinta se detiene sola) y el tiempo que tardan las cargas
+de la matriz.
+
 ## D-012 Las máquinas informan las escrituras de la CPU (`IWriteWatch`) (2026-10-18)
 
 Para saber qué rutina escribe una variable (y más adelante watchpoints y mapas de calor)

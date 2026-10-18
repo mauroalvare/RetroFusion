@@ -19,14 +19,19 @@ public sealed class TapeImage
 
     private bool _level;
 
-    public void BeginBlock(string description, int dataLength)
+    /// <param name="romLoadable">A standard speed block that the ROM's LD-BYTES can read.</param>
+    public void BeginBlock(string description, int dataLength, bool romLoadable = false)
     {
-        Blocks.Add(new TapeBlockInfo(Blocks.Count, Durations.Count, description, dataLength));
+        Blocks.Add(new TapeBlockInfo(Blocks.Count, Durations.Count, description, dataLength, romLoadable));
     }
+
+    /// <summary>True while the last pulse has not been closed by a pause.</summary>
+    private bool _open;
 
     /// <summary>One pulse: the level flips, then holds for <paramref name="tstates"/>.</summary>
     public void Pulse(int tstates)
     {
+        _open = true;
         _level = !_level;
         Add(tstates, _level);
     }
@@ -61,6 +66,7 @@ public sealed class TapeImage
         // A last edge always closes the final pulse (as the TZX spec requires): turbo loaders
         // wait for it after the last bit. If that leaves the signal high, it drops after 1 ms.
         int total = milliseconds * 3500;
+        _open = false;
         _level = !_level;
         if (_level)
         {
@@ -78,9 +84,21 @@ public sealed class TapeImage
 
     public void Stop() => StopAfter.Add(Durations.Count - 1);
 
+    /// <summary>
+    /// End of the tape: a last block with "pause 0" leaves its final pulse open, and loaders
+    /// that wait for the closing edge (Lode Runner "passworded") would time out. Close it
+    /// with 1 ms, as a real tape does when the signal stops.
+    /// </summary>
+    public void Finish()
+    {
+        if (_open)
+            Pause(1);
+    }
+
     /// <summary>Direct recording: each sample is the level for <paramref name="tstatesPerSample"/>.</summary>
     public void Direct(ReadOnlySpan<byte> data, int tstatesPerSample, int usedBitsLastByte)
     {
+        _open = false;   // a recording carries its own levels
         for (int i = 0; i < data.Length; i++)
         {
             int bits = i == data.Length - 1 ? usedBitsLastByte : 8;
@@ -111,7 +129,7 @@ public sealed class TapeImage
     }
 }
 
-public sealed record TapeBlockInfo(int Index, int FirstSegment, string Description, int DataLength);
+public sealed record TapeBlockInfo(int Index, int FirstSegment, string Description, int DataLength, bool RomLoadable = false);
 
 /// <summary>Standard Spectrum ROM loader timings (T-states).</summary>
 public static class RomTiming

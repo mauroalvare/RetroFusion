@@ -1,6 +1,6 @@
 {
-  "generated": "2026-10-18 15:47 UTC",
-  "commit": "fdf4cc7+cambios",
+  "generated": "2026-10-18 16:03 UTC",
+  "commit": "8bb3b7b+cambios",
   "gamesFolder": "C:/Users/mauro/Downloads/ROMs",
   "note": "",
   "results": [
@@ -4319,7 +4319,7 @@
       "firmware": "ROM 48K de Sinclair (48.rom)",
       "model": "ZX Spectrum 48K (PAL)",
       "controls": "",
-      "procedure": "Cinta TZX con 10 bloques; LOAD \"\" y cinta completa por la ROM en 15894 cuadros (317 s)",
+      "procedure": "Cinta TZX con 10 bloques; LOAD \"\" y cinta completa por la ROM en 15988 cuadros (319 s)",
       "levels": {
         "format": {
           "status": "ok",
@@ -4327,7 +4327,7 @@
         },
         "load": {
           "status": "ok",
-          "detail": "Cinta TZX con 10 bloques; LOAD \"\" y cinta completa por la ROM en 15894 cuadros (317 s)"
+          "detail": "Cinta TZX con 10 bloques; LOAD \"\" y cinta completa por la ROM en 15988 cuadros (319 s)"
         },
         "picture": {
           "status": "ok",
@@ -4711,7 +4711,7 @@
       "firmware": "ROM 48K de Sinclair (48.rom)",
       "model": "ZX Spectrum 48K (PAL)",
       "controls": "",
-      "procedure": "Cinta TAP con 11 bloques; LOAD \"\" y cinta completa por la ROM en 21640 cuadros (432 s)",
+      "procedure": "Cinta TAP con 11 bloques; LOAD \"\" en 5563 cuadros (111 s) hasta que la cinta se detuvo sola en el bloque 6 (multicarga: el resto se carga cuando el juego lo pide)",
       "levels": {
         "format": {
           "status": "ok",
@@ -4719,19 +4719,19 @@
         },
         "load": {
           "status": "ok",
-          "detail": "Cinta TAP con 11 bloques; LOAD \"\" y cinta completa por la ROM en 21640 cuadros (432 s)"
+          "detail": "Cinta TAP con 11 bloques; LOAD \"\" en 5563 cuadros (111 s) hasta que la cinta se detuvo sola en el bloque 6 (multicarga: el resto se carga cuando el juego lo pide)"
         },
         "picture": {
-          "status": "fail",
-          "detail": "quedó en la pantalla de inicio del Spectrum"
+          "status": "ok",
+          "detail": "2 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
         },
         "title": {
           "status": "untested",
           "detail": "sin comprobación de título en el guion (mirar la captura)"
         },
         "controls": {
-          "status": "untested",
-          "detail": ""
+          "status": "fail",
+          "detail": "ninguna de 29 entradas (apretadas 8 cuadros) cambió la imagen en 60 cuadros (KEMPSTON LEFT, KEMPSTON RIGHT, KEMPSTON UP, KEMPSTON FIRE, O, P, Q, A, M, Z, X, N, S, K, Y, SPACE, ENTER, CAPS SHIFT, SYMBOL SHIFT, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)"
         },
         "playable": {
           "status": "untested",
@@ -4742,18 +4742,16 @@
           "detail": "no hay perfil de fusión para este juego"
         }
       },
-      "highest": "load",
-      "problems": [
-        "quedó en la pantalla de inicio del Spectrum"
-      ],
+      "highest": "picture",
+      "problems": [],
       "gameQuirks": [],
       "warnings": [
         "determinista: dos corridas dieron la misma imagen final"
       ],
-      "screenHash": "c31941cec0d7f5b1",
+      "screenHash": "1168c7e35ae3faa2",
       "screenshot": "out/compat/zx48-karateka.png",
       "framesRun": 1500,
-      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones. No es una partida completa.",
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
       "curated": false,
       "notes": ""
     },
@@ -4769,7 +4767,7 @@
       "firmware": "ROM 48K de Sinclair (48.rom)",
       "model": "ZX Spectrum 48K (PAL)",
       "controls": "",
-      "procedure": "Cinta TAP con 11 bloques; LOAD \"\" y cinta completa por la ROM en 21640 cuadros (432 s)",
+      "procedure": "Cinta TAP con 11 bloques; LOAD \"\" en 5563 cuadros (111 s) hasta que la cinta se detuvo sola en el bloque 6 (multicarga: el resto se carga cuando el juego lo pide)",
       "levels": {
         "format": {
           "status": "ok",
@@ -4777,19 +4775,19 @@
         },
         "load": {
           "status": "ok",
-          "detail": "Cinta TAP con 11 bloques; LOAD \"\" y cinta completa por la ROM en 21640 cuadros (432 s)"
+          "detail": "Cinta TAP con 11 bloques; LOAD \"\" en 5563 cuadros (111 s) hasta que la cinta se detuvo sola en el bloque 6 (multicarga: el resto se carga cuando el juego lo pide)"
         },
         "picture": {
-          "status": "fail",
-          "detail": "quedó en la pantalla de inicio del Spectrum"
+          "status": "ok",
+          "detail": "2 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
         },
         "title": {
           "status": "untested",
           "detail": "sin comprobación de título en el guion (mirar la captura)"
         },
         "controls": {
-          "status": "untested",
-          "detail": ""
+          "status": "fail",
+          "detail": "ninguna de 29 entradas (apretadas 8 cuadros) cambió la imagen en 60 cuadros (KEMPSTON LEFT, KEMPSTON RIGHT, KEMPSTON UP, KEMPSTON FIRE, O, P, Q, A, M, Z, X, N, S, K, Y, SPACE, ENTER, CAPS SHIFT, SYMBOL SHIFT, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)"
         },
         "playable": {
           "status": "untested",
@@ -4800,18 +4798,16 @@
           "detail": "no hay perfil de fusión para este juego"
         }
       },
-      "highest": "load",
-      "problems": [
-        "quedó en la pantalla de inicio del Spectrum"
-      ],
+      "highest": "picture",
+      "problems": [],
       "gameQuirks": [],
       "warnings": [
         "determinista: dos corridas dieron la misma imagen final"
       ],
-      "screenHash": "c31941cec0d7f5b1",
+      "screenHash": "1168c7e35ae3faa2",
       "screenshot": "out/compat/zx48-karateka-2.png",
       "framesRun": 1500,
-      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones. No es una partida completa.",
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
       "curated": false,
       "notes": ""
     },
@@ -4950,16 +4946,16 @@
           "detail": "Cinta TZX con 5 bloques; LOAD \"\" y cinta completa por la ROM en 11452 cuadros (229 s)"
         },
         "picture": {
-          "status": "fail",
-          "detail": "quedó en la pantalla de inicio del Spectrum"
+          "status": "ok",
+          "detail": "6 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
         },
         "title": {
           "status": "untested",
           "detail": "sin comprobación de título en el guion (mirar la captura)"
         },
         "controls": {
-          "status": "untested",
-          "detail": ""
+          "status": "ok",
+          "detail": "cambian la imagen: 1, 2, 4, 6 (de 29 probadas)"
         },
         "playable": {
           "status": "untested",
@@ -4970,18 +4966,16 @@
           "detail": "no hay perfil de fusión para este juego"
         }
       },
-      "highest": "load",
-      "problems": [
-        "quedó en la pantalla de inicio del Spectrum"
-      ],
+      "highest": "controls",
+      "problems": [],
       "gameQuirks": [],
       "warnings": [
         "determinista: dos corridas dieron la misma imagen final"
       ],
-      "screenHash": "c31941cec0d7f5b1",
+      "screenHash": "72f52a9687befec8",
       "screenshot": "out/compat/zx48-lode-runner-2.png",
       "framesRun": 1500,
-      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones. No es una partida completa.",
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
       "curated": false,
       "notes": ""
     },

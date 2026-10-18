@@ -1,6 +1,6 @@
 # Matriz de compatibilidad
 
-Generada el 2026-10-18 15:47 UTC (commit fdf4cc7+cambios) con `retro-cli compat` sobre `C:/Users/mauro/Downloads/ROMs`. Los datos completos (hash, procedimiento, evidencia de cada nivel) están en `emu/compat/resultados.json`; los guiones, en `emu/compat/juegos/`. No editar a mano: se regenera.
+Generada el 2026-10-18 16:03 UTC (commit 8bb3b7b+cambios) con `retro-cli compat` sobre `C:/Users/mauro/Downloads/ROMs`. Los datos completos (hash, procedimiento, evidencia de cada nivel) están en `emu/compat/resultados.json`; los guiones, en `emu/compat/juegos/`. No editar a mano: se regenera.
 
 Niveles, en orden: **formato** reconocido → medio **cargado** → **imagen** (pantalla con contenido y sin signos de fallo) → llega al **título** (comprobación del guion) → **responde** a los controles (una entrada cambia la imagen respecto de la misma corrida sin entradas) → **jugable** (comprobaciones de partida del guion) → listo para **fusionar** (perfil con direcciones verificadas). `sí` = comprobado, **no** = falló, `parcial` = a medias, `·` = no probado. Son pruebas cortas y reproducibles, no partidas completas.
 
@@ -44,7 +44,7 @@ Determinismo: 4 de 4 corridas repetidas dieron exactamente la misma imagen final
 | Cheman ⁽ᵃ⁾ | descargados-autores/NES/mojon-twins--cheman.nes | 380f05602d31 | sí | sí | sí | · | sí | · | · | cambian la imagen: P1 START, P1 UP, P1 DOWN, P1 A, P1 B, P1 SELECT (de 8 probadas) |
 | Super Uwol ⁽ᵃ⁾ | descargados-autores/NES/mojon-twins--super-uwol.nes | 67eaa300c8ab | sí | sí | sí | · | sí | · | · | cambian la imagen: P1 START (de 8 probadas) |
 
-## ZX Spectrum 48K (31 archivos, 31 cargan, 26 responden a controles)
+## ZX Spectrum 48K (31 archivos, 31 cargan, 27 responden a controles)
 
 Determinismo: 31 de 31 corridas repetidas dieron exactamente la misma imagen final.
 
@@ -61,11 +61,11 @@ Determinismo: 31 de 31 corridas repetidas dieron exactamente la misma imagen fin
 | Horace Goes to the Tower ⁽ᵃ⁾ | descargados-autores/Spectrum/Mojon-Twins--Horace-Goes-to-the-Tower.tzx | 5e30d26c859f | sí | sí | sí | · | sí | · | · | cambian la imagen: 1, 2, 3 (de 29 probadas) |
 | Jet Set Willy ⁽ᵃ⁾ | clasicos/Spectrum-seleccion/jet-set-willy.z80 | 1e16f855d67d | sí | sí | sí | · | sí | · | · | cambian la imagen: 1, 2, 3, 4 (de 29 probadas) |
 | Jet Set Willy ⁽ᵃ⁾ | clasicos/Spectrum/jet-set-willy.zip → Jet Set Willy (1984)(Software Projects).tzx | 0d846f41d311 | sí | sí | sí | · | sí | · | · | cambian la imagen: 1, 2, 3, 4 (de 29 probadas) |
-| Karateka ⁽ᵃ⁾ | clasicos/Spectrum-pendiente/karateka.tap | d66e554206ae | sí | sí | **no** | · | · | · | · | quedó en la pantalla de inicio del Spectrum |
-| Karateka ⁽ᵃ⁾ | clasicos/Spectrum/karateka.zip → Karateka (1986)(Dro Soft)(es)[cr Rajsoft].tap | d66e554206ae | sí | sí | **no** | · | · | · | · | quedó en la pantalla de inicio del Spectrum |
+| Karateka ⁽ᵃ⁾ | clasicos/Spectrum-pendiente/karateka.tap | d66e554206ae | sí | sí | sí | · | **no** | · | · |  |
+| Karateka ⁽ᵃ⁾ | clasicos/Spectrum/karateka.zip → Karateka (1986)(Dro Soft)(es)[cr Rajsoft].tap | d66e554206ae | sí | sí | sí | · | **no** | · | · |  |
 | Lala Prologue ⁽ᵃ⁾ | descargados-autores/Spectrum/Mojon-Twins--Lala-Prologue.tzx | c0e0647efd09 | sí | sí | sí | · | sí | · | · | cambian la imagen: O, P, Q, A, M, Z, X, N, S, K, Y, SPACE, ENTER, CAPS SHIFT, SYMBOL SHIFT, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 (de 29 probadas) |
 | Lode Runner ⁽ᵃ⁾ | clasicos/Spectrum-seleccion/lode-runner.z80 | d9d4b5257f9c | sí | sí | sí | · | sí | · | · | cambian la imagen: O, P, Q, A, M, Z, X, N, S, K, Y, SPACE, ENTER, CAPS SHIFT, SYMBOL SHIFT, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 (de 29 probadas) |
-| Lode Runner ⁽ᵃ⁾ | clasicos/Spectrum/lode-runner.zip → Lode Runner (1984)(Software Projects)[passworded].tzx | 89cfe394312f | sí | sí | **no** | · | · | · | · | quedó en la pantalla de inicio del Spectrum |
+| Lode Runner ⁽ᵃ⁾ | clasicos/Spectrum/lode-runner.zip → Lode Runner (1984)(Software Projects)[passworded].tzx | 89cfe394312f | sí | sí | sí | · | sí | · | · | cambian la imagen: 1, 2, 4, 6 (de 29 probadas) |
 | Manic Miner | ManicMiner.tzx.zip → Manic Miner.tzx | 3c9bbf17c2a9 | sí | sí | sí | sí | sí | sí | parcial | cambian la imagen: O, P, SPACE (de 3 probadas); Comprobaciones con las direcciones del perfil manicminer. |
 | Mariano the Dragon Capers in Cityland ⁽ᵃ⁾ | descargados-autores/Spectrum/Mojon-Twins--Mariano-the-Dragon-Capers-in-Cityland.tzx | e15e686b3688 | sí | sí | sí | · | sí | · | · | cambian la imagen: O, P, Q, A, M, Z, X, N, S, K, Y, SPACE, ENTER, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 (de 29 probadas) |
 | Moggy Adventure ⁽ᵃ⁾ | descargados-autores/Spectrum/Mojon-Twins--Moggy-Adventure.tzx | 1053e8277ccf | sí | sí | sí | · | sí | · | · | cambian la imagen: 1, 2, 3 (de 29 probadas) |

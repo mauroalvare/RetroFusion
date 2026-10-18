@@ -173,6 +173,7 @@ public sealed class Spectrum48 : IMachine, IZ80Bus, IMemoryView, IWriteWatch
             for (int row = 0; row < 8; row++)
                 if ((port & (0x100 << row)) == 0)
                     keys &= _keyRows[row];
+            _earReads++;
             bool ear = Tape.LevelAt(_cpu.T) || _earOut;  // issue 3: EAR output feeds back into bit 6
             return (byte)(keys | 0xA0 | (ear ? 0x40 : 0));
         }
@@ -389,6 +390,30 @@ public sealed class Spectrum48 : IMachine, IZ80Bus, IMemoryView, IWriteWatch
         FrameCount++;
         if (FrameCount % 16 == 0)
             _flashPhase = !_flashPhase;
+        WatchTapeUse();
+    }
+
+    private int _earReads, _quietFrames;
+    /// <summary>A loader reads port $FE over a thousand times per frame; a game reading its keys, a few dozen.</summary>
+    private const int LoaderReadsPerFrame = 200, QuietFramesBeforeStop = 75;
+
+    /// <summary>
+    /// Auto play also stops: after a second in which nothing reads the tape like a loader,
+    /// the deck stops in the pilot of the block the ROM can load (going back to its start) or
+    /// before the next one (multiload games on .tap, which has no "stop the tape" marks, ask
+    /// for their next part later through LD-BYTES).
+    /// </summary>
+    private void WatchTapeUse()
+    {
+        // the ROM loader waits about a second without reading (LD-WAIT, $0571): that is loading too
+        bool inRomLoader = _cpu.PC >= SpectrumSymbols.LdBytes && _cpu.PC < 0x0605;
+        _quietFrames = Tape.IsPlaying && _earReads < LoaderReadsPerFrame && !inRomLoader ? _quietFrames + 1 : 0;
+        _earReads = 0;
+        if (!AutoPlayTape || !Tape.IsPlaying)
+            return;
+        bool quiet = _quietFrames >= QuietFramesBeforeStop;
+        if (!(quiet && Tape.StopInRomPilot(_cpu.T)))
+            Tape.StopAtNextRomBlock = quiet;
     }
 
     /// <summary>Takes the audio produced so far (call once per frame from the frontend).</summary>

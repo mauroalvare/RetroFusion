@@ -9,8 +9,19 @@ public sealed class TapePlayer
     private long _remaining;      // remaining T-states of the segment while stopped
     private bool _level;
 
+    private HashSet<int> _romBlockStarts = new();
+
     public TapeImage? Tape => _tape;
     public bool IsPlaying { get; private set; }
+
+    /// <summary>
+    /// Stop when the next block the ROM can load begins, as a user stops the deck while the
+    /// game runs. The machine asks for it when nobody is reading the tape; LD-BYTES plays it again.
+    /// </summary>
+    public bool StopAtNextRomBlock { get; set; }
+
+    /// <summary>Times the tape stopped by itself before a block (for reports and tests).</summary>
+    public int AutoStops { get; private set; }
 
     /// <summary>
     /// Level changes (absolute T-state, new level) since the consumer last cleared the
@@ -23,6 +34,7 @@ public sealed class TapePlayer
     public void Insert(TapeImage tape)
     {
         _tape = tape;
+        _romBlockStarts = tape.Blocks.Where(b => b.RomLoadable && b.Index > 0).Select(b => b.FirstSegment).ToHashSet();
         Rewind();
     }
 
@@ -49,6 +61,7 @@ public sealed class TapePlayer
             return;
         _segmentEnd = now + _remaining;
         IsPlaying = true;
+        StopAtNextRomBlock = false;
     }
 
     public void Stop(long now)
@@ -77,6 +90,15 @@ public sealed class TapePlayer
                 return _level;
             }
             _segment++;
+            if (StopAtNextRomBlock && _romBlockStarts.Contains(_segment))
+            {
+                IsPlaying = false;
+                StopAtNextRomBlock = false;
+                AutoStops++;
+                _remaining = _tape.Durations[_segment];
+                _level = _tape.Levels[_segment];
+                return _level;
+            }
             if (_segment >= _tape.Durations.Count)
             {
                 IsPlaying = false;
@@ -91,6 +113,31 @@ public sealed class TapePlayer
             _segmentEnd += _tape.Durations[_segment];
         }
         return _level;
+    }
+
+    /// <summary>Pilot pulses of the shortest ROM block (data: 3223); fewer played means still in the pilot.</summary>
+    private const int ShortestRomPilot = 3000;
+
+    /// <summary>
+    /// Stops now if the tape is still in the pilot tone of a block the ROM can load, and
+    /// goes back to the start of that block: the loader that asks for it later finds it
+    /// whole. Returns false (and keeps playing) anywhere else.
+    /// </summary>
+    public bool StopInRomPilot(long now)
+    {
+        if (_tape == null || !IsPlaying)
+            return false;
+        LevelAt(now);
+        var block = _tape.Blocks.LastOrDefault(b => b.FirstSegment <= _segment);
+        if (block == null || !block.RomLoadable || block.Index == 0 || _segment - block.FirstSegment >= ShortestRomPilot)
+            return false;
+        IsPlaying = false;
+        StopAtNextRomBlock = false;
+        AutoStops++;
+        _segment = block.FirstSegment;
+        _remaining = _tape.Durations[_segment];
+        _level = _tape.Levels[_segment];
+        return true;
     }
 
     private void RecordEdge(long t, bool level)

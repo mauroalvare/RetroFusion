@@ -11,15 +11,15 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 - Solo el modelo 48K. Los juegos 128K (4 de Mojon Twins en `descargados-autores\Spectrum-128K`)
   dan corrupción gráfica o reinicio en el 48K (observado en la auditoría de ROMs). Tarea T-030.
 - Jet Set Willy pide la tarjeta de códigos (protección del juego, no fallo de carga).
-  Karateka (edición de `clasicos\Spectrum`) se reinicia: falta investigar la edición.
 - Turrican y otros multicarga: solo se comprobó la primera carga.
-- Dos cintas cargan completas y después el Spectrum vuelve a su pantalla de inicio
-  (observado en la matriz): Karateka (las dos copias, multicarga: vuelve a pedir cinta a
-  la ROM y no se reinicia en mitad de la carga) y Lode Runner "passworded" (cargador
-  propio que usa la rutina de bordes de la ROM). Falta investigar (T-015). Galaxian de
-  Atarisoft, que fallaba igual, ya anda: su cargador turbo espera el borde que cierra el
-  último pulso de cada bloque, que el emulador no generaba cuando la señal quedaba en
-  bajo (arreglado el 18/10, con prueba).
+- La parada automática de la cinta (ver ARQUITECTURA, "Cinta") supone que un juego que
+  no lee el puerto $FE durante un segundo y medio no está cargando. Un cargador propio que
+  pase ese tiempo sin leer la cinta justo antes de un bloque de velocidad normal la
+  encontraría detenida (no se vio en ninguna cinta de la carpeta). Con "pulse una tecla"
+  la cinta sigue sonando, como en un casete real: si el juego pide la parte siguiente
+  tarde, hay que rebobinar.
+- Karateka llega a su pedido de la parte siguiente ("Pulse PLAY y espacio") pero la matriz
+  todavía no lo hace avanzar: falta un guion curado con ESPACIO.
 - Columns y Uwol de Mojon Twins no responden a ninguna de las 29 teclas de la sonda en el
   momento probado (están en una intro o esperan algo distinto): falta un guion curado.
 

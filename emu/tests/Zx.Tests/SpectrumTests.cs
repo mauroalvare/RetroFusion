@@ -131,6 +131,54 @@ public class SpectrumTests
         Assert.That(tape.Durations.Skip(pulses).Sum(), Is.EqualTo(100 * 3500));
     }
 
+    /// <summary>Two standard blocks (header and data) as a .tap would give them.</summary>
+    private static TapeImage TwoRomBlocks()
+    {
+        var tape = new TapeImage();
+        var header = new byte[19];
+        var data = new byte[] { 0xFF, 1, 2, 3, 0xFF ^ 1 ^ 2 ^ 3 };
+        tape.BeginBlock("cabecera", header.Length, romLoadable: true);
+        RomTiming.StandardBlock(tape, header, 1000);
+        tape.BeginBlock("datos", data.Length, romLoadable: true);
+        RomTiming.StandardBlock(tape, data, 1000);
+        return tape;
+    }
+
+    [Test]
+    public void TapePlayer_StopsBeforeTheNextRomBlockWhenAsked()
+    {
+        var tape = TwoRomBlocks();
+        var player = new TapePlayer();
+        player.Insert(tape);
+        player.Play(0);
+        player.StopAtNextRomBlock = true;
+        player.LevelAt(tape.TotalTStates);
+        Assert.That(player.IsPlaying, Is.False);
+        Assert.That(player.CurrentBlock, Is.EqualTo(1), "quedó al principio del bloque de datos");
+        Assert.That(player.Capture(0).segment, Is.EqualTo(tape.Blocks[1].FirstSegment));
+        Assert.That(player.AutoStops, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void TapePlayer_StopInPilot_GoesBackToTheStartOfTheBlock()
+    {
+        var tape = TwoRomBlocks();
+        var player = new TapePlayer();
+        player.Insert(tape);
+        player.Play(0);
+        long block1 = tape.Durations.Take(tape.Blocks[1].FirstSegment).Sum(d => (long)d);
+        player.LevelAt(block1 + 500 * 2168);              // 500 pilot pulses into the data block
+        Assert.That(player.StopInRomPilot(block1 + 500 * 2168), Is.True);
+        Assert.That(player.Capture(0).segment, Is.EqualTo(tape.Blocks[1].FirstSegment));
+
+        long t0 = block1 + 500 * 2168;
+        player.Play(t0);                                   // from the start of the block again
+        long inData = t0 + 3223L * 2168 + 667 + 735 + 20 * 855;   // past the pilot and sync, in the data bits
+        player.LevelAt(inData);
+        Assert.That(player.StopInRomPilot(inData), Is.False, "en los datos no se detiene");
+        Assert.That(player.IsPlaying, Is.True);
+    }
+
     [Test]
     public void Tap_RejectsC64RawTape()
     {
