@@ -106,7 +106,7 @@ public sealed class EmulatorHost
         var cart = Retro.Systems.Nes.NesCartridge.Load(file.Data);
         SetMachine(new Retro.Systems.Nes.Nes(cart), info);
         LoadedMedia = file.Name;
-        Status = $"{file.Name}: {cart.Describe()}. Mando: flechas, Z = B, X = A, Enter = Start, Shift derecho = Select. Todavía sin sonido.";
+        Status = $"{file.Name}: {cart.Describe()}. Mando: flechas, Z = B, X = A, Enter = Start, Shift derecho = Select.";
     }
 
     /// <summary>Starts the Space Invaders board with the game ROM from the user's files.</summary>

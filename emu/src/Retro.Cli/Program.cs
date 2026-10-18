@@ -129,7 +129,6 @@ if (nesMedia != null && !isInvaders)
     Console.WriteLine($"Máquina: {machine.DisplayName}");
     Console.WriteLine($"Archivo: {nesMedia.Name}");
     Console.WriteLine(cart.Describe());
-    Console.WriteLine("  aviso: el sonido (APU) todavía no está emulado");
 }
 else if (c64Media != null && !isInvaders)
 {

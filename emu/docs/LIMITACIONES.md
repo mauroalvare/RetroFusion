@@ -46,14 +46,17 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 - Los juegos crackeados de la carpeta (Pac-Man y Ghostbusters) tienen menús de trainer
   antes del juego: la secuencia de teclas está en `tests/C64.Tests/GameTests.cs`.
 
-### Nintendo NES (T-031: máquina hecha, falta el sonido)
+### Nintendo NES (T-031)
 
-- Corre en la app, el CLI y la matriz: CPU 2A03, PPU, OAM DMA, los dos mandos, PRG RAM y
-  estados guardados. Cadaverion, Cave (CNROM), Cheman y Super Uwol llegan al título y
+- Corre en la app, el CLI y la matriz: CPU 2A03, PPU, APU, OAM DMA, los dos mandos, PRG RAM
+  y estados guardados. Cadaverion, Cave (CNROM), Cheman y Super Uwol llegan al título y
   entran al juego con START (capturas del CLI y de la app oculta, 18/10). Bootee no se
   prueba ni se documenta: la protagoniza Cheril (ver Contenido excluido).
-- **Sin sonido:** la APU no está emulada; sus registros se aceptan y no hacen nada, $4015
-  lee 0 y no hay IRQ del contador de cuadros. La máquina entrega silencio.
+- APU: la lectura de muestras del DMC no le roba ciclos a la CPU (en el chip son hasta 4
+  por byte), los registros de longitud no tienen la demora de un ciclo frente al contador
+  de cuadros y no hay filtros de salida aparte del pasa altos (el sonido es algo más
+  brillante que en una consola). Los estados guardados de la versión sin sonido no se
+  pueden cargar (formato 2).
 - Solo mappers 0 y 3: un .nes con otro mapper se reconoce y se explica por qué no carga.
 - Sin segundo jugador en la app (el mando 2 existe para el CLI y las fusiones) ni Zapper.
 - La matriz no ve respuesta en Cave con la sonda automática (sí con START a mano en el

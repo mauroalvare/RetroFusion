@@ -19,8 +19,8 @@ src/
   Retro.Systems.Arcade     Placa Taito/Midway de Space Invaders: video, shifter, sonido.
   Retro.Systems.C64        Commodore 64: VIC-II, SID, dos CIA 6526, bancos del 6510,
                            cintas .t64 y programas .prg, compatibilidad con Open ROMs.
-  Retro.Systems.Nes        Nintendo NES: CPU 2A03, PPU 2C02, cartuchos iNES (mappers 0 y 3),
-                           OAM DMA y mandos. Sin APU todavía.
+  Retro.Systems.Nes        Nintendo NES: CPU 2A03, PPU 2C02, APU, cartuchos iNES (mappers 0
+                           y 3), OAM DMA y mandos.
   Retro.Machines           Catálogo de máquinas y formatos, y el lanzador común que arranca una
                            máquina con un juego (app, CLI, fusiones y compatibilidad).
   Retro.Compat             Matriz de compatibilidad reproducible: guiones, ejecutor sin ventana,
@@ -195,8 +195,15 @@ bus) y la suite funcional de Klaus Dormann.
   (espejados hasta $3FFF), $4014 OAM DMA (la CPU se detiene 513 o 514 ciclos mientras se
   copian 256 bytes a la OAM por $2004), $4016/$4017 los mandos, 8 KB de PRG RAM en
   $6000-$7FFF y el cartucho desde $8000.
-- **NMI:** la salida de la PPU (vblank y bit 7 de $2000) va a la línea NMI del 6502, que
-  reacciona al flanco. No hay fuentes de IRQ todavía.
+- **NMI e IRQ:** la salida de la PPU (vblank y bit 7 de $2000) va a la línea NMI del 6502,
+  que reacciona al flanco. La IRQ (por nivel) viene de la APU: contador de cuadros y DMC.
+- **APU:** dos pulsos (ciclo de trabajo, envolvente, barrido con la diferencia de
+  complemento a uno del pulso 1), triángulo con contador lineal, ruido con su registro de
+  15 bits en los dos modos y DMC (muestras delta de 1 bit leídas de la memoria de la CPU,
+  con repetición e IRQ). El contador de cuadros de 4 o 5 pasos marca envolventes, longitudes
+  y barridos; el cambio de modo por $4017 tarda 3 o 4 ciclos. La mezcla usa la fórmula no
+  lineal del chip; la máquina promedia la salida de cada ciclo en muestras de 44,1 kHz y
+  quita la continua con un filtro pasa altos.
 - **Mandos:** registro de desplazamiento con A, B, Select, Start, arriba, abajo,
   izquierda, derecha; con el strobe en alto se relee A; después del octavo bit, 1.
   Teclas de la máquina: `P1 A`, `P1 START`, `P2 LEFT`...
@@ -424,7 +431,7 @@ con `Poke` en las demás; el archivo original nunca se modifica.
 | 2 | Intel 8080 | Placa arcade de Space Invaders | Hecha (probada con la ROM real) |
 | F | - | Fusiones, IA y visor de código | Hecha para Spectrum 48K y Space Invaders |
 | 3 | 6502 / 6510 | Commodore 64 (.t64, .prg) | Hecha (Pac-Man, Ghostbusters, Spy vs Spy) |
-| 3n | 2A03 (6502) | NES (.nes, mappers 0 y 3) | Hecha sin sonido (4 homebrew de Mojon Twins llegan al juego) |
+| 3n | 2A03 (6502) | NES (.nes, mappers 0 y 3) | Hecha, con sonido (4 homebrew de Mojon Twins llegan al juego) |
 | 3b | 6502 | Discos .d64 y cartuchos del C64, Atari 800, Apple II | Pendiente |
 | 4 | 8086 / 8088 | IBM PC / XT con DOS | Pendiente |
 | 5 | 68000 | Atari ST, Amiga 500 | Pendiente |

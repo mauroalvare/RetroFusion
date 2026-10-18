@@ -7,8 +7,8 @@ namespace Retro.Systems.Nes;
 /// Nintendo NES (NTSC): Ricoh 2A03 (a 6502 without decimal mode) at 1,789,773 Hz, 2 KB of
 /// RAM mirrored up to $1FFF, the 2C02 PPU at $2000-$3FFF (three dots per CPU cycle), OAM DMA
 /// at $4014, two controllers at $4016/$4017, 8 KB of PRG RAM at $6000-$7FFF and the
-/// cartridge at $8000-$FFFF. The CPU drives the clock: every bus access is one cycle.
-/// The APU is not emulated yet: its registers are accepted and the machine is silent.
+/// cartridge at $8000-$FFFF, and the APU's five sound channels at $4000-$4017. The CPU
+/// drives the clock: every bus access is one cycle.
 /// </summary>
 public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePatch
 {
@@ -32,17 +32,22 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
     private int _audioCount;
     private double _sampleCarry;
     private const double CyclesPerSample = Clock / 44100;
+    private float _mixSum;
+    private int _mixCount;
+    private float _dcIn, _dcOut;   // high-pass filter state: removes the mixer's DC offset
     private bool _skipBreakpointOnce;
     private ushort _instructionPc;
 
     public NesCartridge Cartridge { get; }
     public Ppu Ppu { get; }
+    public Apu Apu { get; } = new();
 
     public Nes(NesCartridge cartridge)
     {
         Cartridge = cartridge;
         Ppu = new Ppu(cartridge);
         _cpu = new M6502(this) { Name = "Ricoh 2A03", DecimalEnabled = false };
+        Apu.ReadMemory = a => CpuRead(a, sideEffects: false);
         _disassembler.Symbols = a => SymbolFor(a);
         Reset(true);
     }
@@ -84,6 +89,9 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
             Array.Clear(_prgRam);
         }
         Ppu.Reset();
+        Apu.Reset();
+        _dcIn = Apu.Output;   // start the high-pass at rest: no click at power on
+        _dcOut = 0;
         _strobe = false;
         ReleaseAllKeys();
         _cpu.Reset();
@@ -107,8 +115,8 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
 
     public Action<ushort, byte, ushort>? WriteWatch { get; set; }
 
-    /// <summary>No IRQ sources yet: the APU frame counter and IRQ mappers come later.</summary>
-    public bool IrqLine => false;
+    /// <summary>The APU's frame counter and DMC (mappers with IRQ come later).</summary>
+    public bool IrqLine => Apu.Irq;
     public bool NmiLine => Ppu.Nmi;
 
     private void Tick()
@@ -116,12 +124,20 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         Ppu.Step();
         Ppu.Step();
         Ppu.Step();
+        Apu.Step();
+        _mixSum += Apu.Output;
+        _mixCount++;
         _sampleCarry += 1;
         if (_sampleCarry >= CyclesPerSample)
         {
             _sampleCarry -= CyclesPerSample;
+            float x = _mixSum / _mixCount;      // average of the cycles since the last sample
+            _mixSum = 0;
+            _mixCount = 0;
+            _dcOut = x - _dcIn + 0.996f * _dcOut;
+            _dcIn = x;
             if (_audioCount < _audio.Length)
-                _audio[_audioCount++] = 0;     // silence until the APU exists
+                _audio[_audioCount++] = (short)Math.Clamp(_dcOut * 28000, short.MinValue, short.MaxValue);
         }
     }
 
@@ -131,7 +147,8 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         if (a < 0x2000) v = _ram[a & 0x7FF];
         else if (a < 0x4000) v = sideEffects ? Ppu.ReadRegister(a) : PeekPpu(a);
         else if (a == 0x4016 || a == 0x4017) v = sideEffects ? ReadPad(a & 1) : (byte)(_openBus & 0xE0 | _shift[a & 1] & 1);
-        else if (a < 0x4020) v = a == 0x4015 ? (byte)0 : _openBus;
+        else if (a == 0x4015) v = sideEffects ? Apu.ReadStatus() : Apu.Status;
+        else if (a < 0x4020) v = _openBus;
         else if (a < 0x6000) v = _openBus;
         else if (a < 0x8000) v = _prgRam[a & 0x1FFF];
         else v = Cartridge.CpuRead(a);
@@ -155,7 +172,8 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         else if (a < 0x4000) Ppu.WriteRegister(a, v);
         else if (a == 0x4014) OamDma(v);
         else if (a == 0x4016) WriteStrobe(v);
-        else if (a < 0x6000) { }                       // APU (not emulated yet) and expansion
+        else if (a < 0x4018) Apu.Write(a, v);
+        else if (a < 0x6000) { }                       // test registers and expansion
         else if (a < 0x8000) _prgRam[a & 0x1FFF] = v;
         else Cartridge.CpuWrite(a, v);
     }
@@ -306,7 +324,7 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         $"PPU: v={Ppu.ScrollV:X4} t={Ppu.ScrollT:X4} x={Ppu.FineX} | imagen {(Ppu.RenderingEnabled ? "activa" : "apagada")} | NMI {(Ppu.Nmi ? "pedida" : "-")}",
         $"Mandos: 1={_pads[0]:X2} 2={_pads[1]:X2}",
         Cartridge.Describe(),
-        "Sonido: el APU todavía no está emulado",
+        $"APU: {Apu.Describe()}",
     };
 
     // ------------------------------------------------------------------ save states
@@ -317,12 +335,13 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         using var ms = new MemoryStream();
         using var w = new BinaryWriter(ms);
         w.Write(StateMagic);
-        w.Write(1);
+        w.Write(2);
         _cpu.Save(w);
         w.Write(_ram);
         w.Write(_prgRam);
         Ppu.Save(w);
         Cartridge.Save(w);
+        Apu.Save(w);
         w.Write(_strobe);
         w.Write(_shift);
         w.Write(_openBus);
@@ -334,13 +353,14 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
     public void LoadState(byte[] state)
     {
         using var r = new BinaryReader(new MemoryStream(state));
-        if (r.ReadString() != StateMagic || r.ReadInt32() != 1)
-            throw new InvalidDataException("No es un estado guardado de NES.");
+        if (r.ReadString() != StateMagic || r.ReadInt32() != 2)
+            throw new InvalidDataException("No es un estado guardado de NES (o es de una versión anterior, sin sonido).");
         _cpu.Load(r);
         r.Read(_ram, 0, _ram.Length);
         r.Read(_prgRam, 0, _prgRam.Length);
         Ppu.Load(r);
         Cartridge.Load(r);
+        Apu.Load(r);
         _strobe = r.ReadBoolean();
         r.Read(_shift, 0, _shift.Length);
         _openBus = r.ReadByte();

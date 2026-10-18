@@ -71,7 +71,7 @@ public static class MachineLauncher
                     .FirstOrDefault() ?? throw new InvalidDataException("No hay un cartucho de NES (.nes).");
                 var cart = NesCartridge.Load(media.Data);
                 var m = new Nes(cart);
-                return new LaunchResult(m, media, cart.Describe(), new[] { "el sonido (APU) todavía no está emulado" }, false);
+                return new LaunchResult(m, media, cart.Describe(), Array.Empty<string>(), false);
             }
             default:
                 throw new NotSupportedException($"La máquina \"{machineId}\" todavía no está implementada.");
