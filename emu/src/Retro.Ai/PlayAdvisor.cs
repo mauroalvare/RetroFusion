@@ -12,7 +12,6 @@ namespace Retro.Ai;
 public sealed class AiPlayAdvisor : IPlayAdvisor, IVariableNamer
 {
     private readonly IAiProvider _ai;
-    private readonly List<AiTurn> _turns = new();
 
     public AiPlayAdvisor(IAiProvider ai) => _ai = ai;
 
@@ -86,23 +85,21 @@ public sealed class AiPlayAdvisor : IPlayAdvisor, IVariableNamer
 
     public async Task<PlayAdvice> AdviseAsync(PlayObservation observation, CancellationToken ct)
     {
-        _turns.Add(new AiTurn(true, observation.Describe()));
+        // only this round: the observation already lists every round before (actions, reasons
+        // and results), so resending old turns would only make each request bigger and costlier
+        var turns = new[] { new AiTurn(true, observation.Describe()) };
         // the screen as it is: the text reader and the sketch miss custom fonts and graphics
         string? picture = observation.Picture != null ? SavePicture(observation.Picture, $"ronda-{observation.Round:00}") : null;
         string answer;
         try
         {
-            answer = await _ai.CompleteAsync(new AiRequest(Guide, _turns.ToList(), Schema(), picture != null ? new[] { picture } : null), ct);
+            answer = await _ai.CompleteAsync(new AiRequest(Guide, turns, Schema(), picture != null ? new[] { picture } : null), ct);
         }
         finally
         {
             if (picture != null)
                 try { File.Delete(picture); } catch (IOException) { }
         }
-        _turns.Add(new AiTurn(false, answer));
-        // only the last few rounds travel: the history in each observation already says what was done
-        while (_turns.Count > 6)
-            _turns.RemoveAt(0);
         return Parse(answer);
     }
 

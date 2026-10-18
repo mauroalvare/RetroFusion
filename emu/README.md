@@ -187,7 +187,21 @@ prueba automática rechaza). La API de los guiones está en
 | Ollama | Gratis y local, pero los modelos chicos programan peor. |
 
 Para las tres opciones de suscripción, la ventana muestra si encontró la herramienta, cómo
-instalarla si falta y un botón **Probar conexión**. RetroEmu nunca ve tu contraseña ni tus
+instalarla si falta y un botón **Probar conexión**.
+
+**Cómo se portan al preparar un juego** (pruebas del 18/10 con dos cracks de C64 que tienen
+intro, documentos, menú de trucos, nombre y tienda antes de la partida; cada ronda de IA ve
+el texto, un dibujo y la captura de la pantalla):
+
+| IA | Spy vs Spy | Ghostbusters | Tendencia |
+|---|---|---|---|
+| Codex CLI | 4 rondas, 58 s | 14 rondas: dedujo que la tienda exige trampas | Prudente; con la instrucción de juntar acciones ya contesta un menú entero por ronda. |
+| Claude Code | 2 rondas, 63 s; nombró bien el reloj (`clockMinutes`) | 15 rondas, 261 s | Se adelanta: manda teclas para pantallas que todavía no vio; mantenía el joystick y se pasaba de casilla. |
+| Antigravity CLI | 4 rondas, 205 s; también nombró el reloj | ver abajo | Muy prudente: una acción por ronda y esperas largas; lento por consulta. |
+
+La instrucción común se ajustó con lo que se vio: juntar las acciones de la pantalla que se
+ve (sin adivinar las siguientes), saltear o esperar de una vez las presentaciones, mover los
+cursores de a una casilla y buscar qué falta cuando una tecla no responde. RetroEmu nunca ve tu contraseña ni tus
 credenciales: la herramienta oficial de cada empresa hace el login.
 
 Los juegos fusionados se guardan con todas sus versiones en `RetroEmu/juegos` (dentro de
