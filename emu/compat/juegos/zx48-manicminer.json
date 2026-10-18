@@ -63,6 +63,76 @@
     "SPACE"
   ],
   "gameQuirks": [],
+  "experiments": [
+    {
+      "kind": "score",
+      "description": "saltar por las plataformas hasta juntar la primera llave",
+      "frames": 900,
+      "repeatEvery": 0,
+      "steps": [
+        {
+          "frame": 0,
+          "keys": "SPACE+P",
+          "hold": 24
+        },
+        {
+          "frame": 63,
+          "keys": "SPACE+O",
+          "hold": 24
+        },
+        {
+          "frame": 148,
+          "keys": "SPACE+P",
+          "hold": 24
+        },
+        {
+          "frame": 233,
+          "keys": "SPACE+P",
+          "hold": 24
+        },
+        {
+          "frame": 318,
+          "keys": "SPACE+P",
+          "hold": 24
+        },
+        {
+          "frame": 403,
+          "keys": "SPACE+P",
+          "hold": 24
+        },
+        {
+          "frame": 488,
+          "keys": "P",
+          "hold": 32
+        },
+        {
+          "frame": 521,
+          "keys": "SPACE+P",
+          "hold": 24
+        },
+        {
+          "frame": 566,
+          "keys": "P",
+          "hold": 32
+        },
+        {
+          "frame": 599,
+          "keys": "SPACE+P",
+          "hold": 24
+        },
+        {
+          "frame": 684,
+          "keys": "SPACE+P",
+          "hold": 24
+        },
+        {
+          "frame": 747,
+          "keys": "SPACE+P",
+          "hold": 24
+        }
+      ]
+    }
+  ],
   "curated": true,
   "notes": "Comprobaciones con las direcciones del perfil manicminer."
 }

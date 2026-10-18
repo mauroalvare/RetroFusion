@@ -63,6 +63,21 @@
     "P1 FIRE"
   ],
   "gameQuirks": [],
+  "experiments": [
+    {
+      "kind": "score",
+      "description": "disparar cada 40 cuadros sin moverse",
+      "frames": 3000,
+      "repeatEvery": 40,
+      "steps": [
+        {
+          "frame": 0,
+          "keys": "P1 FIRE",
+          "hold": 4
+        }
+      ]
+    }
+  ],
   "curated": true,
   "notes": "Comprobaciones con las direcciones del perfil invaders (verificadas al crear la fusión Manic Invaders)."
 }

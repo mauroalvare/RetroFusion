@@ -24,6 +24,8 @@ static int Usage()
           retro-cli studio <juego.js|juego.json|id> --games <carpeta> [--seconds n] [--shots prefijo]
           retro-cli compat <carpeta-guiones|guion.json> --juegos <carpeta> [--salida r.json] [--md tabla.md]
                     [--capturas carpeta] [--solo id1,id2] [--descubrir] [--dos-veces] [--paralelo n]
+          retro-cli lab <guion.json> [--juegos carpeta] [--cuadros n] [--salida hallazgos.json]
+                    [--hipotesis tipo:dirección[:codificación:bytes]]... [--sin-verificar]
 
         Máquinas: ZX Spectrum 48K (.tap .tzx .z80 .sna), Space Invaders (invaders.zip de MAME),
         Commodore 64 (.t64 .prg) y NES (.nes con mapper 0 o 3; teclas P1_A, P1_START...).
@@ -76,7 +78,8 @@ if (command == "compat")
         Opt("solo"), Opt("descubrir") != null, Opt("dos-veces") != null, int.Parse(Opt("paralelo") ?? "4"));
 
 if (command == "lab")
-    return RunLab(mediaPath, Opt("juegos") ?? @"C:\Users\mauro\Downloads\ROMs", Opt("salida"), int.Parse(Opt("cuadros") ?? "3000"));
+    return RunLab(mediaPath, Opt("juegos") ?? @"C:\Users\mauro\Downloads\ROMs", Opt("salida"), int.Parse(Opt("cuadros") ?? "3000"),
+        Opt("sin-verificar") == null, opts.GetValueOrDefault("hipotesis") ?? new List<string>());
 
 if (command == "fuse")
     return RunFusion(mediaPath, Opt("games") ?? ".", Opt("ticks"), Opt("screenshot"), Opt("shot-every"), Opt("shot-prefix"), opts.GetValueOrDefault("press"), Opt("layout"));
@@ -378,8 +381,10 @@ static int RunCompat(string scriptsPath, string gamesDir, string? jsonOut, strin
 }
 
 // Reverse engineering lab: plays a compatibility script to reach the game, then looks
-// for lives, timers and positions by experiment and writes the findings with evidence.
-static int RunLab(string scriptPath, string gamesDir, string? jsonOut, int idleFrames)
+// for lives, timers, positions and entity tables by experiment, plays the script's
+// experiments (score, level...), verifies the best hypotheses by writing test values and
+// writes the findings with evidence.
+static int RunLab(string scriptPath, string gamesDir, string? jsonOut, int idleFrames, bool verify, List<string> givenHypotheses)
 {
     var script = Retro.Compat.CompatScript.Load(scriptPath);
     var runner = new Retro.Compat.CompatRunner(gamesDir, Path.GetDirectoryName(FindRom("48.rom"))!, null);
@@ -395,14 +400,58 @@ static int RunLab(string scriptPath, string gamesDir, string? jsonOut, int idleF
     report.Game = script.Game;
     report.Script = script.Id;
     report.Sha256 = sha;
-    Console.WriteLine($"Listo en {sw.Elapsed.TotalSeconds:F1} s. {report.Method}");
-    foreach (var f in report.Findings.Take(25))
+    Console.WriteLine($"Observación lista en {sw.Elapsed.TotalSeconds:F1} s. {report.Method}");
+    var replays = new Dictionary<Retro.Compat.LabFinding, Retro.Compat.LabExperiment>();
+    foreach (var e in script.Experiments ?? new())
     {
-        Console.WriteLine($"  ${f.Address} {f.Kind,-11} confianza {f.ConfidenceLabel} ({f.Confidence:F2}) {f.Hypothesis}");
+        var found = Retro.Compat.LabExperiments.Analyze(m, script.Machine, e);
+        foreach (var f in found)
+            replays[f] = e;
+        report.Findings.AddRange(found);
+        report.Method += $" Experimento {e.Kind} \"{e.Description}\": {e.Frames} cuadros con sus entradas contra los mismos sin tocar nada.";
+        Console.WriteLine($"Experimento {e.Kind} \"{e.Description}\": {found.Count} candidato(s).");
+    }
+    var given = new List<Retro.Compat.LabFinding>();
+    foreach (var h in givenHypotheses)
+    {
+        // kind:address[:encoding:bytes], e.g. score:20F8:bcd:2
+        var p = h.Split(':');
+        var f = new Retro.Compat.LabFinding
+        {
+            Kind = p[0], Address = p[1].TrimStart('$').ToUpperInvariant(), Encoding = p.Length > 2 ? p[2] : "uint8",
+            Bytes = p.Length > 3 ? int.Parse(p[3]) : 1, Confidence = 0.5,
+            Hypothesis = $"Hipótesis dada: {p[0]} en ${p[1].TrimStart('$')}.",
+        };
+        var experiment = script.Experiments?.FirstOrDefault(e => e.Kind == f.Kind);
+        if (experiment != null)
+            replays[f] = experiment;
+        given.Add(f);
+        report.Findings.Add(f);
+    }
+    if (verify)
+    {
+        sw.Restart();
+        foreach (var f in given)
+            Retro.Compat.LabVerifier.Verify(m, f, replays.GetValueOrDefault(f));
+        Retro.Compat.LabVerifier.VerifyBest(m, report, replays);
+        Console.WriteLine($"Verificación lista en {sw.Elapsed.TotalSeconds:F1} s.");
+    }
+    foreach (var f in report.Findings.Take(30))
+    {
+        string where = f.Kind == "entity-table" ? $"${f.Address} x{f.Count} de {f.Stride} bytes" : f.Bytes > 1 ? $"${f.Address} {f.Encoding} {f.Bytes}" : $"${f.Address}";
+        Console.WriteLine($"  {where} {f.Kind,-12} {Retro.Compat.LabReportText.Status(f.Status),-12} confianza {f.ConfidenceLabel} ({f.Confidence:F2}) {f.Hypothesis}");
         foreach (var e in f.Evidence)
             Console.WriteLine($"      evidencia: {e}");
+        foreach (var field in f.Fields ?? new())
+            Console.WriteLine($"      campo {field}");
         if (f.Writers.Count > 0)
             Console.WriteLine($"      lo escriben: {string.Join(", ", f.Writers)}");
+        if (f.Verification != null)
+        {
+            Console.WriteLine($"      experimento: {f.Verification.Experiment}");
+            foreach (var o in f.Verification.Observations)
+                Console.WriteLine($"        - {o}");
+        }
     }
     foreach (var n in report.Notes)
         Console.WriteLine("  nota: " + n);

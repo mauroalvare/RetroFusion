@@ -10,7 +10,7 @@ namespace Retro.Fusion;
 public sealed class GameVariable
 {
     public string Address { get; set; } = "0000";
-    /// <summary>uint8, uint16 (little endian), bcd (n bytes, little endian), ascii (n digits).</summary>
+    /// <summary>uint8, uint16 (little endian), bcd (n bytes, little endian), ascii (n digits), digits (n bytes of 0-9, most significant first).</summary>
     public string Encoding { get; set; } = "uint8";
     public int Bytes { get; set; } = 1;
     public int Mask { get; set; }
@@ -40,10 +40,11 @@ public sealed class GameVariable
                 }
                 break;
             case "ascii":
+            case "digits":
                 v = 0;
                 for (int i = 0; i < Bytes; i++)
                 {
-                    int d = mem.Peek((uint)(a + i)) - '0';
+                    int d = mem.Peek((uint)(a + i)) - (Encoding == "ascii" ? '0' : 0);
                     v = v * 10 + Math.Clamp(d, 0, 9);
                 }
                 break;
@@ -75,9 +76,10 @@ public sealed class GameVariable
                 }
                 break;
             case "ascii":
+            case "digits":
                 for (int i = Bytes - 1; i >= 0; i--)
                 {
-                    mem.Poke((uint)(a + i), (byte)('0' + value % 10));
+                    mem.Poke((uint)(a + i), (byte)((Encoding == "ascii" ? '0' : 0) + value % 10));
                     value /= 10;
                 }
                 break;

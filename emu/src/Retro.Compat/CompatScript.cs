@@ -68,6 +68,8 @@ public sealed class CompatScript
     /// <summary>Things that belong to the game, not to the emulator (code card, multiload, trainer).</summary>
     public List<string> GameQuirks { get; set; } = new();
     public string Notes { get; set; } = "";
+    /// <summary>Experiments of the reverse engineering lab, played from the end of the script (shooting adds points...).</summary>
+    public List<LabExperiment>? Experiments { get; set; }
     /// <summary>True when a person wrote the steps and checks (not just discovered).</summary>
     public bool Curated { get; set; }
 

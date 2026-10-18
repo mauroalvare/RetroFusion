@@ -3,18 +3,135 @@
   "machine": "zx48",
   "script": "zx48-manicminer",
   "sha256": "3c9bbf17c2a9f4c0aa10e2799d127c05d1b24de639a14adedc935c5667dfa724",
-  "generated": "2026-10-18 10:00 UTC",
-  "method": "Serie de 2401 muestras cada 5 cuadros sin tocar nada (12000 cuadros); corridas desde el mismo estado con cada dirección apretada 30 y 60 cuadros, comparadas con la corrida sin entradas; rango $5B00-$FFFF.",
+  "generated": "2026-10-18 18:20 UTC",
+  "method": "Serie de 2401 muestras cada 5 cuadros sin tocar nada (12000 cuadros); corridas desde el mismo estado con cada dirección apretada 30 y 60 cuadros, comparadas con la corrida sin entradas; rango $5B00-$FFFF. Experimento score \"saltar por las plataformas hasta juntar la primera llave\": 900 cuadros con sus entradas contra los mismos sin tocar nada.",
   "findings": [
+    {
+      "kind": "score",
+      "address": "8429",
+      "nature": "stored-value",
+      "encoding": "ascii",
+      "bytes": 6,
+      "status": "verified",
+      "verification": {
+        "result": "verified",
+        "experiment": "Escribí 1230 en $8429 (6 dígitos ASCII; antes 0) y corrí 900 cuadros repitiendo las entradas de \"saltar por las plataformas hasta juntar la primera llave\" contra la misma corrida sin escribir.",
+        "observations": [
+          "conserva el valor escrito: termina en 1330 (sin tocar, 100)",
+          "el juego siguió cambiándolo desde el valor escrito igual que sin tocar (1 cambio(s) en 900 cuadros)",
+          "la pantalla cambia: 38 píxeles distintos en el cuadro 900, en la zona x 273-294, y 201-206",
+          "el texto de la pantalla muestra 001330 donde sin tocar muestra 000100"
+        ],
+        "frames": 900,
+        "pixelsChanged": 38,
+        "date": "2026-10-18 18:20 UTC"
+      },
+      "hypothesis": "Puntaje: número que sube al jugar y no cambia sin tocar nada (6 dígitos ASCII).",
+      "evidence": [
+        "en la corrida \"saltar por las plataformas hasta juntar la primera llave\" pasa de 0 a 100 en 1 subida(s) (+100); sin tocar nada no cambia",
+        "los dígitos siguen de $841B a $842E (20); se toman los 6 últimos (el ancho se confirma leyendo la pantalla)"
+      ],
+      "confidence": 0.982,
+      "confidenceLabel": "alta",
+      "expectedEffect": "Sumarle da puntos; el juego muestra y sigue sumando sobre el valor escrito.",
+      "howToVerify": "Escribir otro puntaje en $8429 (6 dígitos ASCII) y ver que la pantalla lo muestre y que siga sumando desde ahí.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": []
+    },
+    {
+      "kind": "timer",
+      "address": "80BC",
+      "nature": "stored-value",
+      "encoding": "uint8",
+      "bytes": 1,
+      "status": "verified",
+      "verification": {
+        "result": "verified",
+        "experiment": "Escribí 58 en $80BC (un byte; antes 62) y corrí 180 cuadros sin tocar nada contra la misma corrida sin escribir.",
+        "observations": [
+          "conserva el valor escrito: termina en 57 (sin tocar, 61)",
+          "el juego siguió cambiándolo desde el valor escrito igual que sin tocar (1 cambio(s) en 180 cuadros)",
+          "la pantalla cambia: 60 píxeles distintos en el cuadro 180, en la zona x 254-290, y 186-189"
+        ],
+        "frames": 180,
+        "pixelsChanged": 60,
+        "date": "2026-10-18 18:20 UTC"
+      },
+      "hypothesis": "Tiempo, aire o energía que se consume solo y se recarga al (re)empezar.",
+      "evidence": [
+        "baja de a 1 43 veces y sube 1 en 12000 cuadros sin tocar nada (de 62 a 46)",
+        "se recarga cuando baja un candidato de vidas"
+      ],
+      "confidence": 0.9239999999999999,
+      "confidenceLabel": "alta",
+      "expectedEffect": "Congelarlo detiene el tiempo o da energía infinita.",
+      "howToVerify": "Congelar $80BC en 62 y ver si la barra o el número de tiempo deja de bajar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$8A4F ×6"
+      ]
+    },
+    {
+      "kind": "entity-table",
+      "address": "8075",
+      "nature": "entity-table",
+      "encoding": "uint8",
+      "bytes": 1,
+      "status": "verified",
+      "verification": {
+        "result": "verified",
+        "experiment": "Campo +0 del primer registro: Escribí 29 en $8075 (un byte; antes 5) y corrí 180 cuadros sin tocar nada contra la misma corrida sin escribir.",
+        "observations": [
+          "conserva el valor escrito: termina en 28 (sin tocar, 4)",
+          "el juego siguió cambiándolo desde el valor escrito igual que sin tocar (41 cambio(s) en 180 cuadros)",
+          "la pantalla cambia: 49 píxeles distintos en el cuadro 10, en la zona x 120-127, y 48-55"
+        ],
+        "frames": 180,
+        "pixelsChanged": 49,
+        "date": "2026-10-18 18:20 UTC"
+      },
+      "stride": 5,
+      "count": 5,
+      "fields": [
+        "+0: cambia sola en pasos de 1,6 de media en 5 registros, va y vuelve (posición o dirección)"
+      ],
+      "hypothesis": "Tabla de 5 entidades de 5 bytes (enemigos, disparos u objetos que se mueven solos).",
+      "evidence": [
+        "sin tocar nada, $8075, $807A, $807F, $8084, $8089 cambian cada uno a su ritmo (2397 / 2397 / 2397 / 2397 / 2397 cambios en 2401 muestras)"
+      ],
+      "confidence": 0.9,
+      "confidenceLabel": "alta",
+      "expectedEffect": "Leerla da las posiciones de los enemigos; escribir un campo mueve o desactiva una sola entidad.",
+      "howToVerify": "Escribir otro valor en el campo +0 de un registro ($8075) y ver si se mueve una sola entidad en pantalla.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$8F9C ×361"
+      ]
+    },
     {
       "kind": "position-x",
       "address": "806C",
       "nature": "stored-value",
+      "encoding": "uint8",
+      "bytes": 1,
+      "status": "verified",
+      "verification": {
+        "result": "verified",
+        "experiment": "Escribí 138 en $806C (un byte; antes 162) y corrí 180 cuadros sin tocar nada contra la misma corrida sin escribir.",
+        "observations": [
+          "conserva el valor escrito 22 cuadros y después coincide con la corrida sin tocar (el juego lo reinició)",
+          "la pantalla cambia: 6718 píxeles distintos en el cuadro 30, en la zona x 48-303, y 48-231"
+        ],
+        "frames": 180,
+        "pixelsChanged": 6718,
+        "date": "2026-10-18 18:20 UTC"
+      },
       "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
       "evidence": [
-        "comparado con la misma corrida sin entradas, O y P lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: O 162→161, P 162→163; 60 cuadros: O 162→161, P 162→165"
+        "comparado con la misma corrida sin entradas, O y P lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: O 162→161, P 162→163; 60 cuadros: O 162→161, P 162→165",
+        "variable suelta: no está dentro de ninguna tabla de entidades que se mueva sola"
       ],
-      "confidence": 0.8,
+      "confidence": 0.886,
       "confidenceLabel": "alta",
       "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
       "howToVerify": "Escribir otro valor en $806C y ver si el personaje aparece en otro lugar.",
@@ -27,61 +144,115 @@
       "kind": "lives",
       "address": "8457",
       "nature": "stored-value",
+      "encoding": "uint8",
+      "bytes": 1,
+      "status": "verified",
+      "verification": {
+        "result": "verified",
+        "experiment": "Escribí 4 en $8457 (un byte; antes 2) y corrí 7380 cuadros sin tocar nada contra la misma corrida sin escribir.",
+        "observations": [
+          "conserva el valor escrito: termina en 4 (sin tocar, 1)",
+          "la pantalla cambia: 1633 píxeles distintos en el cuadro 7380, en la zona x 48-300, y 48-231"
+        ],
+        "frames": 7380,
+        "pixelsChanged": 1633,
+        "date": "2026-10-18 18:20 UTC"
+      },
       "hypothesis": "Vidas (o intentos): valor chico que solo baja de a uno.",
       "evidence": [
         "empieza en 2 y baja de a 1 1 vez/veces en 12000 cuadros sin tocar nada (muestras 7290)",
         "cuando baja, 1 candidato(s) de tiempo se recargan cerca (reinicio de nivel o vida)"
       ],
-      "confidence": 0.7000000000000001,
-      "confidenceLabel": "media",
+      "confidence": 0.884,
+      "confidenceLabel": "alta",
       "expectedEffect": "Subirlo da vidas extra; congelarlo da vidas infinitas.",
       "howToVerify": "Escribir 4 en $8457 y ver si el contador de vidas en pantalla cambia; perder una vida y ver que baja.",
       "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
       "writers": []
     },
     {
-      "kind": "timer",
-      "address": "80BC",
+      "kind": "score",
+      "address": "7D9A",
       "nature": "stored-value",
-      "hypothesis": "Tiempo, aire o energía que se consume solo y se recarga al (re)empezar.",
+      "encoding": "bcd",
+      "bytes": 2,
+      "status": "hypothesis",
+      "hypothesis": "Puntaje: número que sube al jugar y no cambia sin tocar nada (BCD de 2 byte(s), 4 dígitos).",
       "evidence": [
-        "baja de a 1 43 veces y sube 1 en 12000 cuadros sin tocar nada (de 62 a 46)",
-        "se recarga cuando baja un candidato de vidas"
-      ],
-      "confidence": 0.7,
-      "confidenceLabel": "media",
-      "expectedEffect": "Congelarlo detiene el tiempo o da energía infinita.",
-      "howToVerify": "Congelar $80BC en 62 y ver si la barra o el número de tiempo deja de bajar.",
-      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
-      "writers": [
-        "$8A4F ×6"
-      ]
-    },
-    {
-      "kind": "position-x",
-      "address": "8069",
-      "nature": "stored-value",
-      "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
-      "evidence": [
-        "comparado con la misma corrida sin entradas, O y P lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: O 0→0, P 0→3; 60 cuadros: O 0→0, P 0→1"
+        "en la corrida \"saltar por las plataformas hasta juntar la primera llave\" pasa de 2020 a 5252 en 1 subida(s) (+3232); sin tocar nada no cambia"
       ],
       "confidence": 0.5,
       "confidenceLabel": "media",
-      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
-      "howToVerify": "Escribir otro valor en $8069 y ver si el personaje aparece en otro lugar.",
+      "expectedEffect": "Sumarle da puntos; el juego muestra y sigue sumando sobre el valor escrito.",
+      "howToVerify": "Escribir otro puntaje en $7D9A (BCD de 2 byte(s), 4 dígitos) y ver que la pantalla lo muestre y que siga sumando desde ahí.",
       "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
-      "writers": [
-        "$8CD2 ×10",
-        "$8D01 ×3"
-      ]
+      "writers": []
+    },
+    {
+      "kind": "score",
+      "address": "7E9A",
+      "nature": "stored-value",
+      "encoding": "bcd",
+      "bytes": 2,
+      "status": "hypothesis",
+      "hypothesis": "Puntaje: número que sube al jugar y no cambia sin tocar nada (BCD de 2 byte(s), 4 dígitos).",
+      "evidence": [
+        "en la corrida \"saltar por las plataformas hasta juntar la primera llave\" pasa de 808 a 2020 en 1 subida(s) (+1212); sin tocar nada no cambia"
+      ],
+      "confidence": 0.5,
+      "confidenceLabel": "media",
+      "expectedEffect": "Sumarle da puntos; el juego muestra y sigue sumando sobre el valor escrito.",
+      "howToVerify": "Escribir otro puntaje en $7E9A (BCD de 2 byte(s), 4 dígitos) y ver que la pantalla lo muestre y que siga sumando desde ahí.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": []
+    },
+    {
+      "kind": "score",
+      "address": "6F97",
+      "nature": "stored-value",
+      "encoding": "digits",
+      "bytes": 5,
+      "status": "hypothesis",
+      "hypothesis": "Puntaje: número que sube al jugar y no cambia sin tocar nada (5 dígitos, uno por byte).",
+      "evidence": [
+        "en la corrida \"saltar por las plataformas hasta juntar la primera llave\" pasa de 0 a 88 en 1 subida(s) (+88); sin tocar nada no cambia"
+      ],
+      "confidence": 0.4,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Sumarle da puntos; el juego muestra y sigue sumando sobre el valor escrito.",
+      "howToVerify": "Escribir otro puntaje en $6F97 (5 dígitos, uno por byte) y ver que la pantalla lo muestre y que siga sumando desde ahí.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": []
+    },
+    {
+      "kind": "score",
+      "address": "7F97",
+      "nature": "stored-value",
+      "encoding": "digits",
+      "bytes": 5,
+      "status": "hypothesis",
+      "hypothesis": "Puntaje: número que sube al jugar y no cambia sin tocar nada (5 dígitos, uno por byte).",
+      "evidence": [
+        "en la corrida \"saltar por las plataformas hasta juntar la primera llave\" pasa de 0 a 88 en 1 subida(s) (+88); sin tocar nada no cambia"
+      ],
+      "confidence": 0.4,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Sumarle da puntos; el juego muestra y sigue sumando sobre el valor escrito.",
+      "howToVerify": "Escribir otro puntaje en $7F97 (5 dígitos, uno por byte) y ver que la pantalla lo muestre y que siga sumando desde ahí.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": []
     },
     {
       "kind": "position-x",
       "address": "6AA2",
       "nature": "derived",
+      "encoding": "uint8",
+      "bytes": 1,
+      "status": "hypothesis",
       "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
       "evidence": [
         "comparado con la misma corrida sin entradas, O y P lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: O 124→128, P 124→0",
+        "variable suelta: no está dentro de ninguna tabla de entidades que se mueva sola",
         "se reescribe 713 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
       ],
       "confidence": 0.25,
@@ -98,9 +269,13 @@
       "kind": "position-x",
       "address": "6EC2",
       "nature": "derived",
+      "encoding": "uint8",
+      "bytes": 1,
+      "status": "hypothesis",
       "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
       "evidence": [
         "comparado con la misma corrida sin entradas, O y P lo llevan a valores distintos, en el mismo sentido en cada prueba: 60 cuadros: O 110→192, P 110→0",
+        "variable suelta: no está dentro de ninguna tabla de entidades que se mueva sola",
         "se reescribe 712 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
       ],
       "confidence": 0.25,
@@ -117,9 +292,13 @@
       "kind": "position-x",
       "address": "6FC2",
       "nature": "derived",
+      "encoding": "uint8",
+      "bytes": 1,
+      "status": "hypothesis",
       "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
       "evidence": [
         "comparado con la misma corrida sin entradas, O y P lo llevan a valores distintos, en el mismo sentido en cada prueba: 60 cuadros: O 119→192, P 119→0",
+        "variable suelta: no está dentro de ninguna tabla de entidades que se mueva sola",
         "se reescribe 712 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
       ],
       "confidence": 0.25,
@@ -136,9 +315,13 @@
       "kind": "position-y",
       "address": "5C09",
       "nature": "derived",
+      "encoding": "uint8",
+      "bytes": 1,
+      "status": "hypothesis",
       "hypothesis": "Posición vertical del jugador (o algo que se mueve con él).",
       "evidence": [
         "comparado con la misma corrida sin entradas, Q y A lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: Q 0→0, A 0→5; 60 cuadros: Q 0→0, A 0→5",
+        "variable suelta: no está dentro de ninguna tabla de entidades que se mueva sola",
         "se reescribe 723 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
       ],
       "confidence": 0.25,
@@ -155,9 +338,13 @@
       "kind": "position-y",
       "address": "5C1D",
       "nature": "derived",
+      "encoding": "uint8",
+      "bytes": 1,
+      "status": "hypothesis",
       "hypothesis": "Posición vertical del jugador (o algo que se mueve con él).",
       "evidence": [
         "comparado con la misma corrida sin entradas, Q y A lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: Q 0→0, A 0→6; 60 cuadros: Q 0→0, A 0→6",
+        "variable suelta: no está dentro de ninguna tabla de entidades que se mueva sola",
         "se reescribe 723 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
       ],
       "confidence": 0.25,
@@ -174,9 +361,13 @@
       "kind": "position-y",
       "address": "5C30",
       "nature": "derived",
+      "encoding": "uint8",
+      "bytes": 1,
+      "status": "hypothesis",
       "hypothesis": "Posición vertical del jugador (o algo que se mueve con él).",
       "evidence": [
         "comparado con la misma corrida sin entradas, Q y A lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: Q 0→0, A 0→3; 60 cuadros: Q 0→0, A 0→3",
+        "variable suelta: no está dentro de ninguna tabla de entidades que se mueva sola",
         "se reescribe 723 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
       ],
       "confidence": 0.25,
@@ -193,9 +384,13 @@
       "kind": "position-y",
       "address": "5C98",
       "nature": "derived",
+      "encoding": "uint8",
+      "bytes": 1,
+      "status": "hypothesis",
       "hypothesis": "Posición vertical del jugador (o algo que se mueve con él).",
       "evidence": [
         "comparado con la misma corrida sin entradas, Q y A lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: Q 0→0, A 0→4; 60 cuadros: Q 0→0, A 0→4",
+        "variable suelta: no está dentro de ninguna tabla de entidades que se mueva sola",
         "se reescribe 723 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
       ],
       "confidence": 0.25,
@@ -212,9 +407,13 @@
       "kind": "position-y",
       "address": "5CDE",
       "nature": "derived",
+      "encoding": "uint8",
+      "bytes": 1,
+      "status": "hypothesis",
       "hypothesis": "Posición vertical del jugador (o algo que se mueve con él).",
       "evidence": [
         "comparado con la misma corrida sin entradas, Q y A lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: Q 0→0, A 0→5; 60 cuadros: Q 0→0, A 0→5",
+        "variable suelta: no está dentro de ninguna tabla de entidades que se mueva sola",
         "se reescribe 723 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
       ],
       "confidence": 0.25,
@@ -231,9 +430,13 @@
       "kind": "position-y",
       "address": "5CEE",
       "nature": "derived",
+      "encoding": "uint8",
+      "bytes": 1,
+      "status": "hypothesis",
       "hypothesis": "Posición vertical del jugador (o algo que se mueve con él).",
       "evidence": [
         "comparado con la misma corrida sin entradas, Q y A lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: Q 0→0, A 0→70; 60 cuadros: Q 0→0, A 0→70",
+        "variable suelta: no está dentro de ninguna tabla de entidades que se mueva sola",
         "se reescribe 452 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
       ],
       "confidence": 0.25,
@@ -251,9 +454,13 @@
       "kind": "position-y",
       "address": "5CEF",
       "nature": "derived",
+      "encoding": "uint8",
+      "bytes": 1,
+      "status": "hypothesis",
       "hypothesis": "Posición vertical del jugador (o algo que se mueve con él).",
       "evidence": [
         "comparado con la misma corrida sin entradas, Q y A lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: Q 0→0, A 0→70; 60 cuadros: Q 0→0, A 0→70",
+        "variable suelta: no está dentro de ninguna tabla de entidades que se mueva sola",
         "se reescribe 444 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
       ],
       "confidence": 0.25,
@@ -271,9 +478,13 @@
       "kind": "position-y",
       "address": "5D0E",
       "nature": "derived",
+      "encoding": "uint8",
+      "bytes": 1,
+      "status": "hypothesis",
       "hypothesis": "Posición vertical del jugador (o algo que se mueve con él).",
       "evidence": [
         "comparado con la misma corrida sin entradas, Q y A lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: Q 0→0, A 0→70; 60 cuadros: Q 0→0, A 0→70",
+        "variable suelta: no está dentro de ninguna tabla de entidades que se mueva sola",
         "se reescribe 452 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
       ],
       "confidence": 0.25,
@@ -288,12 +499,124 @@
       ]
     },
     {
+      "kind": "score",
+      "address": "699A",
+      "nature": "stored-value",
+      "encoding": "uint16",
+      "bytes": 2,
+      "status": "hypothesis",
+      "hypothesis": "Puntaje: número que sube al jugar y no cambia sin tocar nada (binario de 16 bits).",
+      "evidence": [
+        "en la corrida \"saltar por las plataformas hasta juntar la primera llave\" pasa de 56283 a 65535 en 1 subida(s) (+9252); sin tocar nada no cambia"
+      ],
+      "confidence": 0.24999999999999997,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Sumarle da puntos; el juego muestra y sigue sumando sobre el valor escrito.",
+      "howToVerify": "Escribir otro puntaje en $699A (binario de 16 bits) y ver que la pantalla lo muestre y que siga sumando desde ahí.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": []
+    },
+    {
+      "kind": "score",
+      "address": "6A9A",
+      "nature": "stored-value",
+      "encoding": "uint16",
+      "bytes": 2,
+      "status": "hypothesis",
+      "hypothesis": "Puntaje: número que sube al jugar y no cambia sin tocar nada (binario de 16 bits).",
+      "evidence": [
+        "en la corrida \"saltar por las plataformas hasta juntar la primera llave\" pasa de 42405 a 56283 en 1 subida(s) (+13878); sin tocar nada no cambia"
+      ],
+      "confidence": 0.24999999999999997,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Sumarle da puntos; el juego muestra y sigue sumando sobre el valor escrito.",
+      "howToVerify": "Escribir otro puntaje en $6A9A (binario de 16 bits) y ver que la pantalla lo muestre y que siga sumando desde ahí.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": []
+    },
+    {
+      "kind": "score",
+      "address": "6B9A",
+      "nature": "stored-value",
+      "encoding": "uint16",
+      "bytes": 2,
+      "status": "hypothesis",
+      "hypothesis": "Puntaje: número que sube al jugar y no cambia sin tocar nada (binario de 16 bits).",
+      "evidence": [
+        "en la corrida \"saltar por las plataformas hasta juntar la primera llave\" pasa de 9252 a 42405 en 1 subida(s) (+33153); sin tocar nada no cambia"
+      ],
+      "confidence": 0.24999999999999997,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Sumarle da puntos; el juego muestra y sigue sumando sobre el valor escrito.",
+      "howToVerify": "Escribir otro puntaje en $6B9A (binario de 16 bits) y ver que la pantalla lo muestre y que siga sumando desde ahí.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": []
+    },
+    {
+      "kind": "score",
+      "address": "799A",
+      "nature": "stored-value",
+      "encoding": "uint16",
+      "bytes": 2,
+      "status": "hypothesis",
+      "hypothesis": "Puntaje: número que sube al jugar y no cambia sin tocar nada (binario de 16 bits).",
+      "evidence": [
+        "en la corrida \"saltar por las plataformas hasta juntar la primera llave\" pasa de 56283 a 65535 en 1 subida(s) (+9252); sin tocar nada no cambia"
+      ],
+      "confidence": 0.24999999999999997,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Sumarle da puntos; el juego muestra y sigue sumando sobre el valor escrito.",
+      "howToVerify": "Escribir otro puntaje en $799A (binario de 16 bits) y ver que la pantalla lo muestre y que siga sumando desde ahí.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": []
+    },
+    {
+      "kind": "score",
+      "address": "7A9A",
+      "nature": "stored-value",
+      "encoding": "uint16",
+      "bytes": 2,
+      "status": "hypothesis",
+      "hypothesis": "Puntaje: número que sube al jugar y no cambia sin tocar nada (binario de 16 bits).",
+      "evidence": [
+        "en la corrida \"saltar por las plataformas hasta juntar la primera llave\" pasa de 42405 a 56283 en 1 subida(s) (+13878); sin tocar nada no cambia"
+      ],
+      "confidence": 0.24999999999999997,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Sumarle da puntos; el juego muestra y sigue sumando sobre el valor escrito.",
+      "howToVerify": "Escribir otro puntaje en $7A9A (binario de 16 bits) y ver que la pantalla lo muestre y que siga sumando desde ahí.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": []
+    },
+    {
+      "kind": "score",
+      "address": "7B9A",
+      "nature": "stored-value",
+      "encoding": "uint16",
+      "bytes": 2,
+      "status": "hypothesis",
+      "hypothesis": "Puntaje: número que sube al jugar y no cambia sin tocar nada (binario de 16 bits).",
+      "evidence": [
+        "en la corrida \"saltar por las plataformas hasta juntar la primera llave\" pasa de 9252 a 42405 en 1 subida(s) (+33153); sin tocar nada no cambia"
+      ],
+      "confidence": 0.24999999999999997,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Sumarle da puntos; el juego muestra y sigue sumando sobre el valor escrito.",
+      "howToVerify": "Escribir otro puntaje en $7B9A (binario de 16 bits) y ver que la pantalla lo muestre y que siga sumando desde ahí.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": []
+    },
+    {
       "kind": "position-x",
       "address": "5DA1",
       "nature": "derived",
+      "encoding": "uint8",
+      "bytes": 1,
+      "status": "hypothesis",
       "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
       "evidence": [
         "comparado con la misma corrida sin entradas, O y P lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: O 0→7, P 0→0",
+        "variable suelta: no está dentro de ninguna tabla de entidades que se mueva sola",
         "se reescribe 362 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
       ],
       "confidence": 0.1,
@@ -309,9 +632,13 @@
       "kind": "position-x",
       "address": "5DA2",
       "nature": "derived",
+      "encoding": "uint8",
+      "bytes": 1,
+      "status": "hypothesis",
       "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
       "evidence": [
         "comparado con la misma corrida sin entradas, O y P lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: O 7→7, P 7→0",
+        "variable suelta: no está dentro de ninguna tabla de entidades que se mueva sola",
         "se reescribe 713 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
       ],
       "confidence": 0.1,
@@ -328,9 +655,13 @@
       "kind": "position-x",
       "address": "5DA3",
       "nature": "derived",
+      "encoding": "uint8",
+      "bytes": 1,
+      "status": "hypothesis",
       "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
       "evidence": [
         "comparado con la misma corrida sin entradas, O y P lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: O 7→0, P 7→7",
+        "variable suelta: no está dentro de ninguna tabla de entidades que se mueva sola",
         "se reescribe 717 veces en 1620 cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original"
       ],
       "confidence": 0.1,
@@ -342,6 +673,98 @@
         "$8748 ×362",
         "$926F ×355"
       ]
+    },
+    {
+      "kind": "position-x",
+      "address": "8069",
+      "nature": "stored-value",
+      "encoding": "uint8",
+      "bytes": 1,
+      "status": "inconclusive",
+      "verification": {
+        "result": "inconclusive",
+        "experiment": "Escribí 24 en $8069 (un byte; antes 0) y corrí 180 cuadros sin tocar nada contra la misma corrida sin escribir.",
+        "observations": [
+          "conserva el valor escrito: termina en 24 (sin tocar, 0)",
+          "la pantalla queda igual que sin tocar en los cuadros 2, 10, 30, 60, 120, 180",
+          "el valor escrito se mantiene pero no se vio ningún efecto: puede que el juego lo use más adelante (al morir, al pasar de nivel)"
+        ],
+        "frames": 180,
+        "pixelsChanged": 0,
+        "date": "2026-10-18 18:20 UTC"
+      },
+      "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
+      "evidence": [
+        "comparado con la misma corrida sin entradas, O y P lo llevan a valores distintos, en el mismo sentido en cada prueba: 30 cuadros: O 0→0, P 0→3; 60 cuadros: O 0→0, P 0→1",
+        "variable suelta: no está dentro de ninguna tabla de entidades que se mueva sola"
+      ],
+      "confidence": 0.5,
+      "confidenceLabel": "media",
+      "expectedEffect": "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
+      "howToVerify": "Escribir otro valor en $8069 y ver si el personaje aparece en otro lugar.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": [
+        "$8CD2 ×10",
+        "$8D01 ×3"
+      ]
+    },
+    {
+      "kind": "score",
+      "address": "6D9A",
+      "nature": "stored-value",
+      "encoding": "bcd",
+      "bytes": 2,
+      "status": "refuted",
+      "verification": {
+        "result": "refuted",
+        "experiment": "Escribí 3250 en $6D9A (BCD de 2 byte(s), 4 dígitos; antes 2020) y corrí 900 cuadros repitiendo las entradas de \"saltar por las plataformas hasta juntar la primera llave\" contra la misma corrida sin escribir.",
+        "observations": [
+          "el juego lo vuelve a su valor (2020) en 4 cuadro(s): lo recalcula desde otra variable o es una copia",
+          "la pantalla cambia: 5 píxeles distintos en el cuadro 2, en la zona x 257-270, y 149-149"
+        ],
+        "frames": 900,
+        "pixelsChanged": 5,
+        "date": "2026-10-18 18:20 UTC"
+      },
+      "hypothesis": "Puntaje: número que sube al jugar y no cambia sin tocar nada (BCD de 2 byte(s), 4 dígitos).",
+      "evidence": [
+        "en la corrida \"saltar por las plataformas hasta juntar la primera llave\" pasa de 2020 a 5252 en 1 subida(s) (+3232); sin tocar nada no cambia"
+      ],
+      "confidence": 0.2,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Sumarle da puntos; el juego muestra y sigue sumando sobre el valor escrito.",
+      "howToVerify": "Escribir otro puntaje en $6D9A (BCD de 2 byte(s), 4 dígitos) y ver que la pantalla lo muestre y que siga sumando desde ahí.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": []
+    },
+    {
+      "kind": "score",
+      "address": "6E9A",
+      "nature": "stored-value",
+      "encoding": "bcd",
+      "bytes": 2,
+      "status": "refuted",
+      "verification": {
+        "result": "refuted",
+        "experiment": "Escribí 2038 en $6E9A (BCD de 2 byte(s), 4 dígitos; antes 808) y corrí 900 cuadros repitiendo las entradas de \"saltar por las plataformas hasta juntar la primera llave\" contra la misma corrida sin escribir.",
+        "observations": [
+          "el juego lo vuelve a su valor (808) en 5 cuadro(s): lo recalcula desde otra variable o es una copia",
+          "la pantalla cambia: 4 píxeles distintos en el cuadro 2, en la zona x 258-268, y 150-150"
+        ],
+        "frames": 900,
+        "pixelsChanged": 4,
+        "date": "2026-10-18 18:20 UTC"
+      },
+      "hypothesis": "Puntaje: número que sube al jugar y no cambia sin tocar nada (BCD de 2 byte(s), 4 dígitos).",
+      "evidence": [
+        "en la corrida \"saltar por las plataformas hasta juntar la primera llave\" pasa de 808 a 2020 en 1 subida(s) (+1212); sin tocar nada no cambia"
+      ],
+      "confidence": 0.2,
+      "confidenceLabel": "baja",
+      "expectedEffect": "Sumarle da puntos; el juego muestra y sigue sumando sobre el valor escrito.",
+      "howToVerify": "Escribir otro puntaje en $6E9A (BCD de 2 byte(s), 4 dígitos) y ver que la pantalla lo muestre y que siga sumando desde ahí.",
+      "howToRevert": "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).",
+      "writers": []
     }
   ],
   "notes": []

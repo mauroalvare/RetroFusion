@@ -8,11 +8,22 @@ namespace Retro.Compat;
 /// </summary>
 public sealed class LabFinding
 {
-    /// <summary>lives, timer, position-x, position-y, frame-counter, input-state.</summary>
+    /// <summary>lives, timer, score, level, ammo, item, position-x, position-y, entity-table.</summary>
     public string Kind { get; set; } = "";
     public string Address { get; set; } = "";
     /// <summary>stored-value (a byte in RAM that can be read and written), derived (recomputed by the game), entity-table, code.</summary>
     public string Nature { get; set; } = "stored-value";
+    /// <summary>How the value is kept, as in the profiles: uint8, uint16 (little endian), bcd (little endian), ascii or digits (most significant first).</summary>
+    public string Encoding { get; set; } = "uint8";
+    public int Bytes { get; set; } = 1;
+    /// <summary>hypothesis until an experiment checks it: verified, refuted or inconclusive.</summary>
+    public string Status { get; set; } = "hypothesis";
+    /// <summary>The experiment that changed the status, with what it showed.</summary>
+    public LabVerification? Verification { get; set; }
+    /// <summary>entity-table: distance between records, number of records and what each moving field does.</summary>
+    public int? Stride { get; set; }
+    public int? Count { get; set; }
+    public List<string>? Fields { get; set; }
     public string Hypothesis { get; set; } = "";
     public List<string> Evidence { get; set; } = new();
     /// <summary>0..1.</summary>
@@ -23,6 +34,9 @@ public sealed class LabFinding
     public string HowToRevert { get; set; } = "Volver al estado guardado antes del experimento (el archivo original nunca se modifica).";
     /// <summary>Instructions that wrote it during the observation ("$8A3C ×12").</summary>
     public List<string> Writers { get; set; } = new();
+    /// <summary>Frame of the observation where it changed the telling way (a life lost): verification runs past it.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public int? EventFrame { get; set; }
 }
 
 /// <summary>Everything the lab learnt about one edition of one game.</summary>
@@ -139,6 +153,7 @@ public static class MemoryLab
                     Confidence = 0.5,
                     ExpectedEffect = "Subirlo da vidas extra; congelarlo da vidas infinitas.",
                     HowToVerify = $"Escribir {first + 2} en ${addr:X4} y ver si el contador de vidas en pantalla cambia; perder una vida y ver que baja.",
+                    EventFrame = downAt[0] * o.SampleEvery,
                 });
                 deathSamples.AddRange(downAt);
             }
@@ -182,6 +197,10 @@ public static class MemoryLab
                 t.Evidence.Add("se recarga cuando baja un candidato de vidas");
             }
         }
+
+        // ---------------------------------------------------------------- entity tables
+        var tables = EntityTables(samples, start);
+        findings.AddRange(tables);
 
         // ---------------------------------------------------------------- directions
         var dirs = directions ?? (Directions.TryGetValue(machine, out var d) ? d : default);
@@ -248,6 +267,20 @@ public static class MemoryLab
             p.Evidence.Add($"sin tocar nada también cambia sola ({timer.Evidence[0]}): el personaje sigue moviéndose solo");
         }
 
+        // a position inside a table is one entity among several; outside one, a loose variable
+        foreach (var p in findings.Where(f => f.Kind.StartsWith("position")))
+        {
+            int a = Convert.ToInt32(p.Address, 16);
+            var t = tables.FirstOrDefault(t => a >= Convert.ToInt32(t.Address, 16) && a < Convert.ToInt32(t.Address, 16) + t.Stride!.Value * t.Count!.Value);
+            if (t == null)
+                p.Evidence.Add("variable suelta: no está dentro de ninguna tabla de entidades que se mueva sola");
+            else
+            {
+                int offset = a - Convert.ToInt32(t.Address, 16);
+                p.Evidence.Add($"está dentro de la tabla de entidades ${t.Address} (registro {offset / t.Stride!.Value}, campo +{offset % t.Stride.Value})");
+            }
+        }
+
         // ---------------------------------------------------------------- who writes the candidates
         if (m is IWriteWatch watchable)
         {
@@ -279,8 +312,15 @@ public static class MemoryLab
                     continue;
                 f.Writers = byPc.OrderByDescending(kv => kv.Value).Take(5).Select(kv => $"${kv.Key:X4} ×{kv.Value}").ToList();
                 int total = byPc.Values.Sum();
+                // written from many places: the stack or a work buffer
+                if (byPc.Count >= 5 && total > observed && f.Kind != "entity-table")
+                {
+                    f.Nature = "derived";
+                    f.Confidence = Math.Max(0.05, f.Confidence - 0.3);
+                    f.Evidence.Add($"lo escriben {byPc.Count} rutinas distintas {total} veces: parece la pila o un buffer de trabajo");
+                }
                 // rewritten every frame or so: a screen buffer or a value recomputed from another variable
-                if (total > observed / 8 && f.Kind.StartsWith("position"))
+                else if (total > observed / 8 && f.Kind.StartsWith("position"))
                 {
                     f.Nature = "derived";
                     f.Confidence = Math.Max(0.1, f.Confidence - 0.25);
@@ -296,4 +336,147 @@ public static class MemoryLab
             report.Notes.Add("No apareció ningún candidato de vidas: durante la observación no murió el personaje. Probar con más cuadros o un guion que lo haga morir.");
         return report;
     }
+
+    /// <summary>
+    /// Records of the same size that move on their own (enemies, shots, platforms): at least
+    /// 3 addresses at a fixed distance whose values change in small steps many times, each
+    /// at its own pace. Fields of the same records are merged into one table. Blocks where
+    /// every byte moves (screen or sound buffers) are left out.
+    /// </summary>
+    public static List<LabFinding> EntityTables(IReadOnlyList<byte[]> samples, int start)
+    {
+        int len = samples[0].Length, n = samples.Count;
+        var moving = new bool[len];
+        var changes = new int[len];
+        var meanStep = new double[len];
+        var reverses = new bool[len];
+        for (int i = 0; i < len; i++)
+        {
+            int ch = 0, small = 0, lastSign = 0;
+            double sum = 0;
+            for (int k = 1; k < n; k++)
+            {
+                int d = (sbyte)(samples[k][i] - samples[k - 1][i]);
+                if (d == 0)
+                    continue;
+                ch++;
+                sum += Math.Abs(d);
+                if (Math.Abs(d) <= 16)
+                    small++;
+                if (lastSign != 0 && Math.Sign(d) != lastSign && Math.Abs(d) <= 16)
+                    reverses[i] = true;
+                lastSign = Math.Sign(d);
+            }
+            changes[i] = ch;
+            meanStep[i] = ch == 0 ? 0 : sum / ch;
+            moving[i] = ch >= Math.Max(4, n / 25) && small >= ch * 0.7;
+        }
+        // runs of consecutive moving bytes: buffers, not records
+        var dense = new bool[len];
+        for (int i = 0, run = 0; i < len; i++)
+        {
+            run = moving[i] ? run + 1 : 0;
+            if (run >= 6)
+                for (int j = i - run + 1; j <= i; j++)
+                    dense[j] = true;
+        }
+        bool Member(int a) => a >= 0 && a < len && moving[a] && !dense[a];
+        bool SameSequence(int a, int b)
+        {
+            for (int k = 0; k < n; k++)
+                if (samples[k][a] != samples[k][b])
+                    return false;
+            return true;
+        }
+        var groups = new List<(int first, int stride, int count)>();
+        for (int s = 2; s <= 32; s++)
+            for (int i = 0; i < len; i++)
+            {
+                if (!Member(i) || Member(i - s))
+                    continue;
+                int c = 1;
+                while (Member(i + c * s))
+                    c++;
+                if (c < 3)
+                    continue;
+                // copies of one value (the same sequence) are one variable, not entities
+                if (Enumerable.Range(1, c - 1).All(r => SameSequence(i, i + r * s)))
+                    continue;
+                // similar behaviour: the busiest record changes at most 4 times as often as the quietest
+                var ch = Enumerable.Range(0, c).Select(r => changes[i + r * s]).ToList();
+                if (ch.Max() > ch.Min() * 4)
+                    continue;
+                groups.Add((i, s, c));
+            }
+        // a group that is every k-th record of a group with a smaller stride is that same table
+        groups.RemoveAll(g => groups.Any(h => h.stride < g.stride && g.stride % h.stride == 0
+            && g.first >= h.first && (g.first - h.first) % h.stride == 0
+            && g.first + (g.count - 1) * g.stride <= h.first + (h.count - 1) * h.stride));
+        // fields of the same records (same stride, starting within one record) form one table
+        var candidates = new List<List<(int first, int stride, int count)>>();
+        foreach (var byStride in groups.GroupBy(g => g.stride))
+        {
+            var pending = byStride.OrderBy(g => g.first).ToList();
+            while (pending.Count > 0)
+            {
+                var seed = pending[0];
+                var fields = pending.Where(g => g.first < seed.first + seed.stride).ToList();
+                pending.RemoveAll(fields.Contains);
+                candidates.Add(fields);
+            }
+        }
+        // three moving bytes at some distance happen by chance in a busy RAM: a table needs two
+        // moving fields per record or four records; then the best ones keep their addresses
+        var taken = new HashSet<int>();
+        var tables = new List<LabFinding>();
+        foreach (var fields in candidates
+                     .Where(c => c.Count >= 2 || c[0].count >= 4)
+                     .OrderByDescending(c => c.Count * c.Max(f => f.count)).ThenBy(c => c[0].stride))
+        {
+            var members = fields.SelectMany(f => Enumerable.Range(0, f.count).Select(r => f.first + r * f.stride)).ToList();
+            if (members.Any(taken.Contains))
+                continue;
+            taken.UnionWith(members);
+            var seed = fields[0];
+            {
+                int stride = seed.stride, count = fields.Max(f => f.count);
+                var lines = new List<string>();
+                foreach (var f in fields)
+                {
+                    var column = Enumerable.Range(0, f.count).Select(r => f.first + r * stride).ToList();
+                    bool back = column.Count(a => reverses[a]) * 2 >= column.Count;
+                    lines.Add($"+{f.first - seed.first}: cambia sola en pasos de {column.Average(a => meanStep[a]):F1} de media en {f.count} registros" +
+                              (back ? ", va y vuelve (posición o dirección)" : ""));
+                }
+                var records = Enumerable.Range(0, seed.count).Select(r => seed.first + r * stride).ToList();
+                tables.Add(new LabFinding
+                {
+                    Kind = "entity-table", Address = $"{start + seed.first:X4}", Nature = "entity-table",
+                    Stride = stride, Count = count, Fields = lines,
+                    Hypothesis = $"Tabla de {count} entidades de {stride} bytes (enemigos, disparos u objetos que se mueven solos).",
+                    Evidence =
+                    {
+                        $"sin tocar nada, {string.Join(", ", records.Select(a => $"${start + a:X4}"))} cambian cada uno a su ritmo " +
+                        $"({string.Join(" / ", records.Select(a => changes[a]))} cambios en {n} muestras)",
+                    },
+                    Confidence = Math.Min(0.8, 0.4 + 0.1 * Math.Min(count, 4)),
+                    ExpectedEffect = "Leerla da las posiciones de los enemigos; escribir un campo mueve o desactiva una sola entidad.",
+                    HowToVerify = $"Escribir otro valor en el campo +0 de un registro (${start + seed.first:X4}) y ver si se mueve una sola entidad en pantalla.",
+                });
+            }
+        }
+        return tables;
+    }
+}
+
+/// <summary>Spanish words for the lab's values (reports, CLI, app).</summary>
+public static class LabReportText
+{
+    public static string Status(string status) => status switch
+    {
+        "verified" => "verificada",
+        "refuted" => "descartada",
+        "inconclusive" => "sin efecto",
+        _ => "hipótesis",
+    };
 }
