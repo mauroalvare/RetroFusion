@@ -27,6 +27,7 @@ static int Usage()
           retro-cli lab <guion.json> [--juegos carpeta] [--cuadros n] [--salida hallazgos.json]
                     [--hipotesis tipo:dirección[:codificación:bytes]]... [--sin-verificar]
           retro-cli juegos <carpeta>   todos los juegos que se pueden fusionar, con el id de su perfil
+          retro-cli ideas <perfil1,perfil2> [--ia ...] [--pedido "..."] [--juegos carpeta]   3 ideas de fusión del estudio
           retro-cli preparar <juego> [--ia sub-claude|sub-codex|sub-google|claude|ollama|agent|ninguna]
                     [--carpeta carpeta-del-agente] [--rondas n] [--perfiles carpeta] [--sin-guardar]
                     prepara un juego para las fusiones: llega a la partida (prueba de teclas y la IA
@@ -88,6 +89,9 @@ if (command == "lab")
 
 if (command == "juegos")
     return ListGames(mediaPath);
+
+if (command == "ideas")
+    return await RunIdeas(mediaPath, Opt("ia"), Opt("pedido") ?? "", Opt("juegos"));
 
 if (command == "preparar")
     return await RunPrepare(mediaPath, Opt("ia"), Opt("perfiles"), int.Parse(Opt("rondas") ?? "24"), Opt("sin-guardar") == null, Opt("carpeta"));
@@ -470,6 +474,43 @@ static int RunLab(string scriptPath, string gamesDir, string? jsonOut, int idleF
     {
         report.Save(jsonOut);
         Console.WriteLine("Hallazgos: " + jsonOut);
+    }
+    return 0;
+}
+
+// Asks the chosen AI for 3 fusion ideas, as the studio does (to compare AIs and see the variety).
+static async Task<int> RunIdeas(string profileList, string? ia, string wish, string? gamesDir)
+{
+    if (gamesDir != null)
+        Retro.Compat.GameCatalog.Scan(gamesDir);   // basic profiles of games nobody prepared
+    var settings = Retro.Ai.AiSettings.Load();
+    if (ia != null)
+        settings.Provider = ia;
+    var provider = settings.CreateProvider();
+    if (provider == null)
+    {
+        Console.Error.WriteLine("Esa IA no se puede llamar desde acá (copiar y pegar o carpeta de agentes).");
+        return 2;
+    }
+    var slots = profileList.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Select((id, i) => new Retro.Fusion.RecipeGame { Slot = ((char)('a' + i)).ToString(), Profile = id }).ToList();
+    var missing = slots.Where(s => Retro.Fusion.ProfileLibrary.Find(s.Profile) == null).Select(s => s.Profile).ToList();
+    if (missing.Count > 0)
+    {
+        Console.Error.WriteLine("No conozco estos perfiles: " + string.Join(", ", missing) + " (retro-cli juegos <carpeta> los lista; --juegos <carpeta> suma los no preparados).");
+        return 2;
+    }
+    Console.WriteLine($"Pidiendo 3 ideas a {provider.Name} para {string.Join(" + ", slots.Select(s => s.Profile))}" + (wish.Length > 0 ? $", con el pedido \"{wish}\"" : ", sin pedido") + "...");
+    var sw = Stopwatch.StartNew();
+    var ideas = await new Retro.Studio.StudioDesigner().ConceptsAsync(provider, slots, Retro.Fusion.ProfileLibrary.Find, wish, CancellationToken.None);
+    Console.WriteLine($"({sw.Elapsed.TotalSeconds:F0} s)");
+    foreach (var idea in ideas)
+    {
+        Console.WriteLine();
+        Console.WriteLine($"## {idea.Title} — {idea.Approach}");
+        Console.WriteLine(idea.Pitch);
+        Console.WriteLine("Cómo se juega: " + idea.HowToPlay);
+        Console.WriteLine(idea.Design);
     }
     return 0;
 }

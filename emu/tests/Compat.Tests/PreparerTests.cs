@@ -97,6 +97,43 @@ public class PreparerTests
         Assert.That(first.Picture, Is.Not.Null);
     }
 
+    /// <summary>An advisor that knows the game: names the hero's position and the score, and drops the lives.</summary>
+    private sealed class NamingAdvisor : IPlayAdvisor, IVariableNamer
+    {
+        public VariableQuestion? Asked;
+        public string Name => "IA que nombra";
+        public Task<PlayAdvice> AdviseAsync(PlayObservation o, CancellationToken ct) =>
+            Task.FromResult(new PlayAdvice { Actions = { new PlayAction("", 0, 100) } });
+        public Task<List<VariableName>> NameVariablesAsync(VariableQuestion q, CancellationToken ct)
+        {
+            Asked = q;
+            return Task.FromResult(new List<VariableName>
+            {
+                new("C001", "heroX", "Posición horizontal del héroe.", true),
+                new("$C020", "score", "Puntaje en BCD.", true),
+                new("C002", "lives", "No estoy seguro.", false),
+            });
+        }
+    }
+
+    [Test]
+    public async Task TheAdvisorNamesTheVerifiedVariables()
+    {
+        string game = Path.Combine(_dir, "juego.prg");
+        File.WriteAllBytes(game, C64TestProgram.Game(C64TestProgram.PressFire));
+        var namer = new NamingAdvisor();
+        var r = await GamePreparer.PrepareAsync(game, Options(namer), null, CancellationToken.None);
+        Assert.That(r.Ok, Is.True, r.Problem + "\n" + string.Join("\n", r.Log));
+        Assert.That(namer.Asked, Is.Not.Null);
+        Assert.That(namer.Asked!.Candidates.Select(c => c.Address), Does.Contain("C001").And.Contain("C020"));
+        Assert.That(namer.Asked.Describe(), Does.Contain("provisorio").And.Contain("vale"));
+        Assert.That(namer.Asked.Picture, Is.Not.Null);
+        var p = r.Profile!;
+        Assert.That(p.Variables.Keys, Is.EquivalentTo(new[] { "heroX", "score" }), "solo las que la IA conserva, con sus nombres");
+        Assert.That(p.Variables["score"].Encoding, Is.EqualTo("bcd"));
+        Assert.That(p.Verified, Does.Contain("los nombres los puso la IA"));
+    }
+
     [Test]
     public async Task WithoutAWayIn_ItSaysWhyAndSavesNothing()
     {

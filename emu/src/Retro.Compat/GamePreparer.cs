@@ -80,6 +80,39 @@ public sealed class PlayAdvice
     public List<PlayAction> Actions { get; set; } = new();
 }
 
+/// <summary>A variable the lab verified, as an advisor sees it to say what it is.</summary>
+public sealed record VariableCandidate(string Address, string Guess, string Encoding, int Bytes, int Value, bool ReadOnly, string Evidence);
+
+/// <summary>What an advisor says a variable is: a profile name (lives, score, x... or its own), a description, and whether to keep it.</summary>
+public sealed record VariableName(string Address, string Name, string Description, bool Keep);
+
+/// <summary>The game in progress and the variables the lab verified, for an advisor that names them.</summary>
+public sealed class VariableQuestion
+{
+    public string Game { get; init; } = "";
+    public string MachineName { get; init; } = "";
+    public VideoFrame? Picture { get; init; }
+    public IReadOnlyList<VariableCandidate> Candidates { get; init; } = Array.Empty<VariableCandidate>();
+
+    public string Describe()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"Juego: {Game} ({MachineName}), ya en la partida.");
+        sb.AppendLine("El laboratorio encontró estas variables en la memoria y las verificó escribiendo valores (el juego las usa). " +
+                      "Su nombre provisorio sale de cómo cambian, y puede estar mal:");
+        foreach (var c in Candidates)
+            sb.AppendLine($"- ${c.Address} ({c.Encoding}{(c.Bytes > 1 ? $", {c.Bytes} bytes" : "")}{(c.ReadOnly ? ", solo lectura" : "")}): " +
+                          $"provisorio \"{c.Guess}\", vale {c.Value} ahora. {c.Evidence}");
+        return sb.ToString();
+    }
+}
+
+/// <summary>Advisors that know the game and can say what each verified variable is (an AI, an agent).</summary>
+public interface IVariableNamer
+{
+    Task<List<VariableName>> NameVariablesAsync(VariableQuestion question, CancellationToken ct);
+}
+
 /// <summary>Someone who decides what to press to get from the power-on to playing: the built-in key trial or an AI.</summary>
 public interface IPlayAdvisor
 {
@@ -356,8 +389,28 @@ public static class GamePreparer
         LabVerifier.VerifyBest(m, lab, scores.Concat(livesInPlay).ToDictionary(f => f, _ => play));
         r.Lab = lab;
 
+        // ---------------------------------------------------------------- what each variable is
+        var candidates = Candidates(lab, m);
+        IReadOnlyList<VariableName>? names = null;
+        if (o.Advisor is IVariableNamer namer && candidates.Count > 0)
+        {
+            Say($"{o.Advisor.Name} mira la partida y nombra las {candidates.Count} variables verificadas...");
+            try
+            {
+                names = await namer.NameVariablesAsync(new VariableQuestion
+                {
+                    Game = r.Game, MachineName = machineName, Picture = Copy(m.Video), Candidates = candidates,
+                }, ct);
+                r.Advisors.Add($"{o.Advisor.Name} (nombres)");
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                Say($"No pudo nombrarlas ({e.Message}); quedan los nombres del laboratorio.");
+            }
+        }
+
         // ---------------------------------------------------------------- the profile
-        var profile = BuildProfile(r, machineName, lab, c);
+        var profile = BuildProfile(r, machineName, lab, c, names);
         r.Profile = profile;
         Say("Comprobando el perfil: arranco una máquina nueva con el arranque guardado...");
         var replay = MachineFactory.Create(new GameSource(profile, files, folder), o.FirmwareDirectory);
@@ -463,8 +516,33 @@ public static class GamePreparer
 
     public static string Slug(string s) => Regex.Replace(Regex.Replace(s.ToLowerInvariant(), "[^a-z0-9]+", "-"), "-+", "-").Trim('-');
 
-    /// <summary>A profile with the verified variables only (positions the game recomputes are read-only).</summary>
-    public static GameProfile BuildProfile(PrepareResult r, string machineName, LabReport lab, ControlSet c)
+    /// <summary>The variables worth naming: the verified ones and the best read-only positions.</summary>
+    public static List<VariableCandidate> Candidates(LabReport lab, IMachine m)
+    {
+        var picked = lab.Findings.Where(f => f.Status == "verified" && f.Kind is not ("entity-table" or "change"))
+            .Concat(new[] { "position-x", "position-y" }
+                .Select(k => lab.Findings.Where(f => f.Kind == k && f.Status != "verified" && f.Confidence >= 0.4).MaxBy(f => f.Confidence))
+                .Where(f => f != null && !lab.Findings.Any(v => v.Kind == f.Kind && v.Status == "verified"))!)
+            .OrderByDescending(f => f!.Confidence).Take(12).ToList();
+        return picked.Select(f => new VariableCandidate(f!.Address, f.Kind, f.Encoding, f.Bytes,
+            new GameVariable { Address = f.Address, Encoding = f.Encoding, Bytes = f.Bytes, Max = int.MaxValue }.Read(m.Memory),
+            f.Status != "verified", string.Join(" ", f.Evidence.Take(2)) + (f.Verification != null ? " Verificación: " + string.Join("; ", f.Verification.Observations.Take(2)) + "." : "")))
+            .ToList();
+    }
+
+    /// <summary>A name for the fusion scripts: letters and digits, starting with a letter (g.get('name')).</summary>
+    private static string CleanName(string name)
+    {
+        var clean = new string(name.Where(char.IsLetterOrDigit).ToArray());
+        return clean.Length == 0 || !char.IsLetter(clean[0]) ? "" : char.ToLowerInvariant(clean[0]) + clean[1..];
+    }
+
+    /// <summary>
+    /// A profile with the verified variables only (positions the game recomputes are
+    /// read-only). With names from an advisor, those decide what each variable is called
+    /// and which ones stay; without them, the lab's kinds do.
+    /// </summary>
+    public static GameProfile BuildProfile(PrepareResult r, string machineName, LabReport lab, ControlSet c, IReadOnlyList<VariableName>? names = null)
     {
         var p = new GameProfile
         {
@@ -493,6 +571,27 @@ public static class GamePreparer
                 Description = what + Why(f),
             };
         }
+        var named = names?.Where(n => n.Keep && CleanName(n.Name).Length > 0).ToList();
+        if (named is { Count: > 0 })
+        {
+            foreach (var n in named)
+            {
+                var f = lab.Findings.FirstOrDefault(x => x.Address.Equals(n.Address.TrimStart('$'), StringComparison.OrdinalIgnoreCase) && x.Kind != "entity-table");
+                string name = CleanName(n.Name);
+                if (f == null || p.Variables.ContainsKey(name))
+                    continue;
+                bool readOnly = f.Status != "verified";
+                p.Variables[name] = new GameVariable
+                {
+                    Address = f.Address, Encoding = f.Encoding, Bytes = f.Bytes, Min = 0, Max = name == "lives" ? 9 : MaxFor(f), ReadOnly = readOnly,
+                    Description = n.Description + (readOnly ? " (Solo lectura: el juego la recalcula.)" : Why(f)),
+                };
+            }
+        }
+        else
+            AddByKind();
+        void AddByKind()
+        {
         Add("lives", Best("lives"), "Vidas (o intentos) que quedan.", 9);
         if (Best("score") is { } score)
             Add("score", score, "Puntaje.");
@@ -516,6 +615,7 @@ public static class GamePreparer
                     Description = what + " (solo lectura: el juego la recalcula, escribirla no mueve al personaje). " + read.Evidence.FirstOrDefault(),
                 };
         }
+        }
         p.Controls["left"] = c.Left;
         p.Controls["right"] = c.Right;
         if (c.Up != c.Fire) p.Controls["up"] = c.Up;
@@ -527,7 +627,8 @@ public static class GamePreparer
                         (tables.Count > 0 ? " Entidades en memoria: " + string.Join("; ", tables.Select(t => $"${t.Address}, {t.Count} registros de {t.Stride} bytes")) + "." : "");
         p.Verified = $"Preparado el {DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC. Arranque descubierto por {string.Join(" y ", r.Advisors.DefaultIfEmpty("el arranque solo"))} " +
                      $"en {r.Rounds} ronda(s), comprobado con los controles. Variables halladas por el laboratorio y verificadas escribiendo valores " +
-                     $"y comparando con la misma corrida sin tocar ({p.Variables.Count(v => !v.Value.ReadOnly)} verificadas, {p.Variables.Count(v => v.Value.ReadOnly)} de solo lectura).";
+                     $"y comparando con la misma corrida sin tocar ({p.Variables.Count(v => !v.Value.ReadOnly)} verificadas, {p.Variables.Count(v => v.Value.ReadOnly)} de solo lectura)" +
+                     (named is { Count: > 0 } ? "; los nombres los puso la IA mirando la partida." : "; los nombres salen de cómo cambian (pueden no ser exactos).");
         return p;
     }
 }

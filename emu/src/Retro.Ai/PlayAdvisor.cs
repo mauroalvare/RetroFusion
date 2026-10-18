@@ -9,7 +9,7 @@ namespace Retro.Ai;
 /// key does and what was already tried, and answers the next inputs. The preparer checks
 /// every claim with the controls, so a wrong answer costs a round, not a wrong profile.
 /// </summary>
-public sealed class AiPlayAdvisor : IPlayAdvisor
+public sealed class AiPlayAdvisor : IPlayAdvisor, IVariableNamer
 {
     private readonly IAiProvider _ai;
     private readonly List<AiTurn> _turns = new();
@@ -79,15 +79,8 @@ public sealed class AiPlayAdvisor : IPlayAdvisor
     public async Task<PlayAdvice> AdviseAsync(PlayObservation observation, CancellationToken ct)
     {
         _turns.Add(new AiTurn(true, observation.Describe()));
-        string? picture = null;
-        if (observation.Picture != null)
-        {
-            // the screen as it is: the text reader and the sketch miss custom fonts and graphics
-            string dir = Path.Combine(Path.GetTempPath(), "RetroEmu-ia", "pantallas");
-            Directory.CreateDirectory(dir);
-            picture = Path.Combine(dir, $"ronda-{observation.Round:00}-{Guid.NewGuid():N}.png");
-            Retro.Core.PngWriter.Write(picture, observation.Picture, 2);
-        }
+        // the screen as it is: the text reader and the sketch miss custom fonts and graphics
+        string? picture = observation.Picture != null ? SavePicture(observation.Picture, $"ronda-{observation.Round:00}") : null;
         string answer;
         try
         {
@@ -103,6 +96,89 @@ public sealed class AiPlayAdvisor : IPlayAdvisor
         while (_turns.Count > 6)
             _turns.RemoveAt(0);
         return Parse(answer);
+    }
+
+    public static readonly string NamingGuide = """
+        Sos un experto en juegos retro y estás preparando un juego para fusionarlo con otros. El
+        laboratorio del emulador encontró variables en la memoria y verificó que el juego las usa,
+        pero su nombre provisorio sale de cómo cambian y puede estar mal (un reloj que baja de a
+        uno parece "vidas"). Mirá la captura de la partida, usá lo que sabés del juego y decí qué
+        es cada una:
+        - name: lives, score, timer, x, y o level si es eso; si es otra cosa, un nombre corto en
+          inglés en camelCase (clockMinutes, fuel, keys, enemyX...). Nunca repitas un nombre.
+        - description: una oración en castellano: qué es en este juego y cómo cambia.
+        - keep: false si no sirve para conectar este juego con otro o si no podés saber qué es.
+        Respondé SOLO con el JSON pedido.
+        """;
+
+    public static JsonElement NamingSchema() => JsonSerializer.SerializeToElement(new
+    {
+        type = "object",
+        additionalProperties = false,
+        required = new[] { "variables" },
+        properties = new
+        {
+            variables = new
+            {
+                type = "array",
+                items = new
+                {
+                    type = "object",
+                    additionalProperties = false,
+                    required = new[] { "address", "name", "description", "keep" },
+                    properties = new
+                    {
+                        address = new { type = "string" },
+                        name = new { type = "string" },
+                        description = new { type = "string" },
+                        keep = new { type = "boolean" },
+                    },
+                },
+            },
+        },
+    });
+
+    public async Task<List<VariableName>> NameVariablesAsync(VariableQuestion question, CancellationToken ct)
+    {
+        string? picture = question.Picture != null ? SavePicture(question.Picture, "variables") : null;
+        try
+        {
+            string answer = await _ai.CompleteAsync(new AiRequest(NamingGuide, new[] { new AiTurn(true, question.Describe()) }, NamingSchema(),
+                picture != null ? new[] { picture } : null), ct);
+            return ParseNames(answer);
+        }
+        finally
+        {
+            if (picture != null)
+                try { File.Delete(picture); } catch (IOException) { }
+        }
+    }
+
+    internal static string SavePicture(Retro.Core.VideoFrame frame, string label)
+    {
+        string dir = Path.Combine(Path.GetTempPath(), "RetroEmu-ia", "pantallas");
+        Directory.CreateDirectory(dir);
+        string path = Path.Combine(dir, $"{label}-{Guid.NewGuid():N}.png");
+        Retro.Core.PngWriter.Write(path, frame, 2);
+        return path;
+    }
+
+    /// <summary>Reads the names of the variables (a JSON object, alone or inside prose).</summary>
+    public static List<VariableName> ParseNames(string answer)
+    {
+        int start = answer.IndexOf('{'), end = answer.LastIndexOf('}');
+        if (start < 0 || end <= start)
+            throw new AiException("La IA no respondió un objeto JSON con las variables.");
+        using var doc = JsonDocument.Parse(answer[start..(end + 1)]);
+        var list = new List<VariableName>();
+        if (doc.RootElement.TryGetProperty("variables", out var vars) && vars.ValueKind == JsonValueKind.Array)
+            foreach (var v in vars.EnumerateArray())
+                list.Add(new VariableName(
+                    v.TryGetProperty("address", out var a) ? (a.GetString() ?? "").Trim().TrimStart('$').ToUpperInvariant() : "",
+                    v.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "",
+                    v.TryGetProperty("description", out var d) ? d.GetString() ?? "" : "",
+                    !v.TryGetProperty("keep", out var k) || k.ValueKind != JsonValueKind.False));
+        return list;
     }
 
     /// <summary>Reads an answer (a JSON object, alone or inside prose or a ```json block).</summary>
@@ -135,7 +211,7 @@ public sealed class AiPlayAdvisor : IPlayAdvisor
 /// is written as ronda-NN.md in the folder, with the instructions in LEEME.md, and the
 /// preparer waits for respuesta-NN.json. For AIs that are not called directly.
 /// </summary>
-public sealed class FolderPlayAdvisor : IPlayAdvisor
+public sealed class FolderPlayAdvisor : IPlayAdvisor, IVariableNamer
 {
     private readonly string _folder;
     private readonly TimeSpan _timeout;
@@ -184,5 +260,35 @@ public sealed class FolderPlayAdvisor : IPlayAdvisor
             }
         }
         throw new AiException($"Nadie respondió {Path.GetFileName(answerPath)} en {_timeout.TotalMinutes:F0} minutos.");
+    }
+
+    /// <summary>The same for the names: variables.md (and .png) in the folder, the answer in variables.json.</summary>
+    public async Task<List<VariableName>> NameVariablesAsync(VariableQuestion question, CancellationToken ct)
+    {
+        Directory.CreateDirectory(_folder);
+        string answerPath = Path.Combine(_folder, "variables.json");
+        if (File.Exists(answerPath))
+            File.Delete(answerPath);
+        if (question.Picture != null)
+            Retro.Core.PngWriter.Write(Path.Combine(_folder, "variables.png"), question.Picture, 2);
+        File.WriteAllText(Path.Combine(_folder, "variables.md"), AiPlayAdvisor.NamingGuide + "\n\n" + question.Describe() +
+            "\nCaptura de la partida: variables.png. Respuesta en variables.json con este esquema:\n\n```json\n" +
+            JsonSerializer.Serialize(AiPlayAdvisor.NamingSchema(), new JsonSerializerOptions { WriteIndented = true }) + "\n```\n");
+        var until = DateTime.UtcNow + _timeout;
+        while (DateTime.UtcNow < until)
+        {
+            await Task.Delay(1000, ct);
+            if (!File.Exists(answerPath))
+                continue;
+            try
+            {
+                return AiPlayAdvisor.ParseNames(File.ReadAllText(answerPath));
+            }
+            catch (Exception e) when (e is JsonException or IOException or AiException)
+            {
+                // still being written
+            }
+        }
+        throw new AiException($"Nadie respondió variables.json en {_timeout.TotalMinutes:F0} minutos.");
     }
 }
