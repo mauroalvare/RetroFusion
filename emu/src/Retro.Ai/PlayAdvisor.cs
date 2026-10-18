@@ -32,9 +32,12 @@ public sealed class AiPlayAdvisor : IPlayAdvisor, IVariableNamer
         cuadros y después de cada pantalla conviene esperar 100 a 300.
 
         Consejos:
-        - Ahorrá rondas: cada ronda cuesta tiempo. Cuando sepas lo que viene (una serie de
-          preguntas parecidas, un nombre para escribir, los menús que conocés de este juego),
-          mandá todas las acciones juntas en la misma respuesta (hasta 12), no una por ronda.
+        - Ahorrá rondas, pero sin adivinar: juntá en una respuesta (hasta 12 acciones) todo lo
+          de la pantalla que estás viendo y lo que ella misma anuncia (una serie de preguntas
+          parecidas, un nombre para escribir, un menú con sus opciones a la vista). No mandes
+          teclas para pantallas que todavía no viste: las ediciones crackeadas suelen meter
+          intros, documentos o menús de trucos que no están en el juego original, y una tecla
+          de más cae en el lugar equivocado. Cerrá la ronda y mirá la pantalla siguiente.
         - Si un texto se escribe solo o hay una animación, probá primero saltearla (ESPACIO,
           RETURN o disparo); si no se puede, esperá de una vez lo que haga falta (600 a 1500
           cuadros), no de a poco.
@@ -44,7 +47,12 @@ public sealed class AiPlayAdvisor : IPlayAdvisor, IVariableNamer
           los trucos cambian las variables que después se estudian.
         - Si pide un nombre, escribilo con una tecla por acción y terminá con RETURN o ENTER.
         - Si una pantalla dice que se aprieta FIRE, usá el disparo del joystick que corresponda.
+        - En menús y tiendas con cursor, mové de a una casilla con toques cortos (6 a 8 cuadros)
+          y mirá el resultado: mantener la dirección salta varias casillas de golpe.
+        - Si una tecla no hace lo que esperabas, buscá en la pantalla (en otra página o
+          categoría) qué falta antes de volver a intentar lo mismo.
         - Si ya es la partida, poné "playing": true y ninguna acción.
+        - "reason" en castellano, en una o dos oraciones: lo ve el jugador.
         - Respondé SOLO con el JSON pedido.
         """;
 

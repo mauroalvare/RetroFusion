@@ -134,17 +134,18 @@ public sealed class CliAgentProvider : IAiProvider
             "sub-codex" => new List<string> { "exec", "--skip-git-repo-check", "-o", lastMessage }
                 .Concat(images.SelectMany(i => new[] { "-i", i })).Append("-").ToList(),
             // the -p text is appended to stdin, which carries the real prompt
-            _ => agy ? new() { "-p", "Respondé la consigna que te paso por la entrada estándar." }
+            _ => agy ? AgyArgs(request, work)
                      : new() { "-p", "Respondé la consigna que te paso por la entrada estándar.", "--output-format", "json" },
         };
-        var (code, stdout, stderr) = await RunAsync(exe, args, work, Flatten(request), _timeout, ct);
+        // agy takes the prompt as an argument and does not read standard input
+        var (code, stdout, stderr) = await RunAsync(exe, args, work, agy ? "" : Flatten(request), _timeout, ct);
         try
         {
             string answer = _tool.Id switch
             {
                 "sub-claude" => ClaudeResult(stdout, stderr, code),
                 "sub-codex" => File.Exists(lastMessage) ? File.ReadAllText(lastMessage) : stdout,
-                _ => agy ? stdout : GeminiResult(stdout),
+                _ => agy ? AgyResult(stdout) : GeminiResult(stdout),
             };
             if (code != 0 && string.IsNullOrWhiteSpace(answer))
                 throw new AiException(Failure(stderr.Length > 0 ? stderr : stdout));
@@ -156,6 +157,34 @@ public sealed class CliAgentProvider : IAiProvider
         {
             try { File.Delete(lastMessage); } catch (IOException) { }
         }
+    }
+
+    /// <summary>
+    /// Antigravity CLI: the prompt goes as the -p argument (in a file it is told to read when it
+    /// does not fit in a Windows command line), the schema with --json-schema, and the folders
+    /// of the pictures and of that file in its workspace, in the read-only plan mode.
+    /// </summary>
+    private static List<string> AgyArgs(AiRequest request, string work)
+    {
+        string prompt = Flatten(request);
+        var dirs = (request.Images ?? Array.Empty<string>()).Select(i => Path.GetDirectoryName(i)!).ToList();
+        if (prompt.Length > 24000)
+        {
+            string file = Path.Combine(work, $"consigna-{Guid.NewGuid():N}.md");
+            File.WriteAllText(file, prompt, new UTF8Encoding(false));
+            dirs.Add(work);
+            prompt = $"La consigna completa está en el archivo {file}: leelo entero y hacé exactamente lo que pide (respondé solo con lo que pide).";
+        }
+        var args = new List<string> { "-p", prompt, "--output-format", "json" };
+        if (request.Schema is JsonElement schema)
+            args.AddRange(new[] { "--json-schema", schema.GetRawText() });
+        if (dirs.Count > 0)
+        {
+            args.AddRange(new[] { "--mode", "plan" });
+            foreach (var d in dirs.Distinct())
+                args.AddRange(new[] { "--add-dir", d });
+        }
+        return args;
     }
 
     private string ClaudeResult(string stdout, string stderr, int code)
@@ -172,6 +201,30 @@ public sealed class CliAgentProvider : IAiProvider
             if (isError || code != 0)
                 throw new AiException(Failure(result.Length > 0 ? result : stderr));
             return result;
+        }
+        catch (JsonException)
+        {
+            return stdout;
+        }
+    }
+
+    /// <summary>agy --output-format json: {"status":"SUCCESS","response":"...","structured_output":{...}}.</summary>
+    private string AgyResult(string stdout)
+    {
+        int s = stdout.IndexOf('{');
+        if (s < 0)
+            return stdout;
+        try
+        {
+            using var doc = JsonDocument.Parse(stdout[s..]);
+            var root = doc.RootElement;
+            string status = root.TryGetProperty("status", out var st) && st.ValueKind == JsonValueKind.String ? st.GetString() ?? "" : "";
+            string response = root.TryGetProperty("response", out var r) && r.ValueKind == JsonValueKind.String ? r.GetString() ?? "" : "";
+            if (status.Length > 0 && !status.Equals("SUCCESS", StringComparison.OrdinalIgnoreCase))
+                throw new AiException(Failure(response.Length > 0 ? response : stdout));
+            if (root.TryGetProperty("structured_output", out var so) && so.ValueKind == JsonValueKind.Object)
+                return so.GetRawText();
+            return response;
         }
         catch (JsonException)
         {
@@ -258,8 +311,16 @@ public sealed class CliAgentProvider : IAiProvider
         }
         var outTask = p.StandardOutput.ReadToEndAsync(ct);
         var errTask = p.StandardError.ReadToEndAsync(ct);
-        await p.StandardInput.WriteAsync(stdin.AsMemory(), ct);
-        p.StandardInput.Close();
+        try
+        {
+            if (stdin.Length > 0)
+                await p.StandardInput.WriteAsync(stdin.AsMemory(), ct);
+            p.StandardInput.Close();
+        }
+        catch (IOException)
+        {
+            // the tool closed its input without reading it: its answer (or error) is still in the output
+        }
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeoutCts.CancelAfter(timeout);
         try
