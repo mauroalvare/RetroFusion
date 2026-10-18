@@ -1,6 +1,6 @@
 # Matriz de compatibilidad
 
-Generada el 2026-10-18 09:53 UTC (commit a9deae9+cambios) con `retro-cli compat` sobre `C:/Users/mauro/Downloads/ROMs`. Los datos completos (hash, procedimiento, evidencia de cada nivel) están en `emu/compat/resultados.json`; los guiones, en `emu/compat/juegos/`. No editar a mano: se regenera.
+Generada el 2026-10-18 15:38 UTC (commit 2078ccc+cambios) con `retro-cli compat` sobre `C:/Users/mauro/Downloads/ROMs`. Los datos completos (hash, procedimiento, evidencia de cada nivel) están en `emu/compat/resultados.json`; los guiones, en `emu/compat/juegos/`. No editar a mano: se regenera.
 
 Niveles, en orden: **formato** reconocido → medio **cargado** → **imagen** (pantalla con contenido y sin signos de fallo) → llega al **título** (comprobación del guion) → **responde** a los controles (una entrada cambia la imagen respecto de la misma corrida sin entradas) → **jugable** (comprobaciones de partida del guion) → listo para **fusionar** (perfil con direcciones verificadas). `sí` = comprobado, **no** = falló, `parcial` = a medias, `·` = no probado. Son pruebas cortas y reproducibles, no partidas completas.
 
@@ -31,6 +31,18 @@ Determinismo: 1 de 1 corridas repetidas dieron exactamente la misma imagen final
 | Juego | Archivo | SHA-256 | Formato | Carga | Imagen | Título | Responde | Jugable | Fusión | Observaciones |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Space Invaders | invaders.zip → invaders.e | 0a97ed62e206 | sí | sí | sí | sí | sí | sí | parcial | cambian la imagen: P1 RIGHT, P1 FIRE (de 3 probadas); Comprobaciones con las direcciones del perfil invaders (verificadas al crear la fusión Manic Invaders). |
+
+## Nintendo NES (5 archivos, 4 cargan, 4 responden a controles)
+
+Determinismo: 4 de 4 corridas repetidas dieron exactamente la misma imagen final.
+
+| Juego | Archivo | SHA-256 | Formato | Carga | Imagen | Título | Responde | Jugable | Fusión | Observaciones |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Bootee ⁽ᵃ⁾ | descargados-autores/NES/mojon-twins--bootee.nes | 9e3daee355eb | sí | · | · | · | · | · | · | limitación del emulador: falta la máquina nes |
+| Cadaverion ⁽ᵃ⁾ | descargados-autores/NES/mojon-twins--cadaverion.nes | e139848c04c7 | sí | sí | sí | · | sí | · | · | cambian la imagen: P1 START (de 8 probadas) |
+| Cave Cnrom | descargados-autores/NES/mojon-twins--cave-cnrom.nes | b17032c5e5aa | sí | sí | sí | sí | sí | · | · | sí: START deja el título y empieza la partida (bosque con la protagonista) (la imagen cambió desde el cuadro 280) \| sonda: cambian la imagen: P1 START, P1 LEFT, P1 RIGHT, P1 A (de 4 probadas); Escrito a mano por claude-programado (18/10): la sonda automática no veía respuesta; con START en el cuadro 300 entra al juego (capturas emu/out/nes/cave-cnrom_*.png). Falta una comprobación de partida (vidas en memoria). |
+| Cheman ⁽ᵃ⁾ | descargados-autores/NES/mojon-twins--cheman.nes | 380f05602d31 | sí | sí | sí | · | sí | · | · | cambian la imagen: P1 START, P1 UP, P1 DOWN, P1 A, P1 B, P1 SELECT (de 8 probadas) |
+| Super Uwol ⁽ᵃ⁾ | descargados-autores/NES/mojon-twins--super-uwol.nes | 67eaa300c8ab | sí | sí | sí | · | sí | · | · | cambian la imagen: P1 START (de 8 probadas) |
 
 ## ZX Spectrum 48K (31 archivos, 31 cargan, 25 responden a controles)
 
@@ -133,16 +145,6 @@ Determinismo: 31 de 31 corridas repetidas dieron exactamente la misma imagen fin
 | Nanako In Classic Japanese Monster Castle ⁽ᵃ⁾ | descargados-autores/CPC/Mojon-Twins--Nanako-In-Classic-Japanese-Monster-Castle--CPC.cdt | 592b18079289 | sí | · | · | · | · | · | · | limitación del emulador: falta la máquina cpc |
 | Sir Ababol ⁽ᵃ⁾ | descargados-autores/CPC/Mojon-Twins--Sir-Ababol-CPC.cdt | 4f4dad531aac | sí | · | · | · | · | · | · | limitación del emulador: falta la máquina cpc |
 | Uwol 2 ⁽ᵃ⁾ | descargados-autores/CPC/Mojon-Twins--Uwol-2--CPC.dsk | 9b72102f3614 | sí | · | · | · | · | · | · | limitación del emulador: falta la máquina cpc |
-
-## Nintendo NES (5 archivos, máquina no implementada)
-
-| Juego | Archivo | SHA-256 | Formato | Carga | Imagen | Título | Responde | Jugable | Fusión | Observaciones |
-|---|---|---|---|---|---|---|---|---|---|---|
-| Bootee ⁽ᵃ⁾ | descargados-autores/NES/mojon-twins--bootee.nes | 9e3daee355eb | sí | · | · | · | · | · | · | limitación del emulador: falta la máquina nes |
-| Cadaverion ⁽ᵃ⁾ | descargados-autores/NES/mojon-twins--cadaverion.nes | e139848c04c7 | sí | · | · | · | · | · | · | limitación del emulador: falta la máquina nes |
-| Cave Cnrom ⁽ᵃ⁾ | descargados-autores/NES/mojon-twins--cave-cnrom.nes | b17032c5e5aa | sí | · | · | · | · | · | · | limitación del emulador: falta la máquina nes |
-| Cheman ⁽ᵃ⁾ | descargados-autores/NES/mojon-twins--cheman.nes | 380f05602d31 | sí | · | · | · | · | · | · | limitación del emulador: falta la máquina nes |
-| Super Uwol ⁽ᵃ⁾ | descargados-autores/NES/mojon-twins--super-uwol.nes | 67eaa300c8ab | sí | · | · | · | · | · | · | limitación del emulador: falta la máquina nes |
 
 ## NEC PC-8801 (2 archivos, máquina no implementada)
 

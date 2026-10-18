@@ -1,6 +1,6 @@
 {
-  "generated": "2026-10-18 09:53 UTC",
-  "commit": "a9deae9+cambios",
+  "generated": "2026-10-18 15:38 UTC",
+  "commit": "2078ccc+cambios",
   "gamesFolder": "C:/Users/mauro/Downloads/ROMs",
   "note": "",
   "results": [
@@ -2950,48 +2950,50 @@
       "sha256": "e139848c04c7ed443b3f800ba73e660e9d1bb629e157d0fd3aa6493233abed18",
       "bytes": 40976,
       "edition": "cartucho de NES (iNES)",
-      "firmware": "",
-      "model": "",
+      "firmware": "sin firmware (el programa está en el cartucho)",
+      "model": "Nintendo NES NTSC, 2 KB RAM; mapper 0",
       "controls": "",
-      "procedure": "",
+      "procedure": "Cartucho NES: mapper 0 (NROM), PRG 32 KB, CHR ROM 8 KB, espejado horizontal",
       "levels": {
         "format": {
           "status": "ok",
           "detail": "cartucho de NES (iNES) (mojon-twins--cadaverion.nes, 40976 bytes)"
         },
         "load": {
-          "status": "untested",
-          "detail": "la máquina nes todavía no está implementada"
+          "status": "ok",
+          "detail": "Cartucho NES: mapper 0 (NROM), PRG 32 KB, CHR ROM 8 KB, espejado horizontal"
         },
         "picture": {
-          "status": "untested",
-          "detail": ""
+          "status": "ok",
+          "detail": "7 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
         },
         "title": {
           "status": "untested",
-          "detail": ""
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
         },
         "controls": {
-          "status": "untested",
-          "detail": ""
+          "status": "ok",
+          "detail": "cambian la imagen: P1 START (de 8 probadas)"
         },
         "playable": {
           "status": "untested",
-          "detail": ""
+          "detail": "sin comprobaciones de partida en el guion"
         },
         "fusion": {
           "status": "untested",
-          "detail": ""
+          "detail": "no hay perfil de fusión para este juego"
         }
       },
-      "highest": "format",
-      "problems": [
-        "limitación del emulador: falta la máquina nes"
-      ],
+      "highest": "controls",
+      "problems": [],
       "gameQuirks": [],
-      "warnings": [],
-      "framesRun": 0,
-      "scope": "",
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "b780405f1b2f873a",
+      "screenshot": "out/compat/nes-mojon-twins-cadaverion.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (25 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
       "curated": false,
       "notes": ""
     },
@@ -3003,51 +3005,53 @@
       "member": "mojon-twins--cave-cnrom.nes",
       "sha256": "b17032c5e5aa110c237d3714d271e7591a9fd003cdef318f9e167688ea697f48",
       "bytes": 49168,
-      "edition": "cartucho de NES (iNES)",
-      "firmware": "",
-      "model": "",
-      "controls": "",
-      "procedure": "",
+      "edition": "cartucho de NES (iNES), mapper 3 (CNROM), 32 KB de PRG y 32 KB de CHR",
+      "firmware": "sin firmware (el programa está en el cartucho)",
+      "model": "Nintendo NES NTSC, 2 KB RAM; mapper 3",
+      "controls": "Mando 1: flechas para moverse, A salta, START empieza y pausa",
+      "procedure": "Cartucho NES: mapper 3 (CNROM), PRG 32 KB, CHR ROM 16 KB, espejado horizontal; cuadro 300: P1 START durante 10",
       "levels": {
         "format": {
           "status": "ok",
           "detail": "cartucho de NES (iNES) (mojon-twins--cave-cnrom.nes, 49168 bytes)"
         },
         "load": {
-          "status": "untested",
-          "detail": "la máquina nes todavía no está implementada"
+          "status": "ok",
+          "detail": "Cartucho NES: mapper 3 (CNROM), PRG 32 KB, CHR ROM 16 KB, espejado horizontal"
         },
         "picture": {
-          "status": "untested",
-          "detail": ""
+          "status": "ok",
+          "detail": "15 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
         },
         "title": {
-          "status": "untested",
-          "detail": ""
+          "status": "ok",
+          "detail": "sí: título CAVE con PRESS START (logo multicolor) (7 colores, mínimo 4)"
         },
         "controls": {
-          "status": "untested",
-          "detail": ""
+          "status": "ok",
+          "detail": "sí: START deja el título y empieza la partida (bosque con la protagonista) (la imagen cambió desde el cuadro 280) | sonda: cambian la imagen: P1 START, P1 LEFT, P1 RIGHT, P1 A (de 4 probadas)"
         },
         "playable": {
           "status": "untested",
-          "detail": ""
+          "detail": "sin comprobaciones de partida en el guion"
         },
         "fusion": {
           "status": "untested",
-          "detail": ""
+          "detail": "no hay perfil de fusión para este juego"
         }
       },
-      "highest": "format",
-      "problems": [
-        "limitación del emulador: falta la máquina nes"
-      ],
+      "highest": "controls",
+      "problems": [],
       "gameQuirks": [],
-      "warnings": [],
-      "framesRun": 0,
-      "scope": "",
-      "curated": false,
-      "notes": ""
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "2d3a49ebd5f6aba8",
+      "screenshot": "out/compat/nes-mojon-twins-cave-cnrom.png",
+      "framesRun": 900,
+      "scope": "900 cuadros (15 s de máquina) después del arranque, con 1 pulsaciones guionadas y 2 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": true,
+      "notes": "Escrito a mano por claude-programado (18/10): la sonda automática no veía respuesta; con START en el cuadro 300 entra al juego (capturas emu/out/nes/cave-cnrom_*.png). Falta una comprobación de partida (vidas en memoria)."
     },
     {
       "id": "nes-mojon-twins-cheman",
@@ -3058,48 +3062,50 @@
       "sha256": "380f05602d31b3a0befa3ed2504d1376391bd73deee17598802bf56562cf4653",
       "bytes": 40976,
       "edition": "cartucho de NES (iNES)",
-      "firmware": "",
-      "model": "",
+      "firmware": "sin firmware (el programa está en el cartucho)",
+      "model": "Nintendo NES NTSC, 2 KB RAM; mapper 0",
       "controls": "",
-      "procedure": "",
+      "procedure": "Cartucho NES: mapper 0 (NROM), PRG 32 KB, CHR ROM 8 KB, espejado horizontal",
       "levels": {
         "format": {
           "status": "ok",
           "detail": "cartucho de NES (iNES) (mojon-twins--cheman.nes, 40976 bytes)"
         },
         "load": {
-          "status": "untested",
-          "detail": "la máquina nes todavía no está implementada"
+          "status": "ok",
+          "detail": "Cartucho NES: mapper 0 (NROM), PRG 32 KB, CHR ROM 8 KB, espejado horizontal"
         },
         "picture": {
-          "status": "untested",
-          "detail": ""
+          "status": "ok",
+          "detail": "9 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
         },
         "title": {
           "status": "untested",
-          "detail": ""
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
         },
         "controls": {
-          "status": "untested",
-          "detail": ""
+          "status": "ok",
+          "detail": "cambian la imagen: P1 START, P1 UP, P1 DOWN, P1 A, P1 B, P1 SELECT (de 8 probadas)"
         },
         "playable": {
           "status": "untested",
-          "detail": ""
+          "detail": "sin comprobaciones de partida en el guion"
         },
         "fusion": {
           "status": "untested",
-          "detail": ""
+          "detail": "no hay perfil de fusión para este juego"
         }
       },
-      "highest": "format",
-      "problems": [
-        "limitación del emulador: falta la máquina nes"
-      ],
+      "highest": "controls",
+      "problems": [],
       "gameQuirks": [],
-      "warnings": [],
-      "framesRun": 0,
-      "scope": "",
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "34c5c03dc91c6f2b",
+      "screenshot": "out/compat/nes-mojon-twins-cheman.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (25 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
       "curated": false,
       "notes": ""
     },
@@ -3112,48 +3118,50 @@
       "sha256": "67eaa300c8abc5eca33f96f8d80df6a6b7ce8a808218a159b38c567e05f5fbdd",
       "bytes": 40976,
       "edition": "cartucho de NES (iNES)",
-      "firmware": "",
-      "model": "",
+      "firmware": "sin firmware (el programa está en el cartucho)",
+      "model": "Nintendo NES NTSC, 2 KB RAM; mapper 0",
       "controls": "",
-      "procedure": "",
+      "procedure": "Cartucho NES: mapper 0 (NROM), PRG 32 KB, CHR ROM 8 KB, espejado horizontal",
       "levels": {
         "format": {
           "status": "ok",
           "detail": "cartucho de NES (iNES) (mojon-twins--super-uwol.nes, 40976 bytes)"
         },
         "load": {
-          "status": "untested",
-          "detail": "la máquina nes todavía no está implementada"
+          "status": "ok",
+          "detail": "Cartucho NES: mapper 0 (NROM), PRG 32 KB, CHR ROM 8 KB, espejado horizontal"
         },
         "picture": {
-          "status": "untested",
-          "detail": ""
+          "status": "ok",
+          "detail": "9 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
         },
         "title": {
           "status": "untested",
-          "detail": ""
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
         },
         "controls": {
-          "status": "untested",
-          "detail": ""
+          "status": "ok",
+          "detail": "cambian la imagen: P1 START (de 8 probadas)"
         },
         "playable": {
           "status": "untested",
-          "detail": ""
+          "detail": "sin comprobaciones de partida en el guion"
         },
         "fusion": {
           "status": "untested",
-          "detail": ""
+          "detail": "no hay perfil de fusión para este juego"
         }
       },
-      "highest": "format",
-      "problems": [
-        "limitación del emulador: falta la máquina nes"
-      ],
+      "highest": "controls",
+      "problems": [],
       "gameQuirks": [],
-      "warnings": [],
-      "framesRun": 0,
-      "scope": "",
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "991f0b0980ac1ca7",
+      "screenshot": "out/compat/nes-mojon-twins-super-uwol.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (25 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
       "curated": false,
       "notes": ""
     },

@@ -3,16 +3,42 @@
   "game": "Cave Cnrom",
   "machine": "nes",
   "file": "descargados-autores/NES/mojon-twins--cave-cnrom.nes",
-  "edition": "cartucho de NES (iNES)",
-  "controls": "",
+  "edition": "cartucho de NES (iNES), mapper 3 (CNROM), 32 KB de PRG y 32 KB de CHR",
+  "controls": "Mando 1: flechas para moverse, A salta, START empieza y pausa",
   "boot": "auto",
-  "frames": 1500,
+  "frames": 900,
   "bootFrames": 30000,
   "loadEndsByTime": false,
-  "steps": [],
-  "checks": [],
-  "probeInputs": [],
+  "steps": [
+    {
+      "frame": 300,
+      "keys": "P1 START",
+      "hold": 10
+    }
+  ],
+  "checks": [
+    {
+      "level": "title",
+      "frame": 280,
+      "type": "colors",
+      "min": 4,
+      "description": "título CAVE con PRESS START (logo multicolor)"
+    },
+    {
+      "level": "controls",
+      "frame": 600,
+      "type": "changed",
+      "since": 280,
+      "description": "START deja el título y empieza la partida (bosque con la protagonista)"
+    }
+  ],
+  "probeInputs": [
+    "P1 START",
+    "P1 LEFT",
+    "P1 RIGHT",
+    "P1 A"
+  ],
   "gameQuirks": [],
-  "notes": "",
-  "curated": false
+  "notes": "Escrito a mano por claude-programado (18/10): la sonda automática no veía respuesta; con START en el cuadro 300 entra al juego (capturas emu/out/nes/cave-cnrom_*.png). Falta una comprobación de partida (vidas en memoria).",
+  "curated": true
 }
