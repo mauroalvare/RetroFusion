@@ -50,6 +50,21 @@ public class DesignerTests
     }
 
     [Test]
+    public void EveryRequest_StartsFromAnotherSeed_AndAvoidsTheExistingFusions()
+    {
+        var prompts = Enumerable.Range(0, 6).Select(_ => StudioDesigner.ConceptPrompt(Slots, ProfileLibrary.Find, "")).ToList();
+        Assert.That(prompts[0], Does.Contain("Semilla 1:").And.Contain("Semilla 3:"));
+        Assert.That(prompts.Distinct().Count(), Is.GreaterThan(1), "las semillas cambian de un pedido a otro");
+        Assert.That(prompts[0], Does.Contain("\"Manic Invaders\""), "nombra la fusión que ya existe para no repetirla");
+        Assert.That(prompts[0], Does.Contain("presentación"));
+        Assert.That(StudioDesigner.Guide, Does.Contain("NO es un estilo a copiar"));
+        Assert.That(StudioDesigner.Guide, Does.Not.Contain(StudioDesigner.ExampleDesign.Split('\n')[0]), "el diseño del ejemplo no viaja como molde");
+        string asked = StudioDesigner.ConceptPrompt(Slots, ProfileLibrary.Find, "que sea de carreras");
+        Assert.That(asked, Does.Contain("que sea de carreras").And.Contain("Llevá los juegos más lejos"));
+        Assert.That(StudioDesigner.DesignFields.Select(f => f.Key), Does.Contain("presentation"));
+    }
+
+    [Test]
     public async Task Concepts_AreParsed()
     {
         var ai = new ScriptedAi("""{"ideas": [{"title": "Uno", "approach": "Invasión", "pitch": "p1", "howToPlay": "h1", "baseGame": "Manic Miner", "levels": "las 20 cavernas"}, {"title": "Dos", "approach": "Poderes", "pitch": "p2", "howToPlay": "h2"}]}""");

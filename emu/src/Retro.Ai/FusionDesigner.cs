@@ -150,7 +150,22 @@ public sealed class FusionDesigner
 
             {ProfilesText(games)}
             Pedido del jugador: {(string.IsNullOrWhiteSpace(instructions) ? "ninguno en particular: sorprendeme con una mezcla divertida y jugable." : instructions)}
+
+            {Variety(games, instructions)}
             """;
+    }
+
+    /// <summary>A different idea to start from each time, and the recipes that already exist for these games.</summary>
+    private static string Variety(IReadOnlyList<GameProfile> games, string instructions)
+    {
+        var rng = Random.Shared;
+        var existing = RecipeLibrary.For(games.Select(g => g.Id)).Select(r => $"\"{r.Name}\"").ToList();
+        string twist = CreativeSeeds.Twists[rng.Next(CreativeSeeds.Twists.Length)];
+        string layout = new[] { "side", "overlay", "pip" }[rng.Next(3)];
+        return (string.IsNullOrWhiteSpace(instructions)
+                   ? $"Para que no salga siempre lo mismo, partí de esta idea sorteada (o de otra igual de inesperada): {twist}; probá la vista \"{layout}\" si le sirve."
+                   : $"Llevá el pedido más lejos de lo obvio; si te sirve, sumale esta idea sorteada: {twist}.")
+               + (existing.Count > 0 ? $" Ya existen estas recetas con estos juegos, hacé otra cosa: {string.Join(", ", existing)}." : "");
     }
 
     /// <summary>Everything in one text, for pasting into any chat (ChatGPT, Gemini, Claude.ai...).</summary>

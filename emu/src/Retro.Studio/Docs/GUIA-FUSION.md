@@ -51,7 +51,8 @@ no esté en la lista de aportes, se descarta. Una trampa que el jugador no puede
 ## 4. Reglas claras
 
 - **Objetivo** en una frase y **derrota** en una frase.
-- **Vidas** (3 está bien) y **puntaje** siempre visibles.
+- **Vidas** (o lo que haga de vida) y **puntaje**: el jugador tiene que poder saber cuánto le
+  queda y cómo le va, pero la forma de mostrarlo es libre.
 - **Progresión:** oleadas o niveles que empiezan fáciles y se ponen más difíciles.
 - **Dificultad inicial baja:** menos enemigos y más lentos que en el original al
   principio. Si traés enemigos de un juego, traé **pocos** (una fila, no una pared).
@@ -74,8 +75,9 @@ propio y un camino:
   Si no, armá mapas propios con los mosaicos o sprites de los juegos.
 - **Una novedad por nivel:** cada nivel presenta UNA cosa nueva (un enemigo, una mecánica,
   más velocidad) y la anuncia con un cartel. Nunca todo junto en el primer nivel.
-- **Tarjeta de nivel:** al empezar cada nivel, 1 o 2 segundos con su nombre, su objetivo
-  y la novedad, con el juego quieto.
+- **Presentar cada nivel:** el jugador se entera del nivel nuevo y de su novedad con una
+  forma propia de este juego (una tarjeta, un mapa de progreso, una viñeta, un narrador, un
+  cambio de paleta), con un momento de calma antes de que empiece.
 - **Final:** qué pasa al terminar el último nivel (pantalla de victoria) o, si es infinito,
   cómo sigue subiendo la dificultad.
 - **Puntaje con sentido:** puntos por lo que importa (enemigos, objetos, terminar un nivel,
@@ -90,7 +92,10 @@ propio y un camino:
 - **Cada peligro con un color o forma propia**, distinto del héroe y del terreno. El héroe
   siempre visible.
 - Como máximo unos 25 enemigos y 4 proyectiles enemigos en pantalla a la vez.
-- **HUD** con puntaje, vidas, nivel y el recurso (barra de aire, combustible...).
+- **Presentación propia:** el HUD, la pantalla de título, los menús y las transiciones se
+  diseñan para ESTE juego (un panel lateral, la información dentro del mundo, colores en vez
+  de números, un tablero, un narrador...). No uses siempre el mismo esquema de puntaje
+  arriba y barra abajo: dos fusiones no deberían parecerse al mirarlas.
 - **Mensajes cortos** cuando algo nuevo aparece por primera vez ("¡Cuidado: el guardián
   patrulla el piso, saltalo!").
 
@@ -100,7 +105,8 @@ El guion tiene que avisar en qué parte está con `game.state(...)`, e informar 
 con `game.score`, `game.death` y `game.level`: así se puede probar automáticamente.
 
 1. **Título** (`game.state('title')`): nombre, objetivo y controles en pantalla. Los juegos
-   en pausa. Empieza con start, Espacio o disparo.
+   en pausa. Empieza con start, Espacio o disparo. La forma es libre: animado, jugable, una
+   viñeta, un menú propio.
 2. **Jugando** (`game.state('playing')`).
 3. **Fin** (`game.state('gameover')`): puntaje final y "start para jugar de nuevo". Al
    apretar start, todo vuelve a empezar (`g.restart()` en cada juego, variables del guion
@@ -159,6 +165,7 @@ Mirá también las capturas: ¿se distingue el héroe? ¿se entiende qué te mat
 - [ ] Todo lo que no es aporte se descartó (no quedan trampas sin explicar).
 - [ ] Objetivo y derrota claros, vidas, puntaje, progresión.
 - [ ] Hay premisa (historia), al menos 3 niveles con mapas distintos, una novedad por nivel y un final.
+- [ ] La presentación (título, HUD, menús, transiciones) es propia de este juego, no la de otra fusión.
 - [ ] Empieza fácil: pocos enemigos y lentos.
 - [ ] Controles del género del juego base, como máximo 3 acciones, explicados en el título.
 - [ ] Nada se dibuja encima del terreno; cada peligro tiene color propio.
@@ -174,6 +181,8 @@ Mirá también las capturas: ¿se distingue el héroe? ¿se entiende qué te mat
 - Controles que contradicen al género (en un juego de naves, Espacio no dispara).
 - Ganar puntos sin acción del jugador, o no poder ganarlos nunca.
 - Que el jugador no sepa qué hacer al empezar.
+- Repetir la presentación de otra fusión (el mismo título, PUNTOS y RECORD arriba, la misma
+  barra de recurso) o hacer siempre el mismo tipo de juego con los mismos juegos.
 
 ## Si a un juego le falta información
 

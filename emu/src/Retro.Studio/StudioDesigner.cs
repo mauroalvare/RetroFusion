@@ -54,12 +54,13 @@ public sealed class StudioDesigner
 
         {ApiDoc}
 
-        ## Ejemplo completo que sigue el método: "Manic Invaders" (Space Invaders + Manic Miner)
+        ## Referencia técnica: el guion de "Manic Invaders" (Space Invaders + Manic Miner)
 
-        Diseño:
-        {ExampleDesign}
+        Está para que veas cómo se usa la API en un juego completo (estados, niveles, choques,
+        sonido, game.score). NO es un estilo a copiar: no repitas su pantalla de título, su HUD
+        (PUNTOS y RECORD arriba), su barra de aire, sus tarjetas de nivel ni su estructura de
+        menús. Cada juego nuevo inventa su propia presentación.
 
-        Guion:
         ```javascript
         {ExampleScript}
         ```
@@ -117,6 +118,7 @@ public sealed class StudioDesigner
         ("story", "Historia"),
         ("levels", "Niveles (al menos 3, una novedad por nivel, y el final)"),
         ("controls", "Controles"),
+        ("presentation", "Presentación propia (pantalla de título, HUD, menús, transiciones y paleta)"),
         ("readability", "Legibilidad"),
     };
 
@@ -167,8 +169,10 @@ public sealed class StudioDesigner
         sb.AppendLine();
         sb.Append(GamesText(slots, find));
         sb.AppendLine(string.IsNullOrWhiteSpace(wish)
-            ? "Proponé 3 ideas MUY distintas entre sí (enfoques diferentes)."
+            ? "Proponé 3 ideas MUY distintas entre sí (enfoques, géneros y presentaciones diferentes)."
             : $"Lo que quiere el jugador: \"{wish.Trim()}\". Proponé 3 ideas que respeten ese pedido, con enfoques distintos.");
+        var existing = StudioLibrary.For(slots.Select(s => s.Profile)).Select(g => $"\"{g.Title}\" ({g.Approach})");
+        sb.Append(CreativeSeeds.Brief(Random.Shared, 3, existing, !string.IsNullOrWhiteSpace(wish)));
         sb.AppendLine("Seguí el método (pasos 1 a 6). Cada idea es un juego completo con: title (nombre del juego nuevo), approach " +
                       "(el enfoque de la mezcla en una frase), pitch (la premisa: 2 a 4 oraciones), howToPlay (objetivo y controles) y el " +
                       "documento de diseño: " + string.Join(", ", DesignFields.Select(f => $"{f.Key} ({f.Label.ToLowerInvariant()})")) + ". " +
@@ -220,7 +224,7 @@ public sealed class StudioDesigner
 
     private const string AnswerShape =
         "Devolvé title, approach, pitch (la premisa), howToPlay, design (el documento de diseño completo y actualizado, una línea por " +
-        "parte: juego base, héroe, aportes, se descarta, objetivo, derrota, historia, niveles, controles, legibilidad), changes (qué " +
+        "parte: juego base, héroe, aportes, se descarta, objetivo, derrota, historia, niveles, controles, presentación, legibilidad), changes (qué " +
         "hiciste o cambiaste, en una o dos oraciones) y script (el guion de JavaScript COMPLETO, no solo los cambios).";
 
     public static string WritePrompt(IReadOnlyList<RecipeGame> slots, Func<string, GameProfile?> find, GameConcept concept)
@@ -247,8 +251,9 @@ public sealed class StudioDesigner
             sb.AppendLine("Todavía no hay documento de diseño: armalo primero siguiendo el método (pasos 1 a 6) y después escribí el guion.");
         sb.AppendLine();
         sb.AppendLine("Escribí el guion completo, jugable de punta a punta, siguiendo el método: título con historia y controles, niveles con " +
-                      "tarjeta y una novedad cada uno, choques justos, puntaje, mensajes, sonido, fin del juego y revancha, y game.state, " +
-                      "game.score, game.death y game.level. Antes de responder, revisá la lista de control.");
+                      "una novedad cada uno, choques justos, puntaje, mensajes, sonido, fin del juego y revancha, y game.state, " +
+                      "game.score, game.death y game.level. La presentación (título, HUD, menús, transiciones, paleta) es la que dice el " +
+                      "diseño, propia de este juego: no la del ejemplo ni la de otras fusiones. Antes de responder, revisá la lista de control.");
         sb.AppendLine(AnswerShape);
         return sb.ToString();
     }

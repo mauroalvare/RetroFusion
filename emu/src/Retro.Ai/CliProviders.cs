@@ -46,6 +46,10 @@ public static class CliTools
         dirs.Add(Path.Combine(home, ".local", "bin"));
         dirs.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "npm"));
         dirs.Add(Path.Combine(home, ".npm-global", "bin"));
+        // the official installers of Antigravity CLI leave agy.exe here, without touching PATH
+        string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        dirs.Add(Path.Combine(local, "agy", "bin"));
+        dirs.Add(Path.Combine(local, "Antigravity"));
         dirs.Add("/usr/local/bin");
         dirs.Add("/opt/homebrew/bin");
         string[] extensions = OperatingSystem.IsWindows() ? new[] { ".exe", ".cmd", ".bat" } : new[] { "" };
