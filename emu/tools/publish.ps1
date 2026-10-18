@@ -20,10 +20,11 @@ foreach ($rid in $Runtimes) {
             -p:DebugType=None -p:DebugSymbols=false -p:Version=$Version
         if ($LASTEXITCODE -ne 0) { throw "dotnet publish falló para $proj ($rid)" }
     }
-    New-Item -ItemType Directory -Force (Join-Path $out "roms") | Out-Null
-    Copy-Item (Join-Path $root "roms/48.rom") (Join-Path $out "roms/48.rom")
+    # system firmware in its own folder: on Windows "roms" and the games folder "ROMs" would be the same folder
+    New-Item -ItemType Directory -Force (Join-Path $out "firmware") | Out-Null
+    Copy-Item (Join-Path $root "roms/48.rom") (Join-Path $out "firmware/48.rom")
     # free C64 firmware (Open ROMs, LGPL-3) with its license
-    Copy-Item -Recurse -Force (Join-Path $root "roms/c64") (Join-Path $out "roms/c64")
+    Copy-Item -Recurse -Force (Join-Path $root "roms/c64") (Join-Path $out "firmware/c64")
     # the folders the player fills: games (never included) and fusion games
     New-Item -ItemType Directory -Force (Join-Path $out "ROMs") | Out-Null
     "Poné acá tus juegos (sueltos o en .zip). El emulador reconoce solo para qué máquina es cada uno." |
@@ -32,8 +33,8 @@ foreach ($rid in $Runtimes) {
     Copy-Item (Join-Path $root "README.md") (Join-Path $out "README.md")
     Copy-Item (Join-Path $root "docs/ARQUITECTURA.md") (Join-Path $out "ARQUITECTURA.md")
     @"
-ROMs incluidas
---------------
+Firmware incluido
+-----------------
 48.rom: ROM del Sinclair ZX Spectrum 48K, (c) Amstrad plc. Amstrad autoriza su
 distribución junto con emuladores, sin cargo y manteniendo este aviso de copyright.
 
@@ -43,7 +44,7 @@ de la licencia en la misma carpeta). Si tenés las ROMs originales del C64 (kern
 basic.rom, chargen.rom), ponelas en esa carpeta y el emulador las prefiere.
 
 Los juegos no se incluyen.
-"@ | Set-Content (Join-Path $out "roms/LEEME-ROMS.txt") -Encoding utf8
+"@ | Set-Content (Join-Path $out "firmware/LEEME.txt") -Encoding utf8
 
     if ($rid.StartsWith("win")) {
         $zip = Join-Path $dist "$name.zip"

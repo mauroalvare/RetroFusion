@@ -381,9 +381,12 @@ static string FindRom(string name)
     var dir = new DirectoryInfo(AppContext.BaseDirectory);
     while (dir != null)
     {
-        var p = Path.Combine(dir.FullName, "roms", name);
-        if (File.Exists(p))
-            return p;
+        foreach (var folder in new[] { "firmware", "roms" })
+        {
+            var p = Path.Combine(dir.FullName, folder, name);
+            if (File.Exists(p))
+                return p;
+        }
         dir = dir.Parent;
     }
     throw new FileNotFoundException($"No encuentro roms/{name}. Pasá --rom <ruta>.");

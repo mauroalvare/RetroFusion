@@ -55,7 +55,9 @@ public sealed class RetroApp
 
     public RetroApp(string[] args)
     {
-        _romDir = FindFolder("roms") ?? Path.Combine(AppContext.BaseDirectory, "roms");
+        // the system firmware: a "firmware" folder (release packages) or a "roms" folder that
+        // has the Spectrum ROM in it (so a games folder called "ROMs" is never mistaken for it)
+        _romDir = FindFolder("firmware") ?? FindFolderWith("roms", "48.rom") ?? Path.Combine(AppContext.BaseDirectory, "firmware");
         string games = FindGamesFolder() ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         _library.Rescan(games);
         Retro.Studio.StudioLibrary.ExportBuiltIns();
@@ -126,6 +128,17 @@ public sealed class RetroApp
         _followPc = false;
         _disasmAddr = address.ToString("X4");
         _debugMode = true;
+    }
+
+    private static string? FindFolderWith(string name, string file)
+    {
+        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
+        {
+            var p = Path.Combine(dir.FullName, name);
+            if (File.Exists(Path.Combine(p, file)))
+                return p;
+        }
+        return null;
     }
 
     private static string? FindFolder(string name)
