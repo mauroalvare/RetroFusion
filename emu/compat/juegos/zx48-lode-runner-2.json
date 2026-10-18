@@ -11,9 +11,17 @@
   "bootFrames": 30000,
   "loadEndsByTime": false,
   "steps": [],
-  "checks": [],
+  "checks": [
+    {
+      "level": "title",
+      "frame": 1500,
+      "type": "text",
+      "value": "Enter the code from square",
+      "description": "pide el código del libro (edición passworded)"
+    }
+  ],
   "probeInputs": [],
   "gameQuirks": [],
-  "notes": "",
-  "curated": false
+  "notes": "Antes se reiniciaba tras cargar (T-015); el código está en el manual original (curado por claude-programado el 18/10: texto leído con la fuente de la ROM).",
+  "curated": true
 }

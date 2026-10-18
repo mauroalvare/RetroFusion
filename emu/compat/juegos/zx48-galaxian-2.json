@@ -5,15 +5,23 @@
   "file": "clasicos/Spectrum/galaxian.zip",
   "member": "Galaxian (1984)(Atarisoft).tzx",
   "edition": "cinta TZX de ZX Spectrum; el paquete trae 5 archivos, se eligió el volcado más limpio",
-  "controls": "",
+  "controls": "S empieza",
   "boot": "auto",
   "frames": 1500,
   "bootFrames": 30000,
   "loadEndsByTime": false,
   "steps": [],
-  "checks": [],
+  "checks": [
+    {
+      "level": "title",
+      "frame": 1500,
+      "type": "text",
+      "value": "DESTROY ALIENS",
+      "description": "presentación con la tabla de puntos (cinta turbo de Atarisoft)"
+    }
+  ],
   "probeInputs": [],
   "gameQuirks": [],
-  "notes": "",
-  "curated": false
+  "notes": "Antes se reiniciaba tras cargar (T-015) (curado por claude-programado el 18/10: texto leído con la fuente de la ROM).",
+  "curated": true
 }

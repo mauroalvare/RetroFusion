@@ -1,6 +1,6 @@
 {
-  "generated": "2026-10-18 16:03 UTC",
-  "commit": "8bb3b7b+cambios",
+  "generated": "2026-10-18 16:08 UTC",
+  "commit": "ab070c0+cambios",
   "gamesFolder": "C:/Users/mauro/Downloads/ROMs",
   "note": "",
   "results": [
@@ -4430,7 +4430,7 @@
       "edition": "instantánea Z80 de ZX Spectrum",
       "firmware": "ROM 48K de Sinclair (48.rom)",
       "model": "ZX Spectrum 48K (PAL)",
-      "controls": "",
+      "controls": "S empieza; teclas en pantalla",
       "procedure": "Snapshot Z80",
       "levels": {
         "format": {
@@ -4443,11 +4443,11 @@
         },
         "picture": {
           "status": "ok",
-          "detail": "12 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+          "detail": "15 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
         },
         "title": {
-          "status": "untested",
-          "detail": "sin comprobación de título en el guion (mirar la captura)"
+          "status": "ok",
+          "detail": "sí: presentación: WE ARE THE GALAXIANS / MISSION: DESTROY ALIENS / PRESS S (\"DESTROY ALIENS\" está en pantalla en el cuadro 600)"
         },
         "controls": {
           "status": "ok",
@@ -4468,12 +4468,12 @@
       "warnings": [
         "determinista: dos corridas dieron la misma imagen final"
       ],
-      "screenHash": "01ec9a7613854543",
+      "screenHash": "88ec372bc4e7cbf5",
       "screenshot": "out/compat/zx48-galaxian.png",
-      "framesRun": 1500,
-      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
-      "curated": false,
-      "notes": ""
+      "framesRun": 600,
+      "scope": "600 cuadros (12 s de máquina) después del arranque, con 0 pulsaciones guionadas y 1 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": true,
+      "notes": "Snapshot: arranca directo en la demostración (curado por claude-programado el 18/10: texto leído con la fuente de la ROM)."
     },
     {
       "id": "zx48-galaxian-2",
@@ -4486,7 +4486,7 @@
       "edition": "cinta TZX de ZX Spectrum; el paquete trae 5 archivos, se eligió el volcado más limpio",
       "firmware": "ROM 48K de Sinclair (48.rom)",
       "model": "ZX Spectrum 48K (PAL)",
-      "controls": "",
+      "controls": "S empieza",
       "procedure": "Cinta TZX con 4 bloques; LOAD \"\" y cinta completa por la ROM en 3879 cuadros (77 s)",
       "levels": {
         "format": {
@@ -4502,8 +4502,8 @@
           "detail": "14 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
         },
         "title": {
-          "status": "untested",
-          "detail": "sin comprobación de título en el guion (mirar la captura)"
+          "status": "ok",
+          "detail": "sí: presentación con la tabla de puntos (cinta turbo de Atarisoft) (\"DESTROY ALIENS\" está en pantalla en el cuadro 1500)"
         },
         "controls": {
           "status": "ok",
@@ -4527,9 +4527,9 @@
       "screenHash": "a2ce304faf588841",
       "screenshot": "out/compat/zx48-galaxian-2.png",
       "framesRun": 1500,
-      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
-      "curated": false,
-      "notes": ""
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 1 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": true,
+      "notes": "Antes se reiniciaba tras cargar (T-015) (curado por claude-programado el 18/10: texto leído con la fuente de la ROM)."
     },
     {
       "id": "zx48-mojon-twins-horace-goes-to-the-tower",
@@ -4614,8 +4614,8 @@
           "detail": "8 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
         },
         "title": {
-          "status": "untested",
-          "detail": "sin comprobación de título en el guion (mirar la captura)"
+          "status": "ok",
+          "detail": "sí: pantalla de la tarjeta de códigos (protección original) (\"Enter Code at grid location\" está en pantalla en el cuadro 1500)"
         },
         "controls": {
           "status": "ok",
@@ -4639,9 +4639,9 @@
       "screenHash": "adbdcaa72106650d",
       "screenshot": "out/compat/zx48-jet-set-willy.png",
       "framesRun": 1500,
-      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
-      "curated": false,
-      "notes": ""
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 1 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": true,
+      "notes": "Necesita la tarjeta de códigos para seguir: no se puede llegar a jugar sin ella (curado por claude-programado el 18/10: texto leído con la fuente de la ROM)."
     },
     {
       "id": "zx48-jet-set-willy-2",
@@ -4670,8 +4670,8 @@
           "detail": "9 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
         },
         "title": {
-          "status": "untested",
-          "detail": "sin comprobación de título en el guion (mirar la captura)"
+          "status": "ok",
+          "detail": "sí: pantalla de la tarjeta de códigos (protección original) (\"Enter Code at grid location\" está en pantalla en el cuadro 1500)"
         },
         "controls": {
           "status": "ok",
@@ -4695,9 +4695,9 @@
       "screenHash": "6bda5a0cf0979835",
       "screenshot": "out/compat/zx48-jet-set-willy-2.png",
       "framesRun": 1500,
-      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
-      "curated": false,
-      "notes": ""
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 1 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": true,
+      "notes": "Necesita la tarjeta de códigos para seguir (curado por claude-programado el 18/10: texto leído con la fuente de la ROM)."
     },
     {
       "id": "zx48-karateka",
@@ -4710,7 +4710,7 @@
       "edition": "cinta TAP de ZX Spectrum",
       "firmware": "ROM 48K de Sinclair (48.rom)",
       "model": "ZX Spectrum 48K (PAL)",
-      "controls": "",
+      "controls": "Espacio sigue la carga",
       "procedure": "Cinta TAP con 11 bloques; LOAD \"\" en 5563 cuadros (111 s) hasta que la cinta se detuvo sola en el bloque 6 (multicarga: el resto se carga cuando el juego lo pide)",
       "levels": {
         "format": {
@@ -4726,12 +4726,12 @@
           "detail": "2 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
         },
         "title": {
-          "status": "untested",
-          "detail": "sin comprobación de título en el guion (mirar la captura)"
+          "status": "ok",
+          "detail": "sí: cargó el bloque principal de 40 KB y pide la parte siguiente (\"Pulse PLAY y espacio\" está en pantalla en el cuadro 16000)"
         },
         "controls": {
-          "status": "fail",
-          "detail": "ninguna de 29 entradas (apretadas 8 cuadros) cambió la imagen en 60 cuadros (KEMPSTON LEFT, KEMPSTON RIGHT, KEMPSTON UP, KEMPSTON FIRE, O, P, Q, A, M, Z, X, N, S, K, Y, SPACE, ENTER, CAPS SHIFT, SYMBOL SHIFT, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)"
+          "status": "ok",
+          "detail": "cambian la imagen: S, SPACE, CAPS SHIFT (de 29 probadas)"
         },
         "playable": {
           "status": "untested",
@@ -4742,18 +4742,18 @@
           "detail": "no hay perfil de fusión para este juego"
         }
       },
-      "highest": "picture",
+      "highest": "controls",
       "problems": [],
       "gameQuirks": [],
       "warnings": [
         "determinista: dos corridas dieron la misma imagen final"
       ],
-      "screenHash": "1168c7e35ae3faa2",
+      "screenHash": "583192a68c71b1a3",
       "screenshot": "out/compat/zx48-karateka.png",
-      "framesRun": 1500,
-      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
-      "curated": false,
-      "notes": ""
+      "framesRun": 16000,
+      "scope": "16000 cuadros (319 s de máquina) después del arranque, con 0 pulsaciones guionadas y 1 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": true,
+      "notes": "Multicarga: la cinta se detiene sola durante la presentación y la ROM la rearranca (T-015, D-013) (curado por claude-programado el 18/10: texto leído con la fuente de la ROM)."
     },
     {
       "id": "zx48-karateka-2",
@@ -4766,7 +4766,7 @@
       "edition": "cinta TAP de ZX Spectrum; el paquete trae 2 archivos, se eligió el volcado más limpio",
       "firmware": "ROM 48K de Sinclair (48.rom)",
       "model": "ZX Spectrum 48K (PAL)",
-      "controls": "",
+      "controls": "Espacio sigue la carga",
       "procedure": "Cinta TAP con 11 bloques; LOAD \"\" en 5563 cuadros (111 s) hasta que la cinta se detuvo sola en el bloque 6 (multicarga: el resto se carga cuando el juego lo pide)",
       "levels": {
         "format": {
@@ -4782,12 +4782,12 @@
           "detail": "2 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
         },
         "title": {
-          "status": "untested",
-          "detail": "sin comprobación de título en el guion (mirar la captura)"
+          "status": "ok",
+          "detail": "sí: cargó el bloque principal de 40 KB y pide la parte siguiente (\"Pulse PLAY y espacio\" está en pantalla en el cuadro 16000)"
         },
         "controls": {
-          "status": "fail",
-          "detail": "ninguna de 29 entradas (apretadas 8 cuadros) cambió la imagen en 60 cuadros (KEMPSTON LEFT, KEMPSTON RIGHT, KEMPSTON UP, KEMPSTON FIRE, O, P, Q, A, M, Z, X, N, S, K, Y, SPACE, ENTER, CAPS SHIFT, SYMBOL SHIFT, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)"
+          "status": "ok",
+          "detail": "cambian la imagen: S, SPACE, CAPS SHIFT (de 29 probadas)"
         },
         "playable": {
           "status": "untested",
@@ -4798,18 +4798,18 @@
           "detail": "no hay perfil de fusión para este juego"
         }
       },
-      "highest": "picture",
+      "highest": "controls",
       "problems": [],
       "gameQuirks": [],
       "warnings": [
         "determinista: dos corridas dieron la misma imagen final"
       ],
-      "screenHash": "1168c7e35ae3faa2",
+      "screenHash": "583192a68c71b1a3",
       "screenshot": "out/compat/zx48-karateka-2.png",
-      "framesRun": 1500,
-      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
-      "curated": false,
-      "notes": ""
+      "framesRun": 16000,
+      "scope": "16000 cuadros (319 s de máquina) después del arranque, con 0 pulsaciones guionadas y 1 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": true,
+      "notes": "Multicarga: la cinta se detiene sola durante la presentación y la ROM la rearranca (T-015, D-013) (curado por claude-programado el 18/10: texto leído con la fuente de la ROM)."
     },
     {
       "id": "zx48-mojon-twins-lala-prologue",
@@ -4950,8 +4950,8 @@
           "detail": "6 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
         },
         "title": {
-          "status": "untested",
-          "detail": "sin comprobación de título en el guion (mirar la captura)"
+          "status": "ok",
+          "detail": "sí: pide el código del libro (edición passworded) (\"Enter the code from square\" está en pantalla en el cuadro 1500)"
         },
         "controls": {
           "status": "ok",
@@ -4975,9 +4975,9 @@
       "screenHash": "72f52a9687befec8",
       "screenshot": "out/compat/zx48-lode-runner-2.png",
       "framesRun": 1500,
-      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
-      "curated": false,
-      "notes": ""
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 1 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": true,
+      "notes": "Antes se reiniciaba tras cargar (T-015); el código está en el manual original (curado por claude-programado el 18/10: texto leído con la fuente de la ROM)."
     },
     {
       "id": "zx48-manicminer",
@@ -5214,8 +5214,8 @@
       "edition": "cinta TZX de ZX Spectrum; el paquete trae 5 archivos, se eligió el volcado más limpio",
       "firmware": "ROM 48K de Sinclair (48.rom)",
       "model": "ZX Spectrum 48K (PAL)",
-      "controls": "",
-      "procedure": "Cinta TZX con 6 bloques; LOAD \"\" y cinta completa por la ROM en 4953 cuadros (99 s)",
+      "controls": "1 teclado, 2 Kempston, S empieza; 5/8/7/6 u O/P/Q/A",
+      "procedure": "Cinta TZX con 6 bloques; LOAD \"\" y cinta completa por la ROM en 4953 cuadros (99 s); cuadro 1500: 1 durante 6; cuadro 1520: S durante 6",
       "levels": {
         "format": {
           "status": "ok",
@@ -5227,15 +5227,15 @@
         },
         "picture": {
           "status": "ok",
-          "detail": "4 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+          "detail": "7 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
         },
         "title": {
-          "status": "untested",
-          "detail": "sin comprobación de título en el guion (mirar la captura)"
+          "status": "ok",
+          "detail": "sí: menú con récords, teclas y elección de control (\"PRESS 'S' TO START THE GAME\" está en pantalla en el cuadro 1500)"
         },
         "controls": {
           "status": "ok",
-          "detail": "cambian la imagen: S, 2 (de 29 probadas)"
+          "detail": "cambian la imagen: P, Q, A, 2, 3, 4, 6, 7, 8 (de 29 probadas)"
         },
         "playable": {
           "status": "untested",
@@ -5252,12 +5252,12 @@
       "warnings": [
         "determinista: dos corridas dieron la misma imagen final"
       ],
-      "screenHash": "922fe1cf950264f2",
+      "screenHash": "e422a1fb027e3886",
       "screenshot": "out/compat/zx48-pac-man-zx-spectrum.png",
-      "framesRun": 1500,
-      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
-      "curated": false,
-      "notes": ""
+      "framesRun": 1800,
+      "scope": "1800 cuadros (36 s de máquina) después del arranque, con 2 pulsaciones guionadas y 1 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": true,
+      "notes": "Los pasos eligen teclado (1) y empiezan (S): la corrida termina en la partida. Falta jugabilidad: el laboratorio no halló vidas (los candidatos $5Cxx son variables del sistema que escribe PRINT de la ROM) (curado por claude-programado el 18/10: texto leído con la fuente de la ROM)."
     },
     {
       "id": "zx48-mojon-twins-phantomas-saga-1-infinity",

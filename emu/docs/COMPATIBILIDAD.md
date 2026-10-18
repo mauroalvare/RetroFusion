@@ -1,6 +1,6 @@
 # Matriz de compatibilidad
 
-Generada el 2026-10-18 16:03 UTC (commit 8bb3b7b+cambios) con `retro-cli compat` sobre `C:/Users/mauro/Downloads/ROMs`. Los datos completos (hash, procedimiento, evidencia de cada nivel) están en `emu/compat/resultados.json`; los guiones, en `emu/compat/juegos/`. No editar a mano: se regenera.
+Generada el 2026-10-18 16:08 UTC (commit ab070c0+cambios) con `retro-cli compat` sobre `C:/Users/mauro/Downloads/ROMs`. Los datos completos (hash, procedimiento, evidencia de cada nivel) están en `emu/compat/resultados.json`; los guiones, en `emu/compat/juegos/`. No editar a mano: se regenera.
 
 Niveles, en orden: **formato** reconocido → medio **cargado** → **imagen** (pantalla con contenido y sin signos de fallo) → llega al **título** (comprobación del guion) → **responde** a los controles (una entrada cambia la imagen respecto de la misma corrida sin entradas) → **jugable** (comprobaciones de partida del guion) → listo para **fusionar** (perfil con direcciones verificadas). `sí` = comprobado, **no** = falló, `parcial` = a medias, `·` = no probado. Son pruebas cortas y reproducibles, no partidas completas.
 
@@ -44,7 +44,7 @@ Determinismo: 4 de 4 corridas repetidas dieron exactamente la misma imagen final
 | Cheman ⁽ᵃ⁾ | descargados-autores/NES/mojon-twins--cheman.nes | 380f05602d31 | sí | sí | sí | · | sí | · | · | cambian la imagen: P1 START, P1 UP, P1 DOWN, P1 A, P1 B, P1 SELECT (de 8 probadas) |
 | Super Uwol ⁽ᵃ⁾ | descargados-autores/NES/mojon-twins--super-uwol.nes | 67eaa300c8ab | sí | sí | sí | · | sí | · | · | cambian la imagen: P1 START (de 8 probadas) |
 
-## ZX Spectrum 48K (31 archivos, 31 cargan, 27 responden a controles)
+## ZX Spectrum 48K (31 archivos, 31 cargan, 29 responden a controles)
 
 Determinismo: 31 de 31 corridas repetidas dieron exactamente la misma imagen final.
 
@@ -56,21 +56,21 @@ Determinismo: 31 de 31 corridas repetidas dieron exactamente la misma imagen fin
 | Chuckie Egg ⁽ᵃ⁾ | clasicos/Spectrum/chuckie-egg.zip → Chuckie Egg (1984)(Pick 'n' Choose)[re-release].tzx | 9082c6d98f12 | sí | sí | sí | · | sí | · | · | cambian la imagen: S (de 29 probadas) |
 | Columns ⁽ᵃ⁾ | descargados-autores/Spectrum/Mojon-Twins--Columns.tzx | c7ef3542e7db | sí | sí | sí | · | **no** | · | · |  |
 | Fase Bonus The Game ⁽ᵃ⁾ | descargados-autores/Spectrum/Fase-Bonus-The-Game--The-Mojon-Twins.tap | 3098a2eb648d | sí | sí | sí | · | sí | · | · | cambian la imagen: 1, 2, 3 (de 29 probadas) |
-| Galaxian ⁽ᵃ⁾ | clasicos/Spectrum-seleccion/galaxian.z80 | b1ff28923968 | sí | sí | sí | · | sí | · | · | cambian la imagen: S (de 29 probadas) |
-| Galaxian ⁽ᵃ⁾ | clasicos/Spectrum/galaxian.zip → Galaxian (1984)(Atarisoft).tzx | 212ea75a105d | sí | sí | sí | · | sí | · | · | cambian la imagen: S (de 29 probadas) |
+| Galaxian | clasicos/Spectrum-seleccion/galaxian.z80 | b1ff28923968 | sí | sí | sí | sí | sí | · | · | cambian la imagen: S (de 29 probadas); Snapshot: arranca directo en la demostración (curado por claude-programado el 18/10: texto leído con la fuente de la ROM). |
+| Galaxian | clasicos/Spectrum/galaxian.zip → Galaxian (1984)(Atarisoft).tzx | 212ea75a105d | sí | sí | sí | sí | sí | · | · | cambian la imagen: S (de 29 probadas); Antes se reiniciaba tras cargar (T-015) (curado por claude-programado el 18/10: texto leído con la fuente de la ROM). |
 | Horace Goes to the Tower ⁽ᵃ⁾ | descargados-autores/Spectrum/Mojon-Twins--Horace-Goes-to-the-Tower.tzx | 5e30d26c859f | sí | sí | sí | · | sí | · | · | cambian la imagen: 1, 2, 3 (de 29 probadas) |
-| Jet Set Willy ⁽ᵃ⁾ | clasicos/Spectrum-seleccion/jet-set-willy.z80 | 1e16f855d67d | sí | sí | sí | · | sí | · | · | cambian la imagen: 1, 2, 3, 4 (de 29 probadas) |
-| Jet Set Willy ⁽ᵃ⁾ | clasicos/Spectrum/jet-set-willy.zip → Jet Set Willy (1984)(Software Projects).tzx | 0d846f41d311 | sí | sí | sí | · | sí | · | · | cambian la imagen: 1, 2, 3, 4 (de 29 probadas) |
-| Karateka ⁽ᵃ⁾ | clasicos/Spectrum-pendiente/karateka.tap | d66e554206ae | sí | sí | sí | · | **no** | · | · |  |
-| Karateka ⁽ᵃ⁾ | clasicos/Spectrum/karateka.zip → Karateka (1986)(Dro Soft)(es)[cr Rajsoft].tap | d66e554206ae | sí | sí | sí | · | **no** | · | · |  |
+| Jet Set Willy | clasicos/Spectrum-seleccion/jet-set-willy.z80 | 1e16f855d67d | sí | sí | sí | sí | sí | · | · | cambian la imagen: 1, 2, 3, 4 (de 29 probadas); Necesita la tarjeta de códigos para seguir: no se puede llegar a jugar sin ella (curado por claude-programado el 18/10: texto leído con la fuente de la ROM). |
+| Jet Set Willy | clasicos/Spectrum/jet-set-willy.zip → Jet Set Willy (1984)(Software Projects).tzx | 0d846f41d311 | sí | sí | sí | sí | sí | · | · | cambian la imagen: 1, 2, 3, 4 (de 29 probadas); Necesita la tarjeta de códigos para seguir (curado por claude-programado el 18/10: texto leído con la fuente de la ROM). |
+| Karateka | clasicos/Spectrum-pendiente/karateka.tap | d66e554206ae | sí | sí | sí | sí | sí | · | · | cambian la imagen: S, SPACE, CAPS SHIFT (de 29 probadas); Multicarga: la cinta se detiene sola durante la presentación y la ROM la rearranca (T-015, D-013) (curado por claude-programado el 18/10: texto leído con la fuente de la ROM). |
+| Karateka | clasicos/Spectrum/karateka.zip → Karateka (1986)(Dro Soft)(es)[cr Rajsoft].tap | d66e554206ae | sí | sí | sí | sí | sí | · | · | cambian la imagen: S, SPACE, CAPS SHIFT (de 29 probadas); Multicarga: la cinta se detiene sola durante la presentación y la ROM la rearranca (T-015, D-013) (curado por claude-programado el 18/10: texto leído con la fuente de la ROM). |
 | Lala Prologue ⁽ᵃ⁾ | descargados-autores/Spectrum/Mojon-Twins--Lala-Prologue.tzx | c0e0647efd09 | sí | sí | sí | · | sí | · | · | cambian la imagen: O, P, Q, A, M, Z, X, N, S, K, Y, SPACE, ENTER, CAPS SHIFT, SYMBOL SHIFT, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 (de 29 probadas) |
 | Lode Runner ⁽ᵃ⁾ | clasicos/Spectrum-seleccion/lode-runner.z80 | d9d4b5257f9c | sí | sí | sí | · | sí | · | · | cambian la imagen: O, P, Q, A, M, Z, X, N, S, K, Y, SPACE, ENTER, CAPS SHIFT, SYMBOL SHIFT, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 (de 29 probadas) |
-| Lode Runner ⁽ᵃ⁾ | clasicos/Spectrum/lode-runner.zip → Lode Runner (1984)(Software Projects)[passworded].tzx | 89cfe394312f | sí | sí | sí | · | sí | · | · | cambian la imagen: 1, 2, 4, 6 (de 29 probadas) |
+| Lode Runner | clasicos/Spectrum/lode-runner.zip → Lode Runner (1984)(Software Projects)[passworded].tzx | 89cfe394312f | sí | sí | sí | sí | sí | · | · | cambian la imagen: 1, 2, 4, 6 (de 29 probadas); Antes se reiniciaba tras cargar (T-015); el código está en el manual original (curado por claude-programado el 18/10: texto leído con la fuente de la ROM). |
 | Manic Miner | ManicMiner.tzx.zip → Manic Miner.tzx | 3c9bbf17c2a9 | sí | sí | sí | sí | sí | sí | parcial | cambian la imagen: O, P, SPACE (de 3 probadas); Comprobaciones con las direcciones del perfil manicminer. |
 | Mariano the Dragon Capers in Cityland ⁽ᵃ⁾ | descargados-autores/Spectrum/Mojon-Twins--Mariano-the-Dragon-Capers-in-Cityland.tzx | e15e686b3688 | sí | sí | sí | · | sí | · | · | cambian la imagen: O, P, Q, A, M, Z, X, N, S, K, Y, SPACE, ENTER, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 (de 29 probadas) |
 | Moggy Adventure ⁽ᵃ⁾ | descargados-autores/Spectrum/Mojon-Twins--Moggy-Adventure.tzx | 1053e8277ccf | sí | sí | sí | · | sí | · | · | cambian la imagen: 1, 2, 3 (de 29 probadas) |
 | Nanako in Classic Japanese Monster Castle ⁽ᵃ⁾ | descargados-autores/Spectrum/Mojon-Twins--Nanako-in-Classic-Japanese_Monster_Castle.tzx | 7bd4de6c4224 | sí | sí | sí | · | sí | · | · | cambian la imagen: P, S (de 29 probadas) |
-| Pac Man ⁽ᵃ⁾ | Pac_Man_ZX-Spectrum_ROM_EN.zip → Pac-Man (1983)(Atarisoft).tzx | 5d182adf7538 | sí | sí | sí | · | sí | · | · | cambian la imagen: S, 2 (de 29 probadas) |
+| Pac Man | Pac_Man_ZX-Spectrum_ROM_EN.zip → Pac-Man (1983)(Atarisoft).tzx | 5d182adf7538 | sí | sí | sí | sí | sí | · | · | cambian la imagen: P, Q, A, 2, 3, 4, 6, 7, 8 (de 29 probadas); Los pasos eligen teclado (1) y empiezan (S): la corrida termina en la partida. Falta jugabilidad: el laboratorio no halló vidas (los candidatos $5Cxx son variables del sistema que escribe PRINT de la ROM) (curado por claude-programado el 18/10: texto leído con la fuente de la ROM). |
 | Phantomas Saga 1 Infinity ⁽ᵃ⁾ | descargados-autores/Spectrum/Mojon-Twins--Phantomas-Saga-1-Infinity.tzx | 561cfbb4c697 | sí | sí | sí | · | sí | · | · | cambian la imagen: O, P, Q, A, M, Z, X, N, S, K, Y, SPACE, ENTER, CAPS SHIFT, SYMBOL SHIFT, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 (de 29 probadas) |
 | Sir Ababol ⁽ᵃ⁾ | descargados-autores/Spectrum/Mojon-Twins--Sir-Ababol.tzx | 99734c6d10f3 | sí | sí | sí | · | sí | · | · | cambian la imagen: 1, 2, 3 (de 29 probadas) |
 | Trabajo Basura ⁽ᵃ⁾ | descargados-autores/Spectrum/Mojon-Twins--Trabajo-Basura.tzx | f6365487b26a | sí | sí | sí | · | sí | · | · | cambian la imagen: 1, 2, 3 (de 29 probadas) |

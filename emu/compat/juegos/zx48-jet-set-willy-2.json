@@ -11,9 +11,17 @@
   "bootFrames": 30000,
   "loadEndsByTime": false,
   "steps": [],
-  "checks": [],
+  "checks": [
+    {
+      "level": "title",
+      "frame": 1500,
+      "type": "text",
+      "value": "Enter Code at grid location",
+      "description": "pantalla de la tarjeta de códigos (protección original)"
+    }
+  ],
   "probeInputs": [],
   "gameQuirks": [],
-  "notes": "",
-  "curated": false
+  "notes": "Necesita la tarjeta de códigos para seguir (curado por claude-programado el 18/10: texto leído con la fuente de la ROM).",
+  "curated": true
 }

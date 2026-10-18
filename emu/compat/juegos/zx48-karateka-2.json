@@ -5,15 +5,23 @@
   "file": "clasicos/Spectrum/karateka.zip",
   "member": "Karateka (1986)(Dro Soft)(es)[cr Rajsoft].tap",
   "edition": "cinta TAP de ZX Spectrum; el paquete trae 2 archivos, se eligió el volcado más limpio",
-  "controls": "",
+  "controls": "Espacio sigue la carga",
   "boot": "auto",
-  "frames": 1500,
+  "frames": 16000,
   "bootFrames": 30000,
   "loadEndsByTime": false,
   "steps": [],
-  "checks": [],
+  "checks": [
+    {
+      "level": "title",
+      "frame": 16000,
+      "type": "text",
+      "value": "Pulse PLAY y espacio",
+      "description": "cargó el bloque principal de 40 KB y pide la parte siguiente"
+    }
+  ],
   "probeInputs": [],
   "gameQuirks": [],
-  "notes": "",
-  "curated": false
+  "notes": "Multicarga: la cinta se detiene sola durante la presentación y la ROM la rearranca (T-015, D-013) (curado por claude-programado el 18/10: texto leído con la fuente de la ROM).",
+  "curated": true
 }

@@ -5,15 +5,34 @@
   "file": "Pac_Man_ZX-Spectrum_ROM_EN.zip",
   "member": "Pac-Man (1983)(Atarisoft).tzx",
   "edition": "cinta TZX de ZX Spectrum; el paquete trae 5 archivos, se eligió el volcado más limpio",
-  "controls": "",
+  "controls": "1 teclado, 2 Kempston, S empieza; 5/8/7/6 u O/P/Q/A",
   "boot": "auto",
-  "frames": 1500,
+  "frames": 1800,
   "bootFrames": 30000,
   "loadEndsByTime": false,
-  "steps": [],
-  "checks": [],
+  "steps": [
+    {
+      "frame": 1500,
+      "keys": "1",
+      "hold": 6
+    },
+    {
+      "frame": 1520,
+      "keys": "S",
+      "hold": 6
+    }
+  ],
+  "checks": [
+    {
+      "level": "title",
+      "frame": 1500,
+      "type": "text",
+      "value": "PRESS 'S' TO START THE GAME",
+      "description": "menú con récords, teclas y elección de control"
+    }
+  ],
   "probeInputs": [],
   "gameQuirks": [],
-  "notes": "",
-  "curated": false
+  "notes": "Los pasos eligen teclado (1) y empiezan (S): la corrida termina en la partida. Falta jugabilidad: el laboratorio no halló vidas (los candidatos $5Cxx son variables del sistema que escribe PRINT de la ROM) (curado por claude-programado el 18/10: texto leído con la fuente de la ROM).",
+  "curated": true
 }

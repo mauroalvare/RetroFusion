@@ -4,15 +4,23 @@
   "machine": "zx48",
   "file": "clasicos/Spectrum-seleccion/galaxian.z80",
   "edition": "instantánea Z80 de ZX Spectrum",
-  "controls": "",
+  "controls": "S empieza; teclas en pantalla",
   "boot": "auto",
-  "frames": 1500,
+  "frames": 600,
   "bootFrames": 30000,
   "loadEndsByTime": false,
   "steps": [],
-  "checks": [],
+  "checks": [
+    {
+      "level": "title",
+      "frame": 600,
+      "type": "text",
+      "value": "DESTROY ALIENS",
+      "description": "presentación: WE ARE THE GALAXIANS / MISSION: DESTROY ALIENS / PRESS S"
+    }
+  ],
   "probeInputs": [],
   "gameQuirks": [],
-  "notes": "",
-  "curated": false
+  "notes": "Snapshot: arranca directo en la demostración (curado por claude-programado el 18/10: texto leído con la fuente de la ROM).",
+  "curated": true
 }
