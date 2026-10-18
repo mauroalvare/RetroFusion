@@ -1,9 +1,3 @@
-# --- Desarrollo con agentes de IA: instrucciones, estado y coordinación; solo en la copia local
-/AGENTS.md
-/CLAUDE.md
-/HANDOFF.md
-/coordinacion/
-
 # --- Compilación
 bin/
 obj/
@@ -34,8 +28,5 @@ emu/roms/samples/
 emu/testdata/6502/
 emu/testdata/8080/CPUTEST.COM
 
-# --- Coordinación: estado efímero de cada agente (lo duradero va en tareas/ y buzon/)
-coordinacion/latidos/
-coordinacion/reclamos/
-coordinacion/PAUSA
+# --- Temporales
 *.tmp
