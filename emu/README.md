@@ -16,6 +16,11 @@ corriendo a la vez y conectados entre sí, diseñadas a mano o por la IA que eli
   libre Open ROMs; con las ROMs originales es más compatible. Probado con Pac-Man,
   Ghostbusters y Spy vs Spy (con sus intros y menús de trainer).
 
+**Fusión entre CPUs distintas:** la receta "Pac-Miner" corre Pac-Man en un C64 (6510) y
+Manic Miner en un Spectrum (Z80) a la vez, conectados por sus variables (un fantasma que
+atrapa a Pac-Man le quita aire a Willy; una llave de Willy le da una vida a Pac-Man).
+Menú **Fusión > Fusión clásica**.
+
 **Plan:** Atari 800, Apple II y NES (misma CPU 6502), Spectrum 128K, TK90X, MSX y Amstrad
 CPC (Z80), IBM PC/XT (8088) y Atari ST y Amiga 500 (68000). Ver [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)
 y, para lo que viene con IA, [docs/IDEAS.md](docs/IDEAS.md).

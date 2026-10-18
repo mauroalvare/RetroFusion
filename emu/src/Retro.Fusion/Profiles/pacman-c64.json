@@ -1,0 +1,54 @@
+{
+  "id": "pacman-c64",
+  "name": "Pac-Man (Commodore 64, Atarisoft 1983; crack de Remember +3)",
+  "machine": "c64",
+  "match": {
+    "files": ["PAC-MAN1.T64"]
+  },
+  "description": "Pac-Man para C64 en la edición PAC-MAN1.T64 (SHA-256 1f743c4874a521d116d9d45f8401b36655339b8244d61ac1948059cd4561eee6): crack de Remember con intro, documentación y trainer antes del juego. El arranque contesta N a las preguntas del trainer y empieza con F1. Se juega con el joystick del puerto 2.",
+  "variables": {
+    "lives": {
+      "address": "001A",
+      "encoding": "uint8",
+      "min": 0,
+      "max": 9,
+      "description": "Vidas de reserva (2 al empezar la partida). Baja de a uno al morir. Verificada: con 5 escrito, al morir el juego la bajó a 4. El dibujo de las vidas en pantalla se actualiza recién al morir y muestra como mucho unas pocas."
+    },
+    "x": {
+      "address": "003C",
+      "encoding": "uint8",
+      "readOnly": true,
+      "description": "Posición horizontal de Pac-Man (valor derivado: el juego la recalcula; escribirla no lo mueve). Se puede leer para reglas."
+    },
+    "y": {
+      "address": "003F",
+      "encoding": "uint8",
+      "readOnly": true,
+      "description": "Posición vertical de Pac-Man (164 al empezar; baja al subir). Valor derivado, solo lectura."
+    }
+  },
+  "controls": {
+    "left": "JOY2 LEFT",
+    "right": "JOY2 RIGHT",
+    "up": "JOY2 UP",
+    "down": "JOY2 DOWN",
+    "start": "F1"
+  },
+  "boot": [
+    "wait 400", "press SPACE 6",
+    "wait 494", "press RUN/STOP 6",
+    "wait 194", "press RUN/STOP 6",
+    "wait 194", "press RUN/STOP 6",
+    "wait 194", "press RUN/STOP 6",
+    "wait 194", "press N 6",
+    "wait 144", "press N 6",
+    "wait 144", "press N 6",
+    "wait 144", "press N 6",
+    "wait 444", "press F1 6",
+    "wait 394"
+  ],
+  "verified": "Direcciones halladas a ciegas por el laboratorio (retro-cli lab, emu/lab/c64-pac-man-c64.json) y comprobadas escribiendo valores con retro-cli run --poke: las vidas sí (el juego usa el valor escrito); X e Y son derivadas (escribirlas no mueve a Pac-Man). Edición: PAC-MAN1.T64, SHA-256 1f743c4874a521d116d9d45f8401b36655339b8244d61ac1948059cd4561eee6",
+  "sprites": {},
+  "helpers": [],
+  "helpersDoc": []
+}

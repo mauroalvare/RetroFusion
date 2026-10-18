@@ -35,6 +35,7 @@ static int Usage()
           --samples <zip|carpeta>  (Space Invaders) sonidos grabados de MAME (samples/invaders.zip)
           --trace <n>              traza las primeras n instrucciones
           --pick <n>               elige el archivo n dentro de un zip
+          --poke <c>:<hex>=<n>     en el cuadro c escribe el valor n en la dirección (probar hipótesis)
           --disasm <hex>:<n>       al final, desensambla n instrucciones desde la dirección
           --dump <hex>:<n>         al final, muestra n bytes de memoria
           --text                   (C64) al final, muestra el texto de la pantalla
@@ -206,10 +207,19 @@ bool untilTapeEnd = zx != null && Opt("until-tape-end") != null;
 int lastBlock = -1;
 long frame = 0;
 int extraAfterTape = frames;
+// --poke <frame>:<hex address>=<value>: writes memory on that frame (to test a hypothesis)
+var pokes = (opts.GetValueOrDefault("poke") ?? new List<string>()).Select(p =>
+{
+    var (f, rest) = (p.Split(':')[0], p.Split(':')[1]);
+    var kv = rest.Split('=');
+    return (frame: long.Parse(f), address: Convert.ToUInt32(kv[0].TrimStart('$'), 16), value: (byte)int.Parse(kv[1]));
+}).ToList();
 while (true)
 {
     foreach (var p in presses.Where(p => p.frame == frame))
         machine.QueueKeys(p.dur, p.keys);
+    foreach (var pk in pokes.Where(pk => pk.frame == frame))
+        machine.Memory.Poke(pk.address, pk.value);
     machine.RunFrame(null);
     frame++;
     int got = machine.DrainAudio(frameAudio);

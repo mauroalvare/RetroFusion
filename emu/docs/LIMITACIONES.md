@@ -68,8 +68,11 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 - Las recetas por reglas admiten 2 o 3 juegos (`FusionRecipe` lo valida). T-023.
 - Los perfiles de juegos (`Retro.Fusion/Profiles`) se asocian por nombre de archivo, no
   por hash de la edición: otra edición del mismo juego podría usar otras direcciones. T-053.
-- Solo hay perfiles de Manic Miner (Spectrum) y Space Invaders (arcade). Pac-Man
-  (Spectrum y C64) y los juegos de C64 todavía no tienen perfil. T-021, T-022.
+- Hay perfiles de Manic Miner (Spectrum), Space Invaders (arcade) y Pac-Man de C64 (vidas
+  verificadas; X e Y son valores derivados, solo lectura). Pac-Man de Spectrum y los demás
+  juegos de C64 todavía no tienen perfil. T-022.
+- En la vista "lado a lado" de la app, la ventana de la fusión tapa parte del juego de la
+  derecha (observado con Pac-Miner); falta reservarle espacio como al estudio. T-023.
 - El validador de jugabilidad comprueba estados (título, empezar, puntaje, muertes,
   reinicio, pantalla congelada) con 3 robots; no detecta todavía controles sin efecto,
   reglas en bucle, audio saturado ni pantallas ilegibles. T-026. No mide diversión.
