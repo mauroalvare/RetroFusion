@@ -1,0 +1,18 @@
+{
+  "id": "c64-boulder-dash",
+  "game": "Boulder Dash",
+  "machine": "c64",
+  "file": "clasicos/C64/boulder-dash.zip",
+  "edition": "cinta .T64 (programas de C64)",
+  "controls": "",
+  "boot": "auto",
+  "frames": 2500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

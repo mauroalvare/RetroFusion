@@ -1,0 +1,18 @@
+{
+  "id": "zx48-mojon-twins-nanako-in-classic-japanese-monster-castle",
+  "game": "Nanako in Classic Japanese Monster Castle",
+  "machine": "zx48",
+  "file": "descargados-autores/Spectrum/Mojon-Twins--Nanako-in-Classic-Japanese_Monster_Castle.tzx",
+  "edition": "cinta TZX de ZX Spectrum",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

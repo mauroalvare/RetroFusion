@@ -21,16 +21,20 @@ Fuente única de rutas y comandos de desarrollo. El diseño interno está en
 | `src/Retro.Core` | Interfaces (`IMachine`, `ICpuDebugView`, `IMemoryView`), medios y zips, `MemorySearch`, PNG, mapa de código |
 | `src/Retro.Cpu.Z80`, `Retro.Cpu.I8080`, `Retro.Cpu.M6502` | Núcleos de CPU con desensamblador |
 | `src/Retro.Systems.Spectrum`, `Retro.Systems.Arcade`, `Retro.Systems.C64` | Máquinas |
+| `src/Retro.Machines` | Catálogo de máquinas (qué máquina es cada archivo) y `MachineLauncher` (arranca una máquina con un juego); lo usan la app, el CLI, las fusiones y la compatibilidad |
+| `src/Retro.Compat` | Matriz de compatibilidad: guiones por juego, ejecutor sin ventana con sonda de controles, informe JSON y Markdown, descubrimiento de guiones |
 | `src/Retro.Fusion` | Perfiles de juegos (`Profiles/*.json`), recetas (`Recipes/*.json`), `FusionSession`, `MachineFactory` |
 | `src/Retro.Studio` | Juegos fusionados con guion JS: sesión, validador, diseñador IA, `Docs/GUIA-FUSION.md` y `Docs/API.md`, juegos incluidos en `Games/` |
 | `src/Retro.Ai` | Proveedores de IA (CLIs por suscripción, APIs, Ollama), carpeta para agentes |
 | `src/Retro.App` | App de escritorio (raylib + Dear ImGui): `RetroApp`, `EmulatorHost`, `InputMapper`, `MachineCatalog`, ventanas de código, fusión y estudio |
 | `src/Retro.Cli` | `retro-cli`: ejecución sin ventana |
-| `tests/*` | NUnit: `Retro.Cpu.Z80.Tests`, `I8080.Tests`, `M6502.Tests`, `Zx.Tests`, `Arcade.Tests`, `C64.Tests`, `Fusion.Tests`, `Studio.Tests` |
+| `tests/*` | NUnit: `Retro.Cpu.Z80.Tests`, `I8080.Tests`, `M6502.Tests`, `Zx.Tests`, `Arcade.Tests`, `C64.Tests`, `Compat.Tests`, `Fusion.Tests`, `Studio.Tests` |
+| `compat/juegos/*.json` | Un guion de compatibilidad por archivo de juego (106 hoy; los curados tienen `"curated": true`) |
+| `compat/resultados.json` | Último resultado de la matriz con toda la evidencia (lo genera `retro-cli compat`) |
 | `testdata/` | Suites de CPU (FUSE, ZEX, 8080; las grandes de 6502 se bajan aparte) |
 | `roms/` | Firmware redistribuible: `48.rom`, `c64/` (Open ROMs + licencia) |
 | `tools/` | `publish.ps1` (paquetes), `make_tar.py`, `bajar-pruebas-6502.py` |
-| `docs/` | ARQUITECTURA, MAPA, DECISIONES, LIMITACIONES, IDEAS, JUEGOS-PARA-PROBAR, COMPATIBILIDAD |
+| `docs/` | ARQUITECTURA, MAPA, DECISIONES, LIMITACIONES, IDEAS, JUEGOS-PARA-PROBAR, COMPATIBILIDAD (generada) |
 | `out/` | Capturas y salidas locales (no se versiona) |
 | `dist/` | Paquetes generados (no se versiona) |
 
@@ -57,6 +61,11 @@ $C run <archivo|zip> --frames 3000 --press 400:SPACE:6 --shot-every 300 --shot-p
 $C run <c64.t64> --frames 2000 --text --disasm C000:20 --dump 0400:40
 $C fuse <receta.json> --games <carpeta-juegos> --ticks 600 --screenshot out/f.png
 $C studio manic-invaders --games <carpeta-juegos> --shots out/s
+
+# matriz de compatibilidad (Release es mucho más rápido: la matriz entera tarda ~75 s)
+$C compat compat/juegos --juegos C:/Users/mauro/Downloads/ROMs --salida compat/resultados.json --md docs/COMPATIBILIDAD.md --capturas out/compat --dos-veces
+$C compat compat/juegos --juegos C:/Users/mauro/Downloads/ROMs --descubrir --solo nada   # solo crea guiones para archivos nuevos
+$C compat compat/juegos --solo c64-pac --juegos ... --salida compat/resultados.json       # unos pocos, fusionando con el resultado anterior
 
 # paquetes autocontenidos (Windows y Linux) en emu/dist
 pwsh tools/publish.ps1 -Version 0.4.0

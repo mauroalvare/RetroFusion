@@ -1,0 +1,19 @@
+{
+  "id": "amiga500-xenon",
+  "game": "Xenon",
+  "machine": "amiga500",
+  "file": "clasicos/Amiga/xenon.zip",
+  "member": "Xenon (1988)(Melbourne House).adf",
+  "edition": "disco de Amiga (.adf); el paquete trae 8 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

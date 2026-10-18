@@ -1,0 +1,19 @@
+{
+  "id": "apple2-bruce-lee",
+  "game": "Bruce Lee",
+  "machine": "apple2",
+  "file": "clasicos/Apple-II/bruce-lee.zip",
+  "member": "Bruce Lee (1984)(Datasoft)[cr Black Bag].dsk",
+  "edition": "disco de 140 KB (Apple II); el paquete trae 3 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

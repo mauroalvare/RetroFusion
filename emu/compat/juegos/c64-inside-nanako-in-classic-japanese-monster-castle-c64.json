@@ -1,0 +1,18 @@
+{
+  "id": "c64-inside-nanako-in-classic-japanese-monster-castle-c64",
+  "game": "Nanako in Classic Japanese Monster Castle",
+  "machine": "c64",
+  "file": "descargados-autores/C64/Inside--Nanako-in-Classic-Japanese-Monster-Castle--C64.d64",
+  "edition": "disco de 1541 (.d64)",
+  "controls": "",
+  "boot": "auto",
+  "frames": 2500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

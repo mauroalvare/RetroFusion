@@ -1,0 +1,19 @@
+{
+  "id": "amiga500-prince-of-persia",
+  "game": "Prince Of Persia",
+  "machine": "amiga500",
+  "file": "clasicos/Amiga/prince-of-persia.zip",
+  "member": "Prince of Persia (1990)(Broderbund)[cr Angels][f AGA SKR][t +2 Angels].adf",
+  "edition": "disco de Amiga (.adf); el paquete trae 9 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

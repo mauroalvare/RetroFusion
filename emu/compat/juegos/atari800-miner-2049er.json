@@ -1,0 +1,19 @@
+{
+  "id": "atari800-miner-2049er",
+  "game": "Miner 2049Er",
+  "machine": "atari800",
+  "file": "clasicos/Atari-8-bit/miner-2049er.zip",
+  "member": "Miner 2049er (1982)(Big Five Software)(US).xex",
+  "edition": "programa de Atari 8 bits (.xex); el paquete trae 7 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

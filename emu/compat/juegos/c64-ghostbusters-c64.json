@@ -1,0 +1,130 @@
+{
+  "id": "c64-ghostbusters-c64",
+  "game": "Ghostbusters",
+  "machine": "c64",
+  "file": "Ghostbusters_C64_ROM_EN.zip",
+  "member": "GHOSTBU1.T64",
+  "edition": "GHOSTBU1.T64: crack de Hokuto Force con intro, infolinker y trainer (+6PD); la cinta tiene una segunda entrada que no se usa",
+  "controls": "Teclado para el nombre y los menús; joystick en el puerto 2 en la ciudad",
+  "boot": "auto",
+  "frames": 7000,
+  "steps": [
+    {
+      "frame": 1000,
+      "keys": "SPACE",
+      "hold": 6
+    },
+    {
+      "frame": 1500,
+      "keys": "RUN/STOP",
+      "hold": 6
+    },
+    {
+      "frame": 1700,
+      "keys": "RUN/STOP",
+      "hold": 6
+    },
+    {
+      "frame": 2300,
+      "keys": "JOY2 FIRE",
+      "hold": 6
+    },
+    {
+      "frame": 2700,
+      "keys": "N",
+      "hold": 10
+    },
+    {
+      "frame": 2850,
+      "keys": "N",
+      "hold": 10
+    },
+    {
+      "frame": 3000,
+      "keys": "N",
+      "hold": 10
+    },
+    {
+      "frame": 3150,
+      "keys": "N",
+      "hold": 10
+    },
+    {
+      "frame": 3300,
+      "keys": "N",
+      "hold": 10
+    },
+    {
+      "frame": 3450,
+      "keys": "N",
+      "hold": 10
+    },
+    {
+      "frame": 3600,
+      "keys": "N",
+      "hold": 10
+    },
+    {
+      "frame": 4200,
+      "keys": "F1",
+      "hold": 8
+    },
+    {
+      "frame": 5000,
+      "keys": "R",
+      "hold": 6
+    },
+    {
+      "frame": 5100,
+      "keys": "E",
+      "hold": 6
+    },
+    {
+      "frame": 5200,
+      "keys": "T",
+      "hold": 6
+    },
+    {
+      "frame": 5300,
+      "keys": "RETURN",
+      "hold": 6
+    },
+    {
+      "frame": 5500,
+      "keys": "N",
+      "hold": 6
+    },
+    {
+      "frame": 5700,
+      "keys": "RETURN",
+      "hold": 6
+    }
+  ],
+  "checks": [
+    {
+      "level": "playable",
+      "frame": 6200,
+      "type": "text",
+      "value": "WELCOME TO YOUR NEW",
+      "description": "aceptó el nombre escrito y la respuesta, y abrió la franquicia"
+    },
+    {
+      "level": "playable",
+      "frame": 7000,
+      "type": "text",
+      "value": "GO AHEAD",
+      "description": "la pantalla de compra de vehículo espera la elección"
+    }
+  ],
+  "probeInputs": [
+    "1",
+    "2",
+    "SPACE"
+  ],
+  "gameQuirks": [
+    "Intro del grupo cracker y menú de trainer con seis preguntas (se contestan con N)",
+    "La pantalla de Activision espera FIRE o ESPACIO"
+  ],
+  "curated": true,
+  "notes": "Misma secuencia que tests/C64.Tests/GameTests.cs."
+}

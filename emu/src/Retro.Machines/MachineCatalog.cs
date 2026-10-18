@@ -1,7 +1,7 @@
 using Retro.Core;
 using Retro.Systems.Spectrum;
 
-namespace Retro.App;
+namespace Retro.Machines;
 
 public enum MachineStatus { Available, Planned }
 
@@ -59,7 +59,8 @@ public static class MachineCatalog
     {
         var list = new List<Candidate>();
         int zx = SpectrumMedia.Probe(f);
-        if (zx > 0)
+        // .cdt is the Amstrad CPC's tape: same TZX container, different machine
+        if (zx > 0 && f.Extension != ".cdt")
             list.Add(new Candidate(Get("zx48"), f, zx, FormatName(f.Extension, "formato de ZX Spectrum")));
 
         string ext = f.Extension;

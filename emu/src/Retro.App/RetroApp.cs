@@ -4,6 +4,7 @@ using ImGuiNET;
 using Raylib_cs;
 using rlImGui_cs;
 using Retro.Core;
+using Retro.Machines;
 
 namespace Retro.App;
 

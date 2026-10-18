@@ -1,0 +1,18 @@
+{
+  "id": "pcxt-donkey-kong",
+  "game": "Donkey Kong",
+  "machine": "pcxt",
+  "file": "clasicos/PC-DOS/donkey-kong.zip",
+  "edition": "programa de MS-DOS (.exe)",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

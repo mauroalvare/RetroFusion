@@ -1,0 +1,68 @@
+{
+  "id": "invaders-invaders",
+  "game": "Space Invaders",
+  "machine": "invaders",
+  "file": "invaders.zip",
+  "edition": "ROM original de Midway (MAME invaders, 4 chips con CRC verificados)",
+  "controls": "5 o C moneda, 1 empezar, flechas mover, espacio disparar",
+  "boot": "auto",
+  "frames": 1200,
+  "steps": [
+    {
+      "frame": 300,
+      "keys": "COIN",
+      "hold": 8
+    },
+    {
+      "frame": 420,
+      "keys": "P1 START",
+      "hold": 8
+    }
+  ],
+  "checks": [
+    {
+      "level": "title",
+      "frame": 400,
+      "type": "memory",
+      "address": "20EB",
+      "op": "eq",
+      "value": "1",
+      "description": "la moneda suma un crédito (variable credits del perfil)"
+    },
+    {
+      "level": "playable",
+      "frame": 1200,
+      "type": "memory",
+      "address": "2082",
+      "op": "eq",
+      "value": "55",
+      "description": "empezó la oleada con 55 invasores (variable aliens)"
+    },
+    {
+      "level": "playable",
+      "frame": 1200,
+      "type": "memory",
+      "address": "21FF",
+      "op": "eq",
+      "value": "2",
+      "description": "el jugador tiene 2 naves de reserva (variable ships)"
+    },
+    {
+      "level": "playable",
+      "frame": 1200,
+      "type": "memory",
+      "address": "20EB",
+      "op": "eq",
+      "value": "0",
+      "description": "empezar consumió el crédito"
+    }
+  ],
+  "probeInputs": [
+    "P1 LEFT",
+    "P1 RIGHT",
+    "P1 FIRE"
+  ],
+  "gameQuirks": [],
+  "curated": true,
+  "notes": "Comprobaciones con las direcciones del perfil invaders (verificadas al crear la fusión Manic Invaders)."
+}

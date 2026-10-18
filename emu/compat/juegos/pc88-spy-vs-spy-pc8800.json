@@ -1,0 +1,18 @@
+{
+  "id": "pc88-spy-vs-spy-pc8800",
+  "game": "Spy vs Spy",
+  "machine": "pc88",
+  "file": "Spy_vs_Spy_PC8800_EN.zip",
+  "edition": "disco D88 (NEC PC-88)",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

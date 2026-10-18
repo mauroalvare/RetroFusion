@@ -1,4 +1,5 @@
 using Retro.Core;
+using Retro.Machines;
 
 namespace Retro.App;
 

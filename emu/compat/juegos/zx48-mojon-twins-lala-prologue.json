@@ -1,0 +1,18 @@
+{
+  "id": "zx48-mojon-twins-lala-prologue",
+  "game": "Lala Prologue",
+  "machine": "zx48",
+  "file": "descargados-autores/Spectrum/Mojon-Twins--Lala-Prologue.tzx",
+  "edition": "cinta TZX de ZX Spectrum",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

@@ -1,0 +1,18 @@
+{
+  "id": "cpc-mojon-twins-cheman",
+  "game": "Cheman",
+  "machine": "cpc",
+  "file": "descargados-autores/CPC/mojon-twins--cheman.dsk",
+  "edition": "disco de Amstrad CPC",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

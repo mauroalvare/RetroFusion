@@ -1,0 +1,18 @@
+{
+  "id": "zx48-mojon-twins-phantomas-saga-1-infinity",
+  "game": "Phantomas Saga 1 Infinity",
+  "machine": "zx48",
+  "file": "descargados-autores/Spectrum/Mojon-Twins--Phantomas-Saga-1-Infinity.tzx",
+  "edition": "cinta TZX de ZX Spectrum",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

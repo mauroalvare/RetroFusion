@@ -1,0 +1,18 @@
+{
+  "id": "c64-river-raid",
+  "game": "River Raid",
+  "machine": "c64",
+  "file": "clasicos/C64/river-raid.zip",
+  "edition": "disco de 1541 (.d64)",
+  "controls": "",
+  "boot": "auto",
+  "frames": 2500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

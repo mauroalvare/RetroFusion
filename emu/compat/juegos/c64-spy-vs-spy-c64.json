@@ -1,0 +1,38 @@
+{
+  "id": "c64-spy-vs-spy-c64",
+  "game": "Spy vs Spy",
+  "machine": "c64",
+  "file": "Spy_vs_Spy_C64_EN.zip",
+  "member": "SPYVSPY1.T64",
+  "edition": "SPYVSPY1.T64: crack con intro (FIRST STAR SOFTWARE presents) y documentos",
+  "controls": "Jugador blanco con el joystick del puerto 1, negro con el puerto 2; RUN/STOP pausa; F5 vuelve al menú",
+  "boot": "auto",
+  "frames": 4200,
+  "steps": [
+    {
+      "frame": 1500,
+      "keys": "SPACE",
+      "hold": 6
+    }
+  ],
+  "checks": [
+    {
+      "level": "title",
+      "frame": 4200,
+      "type": "text",
+      "value": "SPY VS SPY DOCUMENTS",
+      "description": "los documentos del juego (con ESPACIO para leer o RUN/STOP para empezar)"
+    }
+  ],
+  "probeInputs": [
+    "SPACE",
+    "RUN/STOP",
+    "JOY1 FIRE",
+    "JOY2 FIRE"
+  ],
+  "gameQuirks": [
+    "El jugador 1 usa el puerto 1 del joystick"
+  ],
+  "curated": true,
+  "notes": "Misma secuencia que tests/C64.Tests/GameTests.cs; falta una comprobación de partida."
+}

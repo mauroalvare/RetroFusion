@@ -72,3 +72,20 @@ el usuario los puede cambiar en `politica_autonoma` de `proyecto.json` (está an
 HANDOFF.md para que lo confirme). Un cron de la propia sesión interactiva (cada 20
 minutos, solo cuando está inactiva) mantiene su latido para que la tarea programada no
 arranque trabajo duplicado mientras esa sesión vive.
+
+## D-010 Compatibilidad por guiones JSON y niveles con evidencia (2026-10-18)
+
+Distinguir "se reconoce", "carga", "llega al título", "responde" y "se puede jugar" exige
+pruebas por edición, reproducibles y sin ventana. Un guion JSON por archivo (claves en
+inglés como los perfiles) es fácil de escribir para personas y agentes de cualquier
+proveedor; el ejecutor guarda hash, firmware, procedimiento y la evidencia de cada nivel.
+La sonda de controles compara contra la misma corrida sin entradas (determinismo) en
+lugar de buscar movimiento en pantalla, porque las animaciones no la engañan.
+
+## D-011 Un lanzador de máquinas compartido (2026-10-18)
+
+El catálogo (qué máquina es cada archivo) estaba en la app y el arranque de máquinas
+repetido en el CLI y en las fusiones. `Retro.Machines` concentra los dos para que la app,
+el CLI, las fusiones y la compatibilidad identifiquen y arranquen igual. La matriz
+encontró enseguida un error que eso evita: las cintas `.cdt` de Amstrad (contenedor TZX)
+se identificaban como Spectrum.

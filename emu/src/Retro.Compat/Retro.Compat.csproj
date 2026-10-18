@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Retro.Core\Retro.Core.csproj" />
+    <ProjectReference Include="..\Retro.Machines\Retro.Machines.csproj" />
+    <ProjectReference Include="..\Retro.Fusion\Retro.Fusion.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

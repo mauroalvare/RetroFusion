@@ -1,0 +1,19 @@
+{
+  "id": "zx48-lode-runner-2",
+  "game": "Lode Runner",
+  "machine": "zx48",
+  "file": "clasicos/Spectrum/lode-runner.zip",
+  "member": "Lode Runner (1984)(Software Projects)[passworded].tzx",
+  "edition": "cinta TZX de ZX Spectrum; el paquete trae 9 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

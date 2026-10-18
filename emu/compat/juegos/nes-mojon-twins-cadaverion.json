@@ -1,0 +1,18 @@
+{
+  "id": "nes-mojon-twins-cadaverion",
+  "game": "Cadaverion",
+  "machine": "nes",
+  "file": "descargados-autores/NES/mojon-twins--cadaverion.nes",
+  "edition": "cartucho de NES (iNES)",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

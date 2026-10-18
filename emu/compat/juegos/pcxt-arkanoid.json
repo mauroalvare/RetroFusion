@@ -1,0 +1,19 @@
+{
+  "id": "pcxt-arkanoid",
+  "game": "Arkanoid",
+  "machine": "pcxt",
+  "file": "clasicos/PC-DOS/arkanoid.zip",
+  "member": "ARKANOID.COM",
+  "edition": "programa de MS-DOS (.com); el paquete trae 5 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

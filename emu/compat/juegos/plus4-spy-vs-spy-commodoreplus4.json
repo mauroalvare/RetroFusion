@@ -1,0 +1,18 @@
+{
+  "id": "plus4-spy-vs-spy-commodoreplus4",
+  "game": "Spy vs Spy",
+  "machine": "plus4",
+  "file": "Spy_vs_Spy_CommodorePlus4_EN.zip",
+  "edition": "cinta de Commodore (pulsos)",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

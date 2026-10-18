@@ -1,0 +1,19 @@
+{
+  "id": "pcxt-prince-of-persia",
+  "game": "Prince Of Persia",
+  "machine": "pcxt",
+  "file": "clasicos/PC-DOS/prince-of-persia.zip",
+  "member": "PRINCE.EXE",
+  "edition": "programa de MS-DOS (.exe); el paquete trae 26 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

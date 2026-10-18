@@ -1,0 +1,19 @@
+{
+  "id": "apple2-prince-of-persia",
+  "game": "Prince Of Persia",
+  "machine": "apple2",
+  "file": "clasicos/Apple-II/prince-of-persia.zip",
+  "member": "Prince of Persia (1989)(Broderbund)(Disk 1 of 3)[cr Byte Bastards].dsk",
+  "edition": "disco de 140 KB (Apple II); el paquete trae 6 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

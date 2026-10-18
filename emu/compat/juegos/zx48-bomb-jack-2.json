@@ -1,0 +1,18 @@
+{
+  "id": "zx48-bomb-jack-2",
+  "game": "Bomb Jack",
+  "machine": "zx48",
+  "file": "clasicos/Spectrum/bomb-jack.zip",
+  "edition": "cinta TZX de ZX Spectrum",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

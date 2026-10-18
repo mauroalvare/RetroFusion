@@ -1,5 +1,4 @@
 using Retro.Core;
-using Retro.Systems.Arcade;
 using Retro.Systems.Spectrum;
 
 namespace Retro.Fusion;
@@ -19,40 +18,13 @@ public static class MachineFactory
 
     private static IMachine CreateMachine(GameSource source, string romDirectory)
     {
-        switch (source.Profile.Machine)
+        try
         {
-            case "invaders":
-            {
-                var (rom, _) = SpaceInvadersRom.Build(source.Files);
-                var m = new SpaceInvaders(rom);
-                string? samples = SpaceInvadersSound.FindSamples(source.Folder, romDirectory);
-                if (samples != null)
-                    m.Sound.LoadSamples(samples);
-                return m;
-            }
-            case "zx48":
-            {
-                var m = new Spectrum48(File.ReadAllBytes(Path.Combine(romDirectory, "48.rom")));
-                var media = source.Files
-                    .Where(f => SpectrumMedia.Probe(f) > 0)
-                    .OrderBy(f => MediaArchive.DumpScore(f.Name))
-                    .ThenBy(f => f.Extension switch { ".tzx" => 0, ".tap" => 1, ".z80" => 2, _ => 3 })
-                    .FirstOrDefault() ?? throw new InvalidDataException($"No hay un archivo de Spectrum para {source.Profile.Name}.");
-                SpectrumMedia.Load(m, media);
-                return m;
-            }
-            case "c64":
-            {
-                var m = new Retro.Systems.C64.C64(Retro.Systems.C64.C64Firmware.Find(romDirectory));
-                var media = source.Files
-                    .Where(f => Retro.Systems.C64.C64Media.Probe(f) > 0)
-                    .OrderBy(f => MediaArchive.DumpScore(f.Name))
-                    .FirstOrDefault() ?? throw new InvalidDataException($"No hay un archivo de C64 (.t64 o .prg) para {source.Profile.Name}.");
-                Retro.Systems.C64.C64Media.Load(m, media);
-                return m;
-            }
-            default:
-                throw new NotSupportedException($"La máquina \"{source.Profile.Machine}\" todavía no está implementada.");
+            return Retro.Machines.MachineLauncher.Launch(source.Profile.Machine, source.Files, null, romDirectory, source.Folder).Machine;
+        }
+        catch (InvalidDataException e)
+        {
+            throw new InvalidDataException($"{source.Profile.Name}: {e.Message}", e);
         }
     }
 
@@ -81,13 +53,7 @@ public static class MachineFactory
                 }
                 case "load-tape":
                     if (m is Spectrum48 zx && zx.Tape.IsLoaded)
-                    {
-                        RunFrames(m, 150);
-                        zx.TypeLoadCommand();
-                        for (int i = 0; i < 30000 && !zx.Tape.AtEnd; i++)
-                            zx.RunFrame(null);
-                        zx.DrainAudio(new short[4096]);
-                    }
+                        Retro.Machines.MachineLauncher.LoadTape(zx);
                     break;
             }
             log?.Invoke($"{profile.Name}: {step}");

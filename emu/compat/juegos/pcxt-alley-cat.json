@@ -1,0 +1,18 @@
+{
+  "id": "pcxt-alley-cat",
+  "game": "Alley Cat",
+  "machine": "pcxt",
+  "file": "clasicos/PC-DOS/alley-cat.zip",
+  "edition": "programa de MS-DOS (.exe)",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

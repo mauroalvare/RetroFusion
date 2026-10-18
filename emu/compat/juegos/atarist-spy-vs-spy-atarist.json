@@ -1,0 +1,18 @@
+{
+  "id": "atarist-spy-vs-spy-atarist",
+  "game": "Spy vs Spy",
+  "machine": "atarist",
+  "file": "Spy_vs_Spy_AtariST_EN.zip",
+  "edition": "disco de Atari ST (.st)",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

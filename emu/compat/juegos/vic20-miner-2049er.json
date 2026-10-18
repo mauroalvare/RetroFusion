@@ -1,0 +1,19 @@
+{
+  "id": "vic20-miner-2049er",
+  "game": "Miner 2049Er",
+  "machine": "vic20",
+  "file": "clasicos/VIC-20/miner-2049er.zip",
+  "member": "Miner 2049'er (1984)(Reston)(PAL)[A000].crt",
+  "edition": "cartucho de VIC-20 (se carga en $A000); el paquete trae 4 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

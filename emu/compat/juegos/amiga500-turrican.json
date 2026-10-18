@@ -1,0 +1,19 @@
+{
+  "id": "amiga500-turrican",
+  "game": "Turrican",
+  "machine": "amiga500",
+  "file": "clasicos/Amiga/turrican.zip",
+  "member": "Turrican (1990)(Rainbow Arts)[f AGA][h][HD].adf",
+  "edition": "disco de Amiga (.adf); el paquete trae 13 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

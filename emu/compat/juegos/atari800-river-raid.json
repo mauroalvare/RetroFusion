@@ -1,0 +1,19 @@
+{
+  "id": "atari800-river-raid",
+  "game": "River Raid",
+  "machine": "atari800",
+  "file": "clasicos/Atari-8-bit/river-raid.zip",
+  "member": "River Raid (1983)(Activision)(US).xex",
+  "edition": "programa de Atari 8 bits (.xex); el paquete trae 14 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

@@ -1,0 +1,68 @@
+{
+  "id": "zx48-manicminer",
+  "game": "Manic Miner",
+  "machine": "zx48",
+  "file": "ManicMiner.tzx.zip",
+  "edition": "Manic Miner.tzx (33.205 bytes), la edición del perfil manicminer",
+  "controls": "O y P caminar, fila de abajo o espacio saltar, ENTER empezar",
+  "boot": "auto",
+  "frames": 600,
+  "steps": [
+    {
+      "frame": 150,
+      "keys": "ENTER",
+      "hold": 40
+    }
+  ],
+  "checks": [
+    {
+      "level": "title",
+      "frame": 140,
+      "type": "colors",
+      "min": 4,
+      "description": "pantalla de título a color tras la carga"
+    },
+    {
+      "level": "playable",
+      "frame": 400,
+      "type": "memory",
+      "address": "8407",
+      "op": "eq",
+      "value": "0",
+      "description": "empieza en la caverna 0, Central Cavern (variable cavern)"
+    },
+    {
+      "level": "playable",
+      "frame": 400,
+      "type": "memory",
+      "address": "8457",
+      "op": "eq",
+      "value": "2",
+      "description": "2 vidas de reserva (variable lives)"
+    },
+    {
+      "level": "playable",
+      "frame": 400,
+      "type": "memory",
+      "address": "80BC",
+      "op": "gt",
+      "value": "36",
+      "description": "el aire está por encima del mínimo (variable air)"
+    },
+    {
+      "level": "playable",
+      "frame": 400,
+      "type": "text",
+      "value": "Central Cavern",
+      "description": "el nombre de la caverna en pantalla"
+    }
+  ],
+  "probeInputs": [
+    "O",
+    "P",
+    "SPACE"
+  ],
+  "gameQuirks": [],
+  "curated": true,
+  "notes": "Comprobaciones con las direcciones del perfil manicminer."
+}

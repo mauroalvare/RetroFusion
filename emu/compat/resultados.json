@@ -1,0 +1,5823 @@
+{
+  "generated": "2026-10-18 09:53 UTC",
+  "commit": "a9deae9+cambios",
+  "gamesFolder": "C:/Users/mauro/Downloads/ROMs",
+  "note": "",
+  "results": [
+    {
+      "id": "amiga500-arkanoid",
+      "game": "Arkanoid",
+      "machine": "amiga500",
+      "file": "clasicos/Amiga/arkanoid.zip",
+      "member": "Arkanoid (1988)(Discovery Software)[cr SF].adf",
+      "sha256": "83066d4e412d04b505b284d17c6cfe71e21fe5e73e9742dcef9c1e9b91688c5d",
+      "bytes": 901120,
+      "edition": "disco de Amiga (.adf); el paquete trae 5 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de Amiga (.adf) (Arkanoid (1988)(Discovery Software)[cr SF].adf, 901120 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina amiga500 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina amiga500"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "amiga500-babylonian-twins-1993-demo",
+      "game": "Babylonian Twins 1993 Demo",
+      "machine": "amiga500",
+      "file": "babylonian-twins-1993-demo.adf",
+      "member": "babylonian-twins-1993-demo.adf",
+      "sha256": "e27400f4b463e4488f78d136cc60f0608d70b61096da9ddb9ad2852013f9b03c",
+      "bytes": 901120,
+      "edition": "disco de Amiga (.adf)",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de Amiga (.adf) (babylonian-twins-1993-demo.adf, 901120 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina amiga500 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina amiga500"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "amiga500-babylonian-twins-1993-disk1",
+      "game": "Babylonian Twins 1993 Disk1",
+      "machine": "amiga500",
+      "file": "babylonian-twins-1993-disk1.adf",
+      "member": "babylonian-twins-1993-disk1.adf",
+      "sha256": "8f2f3a5e4452cf5618f557446d686a5aa695e8a256d66e31a142bc1545c8d2f2",
+      "bytes": 901120,
+      "edition": "disco de Amiga (.adf)",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de Amiga (.adf) (babylonian-twins-1993-disk1.adf, 901120 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina amiga500 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina amiga500"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "amiga500-babylonian-twins-1993-disk2",
+      "game": "Babylonian Twins 1993 Disk2",
+      "machine": "amiga500",
+      "file": "babylonian-twins-1993-disk2.adf",
+      "member": "babylonian-twins-1993-disk2.adf",
+      "sha256": "199b1c3fa8388b5a68e4411f6e41c6574111371082e5b9a2d356810a9f265f11",
+      "bytes": 901120,
+      "edition": "disco de Amiga (.adf)",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de Amiga (.adf) (babylonian-twins-1993-disk2.adf, 901120 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina amiga500 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina amiga500"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "amiga500-bomb-jack",
+      "game": "Bomb Jack",
+      "machine": "amiga500",
+      "file": "clasicos/Amiga/bomb-jack.zip",
+      "member": "Bomb Jack (1987)(Elite)[cr DF].adf",
+      "sha256": "5e2b8603de039f3849842df9a762c66e944ebfddb65c716d184d9de8708321cb",
+      "bytes": 901120,
+      "edition": "disco de Amiga (.adf); el paquete trae 6 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de Amiga (.adf) (Bomb Jack (1987)(Elite)[cr DF].adf, 901120 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina amiga500 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina amiga500"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "amiga500-prince-of-persia",
+      "game": "Prince Of Persia",
+      "machine": "amiga500",
+      "file": "clasicos/Amiga/prince-of-persia.zip",
+      "member": "Prince of Persia (1990)(Broderbund)[cr Angels][f AGA SKR][t +2 Angels].adf",
+      "sha256": "f132d19b73b8f03c4979c17381eb3ed2174759dbc355cd1b7b988e22b63d0815",
+      "bytes": 901120,
+      "edition": "disco de Amiga (.adf); el paquete trae 9 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de Amiga (.adf) (Prince of Persia (1990)(Broderbund)[cr Angels][f AGA SKR][t +2 Angels].adf, 901120 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina amiga500 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina amiga500"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "amiga500-spy-vs-spy-amiga",
+      "game": "Spy vs Spy",
+      "machine": "amiga500",
+      "file": "Spy_vs_Spy_Amiga_EN.zip",
+      "member": "Spy vs Spy (1989)(First Star Software).adf",
+      "sha256": "731f8fdd4b7582c6921bc4fa2badaf06effb832e6eb6ab5b2f51d5bc1c3bab7b",
+      "bytes": 901120,
+      "edition": "disco de Amiga (.adf); el paquete trae 5 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de Amiga (.adf) (Spy vs Spy (1989)(First Star Software).adf, 901120 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina amiga500 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina amiga500"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "amiga500-turrican",
+      "game": "Turrican",
+      "machine": "amiga500",
+      "file": "clasicos/Amiga/turrican.zip",
+      "member": "Turrican (1990)(Rainbow Arts)[f AGA][h][HD].adf",
+      "sha256": "3f1b9cd45a038e5da0d4b47c102e0f7e1cf5e1e4770123431c0ab603c4feaf34",
+      "bytes": 901120,
+      "edition": "disco de Amiga (.adf); el paquete trae 13 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de Amiga (.adf) (Turrican (1990)(Rainbow Arts)[f AGA][h][HD].adf, 901120 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina amiga500 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina amiga500"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "amiga500-xenon",
+      "game": "Xenon",
+      "machine": "amiga500",
+      "file": "clasicos/Amiga/xenon.zip",
+      "member": "Xenon (1988)(Melbourne House).adf",
+      "sha256": "1570cb295ce1f4de9bb439787543a6784e0cdfb6d02b72da06cd7296afaadf34",
+      "bytes": 901120,
+      "edition": "disco de Amiga (.adf); el paquete trae 8 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de Amiga (.adf) (Xenon (1988)(Melbourne House).adf, 901120 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina amiga500 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina amiga500"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "apple2-bruce-lee",
+      "game": "Bruce Lee",
+      "machine": "apple2",
+      "file": "clasicos/Apple-II/bruce-lee.zip",
+      "member": "Bruce Lee (1984)(Datasoft)[cr Black Bag].dsk",
+      "sha256": "3d05073be44d58162275a68e4996fb1290ac093d4c90b1229379dd066999fb3a",
+      "bytes": 143360,
+      "edition": "disco de 140 KB (Apple II); el paquete trae 3 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de 140 KB (Apple II) (Bruce Lee (1984)(Datasoft)[cr Black Bag].dsk, 143360 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina apple2 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina apple2"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "apple2-karateka",
+      "game": "Karateka",
+      "machine": "apple2",
+      "file": "clasicos/Apple-II/karateka.zip",
+      "member": "Karateka (1984)(Broderbund).dsk",
+      "sha256": "4399db1c5469299f6a519abd890456ba1bbba70596d72096f1db4a84e5669370",
+      "bytes": 143360,
+      "edition": "disco de 140 KB (Apple II); el paquete trae 6 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de 140 KB (Apple II) (Karateka (1984)(Broderbund).dsk, 143360 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina apple2 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina apple2"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "apple2-lode-runner",
+      "game": "Lode Runner",
+      "machine": "apple2",
+      "file": "clasicos/Apple-II/lode-runner.zip",
+      "member": "Lode Runner (1983)(Broderbund)[m mod-keyset Nut Cracker - Ace Mechanic].do",
+      "sha256": "3947fe988bb2d28bb9484ad97ff9924e5d05e027d497885ae268a01bf5eb525c",
+      "bytes": 143360,
+      "edition": "disco de 140 KB (Apple II); el paquete trae 8 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de 140 KB (Apple II) (Lode Runner (1983)(Broderbund)[m mod-keyset Nut Cracker - Ace Mechanic].do, 143360 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina apple2 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina apple2"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "apple2-miner-2049er",
+      "game": "Miner 2049Er",
+      "machine": "apple2",
+      "file": "clasicos/Apple-II/miner-2049er.zip",
+      "member": "Miner 2049er (1982)(Micro Fun).dsk",
+      "sha256": "694250f5f88dc52cab3be01a33c2b0ced353277ad0625ee66edb85b381409bdd",
+      "bytes": 143360,
+      "edition": "disco de 140 KB (Apple II); el paquete trae 5 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de 140 KB (Apple II) (Miner 2049er (1982)(Micro Fun).dsk, 143360 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina apple2 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina apple2"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "apple2-pac-man-apple-ii",
+      "game": "Pac Man",
+      "machine": "apple2",
+      "file": "Pac_Man_Apple-II_ROM_EN.zip",
+      "member": "Pacman (1983)(Atari).do",
+      "sha256": "f9e19375b15852b91776776a95755dd3f57e2b20a517aa99ed8603413e0fe805",
+      "bytes": 143360,
+      "edition": "disco de 140 KB (Apple II)",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de 140 KB (Apple II) (Pacman (1983)(Atari).do, 143360 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina apple2 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina apple2"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "apple2-prince-of-persia",
+      "game": "Prince Of Persia",
+      "machine": "apple2",
+      "file": "clasicos/Apple-II/prince-of-persia.zip",
+      "member": "Prince of Persia (1989)(Broderbund)(Disk 1 of 3)[cr Byte Bastards].dsk",
+      "sha256": "aa2b835896366d8d859780eb5003526f0b40286a30a81dbcfc645f87c86998b4",
+      "bytes": 143360,
+      "edition": "disco de 140 KB (Apple II); el paquete trae 6 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de 140 KB (Apple II) (Prince of Persia (1989)(Broderbund)(Disk 1 of 3)[cr Byte Bastards].dsk, 143360 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina apple2 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina apple2"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "apple2-spy-vs-spy-appleii",
+      "game": "Spy vs Spy",
+      "machine": "apple2",
+      "file": "Spy_vs_Spy_AppleII_EN.zip",
+      "member": "Spy Vs Spy (1984)(First Star Software).dsk",
+      "sha256": "e466ba2f4ed5ff9fd0569682c7150bde2c485e49ee0f0aec6a4305de040de481",
+      "bytes": 143360,
+      "edition": "disco de 140 KB (Apple II); el paquete trae 3 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de 140 KB (Apple II) (Spy Vs Spy (1984)(First Star Software).dsk, 143360 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina apple2 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina apple2"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "apple2-spy-vs-spy-appleii-1",
+      "game": "Spy vs Spy",
+      "machine": "apple2",
+      "file": "Spy_vs_Spy_AppleII_EN (1).zip",
+      "member": "Spy Vs Spy (1984)(First Star Software).dsk",
+      "sha256": "e466ba2f4ed5ff9fd0569682c7150bde2c485e49ee0f0aec6a4305de040de481",
+      "bytes": 143360,
+      "edition": "disco de 140 KB (Apple II); el paquete trae 3 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de 140 KB (Apple II) (Spy Vs Spy (1984)(First Star Software).dsk, 143360 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina apple2 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina apple2"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "atari800-alley-cat",
+      "game": "Alley Cat",
+      "machine": "atari800",
+      "file": "clasicos/Atari-8-bit/alley-cat.zip",
+      "member": "Alley Cat (1983)(Synapse Software)(US).xex",
+      "sha256": "94a9d1e309d055305d4e0793dfcb9997e6b784c6ccf9c22b6da786d4e768a1ed",
+      "bytes": 32594,
+      "edition": "programa de Atari 8 bits (.xex); el paquete trae 9 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "programa de Atari 8 bits (.xex) (Alley Cat (1983)(Synapse Software)(US).xex, 32594 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina atari800 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina atari800"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "atari800-alpha-shield-atari-8-bit",
+      "game": "Alpha Shield",
+      "machine": "atari800",
+      "file": "Alpha_Shield_Atari-8-bit_ROM_EN.zip",
+      "member": "Alpha Shield (1983)(Sirius Software)(US).xex",
+      "sha256": "b52e6d0d6e949cb8c4219ca4db2432ba8ead96a77b3921f8175bff8093de3bb2",
+      "bytes": 4230,
+      "edition": "programa de Atari 8 bits (.xex); el paquete trae 2 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "programa de Atari 8 bits (.xex) (Alpha Shield (1983)(Sirius Software)(US).xex, 4230 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina atari800 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina atari800"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "atari800-boulder-dash",
+      "game": "Boulder Dash",
+      "machine": "atari800",
+      "file": "clasicos/Atari-8-bit/boulder-dash.zip",
+      "member": "Boulder Dash (1984)(First Star Software)(US).xex",
+      "sha256": "0f23a0aa174dc6ff0421ae397562b60671bf9b951fbcc502f0414e9ac20c7627",
+      "bytes": 21638,
+      "edition": "programa de Atari 8 bits (.xex); el paquete trae 19 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "programa de Atari 8 bits (.xex) (Boulder Dash (1984)(First Star Software)(US).xex, 21638 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina atari800 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina atari800"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "atari800-bruce-lee",
+      "game": "Bruce Lee",
+      "machine": "atari800",
+      "file": "clasicos/Atari-8-bit/bruce-lee.zip",
+      "member": "Bruce Lee (1984)(Datasoft)(US).xex",
+      "sha256": "d3657d21939dd69e763e1cf98f81ea9a8c7d56532111ee2196b7c0e4b87c9070",
+      "bytes": 23196,
+      "edition": "programa de Atari 8 bits (.xex); el paquete trae 9 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "programa de Atari 8 bits (.xex) (Bruce Lee (1984)(Datasoft)(US).xex, 23196 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina atari800 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina atari800"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "atari800-chuckie-egg",
+      "game": "Chuckie Egg",
+      "machine": "atari800",
+      "file": "clasicos/Atari-8-bit/chuckie-egg.zip",
+      "member": "Chuckie Egg (1985)(A&F Software)(GB).xex",
+      "sha256": "caa98bbb8003a6cc84e39c571b6b3f497eb16097bc1e164485a58eeb24880f01",
+      "bytes": 20747,
+      "edition": "programa de Atari 8 bits (.xex); el paquete trae 7 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "programa de Atari 8 bits (.xex) (Chuckie Egg (1985)(A&F Software)(GB).xex, 20747 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina atari800 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina atari800"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "atari800-ghostbusters-atari-8-bit",
+      "game": "Ghostbusters",
+      "machine": "atari800",
+      "file": "Ghostbusters_Atari-8-bit_ROM_EN.zip",
+      "member": "Ghostbusters (1984)(Activision)(US).xex",
+      "sha256": "0819a07c396d672430edf324b83ca9de590be4a71f3de70fb89e72758e883603",
+      "bytes": 30138,
+      "edition": "programa de Atari 8 bits (.xex); el paquete trae 6 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "programa de Atari 8 bits (.xex) (Ghostbusters (1984)(Activision)(US).xex, 30138 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina atari800 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina atari800"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "atari800-miner-2049er",
+      "game": "Miner 2049Er",
+      "machine": "atari800",
+      "file": "clasicos/Atari-8-bit/miner-2049er.zip",
+      "member": "Miner 2049er (1982)(Big Five Software)(US).xex",
+      "sha256": "a93438c2a5e9c576575bc063d85ea2ba9e5a1a8fa51e701b6d7be5a882427883",
+      "bytes": 16449,
+      "edition": "programa de Atari 8 bits (.xex); el paquete trae 7 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "programa de Atari 8 bits (.xex) (Miner 2049er (1982)(Big Five Software)(US).xex, 16449 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina atari800 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina atari800"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "atari800-pac-man-atari-8-bit",
+      "game": "Pac Man",
+      "machine": "atari800",
+      "file": "Pac_Man_Atari-8-bit_ROM_EN.zip",
+      "member": "Pac-Man (1982)(Atari)(US).xex",
+      "sha256": "6ca7e8d2dd966ae4b932f27d1158249e6b9cc22b6d2339628c3e565ff1b9c664",
+      "bytes": 14328,
+      "edition": "programa de Atari 8 bits (.xex); el paquete trae 10 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "programa de Atari 8 bits (.xex) (Pac-Man (1982)(Atari)(US).xex, 14328 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina atari800 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina atari800"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "atari800-river-raid",
+      "game": "River Raid",
+      "machine": "atari800",
+      "file": "clasicos/Atari-8-bit/river-raid.zip",
+      "member": "River Raid (1983)(Activision)(US).xex",
+      "sha256": "d0db4df029194b581fb98581594e9451f62da0dee2e5166447d423ea4751fb31",
+      "bytes": 8263,
+      "edition": "programa de Atari 8 bits (.xex); el paquete trae 14 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "programa de Atari 8 bits (.xex) (River Raid (1983)(Activision)(US).xex, 8263 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina atari800 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina atari800"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "atari800-space-invaders-atari-8-bit",
+      "game": "Space Invaders",
+      "machine": "atari800",
+      "file": "Space_Invaders_Atari-8-bit_ROM_EN.zip",
+      "member": "Space Invaders (1980)(Atari)(US).xex",
+      "sha256": "dc0d592b9389aa6edfa7c4f539cf12ade6ad8f04f324f1f36a90a35d32965ba8",
+      "bytes": 4184,
+      "edition": "programa de Atari 8 bits (.xex); el paquete trae 6 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "programa de Atari 8 bits (.xex) (Space Invaders (1980)(Atari)(US).xex, 4184 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina atari800 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina atari800"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "atari800-spy-vs-spy-atari8bit",
+      "game": "Spy vs Spy",
+      "machine": "atari800",
+      "file": "Spy_vs_Spy_Atari8bit_EN.zip",
+      "member": "Spy vs Spy (1984)(First Star Software)(US).xex",
+      "sha256": "4aa5fc21f4a773a5f8533d1c81c55537123bd619418ee0cba12b8ce82194b5da",
+      "bytes": 28038,
+      "edition": "programa de Atari 8 bits (.xex); el paquete trae 5 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "programa de Atari 8 bits (.xex) (Spy vs Spy (1984)(First Star Software)(US).xex, 28038 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina atari800 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina atari800"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "atari800-terminator-atari-8-bit",
+      "game": "Terminator",
+      "machine": "atari800",
+      "file": "Terminator_Atari-8-bit_ROM_EN.zip",
+      "member": "Terminator, The (1993)(Domain Software)(PL)[cr Clever People][t].atr",
+      "sha256": "0ad0d08cc788df343d23edcdf11b705843d8158489487d7c77992afd979978c9",
+      "bytes": 133136,
+      "edition": "disco de Atari 8 bits (.atr); el paquete trae 2 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de Atari 8 bits (.atr) (Terminator, The (1993)(Domain Software)(PL)[cr Clever People][t].atr, 133136 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina atari800 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina atari800"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "atarist-prince-of-persia",
+      "game": "Prince Of Persia",
+      "machine": "atarist",
+      "file": "clasicos/Atari-ST/prince-of-persia.zip",
+      "member": "Prince of Persia (1990)(Broderbund)[m].st",
+      "sha256": "c1293c76006c66df9899fd2c89d4075b42637f05bc29dd7829a7e8181936d909",
+      "bytes": 819200,
+      "edition": "disco de Atari ST (.st); el paquete trae 4 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de Atari ST (.st) (Prince of Persia (1990)(Broderbund)[m].st, 819200 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina atarist todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina atarist"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "atarist-spy-vs-spy-atarist",
+      "game": "Spy vs Spy",
+      "machine": "atarist",
+      "file": "Spy_vs_Spy_AtariST_EN.zip",
+      "member": "Spy vs Spy (1987)(First Star Software).st",
+      "sha256": "d6f729d9cad15739f3d6add84f2ef3e0ce2ffea705dc9f08b33350c40c90f542",
+      "bytes": 368640,
+      "edition": "disco de Atari ST (.st)",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de Atari ST (.st) (Spy vs Spy (1987)(First Star Software).st, 368640 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina atarist todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina atarist"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "atarist-super-game-no-publisher",
+      "game": "Super Game [No Publisher]",
+      "machine": "atarist",
+      "file": "super_game_[no_publisher].zip",
+      "member": "super_game_[no_publisher].msa",
+      "sha256": "f142e5298682a8e77f5ffece92be6076cb49dad4a9cfe32dc7c1342f85c05a1d",
+      "bytes": 194241,
+      "edition": "disco comprimido de Atari ST (.msa)",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco comprimido de Atari ST (.msa) (super_game_[no_publisher].msa, 194241 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina atarist todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina atarist"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "atarist-xenon",
+      "game": "Xenon",
+      "machine": "atarist",
+      "file": "clasicos/Atari-ST/xenon.zip",
+      "member": "Xenon (1988)(Melbourne House).st",
+      "sha256": "660e544ffa7eb8e0f9201614711f5d4b2a935870bb89f5ea707fed314e056f9e",
+      "bytes": 409600,
+      "edition": "disco de Atari ST (.st); el paquete trae 5 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de Atari ST (.st) (Xenon (1988)(Melbourne House).st, 409600 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina atarist todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina atarist"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "c64-boulder-dash",
+      "game": "Boulder Dash",
+      "machine": "c64",
+      "file": "clasicos/C64/boulder-dash.zip",
+      "member": "BDASH01.T64",
+      "sha256": "f1f263754b73aebc5bc8ba757b0f335d479aa6cf1a9fc86a444ecd1bf9db10cf",
+      "bytes": 35336,
+      "edition": "cinta .T64 (programas de C64)",
+      "firmware": "firmware libre Open ROMs",
+      "model": "Commodore 64 PAL, 64 KB",
+      "controls": "",
+      "procedure": "cinta T64 \"BOULDER DASH\": 22103 bytes en $0801, arranca con SYS 2059 (firmware libre Open ROMs); aviso: la cinta tiene 2 programas; se cargó el primero",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta .T64 (programas de C64) (BDASH01.T64, 35336 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "cinta T64 \"BOULDER DASH\": 22103 bytes en $0801, arranca con SYS 2059 (firmware libre Open ROMs); aviso: la cinta tiene 2 programas; se cargó el primero"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "7 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: JOY1 RIGHT, JOY1 FIRE, F1, RETURN (de 10 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "2533bab715fcc5ff",
+      "screenshot": "out/compat/c64-boulder-dash.png",
+      "framesRun": 2500,
+      "scope": "2500 cuadros (50 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "c64-bruce-lee",
+      "game": "Bruce Lee",
+      "machine": "c64",
+      "file": "clasicos/C64/bruce-lee.zip",
+      "member": "BRUCELEE.T64",
+      "sha256": "81365512a35b0e8b3d990d0ae54532a5468ee8fce1ac5640426e94cfe70a92d5",
+      "bytes": 40566,
+      "edition": "cinta .T64 (programas de C64)",
+      "firmware": "firmware libre Open ROMs",
+      "model": "Commodore 64 PAL, 64 KB",
+      "controls": "",
+      "procedure": "cinta T64 \"BRUCE LEE+\": 40470 bytes en $0801, arranca con SYS 2059 (firmware libre Open ROMs)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta .T64 (programas de C64) (BRUCELEE.T64, 40566 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "cinta T64 \"BRUCE LEE+\": 40470 bytes en $0801, arranca con SYS 2059 (firmware libre Open ROMs)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "14 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: JOY2 FIRE, JOY1 FIRE, SPACE (de 10 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "c46dd119eeeee74a",
+      "screenshot": "out/compat/c64-bruce-lee.png",
+      "framesRun": 2500,
+      "scope": "2500 cuadros (50 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "c64-donkey-kong",
+      "game": "Donkey Kong",
+      "machine": "c64",
+      "file": "clasicos/C64/donkey-kong.zip",
+      "member": "DONKEYK2.D64",
+      "sha256": "2e8cd98a6fad0ecd188d13060d001169591add65f8154715aa5a5c70994bd59e",
+      "bytes": 174848,
+      "edition": "disco de 1541 (.d64)",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de 1541 (.d64) (DONKEYK2.D64, 174848 bytes)"
+        },
+        "load": {
+          "status": "fail",
+          "detail": "Por ahora el C64 carga .t64 y .prg; los discos .d64, los cartuchos .crt y las cintas .tap llegan en la próxima etapa."
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: Por ahora el C64 carga .t64 y .prg; los discos .d64, los cartuchos .crt y las cintas .tap llegan en la próxima etapa."
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "c64-ghostbusters-c64",
+      "game": "Ghostbusters",
+      "machine": "c64",
+      "file": "Ghostbusters_C64_ROM_EN.zip",
+      "member": "GHOSTBU1.T64",
+      "sha256": "6c332e873650fbfe31e6a2adff5c8a237dc80a43289e75ed9dc2546d23b9928a",
+      "bytes": 42844,
+      "edition": "GHOSTBU1.T64: crack de Hokuto Force con intro, infolinker y trainer (+6PD); la cinta tiene una segunda entrada que no se usa",
+      "firmware": "firmware libre Open ROMs",
+      "model": "Commodore 64 PAL, 64 KB",
+      "controls": "Teclado para el nombre y los menús; joystick en el puerto 2 en la ciudad",
+      "procedure": "cinta T64 \"GHOSTBUSTERS+\": 36414 bytes en $0801, arranca con SYS 2051 (firmware libre Open ROMs); aviso: la cinta tiene 2 programas; se cargó el primero; cuadro 1000: SPACE durante 6; cuadro 1500: RUN/STOP durante 6; cuadro 1700: RUN/STOP durante 6; cuadro 2300: JOY2 FIRE durante 6; cuadro 2700: N durante 10; cuadro 2850: N durante 10; cuadro 3000: N durante 10; cuadro 3150: N durante 10; cuadro 3300: N durante 10; cuadro 3450: N durante 10; cuadro 3600: N durante 10; cuadro 4200: F1 durante 8; cuadro 5000: R durante 6; cuadro 5100: E durante 6; cuadro 5200: T durante 6; cuadro 5300: RETURN durante 6; cuadro 5500: N durante 6; cuadro 5700: RETURN durante 6",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta .T64 (programas de C64) (GHOSTBU1.T64, 42844 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "cinta T64 \"GHOSTBUSTERS+\": 36414 bytes en $0801, arranca con SYS 2051 (firmware libre Open ROMs); aviso: la cinta tiene 2 programas; se cargó el primero"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "7 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: 1, 2 (de 3 probadas)"
+        },
+        "playable": {
+          "status": "ok",
+          "detail": "sí: aceptó el nombre escrito y la respuesta, y abrió la franquicia (\"WELCOME TO YOUR NEW\" está en pantalla en el cuadro 6200); sí: la pantalla de compra de vehículo espera la elección (\"GO AHEAD\" está en pantalla en el cuadro 7000)"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "playable",
+      "problems": [],
+      "gameQuirks": [
+        "Intro del grupo cracker y menú de trainer con seis preguntas (se contestan con N)",
+        "La pantalla de Activision espera FIRE o ESPACIO"
+      ],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "8a9b71be530a17e8",
+      "screenshot": "out/compat/c64-ghostbusters-c64.png",
+      "framesRun": 7000,
+      "scope": "7000 cuadros (140 s de máquina) después del arranque, con 18 pulsaciones guionadas y 2 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": true,
+      "notes": "Misma secuencia que tests/C64.Tests/GameTests.cs."
+    },
+    {
+      "id": "c64-jet-set-willy",
+      "game": "Jet Set Willy",
+      "machine": "c64",
+      "file": "clasicos/C64/jet-set-willy.zip",
+      "member": "JETSETW1.T64",
+      "sha256": "5e40ca0dc57780c1832a56cceb338dedf23ff32793430bc734f58c593540662a",
+      "bytes": 35689,
+      "edition": "cinta .T64 (programas de C64)",
+      "firmware": "firmware libre Open ROMs",
+      "model": "Commodore 64 PAL, 64 KB",
+      "controls": "",
+      "procedure": "cinta T64 \"JET SET WILLY+\": 31775 bytes en $0801, arranca con SYS 2049 (firmware libre Open ROMs); aviso: la cinta tiene 2 programas; se cargó el primero",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta .T64 (programas de C64) (JETSETW1.T64, 35689 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "cinta T64 \"JET SET WILLY+\": 31775 bytes en $0801, arranca con SYS 2049 (firmware libre Open ROMs); aviso: la cinta tiene 2 programas; se cargó el primero"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "9 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: JOY1 FIRE, SPACE (de 10 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "a9f67bae2dcbdf20",
+      "screenshot": "out/compat/c64-jet-set-willy.png",
+      "framesRun": 2500,
+      "scope": "2500 cuadros (50 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "c64-lode-runner",
+      "game": "Lode Runner",
+      "machine": "c64",
+      "file": "clasicos/C64/lode-runner.zip",
+      "member": "LODERUN1.D64",
+      "sha256": "e7eb5220fa1018a4246ca1fee30e77fb0c15a5bf93c4be84c764304396d12c05",
+      "bytes": 174848,
+      "edition": "disco de 1541 (.d64)",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de 1541 (.d64) (LODERUN1.D64, 174848 bytes)"
+        },
+        "load": {
+          "status": "fail",
+          "detail": "Por ahora el C64 carga .t64 y .prg; los discos .d64, los cartuchos .crt y las cintas .tap llegan en la próxima etapa."
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: Por ahora el C64 carga .t64 y .prg; los discos .d64, los cartuchos .crt y las cintas .tap llegan en la próxima etapa."
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "c64-inside-nanako-in-classic-japanese-monster-castle-c64",
+      "game": "Nanako in Classic Japanese Monster Castle",
+      "machine": "c64",
+      "file": "descargados-autores/C64/Inside--Nanako-in-Classic-Japanese-Monster-Castle--C64.d64",
+      "member": "Inside--Nanako-in-Classic-Japanese-Monster-Castle--C64.d64",
+      "sha256": "011f166daeb4d80d010ca432b2d19597f553341ea64da1a7d17cc768ef874964",
+      "bytes": 174848,
+      "edition": "disco de 1541 (.d64)",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de 1541 (.d64) (Inside--Nanako-in-Classic-Japanese-Monster-Castle--C64.d64, 174848 bytes)"
+        },
+        "load": {
+          "status": "fail",
+          "detail": "Por ahora el C64 carga .t64 y .prg; los discos .d64, los cartuchos .crt y las cintas .tap llegan en la próxima etapa."
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: Por ahora el C64 carga .t64 y .prg; los discos .d64, los cartuchos .crt y las cintas .tap llegan en la próxima etapa."
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "c64-pac-man-c64",
+      "game": "Pac-Man",
+      "machine": "c64",
+      "file": "Pac_Man_C64_ROM_EN.zip",
+      "member": "PAC-MAN1.T64",
+      "sha256": "1f743c4874a521d116d9d45f8401b36655339b8244d61ac1948059cd4561eee6",
+      "bytes": 11446,
+      "edition": "PAC-MAN1.T64: crack de Remember (+3) con intro, documentación y trainer",
+      "firmware": "firmware libre Open ROMs",
+      "model": "Commodore 64 PAL, 64 KB",
+      "controls": "Joystick en el puerto 2; F1 empieza, F3 dos jugadores, F5 dificultad",
+      "procedure": "cinta T64 \"PAC-MAN+\": 11350 bytes en $0801, arranca con SYS 2059 (firmware libre Open ROMs); cuadro 400: SPACE durante 6; cuadro 900: RUN/STOP durante 6; cuadro 1100: RUN/STOP durante 6; cuadro 1300: RUN/STOP durante 6; cuadro 1500: RUN/STOP durante 6; cuadro 1700: N durante 6; cuadro 1850: N durante 6; cuadro 2000: N durante 6; cuadro 2150: N durante 6; cuadro 2600: F1 durante 6",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta .T64 (programas de C64) (PAC-MAN1.T64, 11446 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "cinta T64 \"PAC-MAN+\": 11350 bytes en $0801, arranca con SYS 2059 (firmware libre Open ROMs)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "8 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "ok",
+          "detail": "sí: «1 PLAYER GAME» en la pantalla de título (el juego usa su propio juego de caracteres, desplazado 32 códigos) (\"Q 0,!9%2 '!-%\" está en pantalla en el cuadro 2450)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: JOY2 RIGHT, JOY2 UP, JOY2 DOWN (de 4 probadas)"
+        },
+        "playable": {
+          "status": "ok",
+          "detail": "sí: el laberinto en pantalla (una fila de puntos, código de pantalla 1) (\"AAAAAAAAAAAAAAAA\" está en pantalla en el cuadro 3000)"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "playable",
+      "problems": [],
+      "gameQuirks": [
+        "Intro del grupo cracker, documentación y preguntas del trainer (Unlimited lives, levelskip...) antes del juego: se contestan con N"
+      ],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "002493edf25c03bb",
+      "screenshot": "out/compat/c64-pac-man-c64.png",
+      "framesRun": 3000,
+      "scope": "3000 cuadros (60 s de máquina) después del arranque, con 10 pulsaciones guionadas y 2 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": true,
+      "notes": "Misma secuencia que tests/C64.Tests/GameTests.cs."
+    },
+    {
+      "id": "c64-river-raid",
+      "game": "River Raid",
+      "machine": "c64",
+      "file": "clasicos/C64/river-raid.zip",
+      "member": "RIVERRAI.D64",
+      "sha256": "1c8a5754e374a4427d119c62fbd0955e7d51dc9885aa1aeb4014c22273f908a8",
+      "bytes": 174848,
+      "edition": "disco de 1541 (.d64)",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de 1541 (.d64) (RIVERRAI.D64, 174848 bytes)"
+        },
+        "load": {
+          "status": "fail",
+          "detail": "Por ahora el C64 carga .t64 y .prg; los discos .d64, los cartuchos .crt y las cintas .tap llegan en la próxima etapa."
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: Por ahora el C64 carga .t64 y .prg; los discos .d64, los cartuchos .crt y las cintas .tap llegan en la próxima etapa."
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "c64-mojon-twins-sir-ababol-c64",
+      "game": "Sir Ababol",
+      "machine": "c64",
+      "file": "descargados-autores/C64/Mojon-Twins--Sir-Ababol--C64.d64",
+      "member": "Mojon-Twins--Sir-Ababol--C64.d64",
+      "sha256": "b542e98dcdae309b243c43e4a0415769e0a8ab8ff9706d3c1839bd1295695545",
+      "bytes": 174848,
+      "edition": "disco de 1541 (.d64)",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de 1541 (.d64) (Mojon-Twins--Sir-Ababol--C64.d64, 174848 bytes)"
+        },
+        "load": {
+          "status": "fail",
+          "detail": "Por ahora el C64 carga .t64 y .prg; los discos .d64, los cartuchos .crt y las cintas .tap llegan en la próxima etapa."
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: Por ahora el C64 carga .t64 y .prg; los discos .d64, los cartuchos .crt y las cintas .tap llegan en la próxima etapa."
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "c64-spy-vs-spy-c64",
+      "game": "Spy vs Spy",
+      "machine": "c64",
+      "file": "Spy_vs_Spy_C64_EN.zip",
+      "member": "SPYVSPY1.T64",
+      "sha256": "15ee1d57da4684a7f031e6c409ec244c062e8a93fbeaee0d24768cc49bb7f7ca",
+      "bytes": 36356,
+      "edition": "SPYVSPY1.T64: crack con intro (FIRST STAR SOFTWARE presents) y documentos",
+      "firmware": "firmware libre Open ROMs",
+      "model": "Commodore 64 PAL, 64 KB",
+      "controls": "Jugador blanco con el joystick del puerto 1, negro con el puerto 2; RUN/STOP pausa; F5 vuelve al menú",
+      "procedure": "cinta T64 \"SPY VS SPY\": 36260 bytes en $0801, arranca con SYS 2059 (firmware libre Open ROMs); cuadro 1500: SPACE durante 6",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta .T64 (programas de C64) (SPYVSPY1.T64, 36356 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "cinta T64 \"SPY VS SPY\": 36260 bytes en $0801, arranca con SYS 2059 (firmware libre Open ROMs)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "2 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "ok",
+          "detail": "sí: los documentos del juego (con ESPACIO para leer o RUN/STOP para empezar) (\"SPY VS SPY DOCUMENTS\" está en pantalla en el cuadro 4200)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: SPACE, RUN/STOP, JOY1 FIRE (de 4 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [
+        "El jugador 1 usa el puerto 1 del joystick"
+      ],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "f757d5dbf2d5a860",
+      "screenshot": "out/compat/c64-spy-vs-spy-c64.png",
+      "framesRun": 4200,
+      "scope": "4200 cuadros (84 s de máquina) después del arranque, con 1 pulsaciones guionadas y 1 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": true,
+      "notes": "Misma secuencia que tests/C64.Tests/GameTests.cs; falta una comprobación de partida."
+    },
+    {
+      "id": "c64-turrican",
+      "game": "Turrican",
+      "machine": "c64",
+      "file": "clasicos/C64/turrican.zip",
+      "member": "TURRI1-0.D64",
+      "sha256": "db175fbfcf25ab39dfc2fb8adc049d69918e7cf3e42b0d7550088912544c2043",
+      "bytes": 174848,
+      "edition": "disco de 1541 (.d64); el paquete trae 2 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de 1541 (.d64) (TURRI1-0.D64, 174848 bytes)"
+        },
+        "load": {
+          "status": "fail",
+          "detail": "Por ahora el C64 carga .t64 y .prg; los discos .d64, los cartuchos .crt y las cintas .tap llegan en la próxima etapa."
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: Por ahora el C64 carga .t64 y .prg; los discos .d64, los cartuchos .crt y las cintas .tap llegan en la próxima etapa."
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "c64-mojon-twins-uwol-c64",
+      "game": "Uwol",
+      "machine": "c64",
+      "file": "descargados-autores/C64/Mojon-Twins--Uwol-C64.d64",
+      "member": "Mojon-Twins--Uwol-C64.d64",
+      "sha256": "d4ef44346b2e3a40608f302a3912d9cc87498671c8f665938c3734865a1acbc5",
+      "bytes": 174848,
+      "edition": "disco de 1541 (.d64)",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de 1541 (.d64) (Mojon-Twins--Uwol-C64.d64, 174848 bytes)"
+        },
+        "load": {
+          "status": "fail",
+          "detail": "Por ahora el C64 carga .t64 y .prg; los discos .d64, los cartuchos .crt y las cintas .tap llegan en la próxima etapa."
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: Por ahora el C64 carga .t64 y .prg; los discos .d64, los cartuchos .crt y las cintas .tap llegan en la próxima etapa."
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "cpc-mojon-twins-cheman",
+      "game": "Cheman",
+      "machine": "cpc",
+      "file": "descargados-autores/CPC/mojon-twins--cheman.dsk",
+      "member": "mojon-twins--cheman.dsk",
+      "sha256": "b896f85f84e87aef9566c80dd455005c6ef31b0013eda374b82aafc2b2c07658",
+      "bytes": 194816,
+      "edition": "disco de Amstrad CPC",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de Amstrad CPC (mojon-twins--cheman.dsk, 194816 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina cpc todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina cpc"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "cpc-ghostbusters-amstrad-cpc",
+      "game": "Ghostbusters",
+      "machine": "cpc",
+      "file": "Ghostbusters_Amstrad-CPC_ROM_EN.zip",
+      "member": "GHOST.SCR",
+      "sha256": "9ea47d768de3047f231a700aec45867bc7e45a653ce266b735b52f9839f09caa",
+      "bytes": 17408,
+      "edition": "archivo de Amstrad CPC (cabecera AMSDOS); el paquete trae 3 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "archivo de Amstrad CPC (cabecera AMSDOS) (GHOST.SCR, 17408 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina cpc todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina cpc"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "cpc-mojon-twins-lala-prologue-cpc",
+      "game": "Lala Prologue",
+      "machine": "cpc",
+      "file": "descargados-autores/CPC/Mojon-Twins--Lala-Prologue--CPC.cdt",
+      "member": "Mojon-Twins--Lala-Prologue--CPC.cdt",
+      "sha256": "84a64ab44707460935b4e750b9b3de8d91b66b87f57403960faace5cad212b5c",
+      "bytes": 16815,
+      "edition": "cinta de Amstrad CPC (.cdt)",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta de Amstrad CPC (.cdt) (Mojon-Twins--Lala-Prologue--CPC.cdt, 16815 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina cpc todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina cpc"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "cpc-mojon-twins-nanako-in-classic-japanese-monster-castle-cpc",
+      "game": "Nanako In Classic Japanese Monster Castle",
+      "machine": "cpc",
+      "file": "descargados-autores/CPC/Mojon-Twins--Nanako-In-Classic-Japanese-Monster-Castle--CPC.cdt",
+      "member": "Mojon-Twins--Nanako-In-Classic-Japanese-Monster-Castle--CPC.cdt",
+      "sha256": "592b180792890fcd87de9599784e75dc2ceccacdac1ab7fff4c1ac2ffd01daf7",
+      "bytes": 44735,
+      "edition": "cinta de Amstrad CPC (.cdt)",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta de Amstrad CPC (.cdt) (Mojon-Twins--Nanako-In-Classic-Japanese-Monster-Castle--CPC.cdt, 44735 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina cpc todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina cpc"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "cpc-mojon-twins-sir-ababol-cpc",
+      "game": "Sir Ababol",
+      "machine": "cpc",
+      "file": "descargados-autores/CPC/Mojon-Twins--Sir-Ababol-CPC.cdt",
+      "member": "Mojon-Twins--Sir-Ababol-CPC.cdt",
+      "sha256": "4f4dad531aacd8131f43c3e2741ac92c8eadee0d0812cd0ac1a5bf59a9a81f47",
+      "bytes": 20738,
+      "edition": "cinta de Amstrad CPC (.cdt)",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta de Amstrad CPC (.cdt) (Mojon-Twins--Sir-Ababol-CPC.cdt, 20738 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina cpc todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina cpc"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "cpc-mojon-twins-uwol-2-cpc",
+      "game": "Uwol 2",
+      "machine": "cpc",
+      "file": "descargados-autores/CPC/Mojon-Twins--Uwol-2--CPC.dsk",
+      "member": "Mojon-Twins--Uwol-2--CPC.dsk",
+      "sha256": "9b72102f36144bbb795e815c75f0293ffd03d4d8ca06ff7a70223d29e1d90222",
+      "bytes": 194816,
+      "edition": "disco de Amstrad CPC",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco de Amstrad CPC (Mojon-Twins--Uwol-2--CPC.dsk, 194816 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina cpc todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina cpc"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "invaders-invaders",
+      "game": "Space Invaders",
+      "machine": "invaders",
+      "file": "invaders.zip",
+      "member": "invaders.e",
+      "sha256": "0a97ed62e2063c13e373a9a61ea3d8fbb701e414af05953e16f823fd879d5f49",
+      "bytes": 2048,
+      "edition": "ROM original de Midway (MAME invaders, 4 chips con CRC verificados)",
+      "firmware": "ROM del juego (4 chips de la placa)",
+      "model": "Placa Taito/Midway 8080, 8 KB ROM + 8 KB RAM",
+      "controls": "5 o C moneda, 1 empezar, flechas mover, espacio disparar",
+      "procedure": "ROM de Space Invaders verificada (CRC de la versión original de Midway).; cuadro 300: COIN durante 8; cuadro 420: P1 START durante 8",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "chips de la placa de Space Invaders (MAME) (invaders.e, 2048 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "ROM de Space Invaders verificada (CRC de la versión original de Midway)."
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "3 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "ok",
+          "detail": "sí: la moneda suma un crédito (variable credits del perfil) ($20EB = 1, se esperaba eq 1)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: P1 RIGHT, P1 FIRE (de 3 probadas)"
+        },
+        "playable": {
+          "status": "ok",
+          "detail": "sí: empezó la oleada con 55 invasores (variable aliens) ($2082 = 55, se esperaba eq 55); sí: el jugador tiene 2 naves de reserva (variable ships) ($21FF = 2, se esperaba eq 2); sí: empezar consumió el crédito ($20EB = 0, se esperaba eq 0)"
+        },
+        "fusion": {
+          "status": "partial",
+          "detail": "perfil \"invaders\" asociado por nombre de archivo; sus direcciones no están verificadas contra este hash (T-053)"
+        }
+      },
+      "highest": "playable",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "703ccc69fa93da2f",
+      "screenshot": "out/compat/invaders-invaders.png",
+      "framesRun": 1200,
+      "scope": "1200 cuadros (20 s de máquina) después del arranque, con 2 pulsaciones guionadas y 4 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": true,
+      "notes": "Comprobaciones con las direcciones del perfil invaders (verificadas al crear la fusión Manic Invaders)."
+    },
+    {
+      "id": "nes-mojon-twins-bootee",
+      "game": "Bootee",
+      "machine": "nes",
+      "file": "descargados-autores/NES/mojon-twins--bootee.nes",
+      "member": "mojon-twins--bootee.nes",
+      "sha256": "9e3daee355eb56a80e73ce314feabe8f0bae380cb80a32468e0a1962e8c9c9ec",
+      "bytes": 40976,
+      "edition": "cartucho de NES (iNES)",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cartucho de NES (iNES) (mojon-twins--bootee.nes, 40976 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina nes todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina nes"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "nes-mojon-twins-cadaverion",
+      "game": "Cadaverion",
+      "machine": "nes",
+      "file": "descargados-autores/NES/mojon-twins--cadaverion.nes",
+      "member": "mojon-twins--cadaverion.nes",
+      "sha256": "e139848c04c7ed443b3f800ba73e660e9d1bb629e157d0fd3aa6493233abed18",
+      "bytes": 40976,
+      "edition": "cartucho de NES (iNES)",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cartucho de NES (iNES) (mojon-twins--cadaverion.nes, 40976 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina nes todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina nes"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "nes-mojon-twins-cave-cnrom",
+      "game": "Cave Cnrom",
+      "machine": "nes",
+      "file": "descargados-autores/NES/mojon-twins--cave-cnrom.nes",
+      "member": "mojon-twins--cave-cnrom.nes",
+      "sha256": "b17032c5e5aa110c237d3714d271e7591a9fd003cdef318f9e167688ea697f48",
+      "bytes": 49168,
+      "edition": "cartucho de NES (iNES)",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cartucho de NES (iNES) (mojon-twins--cave-cnrom.nes, 49168 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina nes todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina nes"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "nes-mojon-twins-cheman",
+      "game": "Cheman",
+      "machine": "nes",
+      "file": "descargados-autores/NES/mojon-twins--cheman.nes",
+      "member": "mojon-twins--cheman.nes",
+      "sha256": "380f05602d31b3a0befa3ed2504d1376391bd73deee17598802bf56562cf4653",
+      "bytes": 40976,
+      "edition": "cartucho de NES (iNES)",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cartucho de NES (iNES) (mojon-twins--cheman.nes, 40976 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina nes todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina nes"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "nes-mojon-twins-super-uwol",
+      "game": "Super Uwol",
+      "machine": "nes",
+      "file": "descargados-autores/NES/mojon-twins--super-uwol.nes",
+      "member": "mojon-twins--super-uwol.nes",
+      "sha256": "67eaa300c8abc5eca33f96f8d80df6a6b7ce8a808218a159b38c567e05f5fbdd",
+      "bytes": 40976,
+      "edition": "cartucho de NES (iNES)",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cartucho de NES (iNES) (mojon-twins--super-uwol.nes, 40976 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina nes todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina nes"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "pc88-pac-man-pc-88",
+      "game": "Pac Man",
+      "machine": "pc88",
+      "file": "Pac_Man_PC-88_ROM_EN.zip",
+      "member": "Pacman (1983)(Dempa Shinbunsha).d88",
+      "sha256": "9598cd898ae3a2337fcf510e3788296a0669734c16b2f669a823af810bb8d01a",
+      "bytes": 348848,
+      "edition": "disco D88 (NEC PC-88); el paquete trae 2 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco D88 (NEC PC-88) (Pacman (1983)(Dempa Shinbunsha).d88, 348848 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina pc88 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina pc88"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "pc88-spy-vs-spy-pc8800",
+      "game": "Spy vs Spy",
+      "machine": "pc88",
+      "file": "Spy_vs_Spy_PC8800_EN.zip",
+      "member": "Spy vs Spy (1986)(Hot-B).d88",
+      "sha256": "8e4693e9703a6fdc180a3b8e5a41b41e986de590a78529a30167df97357ddd75",
+      "bytes": 348848,
+      "edition": "disco D88 (NEC PC-88)",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "disco D88 (NEC PC-88) (Spy vs Spy (1986)(Hot-B).d88, 348848 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina pc88 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina pc88"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "pcxt-alley-cat",
+      "game": "Alley Cat",
+      "machine": "pcxt",
+      "file": "clasicos/PC-DOS/alley-cat.zip",
+      "member": "CAT.EXE",
+      "sha256": "4979c8867826e08881d1d4bec95c95d6bc1ac70fd21050ccdb4f733a50d7bfdd",
+      "bytes": 55067,
+      "edition": "programa de MS-DOS (.exe)",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "programa de MS-DOS (.exe) (CAT.EXE, 55067 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina pcxt todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina pcxt"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "pcxt-arkanoid",
+      "game": "Arkanoid",
+      "machine": "pcxt",
+      "file": "clasicos/PC-DOS/arkanoid.zip",
+      "member": "ARKANOID.COM",
+      "sha256": "455ca976a7ae6c5b88120ad6a45fc98024d16a1e0608060e315633ab5caebd06",
+      "bytes": 130,
+      "edition": "programa de MS-DOS (.com); el paquete trae 5 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "programa de MS-DOS (.com) (ARKANOID.COM, 130 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina pcxt todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina pcxt"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "pcxt-donkey-kong",
+      "game": "Donkey Kong",
+      "machine": "pcxt",
+      "file": "clasicos/PC-DOS/donkey-kong.zip",
+      "member": "Donkey_Kong_1983.exe",
+      "sha256": "8b58637d82f77aa2624d4c2a18fa59949a7399e216b12b8fd4c3e9bf8020c632",
+      "bytes": 147968,
+      "edition": "programa de MS-DOS (.exe)",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "programa de MS-DOS (.exe) (Donkey_Kong_1983.exe, 147968 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina pcxt todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina pcxt"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "pcxt-karateka",
+      "game": "Karateka",
+      "machine": "pcxt",
+      "file": "clasicos/PC-DOS/karateka.zip",
+      "member": "KARATEKA.EXE",
+      "sha256": "c8736bba30cd31d966756c812b673f56b753061354ffb67fca835c3ca2e9f2b2",
+      "bytes": 87990,
+      "edition": "programa de MS-DOS (.exe); el paquete trae 92 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "programa de MS-DOS (.exe) (KARATEKA.EXE, 87990 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina pcxt todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina pcxt"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "pcxt-pop1demo",
+      "game": "Pop1demo",
+      "machine": "pcxt",
+      "file": "pop1demo.zip",
+      "member": "pop1demo.exe",
+      "sha256": "26a85f7ae1974c34ae5165f202f5a69bab7ca7b452c5b802f616659003d5c6d8",
+      "bytes": 267420,
+      "edition": "programa de MS-DOS (.exe); el paquete trae 8 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "programa de MS-DOS (.exe) (pop1demo.exe, 267420 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina pcxt todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina pcxt"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "pcxt-prince-of-persia",
+      "game": "Prince Of Persia",
+      "machine": "pcxt",
+      "file": "clasicos/PC-DOS/prince-of-persia.zip",
+      "member": "PRINCE.EXE",
+      "sha256": "09451d0b19755dd03c4f7b3e58d3da63b7ee3bab6ad403732ee19b6c4caf3111",
+      "bytes": 129504,
+      "edition": "programa de MS-DOS (.exe); el paquete trae 26 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "programa de MS-DOS (.exe) (PRINCE.EXE, 129504 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina pcxt todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina pcxt"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "pcxt-wmdemo",
+      "game": "Wmdemo",
+      "machine": "pcxt",
+      "file": "wmdemo.zip",
+      "member": "DIGGER.EXE",
+      "sha256": "c94ea1bc724753f14009af6ec0297d1a7e2cdcf249e19695c56b7ba0248d4b5a",
+      "bytes": 60732,
+      "edition": "programa de MS-DOS (.exe); el paquete trae 8 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "programa de MS-DOS (.exe) (DIGGER.EXE, 60732 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina pcxt todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina pcxt"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "plus4-spy-vs-spy-commodoreplus4",
+      "game": "Spy vs Spy",
+      "machine": "plus4",
+      "file": "Spy_vs_Spy_CommodorePlus4_EN.zip",
+      "member": "Spy Vs Spy (19xx)(Tynesoft Computer Software)(GB).tap",
+      "sha256": "eda492fd04e7b803f3171e4009e14832bf29cc8efd543aea4b9d6e1ab892c8dd",
+      "bytes": 251206,
+      "edition": "cinta de Commodore (pulsos)",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta de Commodore (pulsos) (Spy Vs Spy (19xx)(Tynesoft Computer Software)(GB).tap, 251206 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina plus4 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina plus4"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "vic20-galaxian",
+      "game": "Galaxian",
+      "machine": "vic20",
+      "file": "clasicos/VIC-20/galaxian.zip",
+      "member": "Galaxian (1983)(Atari)(NTSC-PAL)[A000].crt",
+      "sha256": "0d2bf52952638ef582b890dc24c8faea53555b22e29ae71f914224f7e1885a0a",
+      "bytes": 8194,
+      "edition": "cartucho de VIC-20 (se carga en $A000); el paquete trae 2 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cartucho de VIC-20 (se carga en $A000) (Galaxian (1983)(Atari)(NTSC-PAL)[A000].crt, 8194 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina vic20 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina vic20"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "vic20-miner-2049er",
+      "game": "Miner 2049Er",
+      "machine": "vic20",
+      "file": "clasicos/VIC-20/miner-2049er.zip",
+      "member": "Miner 2049'er (1984)(Reston)(PAL)[A000].crt",
+      "sha256": "2d766aa08979de55e930538096b3d0968f9a9d5eb0d087f3f97f5df2c4cb6455",
+      "bytes": 8194,
+      "edition": "cartucho de VIC-20 (se carga en $A000); el paquete trae 4 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cartucho de VIC-20 (se carga en $A000) (Miner 2049'er (1984)(Reston)(PAL)[A000].crt, 8194 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina vic20 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina vic20"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "vic20-pac-man-vic-20",
+      "game": "Pac Man",
+      "machine": "vic20",
+      "file": "Pac_Man_VIC-20_ROM_EN.zip",
+      "member": "Pac-Man (1983)(Atarisoft)[A000].crt",
+      "sha256": "aa72664e277b57701b36da581d315ae584eb62a924ec142af8742bbd69a58da9",
+      "bytes": 8194,
+      "edition": "cartucho de VIC-20 (se carga en $A000); el paquete trae 5 archivos, se eligió el volcado más limpio",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cartucho de VIC-20 (se carga en $A000) (Pac-Man (1983)(Atarisoft)[A000].crt, 8194 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina vic20 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina vic20"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx128-mojon-twins-biniax-2",
+      "game": "Biniax 2",
+      "machine": "zx128",
+      "file": "descargados-autores/Spectrum-128K/Mojon-Twins--Biniax-2.tzx",
+      "member": "Mojon-Twins--Biniax-2.tzx",
+      "sha256": "7a166bce05991db1a1f85923fde1d1d6a36b1f20629f0a1fe6bf5c6d27bc4f52",
+      "bytes": 79947,
+      "edition": "cinta TZX de ZX Spectrum",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (Mojon-Twins--Biniax-2.tzx, 79947 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina zx128 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina zx128"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": "Está en la carpeta de 128K: necesita el Spectrum 128K (T-030)."
+    },
+    {
+      "id": "zx128-mojon-twins-sgt-helmet-zero",
+      "game": "Sgt. Helmet Zero",
+      "machine": "zx128",
+      "file": "descargados-autores/Spectrum-128K/Mojon-Twins--Sgt.-Helmet-Zero.tzx",
+      "member": "Mojon-Twins--Sgt.-Helmet-Zero.tzx",
+      "sha256": "0a28aef93beebbf5dab8b139371367f3c17d9cb20bdf337353f045e625e66c4d",
+      "bytes": 62484,
+      "edition": "cinta TZX de ZX Spectrum",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (Mojon-Twins--Sgt.-Helmet-Zero.tzx, 62484 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina zx128 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina zx128"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": "Está en la carpeta de 128K: necesita el Spectrum 128K (T-030)."
+    },
+    {
+      "id": "zx128-mojon-twins-subaquatic",
+      "game": "Subaquatic",
+      "machine": "zx128",
+      "file": "descargados-autores/Spectrum-128K/Mojon-Twins--Subaquatic.tzx",
+      "member": "Mojon-Twins--Subaquatic.tzx",
+      "sha256": "9c12a2c4eeb9a3b7d0cac796d32e66436fd42d71eba339dfaa0c98682ebd880e",
+      "bytes": 55206,
+      "edition": "cinta TZX de ZX Spectrum",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (Mojon-Twins--Subaquatic.tzx, 55206 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina zx128 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina zx128"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": "Está en la carpeta de 128K: necesita el Spectrum 128K (T-030)."
+    },
+    {
+      "id": "zx128-mojon-twins-subaquatic-reloaded",
+      "game": "Subaquatic Reloaded",
+      "machine": "zx128",
+      "file": "descargados-autores/Spectrum-128K/Mojon-Twins--Subaquatic-Reloaded.tzx",
+      "member": "Mojon-Twins--Subaquatic-Reloaded.tzx",
+      "sha256": "878dc8b68a816b21d0e9ff3a5aff5f469a10f1275a1e681c9899aade35e14e6e",
+      "bytes": 55593,
+      "edition": "cinta TZX de ZX Spectrum",
+      "firmware": "",
+      "model": "",
+      "controls": "",
+      "procedure": "",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (Mojon-Twins--Subaquatic-Reloaded.tzx, 55593 bytes)"
+        },
+        "load": {
+          "status": "untested",
+          "detail": "la máquina zx128 todavía no está implementada"
+        },
+        "picture": {
+          "status": "untested",
+          "detail": ""
+        },
+        "title": {
+          "status": "untested",
+          "detail": ""
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": ""
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": ""
+        }
+      },
+      "highest": "format",
+      "problems": [
+        "limitación del emulador: falta la máquina zx128"
+      ],
+      "gameQuirks": [],
+      "warnings": [],
+      "framesRun": 0,
+      "scope": "",
+      "curated": false,
+      "notes": "Está en la carpeta de 128K: necesita el Spectrum 128K (T-030)."
+    },
+    {
+      "id": "zx48-bomb-jack",
+      "game": "Bomb Jack",
+      "machine": "zx48",
+      "file": "clasicos/Spectrum-seleccion/bomb-jack.tzx",
+      "member": "bomb-jack.tzx",
+      "sha256": "edfb74bc44f8cad13e344d57f6049a22212bf222edda14c55348a9950ab3a5c6",
+      "bytes": 44167,
+      "edition": "cinta TZX de ZX Spectrum",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TZX con 6 bloques; LOAD \"\" y cinta completa por la ROM en 13876 cuadros (277 s)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (bomb-jack.tzx, 44167 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TZX con 6 bloques; LOAD \"\" y cinta completa por la ROM en 13876 cuadros (277 s)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "6 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: O, P, Q, A, M, Z, X, N, S, K, Y, SPACE, ENTER, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 (de 29 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "30c3f4e2a9222047",
+      "screenshot": "out/compat/zx48-bomb-jack.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-bomb-jack-2",
+      "game": "Bomb Jack",
+      "machine": "zx48",
+      "file": "clasicos/Spectrum/bomb-jack.zip",
+      "member": "Bomb Jack.tzx",
+      "sha256": "edfb74bc44f8cad13e344d57f6049a22212bf222edda14c55348a9950ab3a5c6",
+      "bytes": 44167,
+      "edition": "cinta TZX de ZX Spectrum",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TZX con 6 bloques; LOAD \"\" y cinta completa por la ROM en 13876 cuadros (277 s)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (Bomb Jack.tzx, 44167 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TZX con 6 bloques; LOAD \"\" y cinta completa por la ROM en 13876 cuadros (277 s)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "6 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: O, P, Q, A, M, Z, X, N, S, K, Y, SPACE, ENTER, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 (de 29 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "30c3f4e2a9222047",
+      "screenshot": "out/compat/zx48-bomb-jack-2.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-chuckie-egg",
+      "game": "Chuckie Egg",
+      "machine": "zx48",
+      "file": "clasicos/Spectrum-seleccion/chuckie-egg.tzx",
+      "member": "chuckie-egg.tzx",
+      "sha256": "9082c6d98f129dbf890d7101fe0c216aa9ff65b8c81263f24959bab9e462f623",
+      "bytes": 20581,
+      "edition": "cinta TZX de ZX Spectrum",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TZX con 4 bloques; LOAD \"\" y cinta completa por la ROM en 6098 cuadros (122 s)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (chuckie-egg.tzx, 20581 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TZX con 4 bloques; LOAD \"\" y cinta completa por la ROM en 6098 cuadros (122 s)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "7 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: S (de 29 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "82f2d9f8da139486",
+      "screenshot": "out/compat/zx48-chuckie-egg.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-chuckie-egg-2",
+      "game": "Chuckie Egg",
+      "machine": "zx48",
+      "file": "clasicos/Spectrum/chuckie-egg.zip",
+      "member": "Chuckie Egg (1984)(Pick 'n' Choose)[re-release].tzx",
+      "sha256": "9082c6d98f129dbf890d7101fe0c216aa9ff65b8c81263f24959bab9e462f623",
+      "bytes": 20581,
+      "edition": "cinta TZX de ZX Spectrum",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TZX con 4 bloques; LOAD \"\" y cinta completa por la ROM en 6098 cuadros (122 s)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (Chuckie Egg (1984)(Pick 'n' Choose)[re-release].tzx, 20581 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TZX con 4 bloques; LOAD \"\" y cinta completa por la ROM en 6098 cuadros (122 s)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "7 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: S (de 29 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "82f2d9f8da139486",
+      "screenshot": "out/compat/zx48-chuckie-egg-2.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-mojon-twins-columns",
+      "game": "Columns",
+      "machine": "zx48",
+      "file": "descargados-autores/Spectrum/Mojon-Twins--Columns.tzx",
+      "member": "Mojon-Twins--Columns.tzx",
+      "sha256": "c7ef3542e7db7492f50c11400cdaf5dcad64a240f1a97b3101d2e64bebb76c2f",
+      "bytes": 52013,
+      "edition": "cinta TZX de ZX Spectrum",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TZX con 10 bloques; LOAD \"\" y cinta completa por la ROM en 15894 cuadros (317 s)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (Mojon-Twins--Columns.tzx, 52013 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TZX con 10 bloques; LOAD \"\" y cinta completa por la ROM en 15894 cuadros (317 s)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "3 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "fail",
+          "detail": "ninguna de 29 entradas (apretadas 8 cuadros) cambió la imagen en 60 cuadros (KEMPSTON LEFT, KEMPSTON RIGHT, KEMPSTON UP, KEMPSTON FIRE, O, P, Q, A, M, Z, X, N, S, K, Y, SPACE, ENTER, CAPS SHIFT, SYMBOL SHIFT, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "picture",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "3393d2dc5f12f0a9",
+      "screenshot": "out/compat/zx48-mojon-twins-columns.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-fase-bonus-the-game-the-mojon-twins",
+      "game": "Fase Bonus The Game",
+      "machine": "zx48",
+      "file": "descargados-autores/Spectrum/Fase-Bonus-The-Game--The-Mojon-Twins.tap",
+      "member": "Fase-Bonus-The-Game--The-Mojon-Twins.tap",
+      "sha256": "3098a2eb648dbf3953bd517cd12b8182d707e889b652571289c1c22d5cba341c",
+      "bytes": 39076,
+      "edition": "cinta TAP de ZX Spectrum",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TAP con 6 bloques; LOAD \"\" y cinta completa por la ROM en 11995 cuadros (240 s)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TAP de ZX Spectrum (Fase-Bonus-The-Game--The-Mojon-Twins.tap, 39076 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TAP con 6 bloques; LOAD \"\" y cinta completa por la ROM en 11995 cuadros (240 s)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "11 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: 1, 2, 3 (de 29 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "275d0c94e618ef75",
+      "screenshot": "out/compat/zx48-fase-bonus-the-game-the-mojon-twins.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-galaxian",
+      "game": "Galaxian",
+      "machine": "zx48",
+      "file": "clasicos/Spectrum-seleccion/galaxian.z80",
+      "member": "galaxian.z80",
+      "sha256": "b1ff289239688a7ad6ea6469aad827be30816490f25006350e8acaafec1dcb8b",
+      "bytes": 15756,
+      "edition": "instantánea Z80 de ZX Spectrum",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Snapshot Z80",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "instantánea Z80 de ZX Spectrum (galaxian.z80, 15756 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Snapshot Z80"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "12 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: S (de 29 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "01ec9a7613854543",
+      "screenshot": "out/compat/zx48-galaxian.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-galaxian-2",
+      "game": "Galaxian",
+      "machine": "zx48",
+      "file": "clasicos/Spectrum/galaxian.zip",
+      "member": "Galaxian (1984)(Atarisoft).tzx",
+      "sha256": "212ea75a105d2554508145c18f48fcb4510267023565172c870fa3851427470c",
+      "bytes": 20355,
+      "edition": "cinta TZX de ZX Spectrum; el paquete trae 5 archivos, se eligió el volcado más limpio",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TZX con 4 bloques; LOAD \"\" y cinta completa por la ROM en 3879 cuadros (77 s)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (Galaxian (1984)(Atarisoft).tzx, 20355 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TZX con 4 bloques; LOAD \"\" y cinta completa por la ROM en 3879 cuadros (77 s)"
+        },
+        "picture": {
+          "status": "fail",
+          "detail": "quedó en la pantalla de inicio del Spectrum"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "load",
+      "problems": [
+        "quedó en la pantalla de inicio del Spectrum"
+      ],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "c31941cec0d7f5b1",
+      "screenshot": "out/compat/zx48-galaxian-2.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-mojon-twins-horace-goes-to-the-tower",
+      "game": "Horace Goes to the Tower",
+      "machine": "zx48",
+      "file": "descargados-autores/Spectrum/Mojon-Twins--Horace-Goes-to-the-Tower.tzx",
+      "member": "Mojon-Twins--Horace-Goes-to-the-Tower.tzx",
+      "sha256": "5e30d26c859f1860b602ffc6582f04df57cd5b69d6d6e0629f16ac6627199991",
+      "bytes": 38851,
+      "edition": "cinta TZX de ZX Spectrum",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TZX con 6 bloques; LOAD \"\" y cinta completa por la ROM en 11381 cuadros (227 s)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (Mojon-Twins--Horace-Goes-to-the-Tower.tzx, 38851 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TZX con 6 bloques; LOAD \"\" y cinta completa por la ROM en 11381 cuadros (227 s)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "7 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: 1, 2, 3 (de 29 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "579c9dfa84e7b5e0",
+      "screenshot": "out/compat/zx48-mojon-twins-horace-goes-to-the-tower.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-jet-set-willy",
+      "game": "Jet Set Willy",
+      "machine": "zx48",
+      "file": "clasicos/Spectrum-seleccion/jet-set-willy.z80",
+      "member": "jet-set-willy.z80",
+      "sha256": "1e16f855d67d0075b37f12b1481962ac75e791ae953a4de4e37c9c26d4f5bc90",
+      "bytes": 49182,
+      "edition": "instantánea Z80 de ZX Spectrum",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Snapshot Z80",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "instantánea Z80 de ZX Spectrum (jet-set-willy.z80, 49182 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Snapshot Z80"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "8 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: 1, 2, 3, 4 (de 29 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "adbdcaa72106650d",
+      "screenshot": "out/compat/zx48-jet-set-willy.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-jet-set-willy-2",
+      "game": "Jet Set Willy",
+      "machine": "zx48",
+      "file": "clasicos/Spectrum/jet-set-willy.zip",
+      "member": "Jet Set Willy (1984)(Software Projects).tzx",
+      "sha256": "0d846f41d3113b78d34a27fb4e947cde263fd3cd3dab179b68cd6d6ecaf34101",
+      "bytes": 33169,
+      "edition": "cinta TZX de ZX Spectrum; el paquete trae 16 archivos, se eligió el volcado más limpio",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TZX con 4 bloques; LOAD \"\" y cinta completa por la ROM en 9317 cuadros (186 s)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (Jet Set Willy (1984)(Software Projects).tzx, 33169 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TZX con 4 bloques; LOAD \"\" y cinta completa por la ROM en 9317 cuadros (186 s)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "9 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: 1, 2, 3, 4 (de 29 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "6bda5a0cf0979835",
+      "screenshot": "out/compat/zx48-jet-set-willy-2.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-karateka",
+      "game": "Karateka",
+      "machine": "zx48",
+      "file": "clasicos/Spectrum-pendiente/karateka.tap",
+      "member": "karateka.tap",
+      "sha256": "d66e554206ae03b7f3167df03274c224ee2a1fa68275f235ed0c33f8bfec619c",
+      "bytes": 67058,
+      "edition": "cinta TAP de ZX Spectrum",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TAP con 11 bloques; LOAD \"\" y cinta completa por la ROM en 21640 cuadros (432 s)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TAP de ZX Spectrum (karateka.tap, 67058 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TAP con 11 bloques; LOAD \"\" y cinta completa por la ROM en 21640 cuadros (432 s)"
+        },
+        "picture": {
+          "status": "fail",
+          "detail": "quedó en la pantalla de inicio del Spectrum"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "load",
+      "problems": [
+        "quedó en la pantalla de inicio del Spectrum"
+      ],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "c31941cec0d7f5b1",
+      "screenshot": "out/compat/zx48-karateka.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-karateka-2",
+      "game": "Karateka",
+      "machine": "zx48",
+      "file": "clasicos/Spectrum/karateka.zip",
+      "member": "Karateka (1986)(Dro Soft)(es)[cr Rajsoft].tap",
+      "sha256": "d66e554206ae03b7f3167df03274c224ee2a1fa68275f235ed0c33f8bfec619c",
+      "bytes": 67058,
+      "edition": "cinta TAP de ZX Spectrum; el paquete trae 2 archivos, se eligió el volcado más limpio",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TAP con 11 bloques; LOAD \"\" y cinta completa por la ROM en 21640 cuadros (432 s)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TAP de ZX Spectrum (Karateka (1986)(Dro Soft)(es)[cr Rajsoft].tap, 67058 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TAP con 11 bloques; LOAD \"\" y cinta completa por la ROM en 21640 cuadros (432 s)"
+        },
+        "picture": {
+          "status": "fail",
+          "detail": "quedó en la pantalla de inicio del Spectrum"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "load",
+      "problems": [
+        "quedó en la pantalla de inicio del Spectrum"
+      ],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "c31941cec0d7f5b1",
+      "screenshot": "out/compat/zx48-karateka-2.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-mojon-twins-lala-prologue",
+      "game": "Lala Prologue",
+      "machine": "zx48",
+      "file": "descargados-autores/Spectrum/Mojon-Twins--Lala-Prologue.tzx",
+      "member": "Mojon-Twins--Lala-Prologue.tzx",
+      "sha256": "c0e0647efd0923cbc219b8ac7c8d90c1554c44885d23a8aead995027f365043a",
+      "bytes": 32889,
+      "edition": "cinta TZX de ZX Spectrum",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TZX con 8 bloques; LOAD \"\" y cinta completa por la ROM en 10488 cuadros (209 s)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (Mojon-Twins--Lala-Prologue.tzx, 32889 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TZX con 8 bloques; LOAD \"\" y cinta completa por la ROM en 10488 cuadros (209 s)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "6 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: O, P, Q, A, M, Z, X, N, S, K, Y, SPACE, ENTER, CAPS SHIFT, SYMBOL SHIFT, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 (de 29 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "fe6865ac10a528f2",
+      "screenshot": "out/compat/zx48-mojon-twins-lala-prologue.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-lode-runner",
+      "game": "Lode Runner",
+      "machine": "zx48",
+      "file": "clasicos/Spectrum-seleccion/lode-runner.z80",
+      "member": "lode-runner.z80",
+      "sha256": "d9d4b5257f9cc80c6f9bc273af723319b5eab625c08134f6865c72695b1971e5",
+      "bytes": 32181,
+      "edition": "instantánea Z80 de ZX Spectrum",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Snapshot Z80",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "instantánea Z80 de ZX Spectrum (lode-runner.z80, 32181 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Snapshot Z80"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "8 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: O, P, Q, A, M, Z, X, N, S, K, Y, SPACE, ENTER, CAPS SHIFT, SYMBOL SHIFT, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 (de 29 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "207e86b241834c45",
+      "screenshot": "out/compat/zx48-lode-runner.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-lode-runner-2",
+      "game": "Lode Runner",
+      "machine": "zx48",
+      "file": "clasicos/Spectrum/lode-runner.zip",
+      "member": "Lode Runner (1984)(Software Projects)[passworded].tzx",
+      "sha256": "89cfe394312f6e8a195c417f8a6d66a6a04dbf2d88a31162cb6e1ca3d540283a",
+      "bytes": 49590,
+      "edition": "cinta TZX de ZX Spectrum; el paquete trae 9 archivos, se eligió el volcado más limpio",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TZX con 5 bloques; LOAD \"\" y cinta completa por la ROM en 11452 cuadros (229 s)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (Lode Runner (1984)(Software Projects)[passworded].tzx, 49590 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TZX con 5 bloques; LOAD \"\" y cinta completa por la ROM en 11452 cuadros (229 s)"
+        },
+        "picture": {
+          "status": "fail",
+          "detail": "quedó en la pantalla de inicio del Spectrum"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "untested",
+          "detail": ""
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "load",
+      "problems": [
+        "quedó en la pantalla de inicio del Spectrum"
+      ],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "c31941cec0d7f5b1",
+      "screenshot": "out/compat/zx48-lode-runner-2.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-manicminer",
+      "game": "Manic Miner",
+      "machine": "zx48",
+      "file": "ManicMiner.tzx.zip",
+      "member": "Manic Miner.tzx",
+      "sha256": "3c9bbf17c2a9f4c0aa10e2799d127c05d1b24de639a14adedc935c5667dfa724",
+      "bytes": 33205,
+      "edition": "Manic Miner.tzx (33.205 bytes), la edición del perfil manicminer",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "O y P caminar, fila de abajo o espacio saltar, ENTER empezar",
+      "procedure": "Cinta TZX con 6 bloques; LOAD \"\" y cinta completa por la ROM en 9772 cuadros (195 s); cuadro 150: ENTER durante 40",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (Manic Miner.tzx, 33205 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TZX con 6 bloques; LOAD \"\" y cinta completa por la ROM en 9772 cuadros (195 s)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "13 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "ok",
+          "detail": "sí: pantalla de título a color tras la carga (10 colores, mínimo 4)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: O, P, SPACE (de 3 probadas)"
+        },
+        "playable": {
+          "status": "ok",
+          "detail": "sí: empieza en la caverna 0, Central Cavern (variable cavern) ($8407 = 0, se esperaba eq 0); sí: 2 vidas de reserva (variable lives) ($8457 = 2, se esperaba eq 2); sí: el aire está por encima del mínimo (variable air) ($80BC = 63, se esperaba gt 36); sí: el nombre de la caverna en pantalla (\"Central Cavern\" está en pantalla en el cuadro 400)"
+        },
+        "fusion": {
+          "status": "partial",
+          "detail": "perfil \"manicminer\" asociado por nombre de archivo; sus direcciones no están verificadas contra este hash (T-053)"
+        }
+      },
+      "highest": "playable",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "04863ea83d9e770e",
+      "screenshot": "out/compat/zx48-manicminer.png",
+      "framesRun": 600,
+      "scope": "600 cuadros (12 s de máquina) después del arranque, con 1 pulsaciones guionadas y 5 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": true,
+      "notes": "Comprobaciones con las direcciones del perfil manicminer."
+    },
+    {
+      "id": "zx48-mojon-twins-mariano-the-dragon-capers-in-cityland",
+      "game": "Mariano the Dragon Capers in Cityland",
+      "machine": "zx48",
+      "file": "descargados-autores/Spectrum/Mojon-Twins--Mariano-the-Dragon-Capers-in-Cityland.tzx",
+      "member": "Mojon-Twins--Mariano-the-Dragon-Capers-in-Cityland.tzx",
+      "sha256": "e15e686b3688be27471e145c38767df181c6a9e2c56a0d25a67aad33687c549c",
+      "bytes": 39272,
+      "edition": "cinta TZX de ZX Spectrum",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TZX con 8 bloques; LOAD \"\" y cinta completa por la ROM en 12847 cuadros (257 s)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (Mojon-Twins--Mariano-the-Dragon-Capers-in-Cityland.tzx, 39272 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TZX con 8 bloques; LOAD \"\" y cinta completa por la ROM en 12847 cuadros (257 s)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "5 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: O, P, Q, A, M, Z, X, N, S, K, Y, SPACE, ENTER, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 (de 29 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "6e6738501f144062",
+      "screenshot": "out/compat/zx48-mojon-twins-mariano-the-dragon-capers-in-cityland.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-mojon-twins-moggy-adventure",
+      "game": "Moggy Adventure",
+      "machine": "zx48",
+      "file": "descargados-autores/Spectrum/Mojon-Twins--Moggy-Adventure.tzx",
+      "member": "Mojon-Twins--Moggy-Adventure.tzx",
+      "sha256": "1053e8277ccf581eeb2ff7617c54555d2b7b1757f46139d4361285baf9d87f08",
+      "bytes": 37043,
+      "edition": "cinta TZX de ZX Spectrum",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TZX con 8 bloques; LOAD \"\" y cinta completa por la ROM en 11691 cuadros (233 s)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (Mojon-Twins--Moggy-Adventure.tzx, 37043 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TZX con 8 bloques; LOAD \"\" y cinta completa por la ROM en 11691 cuadros (233 s)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "7 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: 1, 2, 3 (de 29 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "433f295f3f7e0081",
+      "screenshot": "out/compat/zx48-mojon-twins-moggy-adventure.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-mojon-twins-nanako-in-classic-japanese-monster-castle",
+      "game": "Nanako in Classic Japanese Monster Castle",
+      "machine": "zx48",
+      "file": "descargados-autores/Spectrum/Mojon-Twins--Nanako-in-Classic-Japanese_Monster_Castle.tzx",
+      "member": "Mojon-Twins--Nanako-in-Classic-Japanese_Monster_Castle.tzx",
+      "sha256": "7bd4de6c42248463f55c6cd9a1fa4ad141d732e71ff6c459ea97719f2a8e82d4",
+      "bytes": 13964,
+      "edition": "cinta TZX de ZX Spectrum",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TZX con 4 bloques; LOAD \"\" y cinta completa por la ROM en 4842 cuadros (97 s)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (Mojon-Twins--Nanako-in-Classic-Japanese_Monster_Castle.tzx, 13964 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TZX con 4 bloques; LOAD \"\" y cinta completa por la ROM en 4842 cuadros (97 s)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "7 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: P, S (de 29 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "0fd815668b716161",
+      "screenshot": "out/compat/zx48-mojon-twins-nanako-in-classic-japanese-monster-castle.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-pac-man-zx-spectrum",
+      "game": "Pac Man",
+      "machine": "zx48",
+      "file": "Pac_Man_ZX-Spectrum_ROM_EN.zip",
+      "member": "Pac-Man (1983)(Atarisoft).tzx",
+      "sha256": "5d182adf7538302f50f740985d257478a60288368d00a5a0206a4243eaa5785d",
+      "bytes": 12402,
+      "edition": "cinta TZX de ZX Spectrum; el paquete trae 5 archivos, se eligió el volcado más limpio",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TZX con 6 bloques; LOAD \"\" y cinta completa por la ROM en 4953 cuadros (99 s)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (Pac-Man (1983)(Atarisoft).tzx, 12402 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TZX con 6 bloques; LOAD \"\" y cinta completa por la ROM en 4953 cuadros (99 s)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "4 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: S, 2 (de 29 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "922fe1cf950264f2",
+      "screenshot": "out/compat/zx48-pac-man-zx-spectrum.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-mojon-twins-phantomas-saga-1-infinity",
+      "game": "Phantomas Saga 1 Infinity",
+      "machine": "zx48",
+      "file": "descargados-autores/Spectrum/Mojon-Twins--Phantomas-Saga-1-Infinity.tzx",
+      "member": "Mojon-Twins--Phantomas-Saga-1-Infinity.tzx",
+      "sha256": "561cfbb4c6975ca211cae40a3da4aed3a0a7ced35b223efc309ece6f47cd221b",
+      "bytes": 18479,
+      "edition": "cinta TZX de ZX Spectrum",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TZX con 4 bloques; LOAD \"\" y cinta completa por la ROM en 6122 cuadros (122 s)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (Mojon-Twins--Phantomas-Saga-1-Infinity.tzx, 18479 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TZX con 4 bloques; LOAD \"\" y cinta completa por la ROM en 6122 cuadros (122 s)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "12 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: O, P, Q, A, M, Z, X, N, S, K, Y, SPACE, ENTER, CAPS SHIFT, SYMBOL SHIFT, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 (de 29 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "d7e4b7c34a7ef070",
+      "screenshot": "out/compat/zx48-mojon-twins-phantomas-saga-1-infinity.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-mojon-twins-sir-ababol",
+      "game": "Sir Ababol",
+      "machine": "zx48",
+      "file": "descargados-autores/Spectrum/Mojon-Twins--Sir-Ababol.tzx",
+      "member": "Mojon-Twins--Sir-Ababol.tzx",
+      "sha256": "99734c6d10f3d2fc71d51ca3c4883dd45dd16b8051b200127c607affa315bf0e",
+      "bytes": 37320,
+      "edition": "cinta TZX de ZX Spectrum",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TZX con 8 bloques; LOAD \"\" y cinta completa por la ROM en 11607 cuadros (232 s)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (Mojon-Twins--Sir-Ababol.tzx, 37320 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TZX con 8 bloques; LOAD \"\" y cinta completa por la ROM en 11607 cuadros (232 s)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "11 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: 1, 2, 3 (de 29 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "4f951e4d0b6744d0",
+      "screenshot": "out/compat/zx48-mojon-twins-sir-ababol.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-mojon-twins-trabajo-basura",
+      "game": "Trabajo Basura",
+      "machine": "zx48",
+      "file": "descargados-autores/Spectrum/Mojon-Twins--Trabajo-Basura.tzx",
+      "member": "Mojon-Twins--Trabajo-Basura.tzx",
+      "sha256": "f6365487b26a8c516b20c50f8daec2e364d26be21d6a7e2584fe9d03b45fba8d",
+      "bytes": 36955,
+      "edition": "cinta TZX de ZX Spectrum",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TZX con 6 bloques; LOAD \"\" y cinta completa por la ROM en 11297 cuadros (226 s)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (Mojon-Twins--Trabajo-Basura.tzx, 36955 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TZX con 6 bloques; LOAD \"\" y cinta completa por la ROM en 11297 cuadros (226 s)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "10 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: 1, 2, 3 (de 29 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "aeb228526d2d2d2b",
+      "screenshot": "out/compat/zx48-mojon-twins-trabajo-basura.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-turrican",
+      "game": "Turrican",
+      "machine": "zx48",
+      "file": "clasicos/Spectrum-seleccion/turrican.tzx",
+      "member": "turrican.tzx",
+      "sha256": "6073bb2e61f1ef2ac03f89fefb4ad6a193d3c5bfb42b4664f7c9dd7ea715ab7c",
+      "bytes": 279793,
+      "edition": "cinta TZX de ZX Spectrum",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TZX con 69 bloques; LOAD \"\" en 11825 cuadros (236 s) hasta que la cinta se detuvo sola en el bloque 31 (multicarga: el resto se carga cuando el juego lo pide)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (turrican.tzx, 279793 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TZX con 69 bloques; LOAD \"\" en 11825 cuadros (236 s) hasta que la cinta se detuvo sola en el bloque 31 (multicarga: el resto se carga cuando el juego lo pide)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "9 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: SPACE (de 29 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "f0c57260361fba74",
+      "screenshot": "out/compat/zx48-turrican.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-turrican-2",
+      "game": "Turrican",
+      "machine": "zx48",
+      "file": "clasicos/Spectrum/turrican.zip",
+      "member": "Turrican (1990)(Rainbow Arts).tzx",
+      "sha256": "6073bb2e61f1ef2ac03f89fefb4ad6a193d3c5bfb42b4664f7c9dd7ea715ab7c",
+      "bytes": 279793,
+      "edition": "cinta TZX de ZX Spectrum; el paquete trae 7 archivos, se eligió el volcado más limpio",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TZX con 69 bloques; LOAD \"\" en 11825 cuadros (236 s) hasta que la cinta se detuvo sola en el bloque 31 (multicarga: el resto se carga cuando el juego lo pide)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (Turrican (1990)(Rainbow Arts).tzx, 279793 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TZX con 69 bloques; LOAD \"\" en 11825 cuadros (236 s) hasta que la cinta se detuvo sola en el bloque 31 (multicarga: el resto se carga cuando el juego lo pide)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "9 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: SPACE (de 29 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "f0c57260361fba74",
+      "screenshot": "out/compat/zx48-turrican-2.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-mojon-twins-uwol",
+      "game": "Uwol",
+      "machine": "zx48",
+      "file": "descargados-autores/Spectrum/Mojon-Twins--Uwol.tzx",
+      "member": "Mojon-Twins--Uwol.tzx",
+      "sha256": "8bc9e6c5e0c4029b4737b6fb6508a371b0190435e5a0b9b56cd4376ff6d26cf8",
+      "bytes": 50300,
+      "edition": "cinta TZX de ZX Spectrum",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TZX con 12 bloques; LOAD \"\" y cinta completa por la ROM en 16698 cuadros (333 s)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (Mojon-Twins--Uwol.tzx, 50300 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TZX con 12 bloques; LOAD \"\" y cinta completa por la ROM en 16698 cuadros (333 s)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "9 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "fail",
+          "detail": "ninguna de 29 entradas (apretadas 8 cuadros) cambió la imagen en 60 cuadros (KEMPSTON LEFT, KEMPSTON RIGHT, KEMPSTON UP, KEMPSTON FIRE, O, P, Q, A, M, Z, X, N, S, K, Y, SPACE, ENTER, CAPS SHIFT, SYMBOL SHIFT, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "picture",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "e00f7a7b00daa884",
+      "screenshot": "out/compat/zx48-mojon-twins-uwol.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-mojon-twins-viaje-al-centro-de-la-napia",
+      "game": "Viaje al centro de la napia",
+      "machine": "zx48",
+      "file": "descargados-autores/Spectrum/Mojon-Twins--Viaje-al-centro-de-la-napia.tzx",
+      "member": "Mojon-Twins--Viaje-al-centro-de-la-napia.tzx",
+      "sha256": "74a61bd23ae7058b3942ede6247637b6b4b781db2ca421f193141df836209308",
+      "bytes": 36831,
+      "edition": "cinta TZX de ZX Spectrum",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TZX con 8 bloques; LOAD \"\" y cinta completa por la ROM en 11670 cuadros (233 s)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (Mojon-Twins--Viaje-al-centro-de-la-napia.tzx, 36831 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TZX con 8 bloques; LOAD \"\" y cinta completa por la ROM en 11670 cuadros (233 s)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "8 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: 1, 2, 3 (de 29 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "3cf154e3eb52b52f",
+      "screenshot": "out/compat/zx48-mojon-twins-viaje-al-centro-de-la-napia.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-xenon",
+      "game": "Xenon",
+      "machine": "zx48",
+      "file": "clasicos/Spectrum-seleccion/xenon.z80",
+      "member": "xenon.z80",
+      "sha256": "72cf9bb3eec52cc044b3094acbcefe9ae759d4f5b03b49c6017da89321c25eca",
+      "bytes": 38263,
+      "edition": "instantánea Z80 de ZX Spectrum",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Snapshot Z80",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "instantánea Z80 de ZX Spectrum (xenon.z80, 38263 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Snapshot Z80"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "7 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: SPACE, 1, 2, 3, 4 (de 29 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "32d8bb2fecb703ab",
+      "screenshot": "out/compat/zx48-xenon.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-xenon-2",
+      "game": "Xenon",
+      "machine": "zx48",
+      "file": "clasicos/Spectrum/xenon.zip",
+      "member": "Xenon (1988)(Melbourne House)[48-128K].tzx",
+      "sha256": "906c6f4da7dc6ce79897c94e6bde64fab72e8ba8dce8592784dd709e7ad62209",
+      "bytes": 112767,
+      "edition": "cinta TZX de ZX Spectrum; el paquete trae 11 archivos, se eligió el volcado más limpio",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TZX con 30 bloques; LOAD \"\" en 15069 cuadros (301 s) hasta que la cinta se detuvo sola en el bloque 9 (multicarga: el resto se carga cuando el juego lo pide)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (Xenon (1988)(Melbourne House)[48-128K].tzx, 112767 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TZX con 30 bloques; LOAD \"\" en 15069 cuadros (301 s) hasta que la cinta se detuvo sola en el bloque 9 (multicarga: el resto se carga cuando el juego lo pide)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "7 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: O, P, Q, A, M, Z, X, N, S, K, Y, SPACE, ENTER, CAPS SHIFT, SYMBOL SHIFT, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 (de 29 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "32d8bb2fecb703ab",
+      "screenshot": "out/compat/zx48-xenon-2.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    },
+    {
+      "id": "zx48-mojon-twins-zombie-calavera-prologue",
+      "game": "Zombie Calavera Prologue",
+      "machine": "zx48",
+      "file": "descargados-autores/Spectrum/Mojon-Twins--Zombie-Calavera-Prologue.tzx",
+      "member": "Mojon-Twins--Zombie-Calavera-Prologue.tzx",
+      "sha256": "c8f2d431965b13c8c094c95f400e92dc58d654a6ae972b865fefaa482f54ead1",
+      "bytes": 38000,
+      "edition": "cinta TZX de ZX Spectrum",
+      "firmware": "ROM 48K de Sinclair (48.rom)",
+      "model": "ZX Spectrum 48K (PAL)",
+      "controls": "",
+      "procedure": "Cinta TZX con 8 bloques; LOAD \"\" y cinta completa por la ROM en 11837 cuadros (236 s)",
+      "levels": {
+        "format": {
+          "status": "ok",
+          "detail": "cinta TZX de ZX Spectrum (Mojon-Twins--Zombie-Calavera-Prologue.tzx, 38000 bytes)"
+        },
+        "load": {
+          "status": "ok",
+          "detail": "Cinta TZX con 8 bloques; LOAD \"\" y cinta completa por la ROM en 11837 cuadros (236 s)"
+        },
+        "picture": {
+          "status": "ok",
+          "detail": "11 colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"
+        },
+        "title": {
+          "status": "untested",
+          "detail": "sin comprobación de título en el guion (mirar la captura)"
+        },
+        "controls": {
+          "status": "ok",
+          "detail": "cambian la imagen: 1, 2, 3 (de 29 probadas)"
+        },
+        "playable": {
+          "status": "untested",
+          "detail": "sin comprobaciones de partida en el guion"
+        },
+        "fusion": {
+          "status": "untested",
+          "detail": "no hay perfil de fusión para este juego"
+        }
+      },
+      "highest": "controls",
+      "problems": [],
+      "gameQuirks": [],
+      "warnings": [
+        "determinista: dos corridas dieron la misma imagen final"
+      ],
+      "screenHash": "88f1977ac9ab27d0",
+      "screenshot": "out/compat/zx48-mojon-twins-zombie-calavera-prologue.png",
+      "framesRun": 1500,
+      "scope": "1500 cuadros (30 s de máquina) después del arranque, con 0 pulsaciones guionadas y 0 comprobaciones; sonda de controles de 60 cuadros por entrada. No es una partida completa.",
+      "curated": false,
+      "notes": ""
+    }
+  ]
+}

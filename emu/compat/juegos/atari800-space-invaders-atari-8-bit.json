@@ -1,0 +1,19 @@
+{
+  "id": "atari800-space-invaders-atari-8-bit",
+  "game": "Space Invaders",
+  "machine": "atari800",
+  "file": "Space_Invaders_Atari-8-bit_ROM_EN.zip",
+  "member": "Space Invaders (1980)(Atari)(US).xex",
+  "edition": "programa de Atari 8 bits (.xex); el paquete trae 6 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

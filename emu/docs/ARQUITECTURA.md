@@ -19,6 +19,10 @@ src/
   Retro.Systems.Arcade     Placa Taito/Midway de Space Invaders: video, shifter, sonido.
   Retro.Systems.C64        Commodore 64: VIC-II, SID, dos CIA 6526, bancos del 6510,
                            cintas .t64 y programas .prg, compatibilidad con Open ROMs.
+  Retro.Machines           Catálogo de máquinas y formatos, y el lanzador común que arranca una
+                           máquina con un juego (app, CLI, fusiones y compatibilidad).
+  Retro.Compat             Matriz de compatibilidad reproducible: guiones, ejecutor sin ventana,
+                           sonda de controles, informe con evidencia.
   Retro.Fusion             Perfiles de juegos (variables de RAM, controles, arranque),
                            recetas de fusión y la sesión que corre 2 o 3 máquinas a la vez.
   Retro.Ai                 Proveedores de IA (Claude, ChatGPT, Gemini, Ollama), diseñador de recetas con
@@ -41,6 +45,8 @@ tests/
   Zx.Tests                 Máquina Spectrum y compatibilidad con juegos reales.
   Arcade.Tests             Placa de Space Invaders con un programa de prueba propio,
                            análisis de rutinas.
+  Compat.Tests             Ejecutor de compatibilidad con programas propios (sonda, determinismo,
+                           fallos, exclusiones, informe).
   Fusion.Tests             Recetas, reglas, diseñador con una IA simulada, fusión con
                            los juegos reales y análisis de código de Manic Miner.
 ```
@@ -175,6 +181,31 @@ bus) y la suite funcional de Klaus Dormann.
   los punteros del BASIC y lo lanza como `SYS` (A, X, Y y flags desde $030C-$030F, pila en
   $F6 con la dirección de retorno, como el BASIC real: hay programas que dependen de eso)
   o escribiendo `RUN` en el buffer del teclado.
+
+## Compatibilidad reproducible (Retro.Compat)
+
+Cada edición de cada juego tiene un guion JSON (`emu/compat/juegos/`): archivo y miembro
+del zip, SHA-256 de la edición para la que se escribió, arranque (las cintas se cargan con
+`LOAD ""` por la ROM), pulsaciones por cuadro y comprobaciones (texto en pantalla, memoria,
+colores, cambio de imagen). `retro-cli compat` los corre sin ventana, en paralelo, y
+produce para cada uno el nivel alcanzado con su evidencia: formato reconocido → medio
+cargado → imagen sin signos de fallo (BASIC, mensaje de error, pantalla de inicio,
+pantalla vacía) → título → responde a los controles → jugable → listo para fusionar.
+
+- **Texto en pantalla:** en el C64 se lee la matriz de texto de la VIC-II; en el Spectrum
+  cada celda se compara con la fuente de la ROM (`ScreenText`).
+- **Sonda de controles:** desde un estado guardado al final del guion se aprieta cada
+  entrada candidata (8 cuadros, después se suelta) y se compara la imagen, mientras está
+  apretada y 60 cuadros después, con la misma corrida sin entradas. Como la emulación es
+  determinista, una diferencia significa que el juego reaccionó. Si la corrida sin
+  entradas no se repite igual, la sonda se declara no fiable.
+- **Determinismo:** `--dos-veces` corre cada guion dos veces y compara el hash de la
+  imagen final.
+- **Multicarga:** la carga termina al final de la cinta o cuando un bloque "parar la
+  cinta" la detiene; para las que no tienen ese bloque, el guion fija `bootFrames` y
+  `loadEndsByTime`.
+- **Descubrimiento:** `--descubrir` crea guiones para los archivos sin guion (sin pasos ni
+  comprobaciones: llegan como mucho a "imagen" y "responde") y salta el contenido excluido.
 
 ## Cinta: señal, no atajos
 

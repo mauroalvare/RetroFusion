@@ -1,0 +1,19 @@
+{
+  "id": "zx48-turrican-2",
+  "game": "Turrican",
+  "machine": "zx48",
+  "file": "clasicos/Spectrum/turrican.zip",
+  "member": "Turrican (1990)(Rainbow Arts).tzx",
+  "edition": "cinta TZX de ZX Spectrum; el paquete trae 7 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

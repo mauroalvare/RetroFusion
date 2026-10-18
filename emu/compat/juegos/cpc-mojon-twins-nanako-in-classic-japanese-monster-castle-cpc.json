@@ -1,0 +1,18 @@
+{
+  "id": "cpc-mojon-twins-nanako-in-classic-japanese-monster-castle-cpc",
+  "game": "Nanako In Classic Japanese Monster Castle",
+  "machine": "cpc",
+  "file": "descargados-autores/CPC/Mojon-Twins--Nanako-In-Classic-Japanese-Monster-Castle--CPC.cdt",
+  "edition": "cinta de Amstrad CPC (.cdt)",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

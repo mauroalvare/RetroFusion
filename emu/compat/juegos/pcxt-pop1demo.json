@@ -1,0 +1,19 @@
+{
+  "id": "pcxt-pop1demo",
+  "game": "Pop1demo",
+  "machine": "pcxt",
+  "file": "pop1demo.zip",
+  "member": "pop1demo.exe",
+  "edition": "programa de MS-DOS (.exe); el paquete trae 8 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

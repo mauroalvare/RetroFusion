@@ -13,6 +13,13 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 - Jet Set Willy pide la tarjeta de códigos (protección del juego, no fallo de carga).
   Karateka (edición de `clasicos\Spectrum`) se reinicia: falta investigar la edición.
 - Turrican y otros multicarga: solo se comprobó la primera carga.
+- Tres cintas cargan completas y después el Spectrum vuelve a su pantalla de inicio
+  (observado en la matriz): Galaxian de Atarisoft (`clasicos/Spectrum/galaxian.zip`, el
+  `.z80` de Spectrum-seleccion sí anda), Karateka (las dos copias) y Lode Runner
+  "passworded". Típico de cargadores con protección o timing fino; falta investigar si es
+  del emulador (T-015).
+- Columns y Uwol de Mojon Twins no responden a ninguna de las 29 teclas de la sonda en el
+  momento probado (están en una intro o esperan algo distinto): falta un guion curado.
 
 ### Placa Space Invaders
 
@@ -38,6 +45,14 @@ arreglar algo, se borra la entrada y se menciona en el commit.
   usa el puerto 1 para el jugador blanco.
 - Los juegos crackeados de la carpeta (Pac-Man y Ghostbusters) tienen menús de trainer
   antes del juego: la secuencia de teclas está en `tests/C64.Tests/GameTests.cs`.
+
+### Matriz de compatibilidad
+
+- Los guiones descubiertos automáticamente no tienen pasos ni comprobaciones: el nivel
+  "título" y "jugable" solo existen en los curados (6 hoy). "Responde a los controles"
+  significa que alguna entrada cambió la imagen, no que el juego se pueda jugar.
+- La sonda prueba una lista fija de entradas por máquina; un juego que espera otra tecla
+  figura como que no responde.
 
 ## Fusiones y estudio
 

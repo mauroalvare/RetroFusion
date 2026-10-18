@@ -1,0 +1,18 @@
+{
+  "id": "atarist-super-game-no-publisher",
+  "game": "Super Game [No Publisher]",
+  "machine": "atarist",
+  "file": "super_game_[no_publisher].zip",
+  "edition": "disco comprimido de Atari ST (.msa)",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

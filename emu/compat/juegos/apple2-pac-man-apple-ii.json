@@ -1,0 +1,18 @@
+{
+  "id": "apple2-pac-man-apple-ii",
+  "game": "Pac Man",
+  "machine": "apple2",
+  "file": "Pac_Man_Apple-II_ROM_EN.zip",
+  "edition": "disco de 140 KB (Apple II)",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

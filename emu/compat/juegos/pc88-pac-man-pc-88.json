@@ -1,0 +1,19 @@
+{
+  "id": "pc88-pac-man-pc-88",
+  "game": "Pac Man",
+  "machine": "pc88",
+  "file": "Pac_Man_PC-88_ROM_EN.zip",
+  "member": "Pacman (1983)(Dempa Shinbunsha).d88",
+  "edition": "disco D88 (NEC PC-88); el paquete trae 2 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

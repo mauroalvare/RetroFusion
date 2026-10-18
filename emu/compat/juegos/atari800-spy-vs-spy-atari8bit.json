@@ -1,0 +1,19 @@
+{
+  "id": "atari800-spy-vs-spy-atari8bit",
+  "game": "Spy vs Spy",
+  "machine": "atari800",
+  "file": "Spy_vs_Spy_Atari8bit_EN.zip",
+  "member": "Spy vs Spy (1984)(First Star Software)(US).xex",
+  "edition": "programa de Atari 8 bits (.xex); el paquete trae 5 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

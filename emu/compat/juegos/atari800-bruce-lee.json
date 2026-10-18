@@ -1,0 +1,19 @@
+{
+  "id": "atari800-bruce-lee",
+  "game": "Bruce Lee",
+  "machine": "atari800",
+  "file": "clasicos/Atari-8-bit/bruce-lee.zip",
+  "member": "Bruce Lee (1984)(Datasoft)(US).xex",
+  "edition": "programa de Atari 8 bits (.xex); el paquete trae 9 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

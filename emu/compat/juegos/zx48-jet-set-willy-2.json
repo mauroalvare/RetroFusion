@@ -1,0 +1,19 @@
+{
+  "id": "zx48-jet-set-willy-2",
+  "game": "Jet Set Willy",
+  "machine": "zx48",
+  "file": "clasicos/Spectrum/jet-set-willy.zip",
+  "member": "Jet Set Willy (1984)(Software Projects).tzx",
+  "edition": "cinta TZX de ZX Spectrum; el paquete trae 16 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

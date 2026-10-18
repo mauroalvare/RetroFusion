@@ -11,6 +11,10 @@ Spectrum Computing), y para todas las máquinas hay juegos caseros (homebrew) li
 Consejo: si hay varias versiones del mismo juego, preferí la marcada `[!]` (volcado
 verificado) y evitá `[h]` (hack), `[t]` (con trucos) y `[cr]` (crackeado).
 
+El estado comprobado de cada archivo de tu carpeta (carga, título, controles, jugable,
+con hash y capturas) está en [COMPATIBILIDAD.md](COMPATIBILIDAD.md), que se regenera con
+`retro-cli compat`.
+
 ## Funcionan hoy
 
 | Máquina | CPU | Buscá archivos | Firmware | Para probar |

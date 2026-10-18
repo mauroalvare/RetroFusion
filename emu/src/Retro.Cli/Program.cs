@@ -16,6 +16,8 @@ static int Usage()
           retro-cli run <archivo> [opciones]
           retro-cli fuse <receta> --games <carpeta> [--ticks n] [--screenshot png]
           retro-cli studio <juego.js|juego.json|id> --games <carpeta> [--seconds n] [--shots prefijo]
+          retro-cli compat <carpeta-guiones|guion.json> --juegos <carpeta> [--salida r.json] [--md tabla.md]
+                    [--capturas carpeta] [--solo id1,id2] [--descubrir] [--dos-veces] [--paralelo n]
 
         Máquinas: ZX Spectrum 48K (.tap .tzx .z80 .sna), Space Invaders (invaders.zip de MAME)
         y Commodore 64 (.t64 .prg).
@@ -61,6 +63,10 @@ string? Opt(string k) => opts.TryGetValue(k, out var v) ? v[^1] : null;
 
 if (command == "studio")
     return RunStudio(mediaPath, Opt("games") ?? ".", Opt("seconds"), Opt("shots"));
+
+if (command == "compat")
+    return RunCompat(mediaPath, Opt("juegos") ?? @"C:\Users\mauro\Downloads\ROMs", Opt("salida"), Opt("md"), Opt("capturas") ?? "out/compat",
+        Opt("solo"), Opt("descubrir") != null, Opt("dos-veces") != null, int.Parse(Opt("paralelo") ?? "4"));
 
 if (command == "fuse")
     return RunFusion(mediaPath, Opt("games") ?? ".", Opt("ticks"), Opt("screenshot"), Opt("shot-every"), Opt("shot-prefix"), opts.GetValueOrDefault("press"), Opt("layout"));
@@ -271,6 +277,88 @@ if (wavPath != null)
     Console.WriteLine($"Audio: {wavPath} ({wav.Count / 44100.0:F1} s)");
 }
 return 0;
+
+// Compatibility matrix: runs the scripts of emu/compat/juegos against the games folder and
+// writes the results (JSON with evidence) and the Markdown table.
+static int RunCompat(string scriptsPath, string gamesDir, string? jsonOut, string? mdOut, string shotsDir, string? only,
+                     bool discover, bool twice, int parallel)
+{
+    string firmware = Path.GetDirectoryName(FindRom("48.rom"))!;
+    if (!Directory.Exists(gamesDir))
+    {
+        Console.Error.WriteLine($"No existe la carpeta de juegos {gamesDir} (--juegos).");
+        return 2;
+    }
+    if (discover)
+    {
+        var created = Retro.Compat.CompatDiscovery.Discover(gamesDir, scriptsPath);
+        Console.WriteLine($"Guiones nuevos: {created.Count}");
+        foreach (var s in created)
+            Console.WriteLine($"  {s.Id}: {s.Machine} {s.File}");
+    }
+    var scripts = Retro.Compat.CompatScript.LoadAll(scriptsPath);
+    if (only != null)
+    {
+        var wanted = only.Split(',', StringSplitOptions.RemoveEmptyEntries);
+        scripts = scripts.Where(s => wanted.Any(w => s.Id.StartsWith(w, StringComparison.OrdinalIgnoreCase))).ToList();
+    }
+    Console.WriteLine($"Probando {scripts.Count} guiones con {gamesDir} (firmware de {firmware})...");
+    var results = new System.Collections.Concurrent.ConcurrentBag<Retro.Compat.CompatResult>();
+    var sw = Stopwatch.StartNew();
+    Parallel.ForEach(scripts, new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, parallel) }, s =>
+    {
+        var runner = new Retro.Compat.CompatRunner(gamesDir, firmware, shotsDir);
+        var r = runner.Run(s);
+        if (twice && r.ScreenHash != null)
+        {
+            var again = new Retro.Compat.CompatRunner(gamesDir, firmware, null).Run(s);
+            if (again.ScreenHash != r.ScreenHash)
+                r.Warnings.Add($"no determinista: la segunda corrida dio otra imagen final ({again.ScreenHash} contra {r.ScreenHash})");
+            else
+                r.Warnings.Add("determinista: dos corridas dieron la misma imagen final");
+        }
+        results.Add(r);
+        Console.WriteLine($"  {r.Id,-48} {(r.Highest == "" ? "ninguno" : Retro.Compat.CompatLevels.Spanish(r.Highest))}");
+    });
+    var report = jsonOut != null && File.Exists(jsonOut) && only != null ? Retro.Compat.CompatReport.LoadJson(jsonOut) : new Retro.Compat.CompatReport();
+    report.Merge(results);
+    report.Generated = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm 'UTC'");
+    report.Commit = GitHead();
+    report.GamesFolder = gamesDir.Replace('\\', '/');
+    if (jsonOut != null)
+    {
+        report.SaveJson(jsonOut);
+        Console.WriteLine("Resultados: " + jsonOut);
+    }
+    if (mdOut != null)
+    {
+        File.WriteAllText(mdOut, report.ToMarkdown());
+        Console.WriteLine("Tabla: " + mdOut);
+    }
+    Console.WriteLine($"Listo en {sw.Elapsed.TotalSeconds:F0} s.");
+    foreach (var g in results.GroupBy(r => r.Machine).OrderBy(g => g.Key))
+        Console.WriteLine($"  {g.Key}: {g.Count()} archivos; " + string.Join(", ",
+            Retro.Compat.CompatLevels.All.Select(l => $"{Retro.Compat.CompatLevels.Spanish(l)} {g.Count(r => r.Levels[l].Status == "ok")}")));
+    return 0;
+}
+
+static string GitHead()
+{
+    try
+    {
+        var p = Process.Start(new ProcessStartInfo("git", "rev-parse --short HEAD") { RedirectStandardOutput = true, UseShellExecute = false });
+        string head = p!.StandardOutput.ReadToEnd().Trim();
+        p.WaitForExit();
+        var d = Process.Start(new ProcessStartInfo("git", "status --porcelain --untracked-files=no") { RedirectStandardOutput = true, UseShellExecute = false });
+        bool dirty = d!.StandardOutput.ReadToEnd().Trim().Length > 0;
+        d.WaitForExit();
+        return head + (dirty ? "+cambios" : "");
+    }
+    catch (Exception)
+    {
+        return "?";
+    }
+}
 
 static Dictionary<string, Retro.Fusion.GameSource> FindGameSources(string gamesDir)
 {

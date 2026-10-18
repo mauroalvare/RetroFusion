@@ -1,0 +1,18 @@
+{
+  "id": "zx48-fase-bonus-the-game-the-mojon-twins",
+  "game": "Fase Bonus The Game",
+  "machine": "zx48",
+  "file": "descargados-autores/Spectrum/Fase-Bonus-The-Game--The-Mojon-Twins.tap",
+  "edition": "cinta TAP de ZX Spectrum",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

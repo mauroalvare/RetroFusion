@@ -1,0 +1,19 @@
+{
+  "id": "atari800-alpha-shield-atari-8-bit",
+  "game": "Alpha Shield",
+  "machine": "atari800",
+  "file": "Alpha_Shield_Atari-8-bit_ROM_EN.zip",
+  "member": "Alpha Shield (1983)(Sirius Software)(US).xex",
+  "edition": "programa de Atari 8 bits (.xex); el paquete trae 2 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

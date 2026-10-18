@@ -1,0 +1,19 @@
+{
+  "id": "zx48-galaxian-2",
+  "game": "Galaxian",
+  "machine": "zx48",
+  "file": "clasicos/Spectrum/galaxian.zip",
+  "member": "Galaxian (1984)(Atarisoft).tzx",
+  "edition": "cinta TZX de ZX Spectrum; el paquete trae 5 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

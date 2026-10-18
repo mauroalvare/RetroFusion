@@ -1,0 +1,18 @@
+{
+  "id": "cpc-mojon-twins-lala-prologue-cpc",
+  "game": "Lala Prologue",
+  "machine": "cpc",
+  "file": "descargados-autores/CPC/Mojon-Twins--Lala-Prologue--CPC.cdt",
+  "edition": "cinta de Amstrad CPC (.cdt)",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

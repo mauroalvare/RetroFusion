@@ -1,0 +1,19 @@
+{
+  "id": "apple2-karateka",
+  "game": "Karateka",
+  "machine": "apple2",
+  "file": "clasicos/Apple-II/karateka.zip",
+  "member": "Karateka (1984)(Broderbund).dsk",
+  "edition": "disco de 140 KB (Apple II); el paquete trae 6 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

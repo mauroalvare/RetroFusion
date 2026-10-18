@@ -1,0 +1,19 @@
+{
+  "id": "amiga500-spy-vs-spy-amiga",
+  "game": "Spy vs Spy",
+  "machine": "amiga500",
+  "file": "Spy_vs_Spy_Amiga_EN.zip",
+  "member": "Spy vs Spy (1989)(First Star Software).adf",
+  "edition": "disco de Amiga (.adf); el paquete trae 5 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

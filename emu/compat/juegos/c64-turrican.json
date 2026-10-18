@@ -1,0 +1,19 @@
+{
+  "id": "c64-turrican",
+  "game": "Turrican",
+  "machine": "c64",
+  "file": "clasicos/C64/turrican.zip",
+  "member": "TURRI1-0.D64",
+  "edition": "disco de 1541 (.d64); el paquete trae 2 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 2500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

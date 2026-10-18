@@ -1,0 +1,19 @@
+{
+  "id": "zx48-xenon-2",
+  "game": "Xenon",
+  "machine": "zx48",
+  "file": "clasicos/Spectrum/xenon.zip",
+  "member": "Xenon (1988)(Melbourne House)[48-128K].tzx",
+  "edition": "cinta TZX de ZX Spectrum; el paquete trae 11 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

@@ -1,0 +1,19 @@
+{
+  "id": "apple2-lode-runner",
+  "game": "Lode Runner",
+  "machine": "apple2",
+  "file": "clasicos/Apple-II/lode-runner.zip",
+  "member": "Lode Runner (1983)(Broderbund)[m mod-keyset Nut Cracker - Ace Mechanic].do",
+  "edition": "disco de 140 KB (Apple II); el paquete trae 8 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

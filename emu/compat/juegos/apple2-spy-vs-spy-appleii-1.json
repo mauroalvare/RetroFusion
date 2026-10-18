@@ -1,0 +1,19 @@
+{
+  "id": "apple2-spy-vs-spy-appleii-1",
+  "game": "Spy vs Spy",
+  "machine": "apple2",
+  "file": "Spy_vs_Spy_AppleII_EN (1).zip",
+  "member": "Spy Vs Spy (1984)(First Star Software).dsk",
+  "edition": "disco de 140 KB (Apple II); el paquete trae 3 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

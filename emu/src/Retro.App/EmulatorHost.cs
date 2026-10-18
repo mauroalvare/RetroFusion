@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Retro.Core;
+using Retro.Machines;
 using Retro.Systems.Arcade;
 using Retro.Systems.C64;
 using Retro.Systems.Spectrum;

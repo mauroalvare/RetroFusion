@@ -1,0 +1,19 @@
+{
+  "id": "atari800-pac-man-atari-8-bit",
+  "game": "Pac Man",
+  "machine": "atari800",
+  "file": "Pac_Man_Atari-8-bit_ROM_EN.zip",
+  "member": "Pac-Man (1982)(Atari)(US).xex",
+  "edition": "programa de Atari 8 bits (.xex); el paquete trae 10 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

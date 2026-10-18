@@ -1,0 +1,18 @@
+{
+  "id": "cpc-mojon-twins-uwol-2-cpc",
+  "game": "Uwol 2",
+  "machine": "cpc",
+  "file": "descargados-autores/CPC/Mojon-Twins--Uwol-2--CPC.dsk",
+  "edition": "disco de Amstrad CPC",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

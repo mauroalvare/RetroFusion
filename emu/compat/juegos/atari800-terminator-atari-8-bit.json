@@ -1,0 +1,19 @@
+{
+  "id": "atari800-terminator-atari-8-bit",
+  "game": "Terminator",
+  "machine": "atari800",
+  "file": "Terminator_Atari-8-bit_ROM_EN.zip",
+  "member": "Terminator, The (1993)(Domain Software)(PL)[cr Clever People][t].atr",
+  "edition": "disco de Atari 8 bits (.atr); el paquete trae 2 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

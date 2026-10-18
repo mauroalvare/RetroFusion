@@ -1,0 +1,19 @@
+{
+  "id": "cpc-ghostbusters-amstrad-cpc",
+  "game": "Ghostbusters",
+  "machine": "cpc",
+  "file": "Ghostbusters_Amstrad-CPC_ROM_EN.zip",
+  "member": "GHOST.SCR",
+  "edition": "archivo de Amstrad CPC (cabecera AMSDOS); el paquete trae 3 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

@@ -1,0 +1,19 @@
+{
+  "id": "amiga500-arkanoid",
+  "game": "Arkanoid",
+  "machine": "amiga500",
+  "file": "clasicos/Amiga/arkanoid.zip",
+  "member": "Arkanoid (1988)(Discovery Software)[cr SF].adf",
+  "edition": "disco de Amiga (.adf); el paquete trae 5 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

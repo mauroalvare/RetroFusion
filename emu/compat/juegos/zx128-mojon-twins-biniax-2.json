@@ -1,0 +1,18 @@
+{
+  "id": "zx128-mojon-twins-biniax-2",
+  "game": "Biniax 2",
+  "machine": "zx128",
+  "file": "descargados-autores/Spectrum-128K/Mojon-Twins--Biniax-2.tzx",
+  "edition": "cinta TZX de ZX Spectrum",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "Está en la carpeta de 128K: necesita el Spectrum 128K (T-030).",
+  "curated": false
+}

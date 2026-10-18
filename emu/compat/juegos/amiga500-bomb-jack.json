@@ -1,0 +1,19 @@
+{
+  "id": "amiga500-bomb-jack",
+  "game": "Bomb Jack",
+  "machine": "amiga500",
+  "file": "clasicos/Amiga/bomb-jack.zip",
+  "member": "Bomb Jack (1987)(Elite)[cr DF].adf",
+  "edition": "disco de Amiga (.adf); el paquete trae 6 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

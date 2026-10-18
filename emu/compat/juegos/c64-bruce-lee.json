@@ -1,0 +1,18 @@
+{
+  "id": "c64-bruce-lee",
+  "game": "Bruce Lee",
+  "machine": "c64",
+  "file": "clasicos/C64/bruce-lee.zip",
+  "edition": "cinta .T64 (programas de C64)",
+  "controls": "",
+  "boot": "auto",
+  "frames": 2500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

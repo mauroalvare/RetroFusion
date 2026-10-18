@@ -1,0 +1,19 @@
+{
+  "id": "vic20-galaxian",
+  "game": "Galaxian",
+  "machine": "vic20",
+  "file": "clasicos/VIC-20/galaxian.zip",
+  "member": "Galaxian (1983)(Atari)(NTSC-PAL)[A000].crt",
+  "edition": "cartucho de VIC-20 (se carga en $A000); el paquete trae 2 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

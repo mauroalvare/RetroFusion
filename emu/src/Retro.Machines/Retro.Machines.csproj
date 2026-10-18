@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Retro.Core\Retro.Core.csproj" />
+    <ProjectReference Include="..\Retro.Systems.Spectrum\Retro.Systems.Spectrum.csproj" />
+    <ProjectReference Include="..\Retro.Systems.Arcade\Retro.Systems.Arcade.csproj" />
+    <ProjectReference Include="..\Retro.Systems.C64\Retro.Systems.C64.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

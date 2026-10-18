@@ -1,0 +1,18 @@
+{
+  "id": "zx48-jet-set-willy",
+  "game": "Jet Set Willy",
+  "machine": "zx48",
+  "file": "clasicos/Spectrum-seleccion/jet-set-willy.z80",
+  "edition": "instantánea Z80 de ZX Spectrum",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

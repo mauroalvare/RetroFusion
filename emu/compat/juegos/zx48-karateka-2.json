@@ -1,0 +1,19 @@
+{
+  "id": "zx48-karateka-2",
+  "game": "Karateka",
+  "machine": "zx48",
+  "file": "clasicos/Spectrum/karateka.zip",
+  "member": "Karateka (1986)(Dro Soft)(es)[cr Rajsoft].tap",
+  "edition": "cinta TAP de ZX Spectrum; el paquete trae 2 archivos, se eligió el volcado más limpio",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

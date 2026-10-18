@@ -1,0 +1,18 @@
+{
+  "id": "amiga500-babylonian-twins-1993-demo",
+  "game": "Babylonian Twins 1993 Demo",
+  "machine": "amiga500",
+  "file": "babylonian-twins-1993-demo.adf",
+  "edition": "disco de Amiga (.adf)",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}

@@ -1,0 +1,18 @@
+{
+  "id": "zx48-chuckie-egg-2",
+  "game": "Chuckie Egg",
+  "machine": "zx48",
+  "file": "clasicos/Spectrum/chuckie-egg.zip",
+  "edition": "cinta TZX de ZX Spectrum",
+  "controls": "",
+  "boot": "auto",
+  "frames": 1500,
+  "bootFrames": 30000,
+  "loadEndsByTime": false,
+  "steps": [],
+  "checks": [],
+  "probeInputs": [],
+  "gameQuirks": [],
+  "notes": "",
+  "curated": false
+}
