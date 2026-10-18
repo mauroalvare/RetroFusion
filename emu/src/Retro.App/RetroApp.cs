@@ -83,7 +83,7 @@ public sealed class RetroApp
         }
         catch (Exception e)
         {
-            _errorPopup = e.Message + "\n\nCopiá la ROM a la carpeta roms/ junto al programa.";
+            _errorPopup = e.Message + "\n\nCopiá la ROM a la carpeta firmware/ junto al programa.";
         }
         for (int i = 0; i < args.Length; i++)
         {
@@ -253,6 +253,12 @@ public sealed class RetroApp
             _testAddr = "2000";
             _testHex = "3C C3 00 20";                 // INR A / JMP $2000
         }
+        else if (m.Id == "c64")
+        {
+            _memStart = 0x0400;                       // the text screen
+            _testAddr = "C000";
+            _testHex = "EE 20 D0 4C 00 C0";           // INC $D020 / JMP $C000: border colour loop
+        }
         else
         {
             _memStart = 0x4000;
@@ -364,13 +370,15 @@ public sealed class RetroApp
                               "Atari 8 bits (.atr .xex), Apple II (.dsk .woz), Amstrad CPC, PC-88 (.d88), DOS (.exe .com), Atari ST (.st .msa), Amiga (.adf).";
                 return;
             }
-            var playable = candidates.Where(c => c.Machine.Status == MachineStatus.Available && c.Confidence >= 50).ToList();
+            var playable = candidates.Where(c => c.Machine.Status == MachineStatus.Available && c.Confidence >= 50 && MachineCatalog.NotLoadableYet(c) == null).ToList();
             if (playable.Count == 0)
             {
                 var best = candidates[0];
-                _errorPopup = $"{fileName} es para {best.Machine.Name} (CPU {best.Machine.Cpu}): {best.Reason}.\n" +
-                              $"Esa máquina todavía no está implementada; está en el plan de trabajo (la próxima es el Commodore 64).\n" +
-                              "En Máquina vas a ver qué juegos de tu carpeta corren hoy.";
+                _errorPopup = MachineCatalog.NotLoadableYet(best) is { } notYet
+                    ? $"{fileName} es para {best.Machine.Name} (CPU {best.Machine.Cpu}): {best.Reason}.\nEsa máquina ya anda, pero {notYet}."
+                    : $"{fileName} es para {best.Machine.Name} (CPU {best.Machine.Cpu}): {best.Reason}.\n" +
+                      "Esa máquina todavía no está implementada; está en el plan de trabajo (siguen Atari 800, Apple II y NES, con la misma CPU 6502).\n" +
+                      "En Máquina vas a ver qué juegos de tu carpeta corren hoy.";
                 return;
             }
             // Several dumps or formats of the game: the cleanest dump starts right away and
@@ -410,7 +418,7 @@ public sealed class RetroApp
         catch (Exception e)
         {
             _errorPopup = e is FileNotFoundException
-                ? $"No se pudo arrancar {c.Machine.Name}: {e.Message}\nEl firmware va en la carpeta roms/ junto al programa."
+                ? $"No se pudo arrancar {c.Machine.Name}: {e.Message}\nEl firmware va en la carpeta firmware/ junto al programa."
                 : $"No se pudo cargar {c.File.Name} en {c.Machine.Name}: {e.Message}";
         }
     }
@@ -443,9 +451,12 @@ public sealed class RetroApp
             _code.Open();
         if (_host.Machine == null)
             return;
+        // the C64 has its own F1 F3 F5 F7 keys (games say "press F1"): there quick load is
+        // F4 and reset is in the Machine menu
+        bool machineFKeys = _host.C64 != null && _host.Fusion == null;
         if (Raylib.IsKeyPressed(KeyboardKey.F2)) _host.QuickSave();
-        if (Raylib.IsKeyPressed(KeyboardKey.F3)) _host.QuickLoad();
-        if (Raylib.IsKeyPressed(KeyboardKey.F5)) _host.Reset(Raylib.IsKeyDown(KeyboardKey.LeftShift));
+        if (Raylib.IsKeyPressed(KeyboardKey.F4) || (!machineFKeys && Raylib.IsKeyPressed(KeyboardKey.F3))) _host.QuickLoad();
+        if (!machineFKeys && Raylib.IsKeyPressed(KeyboardKey.F5)) _host.Reset(Raylib.IsKeyDown(KeyboardKey.LeftShift));
         if (Raylib.IsKeyPressed(KeyboardKey.F6)) ToggleTape();
         if (Raylib.IsKeyPressed(KeyboardKey.F7)) _host.Zx?.Tape.Rewind();
         if (Raylib.IsKeyPressed(KeyboardKey.F8)) _host.Turbo = !_host.Turbo;
@@ -536,6 +547,20 @@ public sealed class RetroApp
                     ImGui.EndMenu();
                 }
             }
+            if (_host.C64 is { } c64)
+            {
+                if (ImGui.BeginMenu("Joystick en flechas / gamepad"))
+                {
+                    if (ImGui.MenuItem("Puerto 2 (la mayoría de los juegos)", "", _input.C64Port == 2)) _input.C64Port = 2;
+                    if (ImGui.MenuItem("Puerto 1", "", _input.C64Port == 1)) _input.C64Port = 1;
+                    ImGui.TextDisabled("Si el personaje no se mueve, probá el otro puerto.");
+                    ImGui.EndMenu();
+                }
+                if (ImGui.MenuItem("Pulsar RUN/STOP + RESTORE (vuelve al BASIC)"))
+                    c64.QueueKeys(8, "RUN/STOP", "RESTORE");
+                if (c64.OpenRoms && c64.UnhandledKernalCalls.Count > 0)
+                    ImGui.TextDisabled($"El juego llamó a rutinas internas del KERNAL original: {string.Join(", ", c64.UnhandledKernalCalls.Select(a => $"${a:X4}"))}.");
+            }
             if (_host.Invaders is { } inv && ImGui.BeginMenu("DIP switches de la placa"))
             {
                 for (int ships = 3; ships <= 6; ships++)
@@ -598,12 +623,15 @@ public sealed class RetroApp
         {
             ImGui.TextUnformatted("ZX Spectrum: letras y números directos; Shift = CAPS SHIFT,");
             ImGui.TextUnformatted("Ctrl = SYMBOL SHIFT, Backspace = DELETE, flechas + Alt = joystick.");
+            ImGui.TextUnformatted("Commodore 64: teclado directo, Esc = RUN/STOP, RePág = RESTORE,");
+            ImGui.TextUnformatted("F1 F3 F5 F7 del C64 (F4 carga el estado), Ctrl izq. = C=, Tab = CTRL,");
+            ImGui.TextUnformatted("flechas + Alt (o Ctrl der.) = joystick (puerto 2; se cambia en Máquina).");
             ImGui.TextUnformatted("Space Invaders: 5 o C = moneda, 1/2 = jugadores,");
             ImGui.TextUnformatted("flechas (o A/D) = mover, Espacio = disparar, T = tilt.");
             ImGui.Separator();
             ImGui.TextUnformatted("F2/F3 estado rápido, F5 reinicio, F6 cinta, F8 turbo,");
             ImGui.TextUnformatted("F9 pausa, F10 paso, F11 pantalla completa, F12 depurador.");
-            ImGui.TextUnformatted("Arrastrá un juego (.tap/.tzx/.z80/.sna o invaders.zip) a la ventana,");
+            ImGui.TextUnformatted("Arrastrá un juego (.tap/.tzx/.z80/.sna, .t64/.prg o invaders.zip) a la ventana,");
             ImGui.TextUnformatted("o elegilo en Máquina: cada máquina lista los juegos de tu carpeta.");
             ImGui.Separator();
             ImGui.TextUnformatted("Fusión: flechas mover, Ctrl/Z disparar, Espacio/X saltar,");
@@ -643,7 +671,7 @@ public sealed class RetroApp
                 ImGui.TextDisabled(mi.Needs);
             if (mi.Status == MachineStatus.Available)
             {
-                if (mi.Id == "zx48" && ImGui.MenuItem("Encender sin juego"))
+                if (mi.Id is "zx48" or "c64" && ImGui.MenuItem("Encender sin juego"))
                 {
                     try { _host.Start(mi, _romDir); }
                     catch (Exception e) { _errorPopup = e.Message; }
@@ -655,8 +683,12 @@ public sealed class RetroApp
                     ImGui.Separator();
                     ImGui.TextDisabled("Juegos de tu carpeta (clic para jugar):");
                     foreach (var g in games)
-                        if (ImGui.MenuItem(g.Name + "##" + g.Path))
+                    {
+                        if (g.NotYet != null)
+                            ImGui.TextDisabled($"{g.Name}: {g.NotYet}");
+                        else if (ImGui.MenuItem(g.Name + "##" + g.Path))
                             OpenFile(g.Path);
+                    }
                 }
             }
             else
@@ -703,6 +735,8 @@ public sealed class RetroApp
         string extra = "";
         if (_host.Zx is { } zx)
             extra = !zx.Tape.IsLoaded ? "  |  sin cinta" : zx.Tape.IsPlaying ? $"  |  cinta en marcha, bloque {zx.Tape.CurrentBlock} ({zx.Tape.Progress * 100:F0}%)" : zx.Tape.AtEnd ? "  |  cinta al final" : "  |  cinta detenida";
+        if (_host.C64 is { OpenRoms: true } c64 && c64.UnhandledKernalCalls.Count > 0)
+            extra = $"  |  usa rutinas internas del KERNAL original ({c64.UnhandledKernalCalls.Count}): si falla, poné las ROMs originales en firmware/c64";
         string title = _host.Fusion is { } f ? $"Fusión: {f.Title} (depurador en {_host.Machine?.DisplayName})" : _host.Info?.Name ?? "Sin máquina";
         if (_host.Fusion != null)
             extra = "";

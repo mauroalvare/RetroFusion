@@ -9,6 +9,7 @@
     <ProjectReference Include="..\Retro.Fusion\Retro.Fusion.csproj" />
     <ProjectReference Include="..\Retro.Ai\Retro.Ai.csproj" />
     <ProjectReference Include="..\Retro.Studio\Retro.Studio.csproj" />
+    <ProjectReference Include="..\Retro.Systems.C64\Retro.Systems.C64.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

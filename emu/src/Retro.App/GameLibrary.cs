@@ -3,7 +3,8 @@ using Retro.Core;
 namespace Retro.App;
 
 /// <summary>A game in the user's folder and the machine it needs.</summary>
-public sealed record LibraryEntry(string Path, string Name, MachineInfo Machine, int Confidence, string Reason);
+/// <param name="NotYet">Why the machine, already implemented, cannot load this file yet (a later format), or null.</param>
+public sealed record LibraryEntry(string Path, string Name, MachineInfo Machine, int Confidence, string Reason, string? NotYet = null);
 
 /// <summary>
 /// Looks through the user's game folder (in the background) and works out which machine
@@ -59,11 +60,12 @@ public sealed class GameLibrary
                 continue;
             }
             var best = files.SelectMany(MachineCatalog.Identify)
-                .OrderByDescending(c => c.Machine.Status == MachineStatus.Available && c.Confidence >= 50)
+                .OrderByDescending(c => c.Machine.Status == MachineStatus.Available && c.Confidence >= 50 && MachineCatalog.NotLoadableYet(c) == null)
+                .ThenByDescending(c => c.Machine.Status == MachineStatus.Available && c.Confidence >= 50)
                 .ThenByDescending(c => c.Confidence)
                 .FirstOrDefault();
             if (best != null)
-                list.Add(new LibraryEntry(path, name, best.Machine, best.Confidence, best.Reason));
+                list.Add(new LibraryEntry(path, name, best.Machine, best.Confidence, best.Reason, MachineCatalog.NotLoadableYet(best)));
         }
         return list;
     }

@@ -11,9 +11,13 @@ corriendo a la vez y conectados entre sí, diseñadas a mano o por la IA que eli
   snapshots Z80 y SNA. Probado con Manic Miner y Pac-Man.
 - **Space Invaders, placa arcade de Taito/Midway** (Intel 8080): necesita el `invaders.zip`
   de MAME, que no se incluye por copyright.
+- **Commodore 64** (MOS 6510): VIC-II con bad lines, sprites y colisiones, SID de tres
+  voces con filtro, dos CIA 6526. Carga cintas `.t64` y programas `.prg`. Trae el firmware
+  libre Open ROMs; con las ROMs originales es más compatible. Probado con Pac-Man,
+  Ghostbusters y Spy vs Spy (con sus intros y menús de trainer).
 
-**Plan:** Spectrum 128K, TK90X y MSX (Z80), Apple II y Commodore 64 (6502/6510), IBM
-PC/XT (8088) y Atari ST y Amiga 500 (68000). Ver [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)
+**Plan:** Atari 800, Apple II y NES (misma CPU 6502), Spectrum 128K, TK90X, MSX y Amstrad
+CPC (Z80), IBM PC/XT (8088) y Atari ST y Amiga 500 (68000). Ver [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)
 y, para lo que viene con IA, [docs/IDEAS.md](docs/IDEAS.md).
 
 ## Uso
@@ -22,7 +26,7 @@ Abrí `RetroEmu` (Windows: `RetroEmu.exe`) y arrastrá un juego a la ventana, o 
 **Archivo > Abrir**: el emulador reconoce para qué máquina es cada archivo. El menú
 **Máquina** muestra las máquinas agrupadas por CPU; cada una dice qué necesita y lista los
 juegos de tu carpeta que corre (clic para jugar). Las máquinas que todavía no están
-implementadas muestran cuáles de tus juegos las van a usar. Acepta `.tap`, `.tzx`, `.z80`, `.sna` y también `.zip`, incluso
+implementadas muestran cuáles de tus juegos las van a usar. Acepta `.tap`, `.tzx`, `.z80`, `.sna`, `.t64`, `.prg` y también `.zip`, incluso
 zips dentro de zips. Si el zip trae varias versiones (`[a]`, `[h]`, `[t]`...), te deja
 elegir y marca la más limpia como recomendada.
 
@@ -46,6 +50,32 @@ franjas en el borde y se escucha la cinta. Mientras carga, el emulador corre ace
 | F10 / Shift+F10 | Paso / paso por encima |
 | F11 | Pantalla completa |
 | F12 | Modo depurador |
+
+### Commodore 64
+
+Arrastrá el `.t64` o `.prg` (o el zip que lo trae). El C64 arranca hasta `READY.`, pone el
+programa en memoria y lo lanza como lo haría una persona: con el `SYS` de su línea BASIC
+o escribiendo `RUN`.
+
+| PC | C64 |
+|---|---|
+| Letras, números, puntuación | por posición, como en el teclado del C64 |
+| Esc | RUN/STOP |
+| Re Pág | RESTORE |
+| F1 F3 F5 F7 | las teclas de función del C64 (los juegos dicen "press F1") |
+| Ctrl izquierdo / Tab | C= / CTRL |
+| Flechas + Alt o Ctrl derecho (o gamepad) | Joystick en el puerto 2 (en **Máquina** se cambia al 1) |
+| F2 / F4 | Guardar / cargar estado rápido (el reinicio queda en el menú **Máquina**) |
+
+Si el personaje no se mueve, el juego lee el otro puerto: **Máquina > Joystick > Puerto 1**
+(por ejemplo, el jugador blanco de Spy vs Spy). Con las Open ROMs, si un juego llama a
+rutinas internas del KERNAL original que no tienen, la barra de estado lo avisa con las
+direcciones: con las ROMs originales (`kernal.rom`, `basic.rom`, `chargen.rom` en
+`firmware/c64`) esos juegos andan. Las rutinas más usadas (borrar pantalla, reinicio con
+firma de cartucho, fin del manejador de interrupciones) ya están cubiertas.
+
+Los discos `.d64`, los cartuchos `.crt` y las cintas de pulsos `.tap` llegan en la próxima
+etapa; el emulador lo explica si abrís uno.
 
 En **Manic Miner**: O y P (o Q–T y W–P alternadas) para caminar, la fila de abajo o
 Espacio para saltar, ENTER para empezar.

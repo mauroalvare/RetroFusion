@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Retro.Core;
 using Retro.Systems.Arcade;
+using Retro.Systems.C64;
 using Retro.Systems.Spectrum;
 
 namespace Retro.App;
@@ -48,6 +49,7 @@ public sealed class EmulatorHost
     public MachineInfo? Info { get; private set; }
     public Spectrum48? Zx => Machine as Spectrum48;
     public SpaceInvaders? Invaders => Machine as SpaceInvaders;
+    public C64? C64 => Machine as C64;
     public DebugController Debug { get; } = new();
     public bool Paused { get; set; }
     public bool TurboWhileLoading { get; set; } = true;
@@ -68,7 +70,7 @@ public sealed class EmulatorHost
     public AudioQueue Audio => _audio;
     public bool IsFastForwarding => Machine != null && (Turbo || (TurboWhileLoading && Zx != null && Zx.Tape.IsPlaying));
 
-    /// <summary>Starts a machine that has its firmware in the roms folder (ZX Spectrum).</summary>
+    /// <summary>Starts a machine that has its firmware in the firmware folder (ZX Spectrum, Commodore 64).</summary>
     public void Start(MachineInfo info, string romDirectory)
     {
         switch (info.Id)
@@ -80,6 +82,13 @@ public sealed class EmulatorHost
                     throw new FileNotFoundException($"Falta la ROM {info.RomFiles[0]} en {romDirectory}.");
                 SetMachine(new Spectrum48(File.ReadAllBytes(rom)), info);
                 Status = $"{info.Name} encendido.";
+                break;
+            }
+            case "c64":
+            {
+                var c64 = new C64(C64Firmware.Find(romDirectory));
+                SetMachine(c64, info);
+                Status = $"{info.Name} encendido ({c64.FirmwareDescription}).";
                 break;
             }
             case "invaders":
@@ -143,6 +152,14 @@ public sealed class EmulatorHost
 
     public void Load(MediaFile file, bool autoType)
     {
+        if (C64 is { } c64)
+        {
+            var r = C64Media.Load(c64, file);
+            LoadedMedia = file.Name;
+            Status = $"{file.Name}: {r.Description}" + (r.Warnings.Count > 0 ? " (" + string.Join("; ", r.Warnings) + ")" : "");
+            Paused = false;
+            return;
+        }
         var zx = Zx ?? throw new InvalidOperationException("No hay un ZX Spectrum encendido.");
         var result = SpectrumMedia.Load(zx, file);
         LoadedMedia = file.Name;
@@ -286,10 +303,12 @@ public sealed class EmulatorHost
             return;
         var ins = m.Disassembler.Disassemble(a => m.Memory.Peek(a), m.Cpu.ProgramCounter);
         string mnemonic = ins.Text.Split(' ')[0].TrimEnd('*');
-        bool z80 = m.Cpu.CpuName.Contains("Z80");
-        bool over = z80
+        string cpuName = m.Cpu.CpuName;
+        bool over = cpuName.Contains("Z80")
             ? mnemonic is "CALL" or "RST" or "DJNZ" or "LDIR" or "LDDR" or "CPIR" or "CPDR" or "INIR" or "INDR" or "OTIR" or "OTDR" or "HALT"
-            : mnemonic is "CALL" or "CNZ" or "CZ" or "CNC" or "CC" or "CPO" or "CPE" or "CP" or "CM" or "RST" or "HLT";
+            : cpuName.Contains("65")
+                ? mnemonic is "JSR"
+                : mnemonic is "CALL" or "CNZ" or "CZ" or "CNC" or "CC" or "CPO" or "CPE" or "CP" or "CM" or "RST" or "HLT";
         if (!over)
         {
             StepInto();

@@ -6,6 +6,7 @@
     <ProjectReference Include="..\Retro.Systems.Spectrum\Retro.Systems.Spectrum.csproj" />
     <ProjectReference Include="..\Retro.Cpu.I8080\Retro.Cpu.I8080.csproj" />
     <ProjectReference Include="..\Retro.Systems.Arcade\Retro.Systems.Arcade.csproj" />
+    <ProjectReference Include="..\Retro.Systems.C64\Retro.Systems.C64.csproj" />
     <ProjectReference Include="..\Retro.Fusion\Retro.Fusion.csproj" />
     <ProjectReference Include="..\Retro.Ai\Retro.Ai.csproj" />
     <ProjectReference Include="..\Retro.Studio\Retro.Studio.csproj" />

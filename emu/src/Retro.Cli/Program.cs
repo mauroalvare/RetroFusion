@@ -17,7 +17,8 @@ static int Usage()
           retro-cli fuse <receta> --games <carpeta> [--ticks n] [--screenshot png]
           retro-cli studio <juego.js|juego.json|id> --games <carpeta> [--seconds n] [--shots prefijo]
 
-        Máquinas: ZX Spectrum 48K (.tap .tzx .z80 .sna) y Space Invaders (invaders.zip de MAME).
+        Máquinas: ZX Spectrum 48K (.tap .tzx .z80 .sna), Space Invaders (invaders.zip de MAME)
+        y Commodore 64 (.t64 .prg).
 
         Opciones de run:
           --rom <ruta>             ROM del Spectrum 48K (por defecto roms/48.rom)
@@ -32,6 +33,9 @@ static int Usage()
           --samples <zip|carpeta>  (Space Invaders) sonidos grabados de MAME (samples/invaders.zip)
           --trace <n>              traza las primeras n instrucciones
           --pick <n>               elige el archivo n dentro de un zip
+          --disasm <hex>:<n>       al final, desensambla n instrucciones desde la dirección
+          --dump <hex>:<n>         al final, muestra n bytes de memoria
+          --text                   (C64) al final, muestra el texto de la pantalla
         """);
     return 1;
 }
@@ -79,7 +83,11 @@ if (command == "info")
     foreach (var c in files.Select((f, i) => (f, i)))
     {
         int score = SpectrumMedia.Probe(c.f);
-        Console.WriteLine($"[{c.i}] {c.f.Name} ({c.f.Data.Length} bytes) -> {(score > 0 ? $"ZX Spectrum (confianza {score})" : isInvaders ? "chip de Space Invaders" : "no reconocido por las máquinas disponibles")}");
+        int c64Score = Retro.Systems.C64.C64Media.Probe(c.f);
+        string what = score > 0 ? $"ZX Spectrum (confianza {score})"
+            : c64Score > 0 ? $"Commodore 64 (confianza {c64Score})"
+            : isInvaders ? "chip de Space Invaders" : "no reconocido por las máquinas disponibles";
+        Console.WriteLine($"[{c.i}] {c.f.Name} ({c.f.Data.Length} bytes) -> {what}");
     }
     return 0;
 }
@@ -89,7 +97,19 @@ if (command != "run")
 IMachine machine;
 Spectrum48? zx = null;
 bool isTape = false;
-if (isInvaders)
+var c64Media = files.Where(f => Retro.Systems.C64.C64Media.Probe(f) > 0).OrderBy(f => MediaArchive.DumpScore(f.Name)).FirstOrDefault();
+if (c64Media != null && !isInvaders)
+{
+    var c64 = new Retro.Systems.C64.C64(Retro.Systems.C64.C64Firmware.Find(Path.GetDirectoryName(FindRom("48.rom"))!));
+    machine = c64;
+    Console.WriteLine($"Máquina: {c64.DisplayName} ({c64.FirmwareDescription})");
+    Console.WriteLine($"Archivo: {c64Media.Name}");
+    var result = Retro.Systems.C64.C64Media.Load(c64, c64Media);
+    Console.WriteLine(result.Description);
+    foreach (var w in result.Warnings)
+        Console.WriteLine("  aviso: " + w);
+}
+else if (isInvaders)
 {
     var (rom, description) = SpaceInvadersRom.Build(files);
     var invaders = new SpaceInvaders(rom);
@@ -212,6 +232,34 @@ Console.WriteLine($"Emulados {machine.FrameCount} cuadros = {emulated:F1} s en {
 Console.WriteLine($"PC={machine.Cpu.ProgramCounter:X4} SP={machine.Cpu.StackPointer:X4}" +
                   (zx != null ? $" cinta: {(zx.Tape.IsPlaying ? "reproduciendo" : zx.Tape.AtEnd ? "terminada" : "detenida")}" : ""));
 
+if (machine is Retro.Systems.C64.C64 c64m && c64m.KernalInternalCalls.Count > 0)
+    Console.WriteLine("Saltos del programa a rutinas internas del KERNAL: " + string.Join(", ", c64m.KernalInternalCalls.Select(a => $"${a:X4}")));
+if (Opt("text") != null && machine is Retro.Systems.C64.C64 c64t)
+    Console.Write(c64t.ScreenText());
+if (opts.TryGetValue("disasm", out var disasmList))
+    foreach (var d in disasmList)
+    {
+        // --disasm <hex>:<n>: n instructions from the address, as the memory is now
+        var parts = d.Split(':');
+        uint at = Convert.ToUInt32(parts[0].TrimStart('$'), 16);
+        int count = parts.Length > 1 ? int.Parse(parts[1]) : 16;
+        for (int i = 0; i < count; i++)
+        {
+            var ins = machine.Disassembler.Disassemble(a => machine.Memory.Peek(a), at);
+            Console.WriteLine($"{at:X4}  {string.Join(" ", ins.Bytes.Select(b => b.ToString("X2"))),-9} {ins.Text}");
+            at += (uint)Math.Max(1, ins.Bytes.Length);
+        }
+    }
+if (opts.TryGetValue("dump", out var dumpList))
+    foreach (var d in dumpList)
+    {
+        // --dump <hex>:<n>: n bytes from the address
+        var parts = d.Split(':');
+        uint at = Convert.ToUInt32(parts[0].TrimStart('$'), 16);
+        int count = parts.Length > 1 ? int.Parse(parts[1]) : 64;
+        for (int i = 0; i < count; i += 16)
+            Console.WriteLine($"{at + i:X4}  " + string.Join(" ", Enumerable.Range(i, Math.Min(16, count - i)).Select(k => machine.Memory.Peek((uint)(at + k)).ToString("X2"))));
+    }
 if (Opt("screenshot") is { } shot)
 {
     PngWriter.Write(shot, machine.Video, 2);

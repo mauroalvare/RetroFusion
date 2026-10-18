@@ -340,6 +340,21 @@ public sealed partial class M6502 : ICpuDebugView
         Jammed = true;
     }
 
+    // ------------------------------------------------------------------ save states
+    public void Save(BinaryWriter w)
+    {
+        w.Write(A); w.Write(X); w.Write(Y); w.Write(S); w.Write(P); w.Write(PC);
+        w.Write(CycleCount); w.Write(Instructions); w.Write(Jammed);
+        w.Write(_nmiPending); w.Write(_nmiPrevious); w.Write(_irqSampled); w.Write(_irqSampledPrevious); w.Write(_irqPendingCheck);
+    }
+
+    public void Load(BinaryReader r)
+    {
+        A = r.ReadByte(); X = r.ReadByte(); Y = r.ReadByte(); S = r.ReadByte(); P = r.ReadByte(); PC = r.ReadUInt16();
+        CycleCount = r.ReadInt64(); Instructions = r.ReadInt64(); Jammed = r.ReadBoolean();
+        _nmiPending = r.ReadBoolean(); _nmiPrevious = r.ReadBoolean(); _irqSampled = r.ReadBoolean(); _irqSampledPrevious = r.ReadBoolean(); _irqPendingCheck = r.ReadBoolean();
+    }
+
     // ------------------------------------------------------------------ ICpuDebugView
     public string CpuName => Name;
     public uint ProgramCounter { get => PC; set => PC = (ushort)value; }

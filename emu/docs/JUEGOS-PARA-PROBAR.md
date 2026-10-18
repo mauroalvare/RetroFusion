@@ -17,12 +17,12 @@ verificado) y evitá `[h]` (hack), `[t]` (con trucos) y `[cr]` (crackeado).
 |---|---|---|---|---|
 | ZX Spectrum 48K | Zilog Z80 | `.tzx` `.tap` `.z80` `.sna` | Incluido (`48.rom`) | Jetpac, Lode Runner, Boulder Dash, Jet Set Willy, Knight Lore, Atic Atac, Chuckie Egg, Skool Daze |
 | Placa arcade Taito 8080 | Intel 8080 | `invaders.zip` de MAME | Viene en el zip | Space Invaders. Otros juegos de la misma placa (Space Invaders Part II, Lunar Rescue) necesitan pequeños agregados. |
+| Commodore 64 | MOS 6510 | `.t64` `.prg` (los `.d64` `.crt` `.tap` llegan en la próxima etapa) | Incluido: Open ROMs libres. Con las originales (`kernal.rom`, `basic.rom`, `chargen.rom` en `firmware/c64`) es más compatible | Impossible Mission, Boulder Dash, Lode Runner, Jumpman, Bruce Lee, Paradroid, Uridium. Preferí versiones "one-file" (un solo archivo .t64 o .prg). |
 
-## En curso: la familia 6502
+## Lo próximo: el resto de la familia 6502 (la CPU ya está hecha)
 
 | Máquina | CPU | Buscá archivos | Firmware | Para probar |
 |---|---|---|---|---|
-| Commodore 64 (la próxima) | MOS 6510 | `.t64` `.prg` (primero estos), después `.d64` `.crt` `.tap` | Uso las Open ROMs libres; si conseguís las originales: `kernal.rom`, `basic.rom`, `chargen.rom` | Impossible Mission, Boulder Dash, Lode Runner, Jumpman, Bruce Lee, Paradroid, Uridium. Preferí versiones "one-file" (un solo archivo .t64 o .prg): los juegos de disco con carga rápida necesitan emular la disquetera, que viene después. |
 | Atari 800/XL | MOS 6502 | `.xex` `.atr` `.car` | Uso AltirraOS (libre); original: `atarixl.rom` | Star Raiders, Boulder Dash, Miner 2049er, Jumpman, River Raid |
 | Apple II | MOS 6502 | `.dsk` `.woz` | Hace falta la ROM original del Apple II+ o IIe (con copyright: la tenés que conseguir vos) | Lode Runner, Choplifter, Karateka, Prince of Persia (el original es de Apple II) |
 | Nintendo NES | Ricoh 2A03 | `.nes` | No necesita | Juegos de mapper 0 primero: Super Mario Bros, Donkey Kong, Balloon Fight, Excitebike |
@@ -49,8 +49,8 @@ verificado) y evitá `[h]` (hack), `[t]` (con trucos) y `[cr]` (crackeado).
 
 ## Lo que ya tenés en tu carpeta
 
-- **Corren hoy:** Manic Miner y Pac-Man (Spectrum), Space Invaders (arcade).
-- **C64 (lo próximo):** Ghostbusters, Pac-Man y Spy vs Spy, los tres en `.t64`.
+- **Corren hoy:** Manic Miner y Pac-Man (Spectrum), Space Invaders (arcade), y
+  Ghostbusters, Pac-Man y Spy vs Spy (C64, los tres en `.t64`).
 - **Atari 8 bits:** Alpha Shield, Ghostbusters, Pac-Man, Space Invaders, Spy vs Spy, Terminator.
 - **Apple II:** Pac-Man y Spy vs Spy (falta la ROM del Apple II).
 - **PC:** Digger, Conquest, Rollo, Styx y la demo de Prince of Persia.

@@ -10,10 +10,12 @@
     <Project Path="src/Retro.Fusion/Retro.Fusion.csproj" />
     <Project Path="src/Retro.Studio/Retro.Studio.csproj" />
     <Project Path="src/Retro.Systems.Arcade/Retro.Systems.Arcade.csproj" />
+    <Project Path="src/Retro.Systems.C64/Retro.Systems.C64.csproj" />
     <Project Path="src/Retro.Systems.Spectrum/Retro.Systems.Spectrum.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Arcade.Tests/Arcade.Tests.csproj" />
+    <Project Path="tests/C64.Tests/C64.Tests.csproj" />
     <Project Path="tests/Fusion.Tests/Fusion.Tests.csproj" />
     <Project Path="tests/I8080.Tests/I8080.Tests.csproj" />
     <Project Path="tests/M6502.Tests/M6502.Tests.csproj" />

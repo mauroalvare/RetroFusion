@@ -13,8 +13,12 @@ src/
                            video, audio, breakpoints, apertura de archivos (.zip), PNG.
   Retro.Cpu.Z80            Núcleo Z80 + desensamblador. No sabe nada del Spectrum.
   Retro.Cpu.I8080          Núcleo Intel 8080 + desensamblador.
+  Retro.Cpu.M6502          Núcleo MOS 6502/6510 (NMOS, con los opcodes no documentados)
+                           + desensamblador.
   Retro.Systems.Spectrum   ZX Spectrum 48K: memoria, ULA, cinta, snapshots, símbolos.
   Retro.Systems.Arcade     Placa Taito/Midway de Space Invaders: video, shifter, sonido.
+  Retro.Systems.C64        Commodore 64: VIC-II, SID, dos CIA 6526, bancos del 6510,
+                           cintas .t64 y programas .prg, compatibilidad con Open ROMs.
   Retro.Fusion             Perfiles de juegos (variables de RAM, controles, arranque),
                            recetas de fusión y la sesión que corre 2 o 3 máquinas a la vez.
   Retro.Ai                 Proveedores de IA (Claude, ChatGPT, Gemini, Ollama), diseñador de recetas con
@@ -30,6 +34,10 @@ src/
 tests/
   Retro.Cpu.Z80.Tests      FUSE (1.356 casos) + ZEXDOC/ZEXALL.
   I8080.Tests              TST8080, 8080PRE, CPUTEST y 8080EXM con ciclos exactos.
+  M6502.Tests              SingleStepTests de Tom Harte (256.000 casos, cada ciclo de
+                           bus) y la suite funcional de Klaus Dormann.
+  C64.Tests                CIA, VIC-II, arranque, SYS, Open ROMs, estados guardados y
+                           los juegos reales de la carpeta ROMs (si están).
   Zx.Tests                 Máquina Spectrum y compatibilidad con juegos reales.
   Arcade.Tests             Placa de Space Invaders con un programa de prueba propio,
                            análisis de rutinas.
@@ -126,6 +134,47 @@ una interrupción se ejecuta la instrucción que la placa pone en el bus de dato
   Los flancos de subida disparan cada efecto en la muestra que corresponde a su ciclo
   dentro del cuadro. Los efectos se sintetizan o, si están disponibles, se reproducen las
   grabaciones de MAME.
+
+## MOS 6502 / 6510
+
+El núcleo ejecuta cada ciclo de bus en orden, incluidas las lecturas "falsas" que hace el
+chip real (la lectura de más al cruzar página, las escrituras dobles de las instrucciones
+de lectura-modificación-escritura). Por eso la máquina puede intercalar el resto del
+hardware ciclo a ciclo: cada `Read` o `Write` del bus avanza un ciclo de todo el C64.
+Las líneas de interrupción se muestrean en cada ciclo y, como en el chip, la decisión de
+atender una IRQ usa el penúltimo ciclo de la instrucción; la NMI es por flanco. Están
+todos los opcodes no documentados del NMOS (incluidos los que cuelgan la CPU).
+Se verifica contra los SingleStepTests de Tom Harte (registros, memoria y cada ciclo de
+bus) y la suite funcional de Klaus Dormann.
+
+## Commodore 64 (PAL)
+
+- **Cuadro:** 312 líneas de 63 ciclos a 985.248 Hz (50,12 Hz). La CPU marca el paso:
+  cada acceso al bus hace un `Tick` de la VIC-II, las dos CIA y el reloj de muestras del SID.
+- **VIC-II:** en las bad lines (una de cada ocho líneas con pantalla) la VIC lee los
+  punteros de caracteres y la CPU queda detenida en sus ciclos de lectura (`BaLow`).
+  Se dibuja por línea: modos de texto, multicolor, bitmap y color extendido, ocho sprites
+  con expansión, prioridad y colisiones, IRQ por línea de raster. La imagen es de
+  384×272 con el borde.
+- **Bancos:** los bits LORAM/HIRAM/CHAREN del puerto del 6510 deciden si en $A000, $D000
+  y $E000 hay ROM, E/S o RAM. La VIC ve un banco de 16 KB elegido por la CIA 2, con la
+  ROM de caracteres en los bancos 0 y 2.
+- **CIA 6526:** timers A y B (B puede contar los desbordes de A), reloj TOD en BCD con
+  alarma y retención al leer la hora, teclado en matriz 8×8 y los dos joysticks.
+- **SID:** tres osciladores (triángulo, diente de sierra, pulso, ruido con su registro de
+  23 bits), sincronización y modulación en anillo, envolventes ADSR y filtro de estado
+  variable. Las muestras salen a 44,1 kHz.
+- **Firmware:** se buscan las ROMs originales en `firmware/c64`; si no están se usan las
+  Open ROMs (libres, LGPL 3). Muchos juegos llaman a rutinas internas del KERNAL original
+  que las Open ROMs no tienen; la máquina detecta los `JMP`/`JSR` desde RAM a esas
+  direcciones (no los retornos de interrupción) y hace las más comunes: borrar pantalla,
+  valores del editor y de la VIC, fin del manejador de IRQ, CINT/IOINIT/RAMTAS/RESTOR y el
+  reinicio con la firma "CBM80" que usan los crackers. Las que quedan sin cubrir se le
+  muestran al usuario.
+- **Carga:** la máquina arranca hasta `READY.`, copia el programa a su dirección, ajusta
+  los punteros del BASIC y lo lanza como `SYS` (A, X, Y y flags desde $030C-$030F, pila en
+  $F6 con la dirección de retorno, como el BASIC real: hay programas que dependen de eso)
+  o escribiendo `RUN` en el buffer del teclado.
 
 ## Cinta: señal, no atajos
 
@@ -299,6 +348,7 @@ con `Poke` en las demás; el archivo original nunca se modifica.
 | 1b | Z80 | Spectrum 128K (AY, paginación), TK90X, MSX | Pendiente |
 | 2 | Intel 8080 | Placa arcade de Space Invaders | Hecha (probada con la ROM real) |
 | F | - | Fusiones, IA y visor de código | Hecha para Spectrum 48K y Space Invaders |
-| 3 | 6502 / 6510 | Apple II, Commodore 64 | Pendiente (hay un intérprete 6502 en el kit de Python) |
+| 3 | 6502 / 6510 | Commodore 64 (.t64, .prg) | Hecha (Pac-Man, Ghostbusters, Spy vs Spy) |
+| 3b | 6502 | Discos .d64 y cartuchos del C64, Atari 800, Apple II, NES | Pendiente |
 | 4 | 8086 / 8088 | IBM PC / XT con DOS | Pendiente |
 | 5 | 68000 | Atari ST, Amiga 500 | Pendiente |

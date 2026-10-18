@@ -41,6 +41,16 @@ public static class MachineFactory
                 SpectrumMedia.Load(m, media);
                 return m;
             }
+            case "c64":
+            {
+                var m = new Retro.Systems.C64.C64(Retro.Systems.C64.C64Firmware.Find(romDirectory));
+                var media = source.Files
+                    .Where(f => Retro.Systems.C64.C64Media.Probe(f) > 0)
+                    .OrderBy(f => MediaArchive.DumpScore(f.Name))
+                    .FirstOrDefault() ?? throw new InvalidDataException($"No hay un archivo de C64 (.t64 o .prg) para {source.Profile.Name}.");
+                Retro.Systems.C64.C64Media.Load(m, media);
+                return m;
+            }
             default:
                 throw new NotSupportedException($"La máquina \"{source.Profile.Machine}\" todavía no está implementada.");
         }

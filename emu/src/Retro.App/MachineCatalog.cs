@@ -26,7 +26,8 @@ public static class MachineCatalog
             "Cada juego de arcade es su propia ROM: el invaders.zip de MAME (Space Invaders, 1978)."),
         new("cpc", "Amstrad CPC", "Zilog Z80", MachineStatus.Planned, new[] { "cpc464.rom" }, new[] { ".dsk", ".cdt" }),
         new("pc88", "NEC PC-8801", "Zilog Z80 (NEC uPD780)", MachineStatus.Planned, new[] { "pc88.rom" }, new[] { ".d88" }),
-        new("c64", "Commodore 64", "MOS 6510", MachineStatus.Planned, new[] { "kernal.rom", "basic.rom", "chargen.rom" }, new[] { ".prg", ".d64", ".t64", ".crt", ".tap" }),
+        new("c64", "Commodore 64", "MOS 6510", MachineStatus.Available, new[] { "kernal.rom", "basic.rom", "chargen.rom" }, new[] { ".prg", ".d64", ".t64", ".crt", ".tap" },
+            "Trae el firmware libre Open ROMs; con las ROMs originales (kernal.rom, basic.rom, chargen.rom en firmware/c64) es más compatible. Juegos: cintas .t64 y programas .prg."),
         new("atari800", "Atari 800/XL", "MOS 6502", MachineStatus.Planned, new[] { "atarixl.rom" }, new[] { ".atr", ".xex", ".xfd", ".car", ".cas" }),
         new("apple2", "Apple II", "MOS 6502", MachineStatus.Planned, new[] { "apple2.rom" }, new[] { ".dsk", ".do", ".po", ".woz", ".nib" }),
         new("vic20", "Commodore VIC-20", "MOS 6502", MachineStatus.Planned, new[] { "vic20-kernal.rom" }, new[] { ".prg", ".crt" }),
@@ -135,6 +136,18 @@ public static class MachineCatalog
         return list.OrderByDescending(c => c.Machine.Status == MachineStatus.Available && c.Confidence >= 50)
             .ThenByDescending(c => c.Confidence).ToList();
     }
+
+    /// <summary>
+    /// Why an implemented machine cannot load this file yet (a format of a later stage), or
+    /// null when it can.
+    /// </summary>
+    public static string? NotLoadableYet(Candidate c) => c.Machine.Id switch
+    {
+        "c64" when c.File.Extension is ".d64" => "los discos .d64 del C64 llegan en la próxima etapa: buscá la versión .t64 o .prg del juego",
+        "c64" when c.File.Extension is ".crt" => "los cartuchos .crt del C64 llegan en la próxima etapa: buscá la versión .t64 o .prg del juego",
+        "c64" when c.File.Extension is ".tap" => "las cintas de pulsos .tap del C64 llegan en la próxima etapa: buscá la versión .t64 o .prg del juego",
+        _ => null,
+    };
 
     private static string FormatName(string ext, string fallback) => ext switch
     {

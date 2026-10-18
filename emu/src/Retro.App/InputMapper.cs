@@ -80,8 +80,101 @@ public sealed class InputMapper
     {
         if (machine is Spectrum48 zx)
             UpdateSpectrum(zx, keyboardEnabled);
+        else if (machine is Retro.Systems.C64.C64 c64)
+            UpdateC64(c64, keyboardEnabled);
         else
             UpdateArcade(machine, keyboardEnabled);
+    }
+
+    /// <summary>Control port that the arrows and the gamepad drive on the C64 (most games read port 2).</summary>
+    public int C64Port { get; set; } = 2;
+
+    private static readonly (KeyboardKey key, string[] c64)[] C64KeyMap = BuildC64KeyMap();
+
+    /// <summary>
+    /// The C64 keys by position (as printed on a PC keyboard), plus Esc = RUN/STOP,
+    /// Page Up = RESTORE, left Ctrl = C=, Tab = CTRL. F1 F3 F5 F7 are the C64's own keys.
+    /// </summary>
+    private static (KeyboardKey, string[])[] BuildC64KeyMap()
+    {
+        var list = new List<(KeyboardKey, string[])>();
+        for (char c = 'A'; c <= 'Z'; c++)
+            list.Add((Enum.Parse<KeyboardKey>(c.ToString()), new[] { c.ToString() }));
+        string[] digits = { "Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine" };
+        for (int i = 0; i < 10; i++)
+            list.Add((Enum.Parse<KeyboardKey>(digits[i]), new[] { i.ToString() }));
+        list.Add((KeyboardKey.Space, new[] { "SPACE" }));
+        list.Add((KeyboardKey.Enter, new[] { "RETURN" }));
+        list.Add((KeyboardKey.KpEnter, new[] { "RETURN" }));
+        list.Add((KeyboardKey.Backspace, new[] { "DEL" }));
+        list.Add((KeyboardKey.Insert, new[] { "LSHIFT", "DEL" }));
+        list.Add((KeyboardKey.Home, new[] { "HOME" }));
+        list.Add((KeyboardKey.LeftShift, new[] { "LSHIFT" }));
+        list.Add((KeyboardKey.RightShift, new[] { "RSHIFT" }));
+        list.Add((KeyboardKey.LeftControl, new[] { "C=" }));
+        list.Add((KeyboardKey.Tab, new[] { "CTRL" }));
+        list.Add((KeyboardKey.Escape, new[] { "RUN/STOP" }));
+        list.Add((KeyboardKey.PageUp, new[] { "RESTORE" }));
+        list.Add((KeyboardKey.F1, new[] { "F1" }));
+        list.Add((KeyboardKey.F3, new[] { "F3" }));
+        list.Add((KeyboardKey.F5, new[] { "F5" }));
+        list.Add((KeyboardKey.F7, new[] { "F7" }));
+        list.Add((KeyboardKey.Comma, new[] { "," }));
+        list.Add((KeyboardKey.Period, new[] { "." }));
+        list.Add((KeyboardKey.Slash, new[] { "/" }));
+        list.Add((KeyboardKey.Semicolon, new[] { ";" }));
+        list.Add((KeyboardKey.Apostrophe, new[] { ":" }));
+        list.Add((KeyboardKey.Minus, new[] { "-" }));
+        list.Add((KeyboardKey.Equal, new[] { "=" }));
+        list.Add((KeyboardKey.LeftBracket, new[] { "@" }));
+        list.Add((KeyboardKey.RightBracket, new[] { "*" }));
+        list.Add((KeyboardKey.Backslash, new[] { "POUND" }));
+        list.Add((KeyboardKey.Grave, new[] { "ARROW LEFT" }));
+        list.Add((KeyboardKey.KpAdd, new[] { "+" }));
+        list.Add((KeyboardKey.KpMultiply, new[] { "*" }));
+        list.Add((KeyboardKey.KpSubtract, new[] { "-" }));
+        list.Add((KeyboardKey.KpDivide, new[] { "/" }));
+        return list.ToArray();
+    }
+
+    private void UpdateC64(Retro.Systems.C64.C64 m, bool keyboardEnabled)
+    {
+        var now = new HashSet<string>();
+        if (keyboardEnabled)
+            foreach (var (key, c64) in C64KeyMap)
+                if (Raylib.IsKeyDown(key))
+                    foreach (var k in c64)
+                        now.Add(k);
+
+        bool up = false, down = false, left = false, right = false, fire = false;
+        if (keyboardEnabled)
+        {
+            up = Raylib.IsKeyDown(KeyboardKey.Up);
+            down = Raylib.IsKeyDown(KeyboardKey.Down);
+            left = Raylib.IsKeyDown(KeyboardKey.Left);
+            right = Raylib.IsKeyDown(KeyboardKey.Right);
+            fire = Raylib.IsKeyDown(KeyboardKey.LeftAlt) || Raylib.IsKeyDown(KeyboardKey.RightAlt) || Raylib.IsKeyDown(KeyboardKey.RightControl);
+        }
+        if (Raylib.IsGamepadAvailable(0))
+        {
+            float ax = Raylib.GetGamepadAxisMovement(0, GamepadAxis.LeftX);
+            float ay = Raylib.GetGamepadAxisMovement(0, GamepadAxis.LeftY);
+            left |= ax < -0.4f || Raylib.IsGamepadButtonDown(0, GamepadButton.LeftFaceLeft);
+            right |= ax > 0.4f || Raylib.IsGamepadButtonDown(0, GamepadButton.LeftFaceRight);
+            up |= ay < -0.4f || Raylib.IsGamepadButtonDown(0, GamepadButton.LeftFaceUp);
+            down |= ay > 0.4f || Raylib.IsGamepadButtonDown(0, GamepadButton.LeftFaceDown);
+            fire |= Raylib.IsGamepadButtonDown(0, GamepadButton.RightFaceDown) || Raylib.IsGamepadButtonDown(0, GamepadButton.RightFaceRight);
+            // Start and Select: the keys most games ask for to begin
+            if (Raylib.IsGamepadButtonDown(0, GamepadButton.MiddleRight)) now.Add("F1");
+            if (Raylib.IsGamepadButtonDown(0, GamepadButton.MiddleLeft)) now.Add("SPACE");
+        }
+        string port = C64Port == 1 ? "JOY1 " : "JOY2 ";
+        if (up) now.Add(port + "UP");
+        if (down) now.Add(port + "DOWN");
+        if (left) now.Add(port + "LEFT");
+        if (right) now.Add(port + "RIGHT");
+        if (fire) now.Add(port + "FIRE");
+        Apply(m, now);
     }
 
     /// <summary>Arcade panel: coin, start buttons, left/right and fire (also on a gamepad).</summary>
