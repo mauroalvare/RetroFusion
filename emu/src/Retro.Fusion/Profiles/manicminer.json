@@ -1,0 +1,224 @@
+{
+  "id": "manicminer",
+  "name": "Manic Miner (Bug-Byte, 1983)",
+  "machine": "zx48",
+  "match": {
+    "namePattern": "manic.?miner"
+  },
+  "description": "Plataformas: Miner Willy junta llaves en cavernas llenas de guardianes antes de que se acabe el aire. Pantalla apaisada.",
+  "variables": {
+    "air": {
+      "address": "80BC",
+      "encoding": "uint8",
+      "min": 36,
+      "max": 63,
+      "description": "Aire que le queda a Willy (63 lleno, al llegar a 36 muere). Baja con el tiempo."
+    },
+    "lives": {
+      "address": "8457",
+      "encoding": "uint8",
+      "min": 0,
+      "max": 9,
+      "description": "Vidas de reserva (2 al empezar). Baja al morir."
+    },
+    "score": {
+      "address": "8429",
+      "encoding": "ascii",
+      "bytes": 6,
+      "min": 0,
+      "max": 999999,
+      "description": "Puntaje (6 dígitos en ASCII). Sube al juntar llaves."
+    },
+    "x": {
+      "address": "806C",
+      "encoding": "uint8",
+      "mask": 31,
+      "min": 0,
+      "max": 31,
+      "readOnly": true,
+      "description": "Columna de Willy en la pantalla (0-31)."
+    },
+    "willyY": {
+      "address": "8068",
+      "encoding": "uint8",
+      "min": 0,
+      "max": 255,
+      "readOnly": true,
+      "description": "Altura de Willy en píxeles por 2 (0 = arriba de la caverna)."
+    },
+    "airborne": {
+      "address": "806B",
+      "encoding": "uint8",
+      "min": 0,
+      "max": 255,
+      "description": "0 = en el piso, 1 = saltando, 2 a 11 = cayendo, 255 = muere en el próximo cuadro."
+    },
+    "cavern": {
+      "address": "8407",
+      "encoding": "uint8",
+      "min": 0,
+      "max": 19,
+      "readOnly": true,
+      "description": "Número de caverna (0 = Central Cavern)."
+    }
+  },
+  "controls": {
+    "left": "O",
+    "right": "P",
+    "jump": "SPACE",
+    "start": "ENTER"
+  },
+  "boot": [
+    "load-tape",
+    "wait 150",
+    "press ENTER 40",
+    "wait 100"
+  ],
+  "verified": "Direcciones encontradas con el buscador de memoria y confirmadas jugando (las del puntaje, escribiendo dígitos y leyendo la pantalla).",
+  "sprites": {
+    "willy": {
+      "address": "8200",
+      "width": 16,
+      "height": 16,
+      "layout": "rows",
+      "description": "Willy mirando a la derecha, cuadro 1 (hay 4: willy, willy2, willy3, willy4)."
+    },
+    "willy2": {
+      "address": "8220",
+      "width": 16,
+      "height": 16,
+      "layout": "rows",
+      "description": "Willy a la derecha, cuadro 2."
+    },
+    "willy3": {
+      "address": "8240",
+      "width": 16,
+      "height": 16,
+      "layout": "rows",
+      "description": "Willy a la derecha, cuadro 3."
+    },
+    "willy4": {
+      "address": "8260",
+      "width": 16,
+      "height": 16,
+      "layout": "rows",
+      "description": "Willy a la derecha, cuadro 4."
+    },
+    "willyLeft": {
+      "address": "8280",
+      "width": 16,
+      "height": 16,
+      "layout": "rows",
+      "description": "Willy mirando a la izquierda, cuadro 1 (hay 4: willyLeft..willyLeft4)."
+    },
+    "willyLeft2": {
+      "address": "82A0",
+      "width": 16,
+      "height": 16,
+      "layout": "rows",
+      "description": "Willy a la izquierda, cuadro 2."
+    },
+    "willyLeft3": {
+      "address": "82C0",
+      "width": 16,
+      "height": 16,
+      "layout": "rows",
+      "description": "Willy a la izquierda, cuadro 3."
+    },
+    "willyLeft4": {
+      "address": "82E0",
+      "width": 16,
+      "height": 16,
+      "layout": "rows",
+      "description": "Willy a la izquierda, cuadro 4."
+    },
+    "guardian": {
+      "address": "8100",
+      "width": 16,
+      "height": 16,
+      "layout": "rows",
+      "description": "El guardián de la caverna actual (cambia con cada caverna)."
+    },
+    "item": {
+      "address": "80B4",
+      "width": 8,
+      "height": 8,
+      "layout": "rows",
+      "description": "La llave u objeto que se junta en la caverna actual."
+    }
+  },
+  "helpers": [
+    "// Coordenadas en la pantalla del Spectrum: 256 x 192 (la caverna son las 128 filas de arriba).",
+    "g.willy = function () {",
+    "  var attr = g.peek16(0x806C), col = attr & 31, row8 = g.peek(0x8068) >> 1;",
+    "  return { x: col * 8 + 3, y: row8, w: 10, h: 16, left: (g.peek(0x806A) & 1) === 1,",
+    "           jumping: g.peek(0x806B) === 1, falling: g.peek(0x806B) > 1 && g.peek(0x806B) < 255, dying: g.peek(0x806B) === 255 };",
+    "};",
+    "g.killWilly = function () { if (g.peek(0x806B) !== 255) g.poke(0x806B, 255); };",
+    "g.cavern = function () { return g.peek(0x8407); };",
+    "g.addScore = function (points) { g.set('score', g.get('score') + points); };",
+    "g.addAir = function (amount) { g.set('air', g.get('air') + amount); };",
+    "// --- Las 20 cavernas originales (datos en $B000 + n * $400), para usarlas como niveles ---",
+    "g.cavernCount = 20;",
+    "var ZX = [0x000000, 0x0000D7, 0xD70000, 0xD700D7, 0x00D700, 0x00D7D7, 0xD7D700, 0xD7D7D7, 0x000000, 0x0000FF, 0xFF0000, 0xFF00FF, 0x00FF00, 0x00FFFF, 0xFFFF00, 0xFFFFFF];",
+    "g.ink = function (attr) { return ZX[(attr & 7) | ((attr & 0x40) ? 8 : 0)]; };",
+    "g.paper = function (attr) { return ZX[((attr >> 3) & 7) | ((attr & 0x40) ? 8 : 0)]; };",
+    "g.cavernData = function (n) {",
+    "  var base = 0xB000 + (n % 20) * 0x400, i, r, c;",
+    "  function cell(lo, hi) { var a = ((hi << 8) | lo) - 0x5C00; return { col: a & 31, row: (a >> 5) & 15 }; }",
+    "  var name = '';",
+    "  for (i = 0; i < 32; i++) name += String.fromCharCode(g.peek(base + 512 + i));",
+    "  var kinds = ['background', 'floor', 'crumbling', 'wall', 'conveyor', 'nasty', 'nasty', 'extra'];",
+    "  var tiles = [];",
+    "  for (i = 0; i < 8; i++) tiles.push({ kind: kinds[i], attr: g.peek(base + 544 + i * 9), sprite: g.spriteAt(base + 545 + i * 9, 8, 8, 'rows') });",
+    "  var map = [];",
+    "  for (r = 0; r < 16; r++) {",
+    "    var row = [];",
+    "    for (c = 0; c < 32; c++) {",
+    "      var a = g.peek(base + r * 32 + c), k = 0;",
+    "      for (i = 1; i < 8; i++) if (tiles[i].attr === a && a !== tiles[0].attr) { k = i; break; }",
+    "      row.push(tiles[k].kind);",
+    "    }",
+    "    map.push(row);",
+    "  }",
+    "  var keys = [];",
+    "  for (i = 0; i < 5; i++) {",
+    "    var p = base + 629 + i * 5, at = g.peek(p);",
+    "    if (at === 0xFF) break;",
+    "    if (at === 0) continue;",
+    "    var kc = cell(g.peek(p + 1), g.peek(p + 2));",
+    "    keys.push({ x: kc.col * 8, y: kc.row * 8, w: 8, h: 8 });",
+    "  }",
+    "  var pc = cell(g.peek(base + 688), g.peek(base + 689));",
+    "  var guardians = [];",
+    "  for (i = 0; i < 4; i++) {",
+    "    var q = base + 702 + i * 7, ga = g.peek(q);",
+    "    if (ga === 0xFF) break;",
+    "    if (ga === 0) continue;",
+    "    var gc = cell(g.peek(q + 1), g.peek(q + 2));",
+    "    guardians.push({ x: gc.col * 8, y: gc.row * 8, w: 16, h: 16, minX: (g.peek(q + 5) & 31) * 8, maxX: (g.peek(q + 6) & 31) * 8, color: g.ink(ga), slow: (ga & 0x80) !== 0 });",
+    "  }",
+    "  var frames = [];",
+    "  for (i = 0; i < 8; i++) frames.push(g.spriteAt(base + 768 + i * 32, 16, 16, 'rows'));",
+    "  var sc = cell(g.peek(base + 620), g.peek(base + 621));",
+    "  return {",
+    "    index: n % 20, name: name.trim(), map: map, tiles: tiles, keys: keys,",
+    "    portal: { x: pc.col * 8, y: pc.row * 8, w: 16, h: 16, attr: g.peek(base + 655), sprite: g.spriteAt(base + 656, 16, 16, 'rows') },",
+    "    item: g.spriteAt(base + 692, 8, 8, 'rows'),",
+    "    start: { x: sc.col * 8, y: g.peek(base + 616) >> 1 },",
+    "    guardians: guardians, guardianFrames: frames,",
+    "    conveyorDir: g.peek(base + 623) === 0 ? -1 : 1,",
+    "    border: ZX[g.peek(base + 627) & 7], air: g.peek(base + 700)",
+    "  };",
+    "};"
+  ],
+  "helpersDoc": [
+    "g.willy() -> {x, y, w:10, h:16, left, jumping, falling, dying}: la caja de Willy en la pantalla del Spectrum (256x192; la caverna ocupa y 0 a 127, abajo están el nombre, el aire y el puntaje).",
+    "g.killWilly() -> Willy muere como si tocara un guardián: el juego original hace la animación, resta una vida y reinicia la caverna.",
+    "g.cavern() -> número de caverna (0 = Central Cavern; hay 20).",
+    "g.addScore(puntos) -> suma al puntaje que muestra Manic Miner. g.addAir(n) -> suma aire (36 a 63; con 36 Willy se muere de asfixia).",
+    "El juego original sigue funcionando: guardianes, llaves, plataformas que se rompen, cinta transportadora y la puerta de salida.",
+    "g.cavernData(n) -> los datos ORIGINALES de la caverna n (0 a 19) para usarla como nivel: {index, name, map (16 filas x 32 columnas de 'background' | 'floor' | 'crumbling' | 'wall' | 'conveyor' | 'nasty' | 'extra'; cada celda mide 8x8 píxeles), tiles (8 mosaicos {kind, attr, sprite}), keys (lista {x, y, w:8, h:8}), portal {x, y, w:16, h:16, attr, sprite}, item (sprite de la llave), start {x, y} de Willy, guardians (lista {x, y, w:16, h:16, minX, maxX, color, slow}), guardianFrames (8 sprites 16x16: 0-3 mirando a la derecha, 4-7 a la izquierda), conveyorDir (-1 o 1), border (color), air}. En Manic Miner: 'floor' se pisa desde arriba, 'wall' es sólido, 'crumbling' se rompe al pisarlo, 'conveyor' arrastra, 'nasty' mata. Llamala UNA vez por nivel (crea sprites) y guardá el resultado.",
+    "g.ink(attr), g.paper(attr) -> colores 0xRRGGBB de un atributo del Spectrum (para pintar los mosaicos: screen.sprite(tile.sprite, x, y, g.ink(tile.attr)))."
+  ]
+}

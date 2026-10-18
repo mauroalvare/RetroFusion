@@ -1,0 +1,191 @@
+{
+  "id": "invaders",
+  "name": "Space Invaders (Taito/Midway, 1978)",
+  "machine": "invaders",
+  "match": {
+    "files": [
+      "invaders.e",
+      "invaders.f",
+      "invaders.g",
+      "invaders.h"
+    ]
+  },
+  "description": "Matamarcianos: un cañón se mueve abajo y dispara a 55 invasores que bajan en formación. Un OVNI cruza arriba. Pantalla vertical.",
+  "variables": {
+    "credits": {
+      "address": "20EB",
+      "encoding": "bcd",
+      "bytes": 1,
+      "min": 0,
+      "max": 99,
+      "description": "Créditos insertados."
+    },
+    "ships": {
+      "address": "21FF",
+      "encoding": "uint8",
+      "min": 0,
+      "max": 9,
+      "description": "Naves de reserva del jugador 1 (sin contar la que juega). Al llegar a 0 y morir, fin del juego."
+    },
+    "aliens": {
+      "address": "2082",
+      "encoding": "uint8",
+      "min": 0,
+      "max": 55,
+      "description": "Invasores vivos en la oleada (55 al empezar). Baja con cada impacto."
+    },
+    "score": {
+      "address": "20F8",
+      "encoding": "bcd",
+      "bytes": 2,
+      "min": 0,
+      "max": 9999,
+      "description": "Puntaje del jugador 1."
+    },
+    "x": {
+      "address": "201B",
+      "encoding": "uint8",
+      "min": 48,
+      "max": 208,
+      "readOnly": true,
+      "description": "Posición horizontal del cañón (48 = borde izquierdo)."
+    }
+  },
+  "controls": {
+    "left": "P1 LEFT",
+    "right": "P1 RIGHT",
+    "fire": "P1 FIRE",
+    "coin": "COIN",
+    "start": "P1 START"
+  },
+  "boot": [
+    "wait 200",
+    "press COIN 8",
+    "wait 60",
+    "press P1 START 8",
+    "wait 250"
+  ],
+  "verified": "Direcciones encontradas con el buscador de memoria y confirmadas jugando la ROM original (CRC 734f5ad8...).",
+  "sprites": {
+    "alienA": {
+      "address": "1C00",
+      "width": 16,
+      "height": 8,
+      "layout": "columns",
+      "description": "Invasor de las 2 filas de abajo (pulpo, 10 puntos), cuadro 1."
+    },
+    "alienA2": {
+      "address": "1C30",
+      "width": 16,
+      "height": 8,
+      "layout": "columns",
+      "description": "Pulpo, cuadro 2 de la animación."
+    },
+    "alienB": {
+      "address": "1C10",
+      "width": 16,
+      "height": 8,
+      "layout": "columns",
+      "description": "Invasor de las filas 3 y 4 (cangrejo, 20 puntos), cuadro 1."
+    },
+    "alienB2": {
+      "address": "1C40",
+      "width": 16,
+      "height": 8,
+      "layout": "columns",
+      "description": "Cangrejo, cuadro 2."
+    },
+    "alienC": {
+      "address": "1C20",
+      "width": 16,
+      "height": 8,
+      "layout": "columns",
+      "description": "Invasor de la fila de arriba (calamar, 30 puntos), cuadro 1."
+    },
+    "alienC2": {
+      "address": "1C50",
+      "width": 16,
+      "height": 8,
+      "layout": "columns",
+      "description": "Calamar, cuadro 2."
+    },
+    "cannon": {
+      "address": "1C60",
+      "width": 16,
+      "height": 8,
+      "layout": "columns",
+      "description": "El cañón del jugador."
+    },
+    "explosion": {
+      "address": "1CC0",
+      "width": 16,
+      "height": 8,
+      "layout": "columns",
+      "description": "Explosión de un invasor."
+    },
+    "saucer": {
+      "address": "1D64",
+      "width": 24,
+      "height": 8,
+      "layout": "columns",
+      "description": "El OVNI misterioso."
+    },
+    "shield": {
+      "address": "1D20",
+      "width": 22,
+      "height": 16,
+      "layout": "columns",
+      "description": "Un búnker verde (escudo)."
+    }
+  },
+  "helpers": [
+    "// Coordenadas en la pantalla de Invaders: 224 x 256, y hacia abajo desde arriba.",
+    "g.aliens = function () {",
+    "  var refY = g.peek(0x2009), refX = g.peek(0x200A), list = [];",
+    "  for (var i = 0; i < 55; i++) {",
+    "    if (!g.peek(0x2100 + i)) continue;",
+    "    var row = Math.floor(i / 11), col = i % 11;",
+    "    list.push({ index: i, row: row, col: col, x: refX + col * 16 - 32, y: 248 - (refY + row * 16), w: 16, h: 8,",
+    "                type: row < 2 ? 'A' : row < 4 ? 'B' : 'C', points: row < 2 ? 10 : row < 4 ? 20 : 30 });",
+    "  }",
+    "  return list;",
+    "};",
+    "g.killAlien = function (index) {",
+    "  if (!g.peek(0x2100 + index)) return false;",
+    "  g.poke(0x2100 + index, 0);",
+    "  g.poke(0x2082, Math.max(0, g.peek(0x2082) - 1));",
+    "  return true;",
+    "};",
+    "g.bombs = function () {",
+    "  var list = [];",
+    "  [0x2030, 0x2040, 0x2050].forEach(function (s, k) {",
+    "    if (g.peek(s + 5) & 0x80) list.push({ index: k, x: g.peek(s + 14) - 32, y: 248 - g.peek(s + 13), w: 3, h: 8 });",
+    "  });",
+    "  return list;",
+    "};",
+    "g.cannon = function () {",
+    "  return { x: g.peek(0x201B) - 32, y: 248 - g.peek(0x201A), w: 16, h: 8, alive: g.peek(0x2015) === 0xFF };",
+    "};",
+    "g.moveCannon = function (x) { g.poke(0x201B, Math.max(48, Math.min(208, Math.round(x) + 32))); };",
+    "g.alienFrame = function () { return g.peek(0x2005) & 1; };",
+    "g.wave = function () { return { left: g.peek(0x2082), refX: g.peek(0x200A) - 32, refY: 248 - g.peek(0x2009) }; };",
+    "g.removeBomb = function (index) { var s = 0x2030 + index * 16; if (g.peek(s + 5) & 0x80) g.poke(s + 5, 0); };",
+    "g.keepRows = function (rows) { for (var i = rows * 11; i < 55; i++) g.killAlien(i); };",
+    "g.setRack = function (topY) {",
+    "  var rows = 0;",
+    "  for (var i = 0; i < 55; i++) if (g.peek(0x2100 + i)) rows = Math.max(rows, Math.floor(i / 11) + 1);",
+    "  if (rows > 0) g.poke(0x2009, Math.max(0, Math.min(255, 248 - topY - (rows - 1) * 16)));",
+    "};"
+  ],
+  "helpersDoc": [
+    "g.aliens() -> lista de invasores vivos {index, row (0 = abajo), col, x, y, w:16, h:8, type 'A'|'B'|'C', points 10|20|30}, en coordenadas de la pantalla de Invaders (224x256, y hacia abajo). La formación se mueve sola (es el juego original corriendo) y acelera cuando quedan menos.",
+    "g.killAlien(index) -> borra ese invasor de la formación (el juego original lo da por muerto). Cuando no queda ninguno, Invaders arranca otra oleada solo, más abajo.",
+    "g.bombs() -> disparos de los invasores en vuelo {index, x, y, w:3, h:8}. El juego original los apunta a la columna del cañón.",
+    "g.cannon() -> el cañón {x, y, w:16, h:8, alive}. g.moveCannon(x) lo pone en la columna x (16 a 176): sirve para que los invasores apunten a otro personaje.",
+    "g.alienFrame() -> 0 o 1, el cuadro de animación de la formación (para alternar alienA / alienA2).",
+    "g.wave() -> {left: invasores que quedan, refX, refY: posición del invasor de abajo a la izquierda}.",
+    "g.removeBomb(index) -> apaga ese disparo de los invasores (el juego original vuelve a disparar después). Sirve para que un disparo choque con otra cosa o para limitar cuántos hay. Si el cañón (oculto o no) recibe un disparo, el original lo mata y frena la formación: si no usás el cañón, apagá los disparos antes de que lleguen abajo (y > 200).",
+    "g.keepRows(n) -> deja solo las n filas de abajo de la formación (1 a 5): menos invasores para empezar fácil.",
+    "g.setRack(y) -> sube o baja la formación para que su fila de arriba quede en la altura y (coordenadas de Invaders). Úsalo al empezar una oleada o para empujarla hacia arriba."
+  ]
+}

@@ -1,0 +1,29 @@
+# --- Compilación
+bin/
+obj/
+.vs/
+*.user
+__pycache__/
+*.pyc
+
+# --- Salidas locales (capturas, paquetes, ventanas)
+emu/out/
+emu/dist/
+imgui.ini
+
+# --- Juegos: cada uno pone los suyos (carpeta ROMs, fuera del código) y nunca se suben
+/ROMs/
+/Juegos fusionados/*/
+*.zip
+*.rar
+*.7z
+
+# --- Firmware: solo lo que se puede redistribuir
+emu/roms/*
+!emu/roms/48.rom
+!emu/roms/c64/
+emu/roms/samples/
+
+# --- Pruebas grandes o de licencia dudosa (se bajan aparte)
+emu/testdata/6502/
+emu/testdata/8080/CPUTEST.COM

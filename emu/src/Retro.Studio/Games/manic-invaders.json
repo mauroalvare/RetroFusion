@@ -1,0 +1,21 @@
+{
+  "id": "manic-invaders",
+  "title": "Manic Invaders",
+  "approach": "Héroe y niveles de Manic Miner; la amenaza y el ritmo de Space Invaders",
+  "pitch": "Surbiton, 1983. Una flota invasora se posa sobre las minas donde trabaja Miner Willy. Con un láser que encontró en la mina, Willy tiene que juntar las llaves de cada caverna y escapar por el portal antes de que los invasores aterricen o se le acabe el aire. Son las 20 cavernas originales de Manic Miner, y la flota es la del arcade de verdad, que ahora apunta a Willy.",
+  "howToPlay": "Flechas: caminar. Espacio o flecha arriba: saltar. Ctrl o Z: disparar hacia arriba. Juntá todas las llaves para abrir el portal y salí por él. Dos presiones: el aire se acaba y solo las llaves te lo devuelven (están arriba, donde caen las bombas); la flota baja y cada invasor que derribás la empuja hacia arriba. Los pisos te cubren de las bombas; el láser los atraviesa. Si la flota llega al techo de la caverna, perdés una vida.",
+  "design": "- Juego base: Manic Miner (plataformas: caminar, saltar, juntar llaves, salir por el portal, el aire que se acaba).\n- Héroe: Miner Willy, con sus sprites y su salto, más un láser que dispara hacia arriba.\n- Aportes de Space Invaders: 1) la flota real en el cielo de la caverna, con su marcha, su aceleración y sus disparos apuntados al jugador; 2) la invasión que baja: cada invasor derribado empuja la flota hacia arriba (si aterriza, perdés una vida), mientras que el aire de Manic Miner solo vuelve con las llaves: dos presiones, cada una resuelta con el verbo de un juego; 3) los pisos son la cobertura contra las bombas y los pisos que se desmoronan se rompen con ellas, como los búnkeres.\n- Se descarta: de Space Invaders, el cañón, los búnkeres, el OVNI y su pantalla; de Manic Miner, las plantas y estalactitas venenosas, la muerte por caída y que la caverna se reinicie al morir.\n- Objetivo: en cada caverna, juntar todas las llaves y salir por el portal.\n- Derrota: una bomba, un guardián, quedarse sin aire o que la flota aterrice cuestan una vida; con 0 vidas, fin.\n- Historia: la flota invasora sobre las minas de Surbiton; Willy sube caverna por caverna hasta la superficie.\n- Niveles: las 20 cavernas originales en orden. Una novedad por caverna: la 1 sin guardián y con 2 filas lentas; en la 2 aparece el guardián de cada caverna; en la 3, la tercera fila (nunca más: la flota no es una pared); después suben de a poco la velocidad, las bombas y el gasto de aire. Cada caverna nueva se presenta con su nombre y su objetivo.\n- Controles: flechas, Espacio o arriba para saltar, Ctrl o Z para disparar, Enter para empezar.\n- Legibilidad: la flota vive en su propia franja de cielo, arriba de la caverna; nunca tapa las plataformas. Bombas rojas, láser amarillo, llaves que titilan.",
+  "games": [
+    {
+      "slot": "a",
+      "profile": "invaders"
+    },
+    {
+      "slot": "b",
+      "profile": "manicminer"
+    }
+  ],
+  "script": "",
+  "version": 1,
+  "author": "RetroEmu (ejemplo)"
+}

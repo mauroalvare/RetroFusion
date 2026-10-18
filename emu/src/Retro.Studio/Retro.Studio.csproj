@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Retro.Core\Retro.Core.csproj" />
+    <ProjectReference Include="..\Retro.Fusion\Retro.Fusion.csproj" />
+    <ProjectReference Include="..\Retro.Ai\Retro.Ai.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Games\*.json" />
+    <EmbeddedResource Include="Games\*.js" />
+    <EmbeddedResource Include="Docs\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Jint" Version="4.17.0" />
+  </ItemGroup>
+</Project>

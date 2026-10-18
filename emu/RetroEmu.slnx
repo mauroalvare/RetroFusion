@@ -1,0 +1,24 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Retro.Ai/Retro.Ai.csproj" />
+    <Project Path="src/Retro.App/Retro.App.csproj" />
+    <Project Path="src/Retro.Cli/Retro.Cli.csproj" />
+    <Project Path="src/Retro.Core/Retro.Core.csproj" />
+    <Project Path="src/Retro.Cpu.I8080/Retro.Cpu.I8080.csproj" />
+    <Project Path="src/Retro.Cpu.M6502/Retro.Cpu.M6502.csproj" />
+    <Project Path="src/Retro.Cpu.Z80/Retro.Cpu.Z80.csproj" />
+    <Project Path="src/Retro.Fusion/Retro.Fusion.csproj" />
+    <Project Path="src/Retro.Studio/Retro.Studio.csproj" />
+    <Project Path="src/Retro.Systems.Arcade/Retro.Systems.Arcade.csproj" />
+    <Project Path="src/Retro.Systems.Spectrum/Retro.Systems.Spectrum.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Arcade.Tests/Arcade.Tests.csproj" />
+    <Project Path="tests/Fusion.Tests/Fusion.Tests.csproj" />
+    <Project Path="tests/I8080.Tests/I8080.Tests.csproj" />
+    <Project Path="tests/M6502.Tests/M6502.Tests.csproj" />
+    <Project Path="tests/Retro.Cpu.Z80.Tests/Retro.Cpu.Z80.Tests.csproj" />
+    <Project Path="tests/Studio.Tests/Studio.Tests.csproj" />
+    <Project Path="tests/Zx.Tests/Zx.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,26 @@
+{
+  "id": "invaders-miner",
+  "name": "Invaders Miner",
+  "author": "RetroEmu",
+  "description": "Willy recorre la Central Cavern mientras los invasores bajan encima de él. Los mismos controles mueven al minero y al cañón: si querés esquivar a un guardián, también movés el cañón. Cada invasor abatido le da aire a Willy; si Willy muere, perdés una nave; juntar llaves te devuelve naves.",
+  "games": [
+    { "slot": "a", "profile": "invaders" },
+    { "slot": "b", "profile": "manicminer" }
+  ],
+  "layout": { "mode": "overlay", "base": "b", "opacity": 0.55 },
+  "controls": {
+    "left": ["a.left", "b.left"],
+    "right": ["a.right", "b.right"],
+    "fire": ["a.fire"],
+    "jump": ["b.jump"],
+    "start": ["a.start", "b.start"],
+    "coin": ["a.coin"]
+  },
+  "rules": [
+    { "when": "a.aliens decreases", "do": ["b.air += 2"], "message": "¡Invasor abatido: Willy respira!" },
+    { "when": "b.lives decreases", "do": ["a.ships -= 1"], "message": "Willy cayó: perdés una nave" },
+    { "when": "b.score increases", "do": ["a.ships += 1"], "message": "Llave juntada: nave extra", "cooldown": 120 },
+    { "when": "a.ships decreases", "do": ["b.air -= 4"], "message": "Te dieron: a Willy le falta el aire", "cooldown": 60 },
+    { "every": 1800, "do": ["press b.jump 4", "message ¡Los invasores sacuden la caverna!"] }
+  ]
+}
