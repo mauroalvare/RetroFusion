@@ -66,5 +66,9 @@ La app de Claude ofrece tareas programadas que abren sesiones nuevas (persisten 
 sesiones; corren con la app abierta) y un cron por sesión (solo mientras la sesión vive y
 está inactiva). Se usa la tarea programada como supervisor: cada pocas horas comprueba
 pausa, límite de uso y latidos, y si nadie trabaja retoma el backlog. El trabajo automático
-se detiene al 85 % del cupo semanal o 95 % de la ventana de 5 horas (configurable en
-`proyecto.json`), porque el plan Pro también es para el uso personal del usuario.
+se detiene al 85 % del cupo semanal o 95 % de la ventana de 5 horas, porque el plan Pro
+también es para el uso personal del usuario. Son valores por defecto que ya se aplican;
+el usuario los puede cambiar en `politica_autonoma` de `proyecto.json` (está anotado en
+HANDOFF.md para que lo confirme). Un cron de la propia sesión interactiva (cada 20
+minutos, solo cuando está inactiva) mantiene su latido para que la tarea programada no
+arranque trabajo duplicado mientras esa sesión vive.

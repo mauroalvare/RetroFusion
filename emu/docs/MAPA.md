@@ -41,10 +41,11 @@ Desde `emu/` salvo que se indique otra cosa.
 ```bash
 # compilar y probar
 dotnet build RetroEmu.slnx
-dotnet test RetroEmu.slnx                                    # todo (~10 min por ZEXALL)
+dotnet test RetroEmu.slnx -c Release --filter "TestCategory!=Long"   # rápido: sin ZEXDOC/ZEXALL ni 8080EXM
+dotnet test RetroEmu.slnx                                    # todo (~10 min en Debug; ZEXALL ~45 s en Release)
 dotnet test tests/C64.Tests                                  # un proyecto
-dotnet test tests/Retro.Cpu.Z80.Tests --filter "FullyQualifiedName!~Zex"   # sin ZEXALL
-python -m unittest ../coordinacion/test_agentes.py           # herramienta de coordinación
+dotnet test tests/Retro.Cpu.Z80.Tests -c Release --filter "TestCategory=Long"   # solo ZEXDOC/ZEXALL
+python ../coordinacion/test_agentes.py                       # herramienta de coordinación
 
 # la app (sin ventana ni sonido para pruebas automáticas; la captura va relativa al directorio actual)
 dotnet run --project src/Retro.App -- --hidden --mute --autotest 10 out/prueba.png <juego>
@@ -60,8 +61,9 @@ $C studio manic-invaders --games <carpeta-juegos> --shots out/s
 # paquetes autocontenidos (Windows y Linux) en emu/dist
 pwsh tools/publish.ps1 -Version 0.4.0
 
-# coordinación (desde la raíz del repo)
-python coordinacion/agentes.py relevo | estado | siguiente --agente X | validar | backlog
+# coordinación (desde la raíz del repo): referencia completa en coordinacion/LEEME.md
+python coordinacion/agentes.py relevo
+python coordinacion/agentes.py puede-seguir --agente X
 ```
 
 Teclas de `--press`: las de cada máquina (`SPACE`, `ENTER`/`RETURN`, `CAPS SHIFT`,
