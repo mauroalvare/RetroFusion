@@ -46,6 +46,17 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 - Los juegos crackeados de la carpeta (Pac-Man y Ghostbusters) tienen menús de trainer
   antes del juego: la secuencia de teclas está en `tests/C64.Tests/GameTests.cs`.
 
+### Nintendo NES (en construcción, T-031)
+
+- Hecho: la CPU 2A03 (6502 sin modo decimal, `DecimalEnabled = false`, con prueba) y el
+  lector de cartuchos iNES/NES 2.0 (`Retro.Systems.Nes.NesCartridge`) con mappers 0 (NROM)
+  y 3 (CNROM); los 5 .nes de Mojon Twins se leen bien. Falta la PPU, la APU, los mandos,
+  la máquina y su integración en la app: todavía no corre ningún juego.
+- CNROM: no se emulan los conflictos de bus al elegir banco (los juegos bien hechos no
+  dependen de eso).
+- Sin `nestest.nes` (prueba estándar de la CPU): hay que descargarla y espera la
+  confirmación del usuario.
+
 ### Matriz de compatibilidad
 
 - Los guiones descubiertos automáticamente no tienen pasos ni comprobaciones: el nivel

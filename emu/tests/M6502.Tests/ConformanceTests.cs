@@ -186,6 +186,21 @@ public class ConformanceTests
         cpu.Step(); cpu.Step();
         Assert.That(cpu.PC, Is.EqualTo(0x0202), "con la línea NMI todavía activa no vuelve a entrar: es por flanco");
     }
+
+    [TestCase(true, 0x10, 0x09)]
+    [TestCase(false, 0x0A, 0x0F)]
+    public void Decimal_The2A03KeepsTheDFlagButAddsInBinary(bool decimalEnabled, int sum, int difference)
+    {
+        var bus = new TestBus();
+        // SED; CLC; LDA #$09; ADC #$01; STA $10; SEC; LDA #$10; SBC #$01; STA $11
+        byte[] program = { 0xF8, 0x18, 0xA9, 0x09, 0x69, 0x01, 0x85, 0x10, 0x38, 0xA9, 0x10, 0xE9, 0x01, 0x85, 0x11 };
+        program.CopyTo(bus.Memory, 0x0200);
+        var cpu = new M6502(bus) { PC = 0x0200, DecimalEnabled = decimalEnabled };
+        for (int i = 0; i < 9; i++) cpu.Step();
+        Assert.That(bus.Memory[0x10], Is.EqualTo(sum), "ADC con D puesto");
+        Assert.That(bus.Memory[0x11], Is.EqualTo(difference), "SBC con D puesto");
+        Assert.That(cpu.P & M6502.FlagD, Is.Not.Zero, "el flag D se guarda igual en los dos");
+    }
 }
 
 [TestFixture]
