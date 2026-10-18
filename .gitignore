@@ -1,3 +1,9 @@
+# --- Desarrollo con agentes de IA: instrucciones, estado y coordinación; solo en la copia local
+/AGENTS.md
+/CLAUDE.md
+/HANDOFF.md
+/coordinacion/
+
 # --- Compilación
 bin/
 obj/

@@ -51,28 +51,6 @@ firmware. Las no cubiertas se informan al usuario; con las ROMs originales no ha
 El BASIC `SYS` se reproduce exacto (registros desde $030C-F, pila en $F6) porque hay
 programas que dependen de eso.
 
-## D-008 Coordinación entre agentes con un archivo JSON por elemento (2026-10-18)
-
-Tareas, mensajes, reclamos y latidos son archivos separados en `coordinacion/` del
-checkout principal: dos agentes nunca escriben el mismo archivo, se lee sin herramientas
-y funciona entre proveedores. Reclamos con vencimiento (8 h) para recuperar tareas
-abandonadas; latidos de 45 minutos para no duplicar trabajo; `PAUSA` manual que prevalece
-sobre toda automatización. Reclamos, latidos y `PAUSA` no se versionan (son de la
-máquina local); tareas y buzón sí (son el registro).
-
-## D-009 Continuidad con tareas programadas de la app y política de uso (2026-10-18)
-
-La app de Claude ofrece tareas programadas que abren sesiones nuevas (persisten entre
-sesiones; corren con la app abierta) y un cron por sesión (solo mientras la sesión vive y
-está inactiva). Se usa la tarea programada como supervisor: cada pocas horas comprueba
-pausa, límite de uso y latidos, y si nadie trabaja retoma el backlog. El trabajo automático
-se detiene al 85 % del cupo semanal o 95 % de la ventana de 5 horas, porque el plan Pro
-también es para el uso personal del usuario. Son valores por defecto que ya se aplican;
-el usuario los puede cambiar en `politica_autonoma` de `proyecto.json` (está anotado en
-HANDOFF.md para que lo confirme). Un cron de la propia sesión interactiva (cada 20
-minutos, solo cuando está inactiva) mantiene su latido para que la tarea programada no
-arranque trabajo duplicado mientras esa sesión vive.
-
 ## D-010 Compatibilidad por guiones JSON y niveles con evidencia (2026-10-18)
 
 Distinguir "se reconoce", "carga", "llega al título", "responde" y "se puede jugar" exige

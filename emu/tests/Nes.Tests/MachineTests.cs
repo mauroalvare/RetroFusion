@@ -122,7 +122,7 @@ public class MachineTests
     /// <summary>
     /// The user's free homebrew games (Mojon Twins) reach a real picture: rendering turned
     /// on and several colors on screen, also after pressing START. (Bootee is left out: it
-    /// stars Cheril, whose games AGENTS.md excludes as a precaution.)
+    /// stars Cheril, whose games the project leaves out as a precaution.)
     /// </summary>
     [TestCase("mojon-twins--cadaverion.nes")]
     [TestCase("mojon-twins--cave-cnrom.nes")]

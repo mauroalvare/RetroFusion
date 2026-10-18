@@ -1,14 +1,12 @@
 # Mapa del repositorio y comandos
 
 Fuente única de rutas y comandos de desarrollo. El diseño interno está en
-[ARQUITECTURA.md](ARQUITECTURA.md); las reglas de trabajo, en [AGENTS.md](../../AGENTS.md).
+[ARQUITECTURA.md](ARQUITECTURA.md).
 
 ## Raíz
 
 | Ruta | Qué es |
 |---|---|
-| `AGENTS.md`, `CLAUDE.md`, `HANDOFF.md` | Instrucciones para agentes y estado para retomar |
-| `coordinacion/` | Tareas, reclamos, buzón, latidos y la herramienta `agentes.py` ([LEEME](../../coordinacion/LEEME.md)) |
 | `README.md` | Presentación para quien baja el paquete |
 | `retrofusion/` | Kit Python inicial (ensamblador/desensamblador 6502, NES). No lo usa la app; falta su punto de entrada `retro.py`. Se conserva como referencia |
 | `emu/` | Todo el emulador |
@@ -50,7 +48,6 @@ dotnet test RetroEmu.slnx -c Release --filter "TestCategory!=Long"   # rápido: 
 dotnet test RetroEmu.slnx                                    # todo (~10 min en Debug; ZEXALL ~45 s en Release)
 dotnet test tests/C64.Tests                                  # un proyecto
 dotnet test tests/Retro.Cpu.Z80.Tests -c Release --filter "TestCategory=Long"   # solo ZEXDOC/ZEXALL
-python ../coordinacion/test_agentes.py                       # herramienta de coordinación
 
 # la app (sin ventana ni sonido para pruebas automáticas; la captura va relativa al directorio actual)
 dotnet run --project src/Retro.App -- --hidden --mute --autotest 10 out/prueba.png <juego>
@@ -72,12 +69,12 @@ $C compat compat/juegos --solo c64-pac --juegos ... --salida compat/resultados.j
 # laboratorio de ingeniería inversa: llega al juego con un guion y busca vidas, tiempo y posiciones
 $C lab compat/juegos/zx48-manicminer.json --cuadros 12000 --salida lab/zx48-manicminer.json
 
+# fusiones con cualquier juego de la carpeta: ids para las recetas, y preparar uno (partida, variables verificadas, perfil por hash)
+$C juegos C:/Users/mauro/Downloads/ROMs
+$C preparar C:/Users/mauro/Downloads/ROMs/Spy_vs_Spy_C64_EN.zip --ia agent --carpeta out/agente   # o --ia sub-claude, o --ia ninguna
+
 # paquetes autocontenidos (Windows y Linux) en emu/dist
 pwsh tools/publish.ps1 -Version 0.4.0
-
-# coordinación (desde la raíz del repo): referencia completa en coordinacion/LEEME.md
-python coordinacion/agentes.py relevo
-python coordinacion/agentes.py puede-seguir --agente X
 ```
 
 Teclas de `--press`: las de cada máquina (`SPACE`, `ENTER`/`RETURN`, `CAPS SHIFT`,
