@@ -538,7 +538,27 @@ copiar sus bytes, y plantillas para NES y Space Invaders.
    CPU), `CodeEntryPoints` y `ExecutedMap`, y agregar la máquina a `MachineFactory`
    (Retro.Fusion) para que los perfiles puedan usarla.
 
-## Etapas siguientes
+## Prioridad de nuevas CPUs y computadoras
+
+La próxima ampliación prioriza los juegos de PC DOS, en este orden:
+
+| Orden | CPU | Máquina y hardware objetivo |
+|---|---|---|
+| 1 | Intel 8088, después variante 8086 | IBM PC/XT: CGA, teclado, temporizadores, altavoz, discos y BIOS/DOS |
+| 2 | Intel 80286 | PC AT con DOS y gráficos EGA |
+| 3 | Intel 80386, después diferencias del 80486 | PC DOS con VGA y sonido AdLib/Sound Blaster |
+| 4 | Motorola 68000 | Primero Atari ST; después Amiga 500 con sus chips OCS |
+
+Son etapas pendientes. Cada una requiere pruebas de CPU y periféricos, integración en
+app y CLI, y juegos con arranque y controles comprobados por edición. Para usar un juego
+en fusiones también hace falta un perfil verificado. Reconocer un archivo o completar
+la CPU no alcanza para declarar compatible la máquina.
+
+MSX, Amstrad CPC, Atari 800 y Apple II siguen previstos; reutilizan CPUs existentes y
+quedan después de esta prioridad. Las ampliaciones de máquinas ya disponibles siguen
+registradas por separado.
+
+## Estado de las etapas
 
 | Etapa | CPU | Sistemas | Estado |
 |---|---|---|---|
@@ -550,4 +570,6 @@ copiar sus bytes, y plantillas para NES y Space Invaders.
 | 3n | 2A03 (6502) | NES (.nes, mappers 0 y 3) | Hecha, con sonido (4 homebrew de Mojon Twins llegan al juego) |
 | 3b | 6502 | Discos .d64 y cartuchos del C64, Atari 800, Apple II | Pendiente |
 | 4 | 8086 / 8088 | IBM PC / XT con DOS | Pendiente |
+| 4b | 80286 | PC AT con DOS y EGA | Pendiente, después de PC/XT |
+| 4c | 80386 / 80486 | PC DOS con VGA y sonido | Pendiente, después de PC AT |
 | 5 | 68000 | Atari ST, Amiga 500 | Pendiente |
