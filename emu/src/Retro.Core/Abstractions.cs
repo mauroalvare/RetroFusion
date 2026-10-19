@@ -219,3 +219,14 @@ public interface IWriteWatch
     /// <summary>address written, value, address of the instruction that wrote it.</summary>
     Action<ushort, byte, ushort>? WriteWatch { get; set; }
 }
+
+/// <summary>
+/// Reports the reads and writes a program makes to the hardware (Z80 ports, or the 6502's
+/// memory-mapped I/O registers that are read): how the routine that reads the keyboard or
+/// makes the sound is found.
+/// </summary>
+public interface IIoWatch
+{
+    /// <summary>port or register, value, true for a write, address of the instruction.</summary>
+    Action<ushort, byte, bool, ushort>? IoWatch { get; set; }
+}

@@ -12,7 +12,7 @@ namespace Retro.Systems.Spectrum;
 /// T-state by T-state so border and multicolour effects appear), memory and I/O
 /// contention, the keyboard matrix, the beeper (EAR/MIC) and the tape EAR input.
 /// </summary>
-public sealed class Spectrum48 : IMachine, IZ80Bus, IMemoryView, IWriteWatch
+public sealed class Spectrum48 : IMachine, IZ80Bus, IMemoryView, IWriteWatch, IIoWatch
 {
     public const int CpuClock = 3_500_000;
     public const int TStatesPerLine = 224;
@@ -141,6 +141,7 @@ public sealed class Spectrum48 : IMachine, IZ80Bus, IMemoryView, IWriteWatch
     }
 
     public Action<ushort, byte, ushort>? WriteWatch { get; set; }
+    public Action<ushort, byte, bool, ushort>? IoWatch { get; set; }
     private ushort _instructionPc;
 
     public int Contention(ushort address, long tstate) =>
@@ -167,6 +168,13 @@ public sealed class Spectrum48 : IMachine, IZ80Bus, IMemoryView, IWriteWatch
 
     public byte ReadPort(ushort port)
     {
+        byte value = ReadPortValue(port);
+        IoWatch?.Invoke(port, value, false, _instructionPc);
+        return value;
+    }
+
+    private byte ReadPortValue(ushort port)
+    {
         if ((port & 1) == 0)
         {
             int keys = 0x1F;
@@ -184,6 +192,7 @@ public sealed class Spectrum48 : IMachine, IZ80Bus, IMemoryView, IWriteWatch
 
     public void WritePort(ushort port, byte value)
     {
+        IoWatch?.Invoke(port, value, true, _instructionPc);
         if ((port & 1) != 0)
             return;
         long rel = _cpu.T - _frameStart;

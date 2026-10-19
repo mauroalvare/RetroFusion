@@ -31,7 +31,7 @@ public sealed record C64Firmware(byte[] Kernal, byte[] Basic, byte[] Chargen, st
 /// BASIC, KERNAL and character ROMs banked in through the 6510's I/O port. The CPU drives
 /// the clock: every bus access is one cycle of the whole machine.
 /// </summary>
-public sealed class C64 : IMachine, IM6502Bus, IMemoryView, IWriteWatch
+public sealed class C64 : IMachine, IM6502Bus, IMemoryView, IWriteWatch, IIoWatch
 {
     public const double Clock = 985248;
     public const int CyclesPerFrame = Vic.CyclesPerLine * Vic.Lines;
@@ -164,6 +164,7 @@ public sealed class C64 : IMachine, IM6502Bus, IMemoryView, IWriteWatch
     }
 
     public Action<ushort, byte, ushort>? WriteWatch { get; set; }
+    public Action<ushort, byte, bool, ushort>? IoWatch { get; set; }
     private ushort _instructionPc;
 
     public bool IrqLine => Vic.Irq || Cia1.Interrupt;
@@ -229,6 +230,14 @@ public sealed class C64 : IMachine, IM6502Bus, IMemoryView, IWriteWatch
     }
 
     private byte IoRead(ushort a, bool sideEffects)
+    {
+        byte v = IoReadValue(a, sideEffects);
+        if (sideEffects)
+            IoWatch?.Invoke(a, v, false, _instructionPc);
+        return v;
+    }
+
+    private byte IoReadValue(ushort a, bool sideEffects)
     {
         switch ((a >> 8) & 0x0F)
         {
