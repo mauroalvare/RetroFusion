@@ -3,7 +3,7 @@
   "machine": "zx48",
   "script": "zx48-manicminer",
   "sha256": "3c9bbf17c2a9f4c0aa10e2799d127c05d1b24de639a14adedc935c5667dfa724",
-  "generated": "2026-10-18 18:20 UTC",
+  "generated": "2026-10-19 00:23 UTC",
   "method": "Serie de 2401 muestras cada 5 cuadros sin tocar nada (12000 cuadros); corridas desde el mismo estado con cada dirección apretada 30 y 60 cuadros, comparadas con la corrida sin entradas; rango $5B00-$FFFF. Experimento score \"saltar por las plataformas hasta juntar la primera llave\": 900 cuadros con sus entradas contra los mismos sin tocar nada.",
   "findings": [
     {
@@ -24,7 +24,7 @@
         ],
         "frames": 900,
         "pixelsChanged": 38,
-        "date": "2026-10-18 18:20 UTC"
+        "date": "2026-10-19 00:23 UTC"
       },
       "hypothesis": "Puntaje: número que sube al jugar y no cambia sin tocar nada (6 dígitos ASCII).",
       "evidence": [
@@ -55,7 +55,7 @@
         ],
         "frames": 180,
         "pixelsChanged": 60,
-        "date": "2026-10-18 18:20 UTC"
+        "date": "2026-10-19 00:23 UTC"
       },
       "hypothesis": "Tiempo, aire o energía que se consume solo y se recarga al (re)empezar.",
       "evidence": [
@@ -88,7 +88,7 @@
         ],
         "frames": 180,
         "pixelsChanged": 49,
-        "date": "2026-10-18 18:20 UTC"
+        "date": "2026-10-19 00:23 UTC"
       },
       "stride": 5,
       "count": 5,
@@ -124,7 +124,7 @@
         ],
         "frames": 180,
         "pixelsChanged": 6718,
-        "date": "2026-10-18 18:20 UTC"
+        "date": "2026-10-19 00:23 UTC"
       },
       "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
       "evidence": [
@@ -156,7 +156,7 @@
         ],
         "frames": 7380,
         "pixelsChanged": 1633,
-        "date": "2026-10-18 18:20 UTC"
+        "date": "2026-10-19 00:23 UTC"
       },
       "hypothesis": "Vidas (o intentos): valor chico que solo baja de a uno.",
       "evidence": [
@@ -691,7 +691,7 @@
         ],
         "frames": 180,
         "pixelsChanged": 0,
-        "date": "2026-10-18 18:20 UTC"
+        "date": "2026-10-19 00:23 UTC"
       },
       "hypothesis": "Posición horizontal del jugador (o algo que se mueve con él).",
       "evidence": [
@@ -724,7 +724,7 @@
         ],
         "frames": 900,
         "pixelsChanged": 5,
-        "date": "2026-10-18 18:20 UTC"
+        "date": "2026-10-19 00:23 UTC"
       },
       "hypothesis": "Puntaje: número que sube al jugar y no cambia sin tocar nada (BCD de 2 byte(s), 4 dígitos).",
       "evidence": [
@@ -753,7 +753,7 @@
         ],
         "frames": 900,
         "pixelsChanged": 4,
-        "date": "2026-10-18 18:20 UTC"
+        "date": "2026-10-19 00:23 UTC"
       },
       "hypothesis": "Puntaje: número que sube al jugar y no cambia sin tocar nada (BCD de 2 byte(s), 4 dígitos).",
       "evidence": [
