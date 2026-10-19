@@ -25,7 +25,7 @@ Fuente única de rutas y comandos de desarrollo. El diseño interno está en
 | `src/Retro.Studio` | Juegos fusionados con guion JS: sesión, validador, diseñador IA, `Docs/GUIA-FUSION.md` y `Docs/API.md`, juegos incluidos en `Games/` |
 | `src/Retro.Ai` | Proveedores de IA (CLIs por suscripción, APIs, Ollama), carpeta para agentes |
 | `src/Retro.App` | App de escritorio (raylib + Dear ImGui): `RetroApp`, `EmulatorHost`, `InputMapper`, `MachineCatalog`, ventanas de código, fusión y estudio |
-| `src/Retro.Asm` | Ensambladores 6502 y Z80 (núcleo común de dos pasadas), plantillas de juego por máquina (`Templates/*.s`) y la cinta `.tap` con cargador BASIC (`SpectrumTap`) |
+| `src/Retro.Asm` | Ensambladores 6502 y Z80 (núcleo común de dos pasadas), plantillas de juego y guías del hardware por máquina (`Templates/*.s` y `*.md`) y la cinta `.tap` con cargador BASIC (`SpectrumTap`) |
 | `src/Retro.Cli` | `retro-cli`: ejecución sin ventana |
 | `tests/*` | NUnit: `Retro.Cpu.Z80.Tests`, `I8080.Tests`, `M6502.Tests`, `Zx.Tests`, `Arcade.Tests`, `C64.Tests`, `Compat.Tests`, `Fusion.Tests`, `Studio.Tests`, `Asm.Tests` |
 | `compat/juegos/*.json` | Un guion de compatibilidad por archivo de juego (106 hoy; los curados tienen `"curated": true`) |
@@ -77,6 +77,8 @@ $C preparar C:/Users/mauro/Downloads/ROMs/Spy_vs_Spy_C64_EN.zip --ia agent --car
 # juegos de 8 bits desde cero: plantilla por máquina, ensamblador y cinta que arranca sola
 $C crear c64 out/juego.s                                     # deja out/juego.s y out/juego.prg
 $C asm out/zx.s --cpu z80 --salida out/zx.tap --lista
+$C crear zx48 out/nuevo.s --ia sub-codex --pedido "..."      # la IA lo escribe, se prueba con el robot y se corrige
+$C probar out/juego.s                                        # la misma prueba para un juego editado a mano
 
 # paquetes autocontenidos (Windows y Linux) en emu/dist
 pwsh tools/publish.ps1 -Version 0.4.0

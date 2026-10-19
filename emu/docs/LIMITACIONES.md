@@ -145,8 +145,12 @@ arreglar algo, se borra la entrada y se menciona en el commit.
   interfaz ese puerto devuelve basura y el bloque se movería solo. El emulador siempre
   tiene el Kempston conectado.
 - La plantilla del C64 mueve el sprite solo en X de 0 a 255 (no usa el bit 9 de $D010).
-- Todavía no hay IA que escriba juegos ni ventana en la app: solo `retro-cli crear` y
-  `retro-cli asm`.
+- No hay ventana en la app todavía: se usa con `retro-cli crear`, `probar` y `asm`.
+- La prueba no juzga si el juego es divertido ni si cumple el pedido: mira que arranque,
+  dibuje, responda a los controles y aguante 30 segundos de juego al azar. Un juego que se
+  termina solo (sin controles) o que se maneja con teclas que el robot no conoce no pasa.
+- La guía del C64 pide no usar el KERNAL porque el emulador puede tener las Open ROMs; con
+  las ROMs originales funcionaría, pero la prueba no lo sabe.
 
 ## App, CLI y paquetes
 

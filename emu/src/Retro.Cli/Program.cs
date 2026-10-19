@@ -28,8 +28,12 @@ static int Usage()
                     [--hipotesis tipo:dirección[:codificación:bytes]]... [--sin-verificar]
           retro-cli juegos <carpeta>   todos los juegos que se pueden fusionar, con el id de su perfil
           retro-cli asm <fuente.s> [--cpu 6502|z80] [--salida x.prg|x.bin|x.tap] [--lista]   ensamblador
-          retro-cli crear <c64|zx48> [juego.s]   empieza un juego nuevo desde la plantilla de la máquina
-                    (arranca, dibuja, lee los controles y suena) y lo deja ensamblado (.prg o .tap)
+          retro-cli crear <c64|zx48> [juego.s] [--ia sub-claude|sub-codex|sub-google|claude|ollama...]
+                    [--pedido "..."] [--intentos n]
+                    sin --ia: empieza un juego desde la plantilla de la máquina (arranca, dibuja, lee los
+                    controles y suena). Con --ia: la IA escribe un juego original, se prueba en el
+                    emulador con un jugador robot y lo corrige hasta que pasa. Deja el .s, el .prg o .tap y una captura
+          retro-cli probar <juego.s> [--maquina c64|zx48]   prueba un juego escrito a mano como lo prueba la IA
           retro-cli ideas <perfil1,perfil2> [--ia ...] [--pedido "..."] [--juegos carpeta]   3 ideas de fusión del estudio
           retro-cli preparar <juego> [--ia sub-claude|sub-codex|sub-google|claude|ollama|agent|ninguna]
                     [--carpeta carpeta-del-agente] [--rondas n] [--perfiles carpeta] [--sin-guardar]
@@ -97,7 +101,15 @@ if (command == "asm")
     return Assemble(mediaPath, Opt("salida"), Opt("lista") != null, Opt("cpu") ?? "6502");
 
 if (command == "crear")
-    return CreateGame(mediaPath, args.Length > 2 && !args[2].StartsWith("--") ? args[2] : null);
+{
+    string? source = args.Length > 2 && !args[2].StartsWith("--") ? args[2] : null;
+    return Opt("ia") != null
+        ? await WriteGame(mediaPath, source, Opt("ia")!, Opt("pedido") ?? "", int.Parse(Opt("intentos") ?? "5"))
+        : CreateGame(mediaPath, source);
+}
+
+if (command == "probar")
+    return TryGame(mediaPath, Opt("maquina"));
 
 if (command == "ideas")
     return await RunIdeas(mediaPath, Opt("ia"), Opt("pedido") ?? "", Opt("juegos"));
@@ -584,6 +596,98 @@ static int CreateGame(string machine, string? sourcePath)
     Console.WriteLine($"Probalo:  retro-cli run {output} --frames 300 --screenshot juego.png{(t.Machine == "zx48" ? " --autoload --until-tape-end" : "")}");
     Console.WriteLine($"Después de editarlo:  retro-cli asm {sourcePath} --cpu {t.Cpu} --salida {output}");
     return 0;
+}
+
+// An AI writes an original game for a machine, tries it in the emulator and fixes it until it passes.
+static async Task<int> WriteGame(string machine, string? sourcePath, string ia, string wish, int attempts)
+{
+    var t = Retro.Asm.Templates.For(machine);
+    if (t == null)
+    {
+        Console.Error.WriteLine($"No hay plantilla para {machine}. Máquinas: {string.Join(", ", Retro.Asm.Templates.All.Select(x => x.Machine))}.");
+        return 2;
+    }
+    sourcePath ??= "juego.s";
+    if (File.Exists(sourcePath))
+    {
+        Console.Error.WriteLine($"{sourcePath} ya existe: elegí otro nombre para no pisarlo.");
+        return 2;
+    }
+    var settings = Retro.Ai.AiSettings.Load();
+    settings.Provider = ia;
+    var provider = settings.CreateProvider();
+    if (provider == null)
+    {
+        Console.Error.WriteLine("Esa IA no se puede llamar desde acá (copiar y pegar o carpeta de agentes).");
+        return 2;
+    }
+    Console.WriteLine($"{provider.Name} escribe un juego para {t.Name}" + (wish.Length > 0 ? $" con el pedido \"{wish}\"" : " sin pedido") + "...");
+    var sw = Stopwatch.StartNew();
+    var outcome = await new Retro.Ai.GameWriter { MaxAttempts = attempts }.WriteAsync(provider, t.Machine, wish,
+        Path.GetDirectoryName(FindRom("48.rom"))!, CancellationToken.None, line => Console.WriteLine("  " + line));
+    Console.WriteLine($"({sw.Elapsed.TotalSeconds:F0} s, {outcome.Attempts} intento{(outcome.Attempts == 1 ? "" : "s")})");
+    if (outcome.Game == null)
+    {
+        Console.Error.WriteLine("No hubo juego: " + outcome.Problem);
+        return 6;
+    }
+    var g = outcome.Game;
+    File.WriteAllText(sourcePath, g.Source);
+    Console.WriteLine();
+    Console.WriteLine($"## {g.Title}");
+    Console.WriteLine(g.Pitch);
+    Console.WriteLine("Cómo se juega: " + g.HowToPlay);
+    if (outcome.Report != null)
+    {
+        Console.WriteLine();
+        Console.WriteLine(outcome.Report.Summary.TrimEnd());
+        SaveTrial(outcome.Report, sourcePath, t.Output);
+    }
+    if (!outcome.Ok)
+    {
+        Console.Error.WriteLine($"No pasó la prueba en {outcome.Attempts} intentos ({outcome.Problem}). El último intento quedó en {sourcePath}.");
+        return 6;
+    }
+    return 0;
+}
+
+// The trial of a game written by hand: the same one an AI goes through.
+static int TryGame(string sourcePath, string? machine)
+{
+    if (!File.Exists(sourcePath))
+    {
+        Console.Error.WriteLine($"No existe {sourcePath}.");
+        return 2;
+    }
+    string source = File.ReadAllText(sourcePath);
+    machine ??= System.Text.RegularExpressions.Regex.IsMatch(source, @"^\s*\.?org\s+(\$8000|8000h|32768)", System.Text.RegularExpressions.RegexOptions.Multiline | System.Text.RegularExpressions.RegexOptions.IgnoreCase) ? "zx48" : "c64";
+    var t = Retro.Asm.Templates.For(machine);
+    if (t == null)
+    {
+        Console.Error.WriteLine($"No hay plantilla para {machine}.");
+        return 2;
+    }
+    var r = Retro.Compat.HomebrewTrial.Run(source, t.Machine, Path.GetDirectoryName(FindRom("48.rom"))!);
+    Console.WriteLine($"{t.Name}: {sourcePath}");
+    Console.WriteLine(r.Summary.TrimEnd());
+    SaveTrial(r, sourcePath, t.Output);
+    return r.Ok ? 0 : 6;
+}
+
+static void SaveTrial(Retro.Compat.TrialReport r, string sourcePath, string extension)
+{
+    if (r.File != null)
+    {
+        string output = Path.ChangeExtension(sourcePath, extension);
+        File.WriteAllBytes(output, r.File);
+        Console.WriteLine("Programa: " + output);
+    }
+    if (r.LastPicture != null)
+    {
+        string png = Path.ChangeExtension(sourcePath, ".png");
+        PngWriter.Write(png, r.LastPicture, 2);
+        Console.WriteLine("Captura: " + png);
+    }
 }
 
 // Every game of a folder this emulator can run, with the profile id recipes use.

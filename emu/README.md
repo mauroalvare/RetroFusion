@@ -367,6 +367,25 @@ retro-cli asm otro.s --cpu z80 --salida otro.tap --lista
 retro-cli run otro.tap --autoload --until-tape-end --frames 300 --press 50:P:40 --screenshot otro.png
 ```
 
+Con `--ia`, la IA elegida escribe un juego original partiendo de la plantilla y de una guía
+del hardware de la máquina (memoria, pantalla, sprites, controles, sonido). El juego se
+ensambla, se carga y se prueba en el emulador: que arranque, que dibuje, con qué controles
+se mueve el jugador (también después de una pantalla de título) y un jugador robot que
+juega al azar 30 segundos mirando que no se trabe. La IA recibe los errores o lo que se vio,
+con una imagen de la pantalla, y corrige hasta que pasa (5 intentos). Sin pedido, cada vez
+parte de una semilla distinta (género, mundo, tono y una regla insólita).
+
+```bash
+retro-cli crear c64 faro.s --ia sub-codex --pedido "un faro que guía barcos en una tormenta"
+```
+
+```bash
+retro-cli probar faro.s
+```
+
+`probar` le hace la misma prueba a un juego editado a mano y deja el `.prg` o `.tap` y una
+captura al lado.
+
 - **C64** (`.org $0801`): la línea BASIC `10 SYS 2061`, la pantalla limpia, el sprite 0
   movido con el joystick del puerto 2 y el disparo que cambia el borde y suena por el SID.
 - **Spectrum** (`org $8000`): el título impreso con la ROM, un bloque de color movido con

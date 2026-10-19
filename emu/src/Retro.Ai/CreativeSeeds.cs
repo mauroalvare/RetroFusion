@@ -49,6 +49,38 @@ public static class CreativeSeeds
         "el escenario es el enemigo: se achica, se inunda o se apaga", "dos objetivos que se contradicen y hay que elegir",
     };
 
+    /// <summary>Kinds of game that fit an 8-bit machine and a single assembly file (for games written from scratch).</summary>
+    public static readonly string[] Genres =
+    {
+        "laberinto con enemigos que patrullan", "plataformas de una sola pantalla", "disparos en pantalla fija", "atrapar lo que cae",
+        "esquivar en un túnel que se angosta", "puzle de empujar bloques", "carrera vista desde arriba", "serpiente que crece",
+        "rompeladrillos con una vuelta de tuerca", "excavar túneles", "rescate: llevar cosas de un lado a otro de la pantalla",
+        "defensa de una base contra oleadas", "salto entre plataformas que se mueven", "pesca o caza contra el reloj",
+        "pintar el piso entero mientras te persiguen", "memoria: repetir una secuencia que se alarga",
+    };
+
+    /// <summary>Who plays and where, so the same genre never looks like the last game.</summary>
+    public static readonly string[] Worlds =
+    {
+        "un faro en medio de una tormenta", "una oficina de correos en la Luna", "el interior de una computadora vieja", "un hormiguero",
+        "una cocina donde la comida se rebela", "una biblioteca embrujada", "un submarino que hace agua", "un circo de pulgas",
+        "un volcán que se despierta", "un tren nocturno", "un jardín con topos", "una fábrica de juguetes sin control",
+        "un museo de noche", "el fondo del mar con medusas", "una ciudad de nieve que se derrite", "un laboratorio de un científico distraído",
+    };
+
+    /// <summary>Unusual rules that need no other game to make sense.</summary>
+    public static readonly string[] OriginalTwists =
+    {
+        "el tiempo solo avanza cuando te movés", "el puntaje también es la vida: gastarlo te salva", "cada muerte deja una ayuda para el intento siguiente",
+        "el héroe no puede atacar: solo esquivar, engañar o empujar", "el escenario se achica, se inunda o se apaga", "dos objetivos que se contradicen y hay que elegir",
+        "salir por un borde de la pantalla es entrar por el otro", "lo que juntás te hace más lento", "los enemigos solo se mueven cuando no los mirás de frente",
+        "los controles se invierten un rato, con aviso", "cada nivel cambia una regla y lo dice al empezar", "la música marca cuándo se puede saltar o disparar",
+    };
+
+    /// <summary>A seed for a game written from scratch: genre, world, tone and twist.</summary>
+    public static string DrawOriginal(Random rng) =>
+        $"género: {Pick(rng, Genres)}; protagonista y mundo: {Pick(rng, Worlds)}; tono: {Pick(rng, Tones)}; regla insólita: {Pick(rng, OriginalTwists)}";
+
     /// <summary>One seed: form, presentation, tone and twist, drawn with <paramref name="rng"/>.</summary>
     public static string Draw(Random rng) =>
         $"forma de juego: {Pick(rng, Forms)}; presentación: {Pick(rng, Presentations)}; tono: {Pick(rng, Tones)}; regla insólita: {Pick(rng, Twists)}";

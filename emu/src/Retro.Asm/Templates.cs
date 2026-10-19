@@ -3,8 +3,11 @@ using System.Text;
 
 namespace Retro.Asm;
 
-/// <summary>A starting game for one machine: source in assembly, its CPU and how it is packed.</summary>
-public sealed record GameTemplate(string Machine, string Name, string Cpu, string Source, string Output);
+/// <summary>
+/// A starting game for one machine: source in assembly, its CPU, how it is packed and the
+/// guide to its hardware (what a writer needs: memory, screen, controls, sound, syntax).
+/// </summary>
+public sealed record GameTemplate(string Machine, string Name, string Cpu, string Source, string Output, string Guide);
 
 /// <summary>
 /// The minimal games every new game starts from (Spectrum and C64): they boot, draw,
@@ -14,8 +17,8 @@ public static class Templates
 {
     public static IReadOnlyList<GameTemplate> All { get; } = new[]
     {
-        new GameTemplate("c64", "Commodore 64", "6502", Read("c64.s"), ".prg"),
-        new GameTemplate("zx48", "ZX Spectrum 48K", "z80", Read("zx48.s"), ".tap"),
+        new GameTemplate("c64", "Commodore 64", "6502", Read("c64.s"), ".prg", Read("c64.md")),
+        new GameTemplate("zx48", "ZX Spectrum 48K", "z80", Read("zx48.s"), ".tap", Read("zx48.md")),
     };
 
     public static GameTemplate? For(string machine) => All.FirstOrDefault(t => t.Machine.Equals(machine, StringComparison.OrdinalIgnoreCase));

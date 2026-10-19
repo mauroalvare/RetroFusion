@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Templates\*.s" />
+    <EmbeddedResource Include="Templates\*.md" />
   </ItemGroup>
 
   <PropertyGroup>

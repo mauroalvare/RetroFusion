@@ -483,10 +483,35 @@ no copia binarios de nadie. Tiene tres piezas:
   bytes) y el bloque de código, cada uno con cabecera y suma XOR. Las pruebas cargan la
   cinta por la ROM como un usuario, aprietan teclas y miran la RAM y la pantalla.
 
-Los pasos que siguen: que una IA escriba el juego desde un pedido, lo ensamble, lo corra y
-corrija con lo que ve en pantalla y los errores del ensamblador, el jugador robot que lo
-valida, y citar rutinas de juegos originales (juego, hash de la edición, dirección) sin
-copiar sus bytes.
+Cada plantilla viene con una guía del hardware (`Templates/c64.md`, `Templates/zx48.md`):
+memoria libre, pantalla, sprites, controles, sonido, números al azar y la sintaxis que
+acepta el ensamblador. Es lo que lee la IA, y también sirve para una persona.
+
+**Prueba de un juego nuevo (`HomebrewTrial`, en Retro.Compat):** ensambla, carga el
+programa como cualquier juego de la máquina (la cinta del Spectrum pasa por la ROM) y mira:
+
+1. que arranque: la CPU pasa por el código del programa y la pantalla no muestra READY.,
+   un mensaje de error del BASIC ni la pantalla de inicio;
+2. que dibuje: al menos dos colores y algo más que fondo en la imagen;
+3. con qué controles se juega: el detector de partida (`PlayDetector`) prueba cada juego de
+   controles de la máquina, y si nada se mueve aprieta los disparos y la tecla de inicio por
+   si hay una pantalla de título;
+4. que aguante: un jugador robot juega al azar 30 segundos con esos controles; falla si la
+   máquina se reinicia, vuelve al BASIC, la imagen se congela o la CPU deja el programa;
+5. si suena (solo avisa).
+
+El informe trae el texto de la pantalla y un dibujo aproximado en caracteres, para una IA
+que solo lee texto, y la imagen final.
+
+**La IA que escribe (`GameWriter`, en Retro.Ai):** el sistema lleva las reglas (original,
+un solo archivo, jugable con los controles del robot), la guía de la máquina y la
+plantilla; el pedido del jugador o, sin pedido, una semilla al azar
+(`CreativeSeeds.DrawOriginal`). Cada intento es un solo turno con el programa actual y el
+informe de la prueba (más la imagen de la pantalla), así la conversación no crece aunque el
+programa sea largo. Termina cuando pasa la prueba o a los 5 intentos.
+
+Lo que falta: citar rutinas de juegos originales (juego, hash de la edición, dirección) sin
+copiar sus bytes, una ventana en la app, y plantillas para NES y Space Invaders.
 
 ## Cómo agregar una CPU o una máquina
 

@@ -4,6 +4,7 @@
     <ProjectReference Include="..\Retro.Core\Retro.Core.csproj" />
     <ProjectReference Include="..\Retro.Machines\Retro.Machines.csproj" />
     <ProjectReference Include="..\Retro.Fusion\Retro.Fusion.csproj" />
+    <ProjectReference Include="..\Retro.Asm\Retro.Asm.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
