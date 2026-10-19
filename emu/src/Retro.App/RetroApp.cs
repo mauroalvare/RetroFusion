@@ -19,6 +19,7 @@ public sealed class RetroApp
     private readonly StudioWindow _studio;
     private readonly CreatorWindow _creator;
     private readonly GameLibrary _library = new();
+    private string _originalSearch = "";
     private string? _autoStudio;
     private readonly CodeWindow _code;
     private bool _wasFusion;
@@ -606,7 +607,7 @@ public sealed class RetroApp
             if (ImGui.MenuItem("Detener la fusión", "", false, _host.Fusion != null)) _host.StopFusion();
             ImGui.Separator();
             ImGui.TextDisabled("Con IA: un juego nuevo que mezcla los juegos de verdad,");
-            ImGui.TextDisabled("y le pedís cambios. Clásica: juegos a la vez con reglas.");
+            ImGui.TextDisabled("Los originales siguen en Máquina > Juegos originales.");
             ImGui.EndMenu();
         }
         if (ImGui.BeginMenu("Crear"))
@@ -668,6 +669,7 @@ public sealed class RetroApp
     /// </summary>
     private void DrawMachineList()
     {
+        DrawOriginalGames();
         DrawFusedGames();
         ImGui.Spacing();
         string? lastCpu = null;
@@ -711,7 +713,7 @@ public sealed class RetroApp
                         else
                         {
                             var fusions = FusionsOf(g.ProfileId);
-                            string tag = fusions.Count > 0 ? "  · fusión: " + string.Join(", ", fusions) : "";
+                            string tag = fusions.Count > 0 ? "  · también tiene fusión" : "";
                             if (ImGui.MenuItem(g.Name + tag + "##" + g.Path))
                                 OpenFile(g.Path);
                         }
@@ -744,6 +746,28 @@ public sealed class RetroApp
         ImGui.TextDisabled("Abrir cualquier archivo (Archivo > Abrir) detecta la máquina sola.");
     }
 
+    /// <summary>Original files have their own searchable entry, independent of saved fusions.</summary>
+    private void DrawOriginalGames()
+    {
+        if (!ImGui.BeginMenu("   Juegos originales##originales")) return;
+        ImGui.TextDisabled("Los originales se conservan aunque crees o juegues una fusión.");
+        ImGui.SetNextItemWidth(300);
+        ImGui.InputTextWithHint("##buscar-original", "Buscar por nombre (ej.: Spy)", ref _originalSearch, 150);
+        ImGui.Separator();
+        var games = _library.Originals(_originalSearch).ToList();
+        if (games.Count == 0)
+            ImGui.TextDisabled(_library.Scanning ? "Buscando juegos..." : "No encontré originales con ese nombre.");
+        foreach (var g in games)
+        {
+            bool playable = g.NotYet == null && g.Confidence >= 50;
+            if (ImGui.MenuItem($"{g.Name} ({g.Machine.Name})##original-{g.Path}", "", false, playable))
+                OpenFile(g.Path);
+            if (!playable && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+                ImGui.SetTooltip(g.NotYet ?? g.Reason);
+        }
+        ImGui.EndMenu();
+    }
+
     /// <summary>The newest version of each game made in the AI studio.</summary>
     private static List<Retro.Studio.StudioGame> StudioGames() =>
         Retro.Studio.StudioLibrary.AllVersions().GroupBy(g => g.Id).Select(g => g.OrderByDescending(v => v.Version).First()).ToList();
@@ -758,7 +782,7 @@ public sealed class RetroApp
     }
 
     /// <summary>
-    /// "Juegos que ya tienen fusión": every studio game, with the games it
+    /// "Juegos fusionados": every studio game, with the games it
     /// mixes; the ones whose games are all in the user's folder play with a click.
     /// </summary>
     private void DrawFusedGames()
@@ -766,7 +790,7 @@ public sealed class RetroApp
         var have = _library.Entries.Where(e => e.ProfileId != null).Select(e => e.ProfileId!).ToHashSet();
         var studio = StudioGames();
         int ready = studio.Count(s => s.Games.All(g => have.Contains(g.Profile)));
-        if (!ImGui.BeginMenu($"   Juegos que ya tienen fusión  ({ready} para jugar)##fusionados"))
+        if (!ImGui.BeginMenu($"   Juegos fusionados  ({ready} para jugar)##fusionados"))
             return;
         string Names(IEnumerable<Retro.Fusion.RecipeGame> games) =>
             string.Join(" + ", games.Select(g => Retro.Fusion.ProfileLibrary.Find(g.Profile)?.Name ?? g.Profile));

@@ -101,6 +101,11 @@ en la línea de comandos los espacios se escriben `_` (`JOY2_FIRE`).
 
 ## Fusiones con escena propia
 
+**Máquina > Juegos originales** permite buscar por nombre y abrir los juegos sin fusión,
+incluso mientras se juega una fusión. Por ejemplo, buscar `Spy` muestra Spy vs Spy de C64.
+Los juegos fusionados tienen su propia entrada; guardar o jugar una fusión no quita
+archivos originales de la biblioteca ni los reemplaza.
+
 **Fusión > Crear juego fusionado con IA** es la entrada para elegir juegos, prepararlos e
 inventar una fusión. `screen.game` está retirado: toda escena se dibuja con sprites, tiles
 y primitivas, como Manic Invaders. `StudioValidator` rechaza el intento y devuelve cómo

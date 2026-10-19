@@ -41,6 +41,12 @@ public sealed class GameLibrary
 
     public IEnumerable<LibraryEntry> For(string machineId) => _entries.Where(e => e.Machine.Id == machineId);
 
+    /// <summary>Original files stay playable independently of stored or running fusions.</summary>
+    public IEnumerable<LibraryEntry> Originals(string search = "") => _entries
+        .Where(e => e.Machine.Status == MachineStatus.Available &&
+            (search.Trim().Length == 0 || e.Name.Contains(search.Trim(), StringComparison.OrdinalIgnoreCase)))
+        .OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase);
+
     private static List<LibraryEntry> Scan(string folder)
     {
         var list = new List<LibraryEntry>();
