@@ -20,7 +20,6 @@ static int Usage()
 
           retro-cli info <archivo>
           retro-cli run <archivo> [opciones]
-          retro-cli fuse <receta> --games <carpeta> [--ticks n] [--screenshot png]
           retro-cli studio <juego.js|juego.json|id> --games <carpeta> [--seconds n] [--shots prefijo]
           retro-cli compat <carpeta-guiones|guion.json> --juegos <carpeta> [--salida r.json] [--md tabla.md]
                     [--capturas carpeta] [--solo id1,id2] [--descubrir] [--dos-veces] [--paralelo n]
@@ -124,7 +123,10 @@ if (command == "preparar")
     return await RunPrepare(mediaPath, Opt("ia"), Opt("perfiles"), int.Parse(Opt("rondas") ?? "24"), Opt("sin-guardar") == null, Opt("carpeta"));
 
 if (command == "fuse")
-    return RunFusion(mediaPath, Opt("games") ?? ".", Opt("ticks"), Opt("screenshot"), Opt("shot-every"), Opt("shot-prefix"), opts.GetValueOrDefault("press"), Opt("layout"));
+{
+    Console.Error.WriteLine("La fusión clásica se retiró. Usá retro-cli studio para probar juegos nuevos con escena propia.");
+    return 2;
+}
 
 var files = MediaArchive.Open(mediaPath);
 bool isInvaders = SpaceInvadersRom.Probe(files) >= 80;
@@ -719,7 +721,7 @@ static int ListGames(string folder)
     foreach (var g in games.OrderBy(g => g.Profile.Machine).ThenBy(g => g.Profile.Name))
         Console.WriteLine($"  {g.Profile.Id,-34} {g.Profile.Machine,-9} {(g.Prepared ? "preparado" : "sin preparar"),-12} " +
                           $"{(g.Profile.Variables.Count > 0 ? string.Join(", ", g.Profile.Variables.Keys) : "sin variables")}  ({Path.GetRelativePath(folder, g.Path)})");
-    Console.WriteLine("Los que no están preparados se fusionan con controles compartidos y cualquier vista; para reglas: retro-cli preparar <juego>.");
+    Console.WriteLine("El estudio usa las piezas de estos juegos para una escena propia; para verificar sus variables: retro-cli preparar <juego>.");
     return 0;
 }
 
@@ -844,68 +846,6 @@ static int RunStudio(string gameArg, string gamesDir, string? secondsOpt, string
         }
     Console.WriteLine(report.Ok ? "Resultado: LISTO" : "Resultado: HAY QUE CORREGIR");
     return report.Ok ? 0 : 5;
-}
-
-static int RunFusion(string recipeArg, string gamesDir, string? ticksOpt, string? shot, string? shotEvery, string? shotPrefix, List<string>? presses, string? layout)
-{
-    var recipe = File.Exists(recipeArg)
-        ? Retro.Fusion.FusionRecipe.Parse(File.ReadAllText(recipeArg))
-        : Retro.Fusion.RecipeLibrary.All().FirstOrDefault(r => r.Id == recipeArg);
-    if (recipe == null)
-    {
-        Console.Error.WriteLine("Receta no encontrada. Disponibles: " + string.Join(", ", Retro.Fusion.RecipeLibrary.All().Select(r => r.Id)));
-        return 2;
-    }
-    if (layout != null)
-        recipe.Layout.Mode = layout;
-    // the folder first: games nobody prepared get their basic profile, which recipes can name
-    var sources = FindGameSources(gamesDir);
-    var errors = recipe.Validate(Retro.Fusion.ProfileLibrary.Find);
-    if (errors.Count > 0)
-    {
-        Console.Error.WriteLine("Receta inválida:\n  " + string.Join("\n  ", errors));
-        return 3;
-    }
-    var missing = recipe.Games.Where(g => !sources.ContainsKey(g.Profile)).Select(g => g.Profile).ToList();
-    if (missing.Count > 0)
-    {
-        Console.Error.WriteLine($"Faltan juegos en {gamesDir}: {string.Join(", ", missing)}");
-        return 4;
-    }
-    Console.WriteLine($"Fusión: {recipe.Name} — {recipe.Description}");
-    var sw = Stopwatch.StartNew();
-    var session = Retro.Fusion.FusionSession.Start(recipe, sources, Path.GetDirectoryName(FindRom("48.rom"))!, s => Console.WriteLine("  arranque: " + s));
-    Console.WriteLine($"Juegos listos en {sw.Elapsed.TotalSeconds:F1} s");
-    int ticks = int.Parse(ticksOpt ?? "600");
-    int every = int.Parse(shotEvery ?? "0");
-    var scheduled = (presses ?? new()).Select(p => p.Split(':')).Select(p => (tick: int.Parse(p[0]), input: p[1], dur: int.Parse(p[2]))).ToList();
-    var active = new List<(string input, int until)>();
-    int printed = 0;
-    for (int t = 0; t < ticks; t++)
-    {
-        foreach (var p in scheduled.Where(p => p.tick == t))
-        {
-            session.SetInput(p.input, true);
-            active.Add((p.input, t + p.dur));
-        }
-        foreach (var a in active.Where(a => a.until == t).ToList())
-        {
-            session.SetInput(a.input, false);
-            active.Remove(a);
-        }
-        session.Update(1.0 / 60);
-        for (; printed < session.Events.Count; printed++)
-            Console.WriteLine($"  tick {session.Events[printed].Tick}: {session.Events[printed].Text}");
-        if (every > 0 && t % every == 0)
-            PngWriter.Write($"{shotPrefix ?? "fusion"}_{t:D5}.png", session.Video, 2);
-    }
-    Console.WriteLine(string.Join("  ", session.Variables().Select(v => $"{v.slot}.{v.variable}={v.value}")));
-    if (shot != null)
-    {
-        PngWriter.Write(shot, session.Video, 2);
-        Console.WriteLine("Captura: " + shot);
-    }
-    return 0;
 }
 
 static void WriteWav(string path, List<short> samples, int rate)

@@ -39,13 +39,18 @@ public class AiProviderTests
         }
     }
 
-    private static IReadOnlyList<GameProfile> Games() =>
-        new[] { ProfileLibrary.BuiltIn.Single(p => p.Id == "invaders"), ProfileLibrary.BuiltIn.Single(p => p.Id == "manicminer") };
-
     private static AiRequest RecipeRequest() => new(
         "Diseñás FUSIONES",
         new[] { new AiTurn(true, "Fusioná estos juegos"), new AiTurn(false, "{\"name\":\"Mal\"}"), new AiTurn(true, "Corregí la receta") },
-        FusionDesigner.Schema(Games().Select(g => g.Id)));
+        JsonSerializer.Deserialize<JsonElement>("""
+        {"type":"object","additionalProperties":false,"required":["name","description","games","layout","controls","rules"],"properties":{
+          "id":{"type":"string"},"name":{"type":"string"},"description":{"type":"string"},
+          "games":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["slot","profile"],"properties":{"slot":{"type":"string","enum":["a","b","c"]},"profile":{"type":"string","enum":["invaders","manicminer"]}}}},
+          "layout":{"type":"string"},
+          "rules":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["do"],"properties":{"every":{"type":"integer"},"do":{"type":"array","items":{"type":"string"}}}}},
+          "controls":{"type":"object","additionalProperties":false,"required":[],"properties":{"up":{"type":"array","items":{"type":"string"}}}}
+        }}
+        """));
 
     private static (OpenAiProvider ai, FakeHandler http) OpenAi(HttpStatusCode status, string answer, string key = "sk-prueba")
     {
@@ -168,9 +173,6 @@ public class AiProviderTests
         Assert.That(rule.TryGetProperty("every", out _), Is.False);
         Assert.That(rule.GetProperty("when").GetString(), Is.EqualTo("b.score increases"));
         Assert.That(answer, Does.Contain("Cañón minero"));
-        // and the engine's validator accepts it as is
-        var (parsed, errors) = FusionDesigner.Check(answer, Games(), ProfileLibrary.Find);
-        Assert.That(parsed, Is.Not.Null, string.Join("\n", errors));
     }
 
     [Test]

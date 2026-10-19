@@ -691,7 +691,7 @@ public sealed class CodeWindow
         var keys = m.Keys.Select(k => k.Name).ToArray();
         var options = new[] { "(ninguna)" }.Concat(keys).ToArray();
         bool changed = false;
-        foreach (var input in FusionRecipe.Inputs)
+        foreach (var input in Retro.Studio.StudioSession.InputNames)
         {
             int index = _profile.Controls.TryGetValue(input, out var k) ? Array.IndexOf(keys, k) + 1 : 0;
             ImGui.SetNextItemWidth(160);

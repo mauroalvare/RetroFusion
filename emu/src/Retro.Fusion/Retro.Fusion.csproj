@@ -16,7 +16,6 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Profiles\*.json" />
-    <EmbeddedResource Include="Recipes\*.json" />
   </ItemGroup>
 </Project>
 

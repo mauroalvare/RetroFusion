@@ -41,7 +41,7 @@ public class CodeViewTests
     [Category("Compat")]
     public void ManicMiner_GameCodeIsFoundAndTouchesItsVariables()
     {
-        var found = FusionPlayTests.FindGames();
+        var found = TestGames.Find();
         if (found == null)
             Assert.Ignore("Hacen falta roms/48.rom, roms/invaders.zip y Manic Miner en ROMs/.");
         var src = found.Value.sources["manicminer"];

@@ -40,26 +40,6 @@ Pac-Man cayó en la mina: casi no hay aire, cada punto le da un respiro y las ll
 mina le llenan los pulmones. El laberinto, los fantasmas y los niveles son los del Pac-Man
 de C64; el aire, las llaves y el guardián vienen de Manic Miner. Cruza dos CPUs distintas.
 
-### Invaders Miner — fusión clásica
-
-**Space Invaders** (arcade Taito, Intel 8080) + **Manic Miner** (ZX Spectrum 48K, Zilog Z80), superpuestos
-
-![Invaders Miner](emu/docs/img/fusiones/invaders-miner.png)
-
-Willy recorre la Central Cavern mientras los invasores bajan encima de él. Los mismos
-controles mueven al minero y al cañón. Cada invasor abatido le da aire a Willy; si Willy
-muere, perdés una nave; juntar llaves te devuelve naves.
-
-### Pac-Miner — fusión clásica
-
-**Pac-Man** (Commodore 64, MOS 6510) + **Manic Miner** (ZX Spectrum 48K, Zilog Z80), lado a lado
-
-![Pac-Miner](emu/docs/img/fusiones/pac-miner.png)
-
-Las flechas mueven a Pac-Man y a Willy a la vez. Cada vez que un fantasma atrapa a
-Pac-Man, a Willy le falta el aire; cuando Willy junta una llave, Pac-Man gana una vida; si
-Willy muere, Pac-Man también pierde una.
-
 Las capturas son del emulador corriendo las fusiones con copias propias de los juegos; los
 juegos no se incluyen.
 

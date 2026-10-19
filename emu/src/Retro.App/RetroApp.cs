@@ -16,14 +16,12 @@ public sealed class RetroApp
     private readonly string _romDir;
     private readonly FileBrowser _browser;
     private readonly Retro.Ai.AiSettings _ai = Retro.Ai.AiSettings.Load();
-    private readonly FusionWindow _fusion;
     private readonly StudioWindow _studio;
     private readonly CreatorWindow _creator;
     private readonly GameLibrary _library = new();
     private string? _autoStudio;
     private readonly CodeWindow _code;
     private bool _wasFusion;
-    private string? _autoFusion;
     private bool _muted;
     private Texture2D _screenTex;
     private int _texW, _texH;
@@ -66,9 +64,7 @@ public sealed class RetroApp
         _library.Rescan(games);
         Retro.Studio.StudioLibrary.ExportBuiltIns();
         _browser = new FileBrowser(games);
-        _fusion = new FusionWindow(_host, _romDir, games, _ai);
         _studio = new StudioWindow(_host, _romDir, games, _ai);
-        _fusion.OpenStudio = _studio.Open;
         _code = new CodeWindow(_host, _ai, ShowInDebugger);
         _creator = new CreatorWindow(_romDir, _ai, OpenFile);
         Raylib.SetTargetFPS(Math.Max(60, Raylib.GetMonitorRefreshRate(Raylib.GetCurrentMonitor())));
@@ -99,8 +95,6 @@ public sealed class RetroApp
                 _autotestSeconds = double.Parse(args[++i], CultureInfo.InvariantCulture);
                 _autotestShot = args[++i];
             }
-            else if (args[i] == "--fusion" && i + 1 < args.Length)
-                _autoFusion = args[++i];
             else if (args[i] == "--studio" && i + 1 < args.Length)
                 _autoStudio = args[++i];
             else if (args[i] == "--preparar" && i + 1 < args.Length)
@@ -109,8 +103,6 @@ public sealed class RetroApp
                 _creator.Open();
             else if (args[i] == "--studio-window")
                 _studio.Open();
-            else if (args[i] == "--fusion-window")
-                _fusion.Open();
             else if (args[i] == "--code")
                 _code.Open();
             else if (args[i] == "--mute")
@@ -216,11 +208,6 @@ public sealed class RetroApp
             _studio.PlayById(_autoStudio);
             _autoStudio = null;
         }
-        if (_autoFusion != null)
-        {
-            _fusion.StartByRecipeId(_autoFusion);
-            _autoFusion = null;
-        }
         if (_autoPrepare != null)
         {
             _studio.Prepare(_autoPrepare);
@@ -237,7 +224,6 @@ public sealed class RetroApp
             DrawDebugger();
         DrawStatusBar();
         _browser.Draw(OpenFile);
-        _fusion.Draw();
         _studio.Draw();
         _creator.Draw();
         _code.Draw();
@@ -617,7 +603,6 @@ public sealed class RetroApp
         if (ImGui.BeginMenu("Fusión"))
         {
             if (ImGui.MenuItem("Crear juego fusionado con IA...")) _studio.Open();
-            if (ImGui.MenuItem("Fusión clásica con reglas (2 o 3 a la vez)...")) _fusion.Open();
             if (ImGui.MenuItem("Detener la fusión", "", false, _host.Fusion != null)) _host.StopFusion();
             ImGui.Separator();
             ImGui.TextDisabled("Con IA: un juego nuevo que mezcla los juegos de verdad,");
@@ -763,44 +748,30 @@ public sealed class RetroApp
     private static List<Retro.Studio.StudioGame> StudioGames() =>
         Retro.Studio.StudioLibrary.AllVersions().GroupBy(g => g.Id).Select(g => g.OrderByDescending(v => v.Version).First()).ToList();
 
-    /// <summary>Names of the fusions (classic recipes and AI studio games) that use a profile.</summary>
+    /// <summary>Names of the studio games that use a profile.</summary>
     private static List<string> FusionsOf(string? profileId)
     {
         if (profileId == null)
             return new List<string>();
-        return Retro.Fusion.RecipeLibrary.All().Where(r => r.Games.Any(g => g.Profile == profileId)).Select(r => r.Name)
-            .Concat(StudioGames().Where(s => s.Games.Any(g => g.Profile == profileId)).Select(s => s.Title))
+        return StudioGames().Where(s => s.Games.Any(g => g.Profile == profileId)).Select(s => s.Title)
             .Distinct().ToList();
     }
 
     /// <summary>
-    /// "Juegos que ya tienen fusión": every classic recipe and AI studio game, with the games it
+    /// "Juegos que ya tienen fusión": every studio game, with the games it
     /// mixes; the ones whose games are all in the user's folder play with a click.
     /// </summary>
     private void DrawFusedGames()
     {
         var have = _library.Entries.Where(e => e.ProfileId != null).Select(e => e.ProfileId!).ToHashSet();
-        var recipes = Retro.Fusion.RecipeLibrary.All();
         var studio = StudioGames();
-        int ready = recipes.Count(r => r.Games.All(g => have.Contains(g.Profile))) + studio.Count(s => s.Games.All(g => have.Contains(g.Profile)));
+        int ready = studio.Count(s => s.Games.All(g => have.Contains(g.Profile)));
         if (!ImGui.BeginMenu($"   Juegos que ya tienen fusión  ({ready} para jugar)##fusionados"))
             return;
         string Names(IEnumerable<Retro.Fusion.RecipeGame> games) =>
             string.Join(" + ", games.Select(g => Retro.Fusion.ProfileLibrary.Find(g.Profile)?.Name ?? g.Profile));
         string Missing(IEnumerable<Retro.Fusion.RecipeGame> games) =>
             string.Join(", ", games.Where(g => !have.Contains(g.Profile)).Select(g => Retro.Fusion.ProfileLibrary.Find(g.Profile)?.Name ?? g.Profile));
-        ImGui.TextDisabled("Fusión clásica (los juegos corren a la vez, conectados por reglas):");
-        foreach (var r in recipes)
-        {
-            if (r.Games.All(g => have.Contains(g.Profile)))
-            {
-                if (ImGui.MenuItem($"{r.Name}   ({Names(r.Games)})##receta-{r.Id}"))
-                    _fusion.StartByRecipeId(r.Id);
-            }
-            else
-                ImGui.TextDisabled($"   {r.Name}: falta {Missing(r.Games)} en tu carpeta");
-        }
-        ImGui.Separator();
         ImGui.TextDisabled("Creados con IA (un juego nuevo que mezcla los originales):");
         if (studio.Count == 0)
             ImGui.TextDisabled("   Ninguno todavía: Fusión > Crear juego fusionado con IA.");
@@ -815,7 +786,7 @@ public sealed class RetroApp
                 ImGui.TextDisabled($"   {s.Title}: falta {Missing(s.Games)} en tu carpeta");
         }
         ImGui.Separator();
-        ImGui.TextDisabled("Para mezclar otros juegos: Fusión > Fusión clásica (todos los juegos de tu carpeta).");
+        ImGui.TextDisabled("Para crear otro juego con escena propia: Fusión > Crear juego fusionado con IA.");
         ImGui.EndMenu();
     }
 
