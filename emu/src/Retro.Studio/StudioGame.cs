@@ -1,4 +1,6 @@
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Retro.Fusion;
@@ -49,6 +51,12 @@ public sealed record GameConcept(string Title, string Approach, string Pitch, st
 public static class StudioLibrary
 {
     private static List<StudioGame>? _builtIn;
+
+    // Hide only an unchanged exported copy of the withdrawn example. Keep the files
+    // and any player rewrite; newer versions with their own scene still belong here.
+    private static bool IsRetiredExample(StudioGame g) => g.Id == "pacman-mina" &&
+        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(g.Script.Replace("\r\n", "\n")))) ==
+        "1617759419c541d34ff319d74f234ad1b455a7e1dccfed7df44353357fa8a9f8";
 
     public static IReadOnlyList<StudioGame> BuiltIn
     {
@@ -125,7 +133,7 @@ public static class StudioLibrary
                         string js = Path.ChangeExtension(f, ".js");
                         if (File.Exists(js))
                             g.Script = File.ReadAllText(js);
-                        if (g.Script.Length > 0)
+                        if (g.Script.Length > 0 && !IsRetiredExample(g))
                             byKey[(g.Id, g.Version)] = g;
                     }
                     catch (JsonException) { }

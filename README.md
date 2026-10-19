@@ -30,16 +30,6 @@ mina, Willy junta las llaves de cada caverna y escapa por el portal antes de que
 invasores aterricen o se le acabe el aire. Son las 20 cavernas originales y la flota del
 arcade de verdad, que ahora apunta a Willy.
 
-### Pac-Man en la Mina — creado con IA
-
-**Pac-Man** (Commodore 64, MOS 6510) + **Manic Miner** (ZX Spectrum 48K, Zilog Z80)
-
-![Pac-Man en la Mina](emu/docs/img/fusiones/pacman-mina.png)
-
-Pac-Man cayó en la mina: casi no hay aire, cada punto le da un respiro y las llaves de la
-mina le llenan los pulmones. El laberinto, los fantasmas y los niveles son los del Pac-Man
-de C64; el aire, las llaves y el guardián vienen de Manic Miner. Cruza dos CPUs distintas.
-
 Las capturas son del emulador corriendo las fusiones con copias propias de los juegos; los
 juegos no se incluyen.
 

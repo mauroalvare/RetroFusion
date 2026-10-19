@@ -13,6 +13,29 @@ public class StudioGameTests
 
     private static StudioGame ManicInvaders() => StudioLibrary.BuiltIn.Single(g => g.Id == "manic-invaders");
 
+    [Test]
+    public void RetiredExample_IsNotBundledButAPlayerRewriteIsPreserved()
+    {
+        Assert.That(StudioLibrary.BuiltIn.Select(g => g.Id), Does.Not.Contain("pacman-mina"));
+        string previous = StudioLibrary.UserFolder;
+        string dir = Path.Combine(Path.GetTempPath(), "RetroEmu-studio-" + Guid.NewGuid());
+        try
+        {
+            StudioLibrary.UserFolder = dir;
+            var rewrite = new StudioGame { Id = "pacman-mina", Title = "Mi laberinto", Version = 999,
+                Script = "function draw() { screen.rect(0, 0, 8, 8, 0xFFFFFF); }" };
+            string saved = StudioLibrary.Save(rewrite);
+            var found = StudioLibrary.AllVersions().Single(g => g.Id == rewrite.Id && g.Version == rewrite.Version);
+            Assert.That(found.Script, Is.EqualTo(rewrite.Script));
+            Assert.That(File.Exists(saved), Is.True);
+        }
+        finally
+        {
+            StudioLibrary.UserFolder = previous;
+            if (Directory.Exists(dir)) Directory.Delete(dir, true);
+        }
+    }
+
     [TestCase("screen.game(games.b);")]
     [TestCase("screen.game(games.b, { scale: 0.1, alpha: 0.1 });")]
     [TestCase("try { screen.game(games.b); } catch (e) {}")]
@@ -38,18 +61,6 @@ public class StudioGameTests
         Assert.That(report.Ok, Is.True, string.Join("; ", report.Problems));
         Assert.That(report.Robots!.Single(r => r.Name == "tirador").Score, Is.GreaterThan(0), "disparando se suman puntos");
         Assert.That(report.Shots!.Select(s => s.Label), Does.Contain("titulo"));
-    }
-
-    [Test]
-    public void PacManMina_IsRejectedUntilItHasItsOwnScene()
-    {
-        var (sources, romDir) = Games();
-        if (!sources.ContainsKey("pacman-c64"))
-            Assert.Ignore("Hace falta Pac_Man_C64_ROM_EN.zip en ROMs/.");
-        var report = StudioValidator.Run(StudioLibrary.BuiltIn.Single(g => g.Id == "pacman-mina"), sources, romDir);
-        TestContext.Out.WriteLine(report.Summary);
-        Assert.That(report.Ok, Is.False);
-        Assert.That(report.Error, Does.Contain("escena").And.Contain("screen.game"));
     }
 
     [Test]
