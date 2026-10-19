@@ -45,18 +45,28 @@ public static class PlayDetector
         var (start, end) = MemoryLab.RangeFor(machine);
         byte[] state = m.SaveState();
         var sink = new short[8192];
-        (byte[] ram, int[] picture) Run(int frames, string? hold)
+        // How far each byte travelled, followed every few frames: a coordinate that moves 2
+        // points a frame goes 160 in 80 frames, which a single byte difference would read as -96
+        (int[] travel, int[] picture) Run(int frames, string? hold)
         {
             m.LoadState(state);
             m.ReleaseAllKeys();
             if (hold != null) m.SetKey(hold, true);
-            for (int i = 0; i < frames; i++)
+            byte[] last = LabExperiments.Snapshot(m, start, end);
+            var travel = new int[last.Length];
+            for (int i = 1; i <= frames; i++)
             {
                 m.RunFrame(null);
                 m.DrainAudio(sink);
+                if (i % 8 != 0 && i != frames)
+                    continue;
+                byte[] now = LabExperiments.Snapshot(m, start, end);
+                for (int j = 0; j < now.Length; j++)
+                    travel[j] += (sbyte)(now[j] - last[j]);
+                last = now;
             }
             if (hold != null) m.SetKey(hold, false);
-            return (LabExperiments.Snapshot(m, start, end), (int[])m.Video.Pixels.Clone());
+            return (travel, (int[])m.Video.Pixels.Clone());
         }
         try
         {
@@ -76,9 +86,9 @@ public static class PlayDetector
                         var b = Run(hold, plus);
                         if (hold == 80)
                             picturesDiffer = !a.picture.AsSpan().SequenceEqual(b.picture);
-                        for (int i = 0; i < idle.ram.Length; i++)
+                        for (int i = 0; i < idle.travel.Length; i++)
                         {
-                            int dm = (sbyte)(a.ram[i] - idle.ram[i]), dp = (sbyte)(b.ram[i] - idle.ram[i]), diff = dp - dm;   // both sides can go far: no wrap
+                            int dm = a.travel[i] - idle.travel[i], dp = b.travel[i] - idle.travel[i], diff = dp - dm;
                             bool opposite = dm != 0 && dp != 0 && Math.Sign(dm) != Math.Sign(dp);
                             bool oneSided = diff != 0 && (dm == 0 || dp == 0);
                             if (!opposite && !oneSided)

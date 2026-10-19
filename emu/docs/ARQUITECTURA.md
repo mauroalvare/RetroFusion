@@ -501,7 +501,12 @@ programa como cualquier juego de la máquina (la cinta del Spectrum pasa por la 
 5. si suena (solo avisa).
 
 El informe trae el texto de la pantalla y un dibujo aproximado en caracteres, para una IA
-que solo lee texto, y la imagen final.
+que solo lee texto, y la imagen final. Los juegos de `Examples/` (escritos solo con las
+guías) pasan la prueba en las pruebas automáticas.
+
+El detector de partida sigue cada byte cada 8 cuadros y suma los pasos: una coordenada que
+avanza 2 puntos por cuadro recorre 160 en 80 cuadros, y una sola resta de bytes la leería
+como -96 (por eso no veía a los jugadores rápidos).
 
 **La IA que escribe (`GameWriter`, en Retro.Ai):** el sistema lleva las reglas (original,
 un solo archivo, jugable con los controles del robot), la guía de la máquina y la

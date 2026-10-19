@@ -386,6 +386,16 @@ retro-cli probar faro.s
 `probar` le hace la misma prueba a un juego editado a mano y deja el `.prg` o `.tap` y una
 captura al lado.
 
+En `src/Retro.Asm/Examples/` hay dos juegos originales escritos solo con esas guías, que
+pasan la misma prueba: **Tormenta** (C64: un bote junta salvavidas y esquiva rayos, con
+sprites, sonido del SID y puntaje) y **El jardín de los topos** (Spectrum: golpear topos que
+asoman en 24 agujeros, con atributos, caras dibujadas en la pantalla de puntos y el texto
+de la ROM).
+
+```bash
+retro-cli probar src/Retro.Asm/Examples/tormenta-c64.s
+```
+
 - **C64** (`.org $0801`): la línea BASIC `10 SYS 2061`, la pantalla limpia, el sprite 0
   movido con el joystick del puerto 2 y el disparo que cambia el borde y suena por el SID.
 - **Spectrum** (`org $8000`): el título impreso con la ROM, un bloque de color movido con

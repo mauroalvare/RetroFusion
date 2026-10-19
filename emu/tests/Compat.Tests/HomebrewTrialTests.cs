@@ -49,6 +49,25 @@ public class HomebrewTrialTests
         }
     }
 
+    /// <summary>The example games (written only from the machine guides) are real games: they pass too.</summary>
+    [Test]
+    public void TheExampleGames_PassTheTrial()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir != null && !Directory.Exists(Path.Combine(dir.FullName, "src", "Retro.Asm", "Examples")))
+            dir = dir.Parent;
+        Assert.That(dir, Is.Not.Null);
+        var examples = Directory.GetFiles(Path.Combine(dir!.FullName, "src", "Retro.Asm", "Examples"), "*.s");
+        Assert.That(examples, Has.Length.GreaterThanOrEqualTo(2));
+        foreach (var path in examples)
+        {
+            string machine = Path.GetFileNameWithoutExtension(path).Split('-')[^1];
+            var r = HomebrewTrial.Run(File.ReadAllText(path), machine, _firmware);
+            Assert.That(r.Ok, Is.True, $"{Path.GetFileName(path)}:\n{r.Summary}");
+            Assert.That(r.Checks.All(c => c.Ok), Is.True, $"{Path.GetFileName(path)} también suena:\n{r.Summary}");
+        }
+    }
+
     [Test]
     public void AMistake_ComesBackWithTheLineItPointsAt()
     {

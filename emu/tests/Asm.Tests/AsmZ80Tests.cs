@@ -112,6 +112,8 @@ public class AsmZ80Tests
         Assert.That(r.Errors[0].Message, Does.Contain("fuera de alcance"));
         r = AsmZ80.Assemble(" ld a,(ix+200)\n");
         Assert.That(r.Errors[0].Message, Does.Contain("desplazamiento"));
+        r = AsmZ80.Assemble("p: nop\n jr p\n");
+        Assert.That(r.Errors[0].Message, Does.Contain("p es un registro o una condición"), "una etiqueta con nombre de condición");
     }
 
     /// <summary>A program written in Z80 assembly prints through the Spectrum ROM (RST $10) on the emulated machine.</summary>

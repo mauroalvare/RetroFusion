@@ -171,7 +171,9 @@ public static class AsmZ80
                 Emit(c, t, values);
                 return;
             }
-            throw new FormatException($"{mnem} {operand} no es una forma válida del Z80");
+            string? clash = given.FirstOrDefault(g => Reserved.Contains(g) && (c.Symbols.ContainsKey(g) || c.Known?.ContainsKey(g) == true));
+            throw new FormatException($"{mnem} {operand} no es una forma válida del Z80" +
+                (clash != null ? $" ({clash} es un registro o una condición del Z80, no puede ser el nombre de una etiqueta: cambiale el nombre)" : ""));
         }
 
         private static bool Wrapped(string s)
