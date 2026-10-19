@@ -51,6 +51,18 @@ Estos dos vienen incluidos como ejemplo (originales, escritos solo con las guía
 | ![Tormenta](emu/docs/img/creados/tormenta.png) | ![El jardín de los topos](emu/docs/img/creados/topos.png) |
 | Un bote junta salvavidas y esquiva rayos; sprites, sonido del SID y puntaje. | Golpear a los topos que asoman en 24 agujeros antes de que se escapen. |
 
+## La app por dentro
+
+| Estudio de fusiones | Creador de juegos de 8 bits |
+|---|---|
+| ![Estudio: elegir y preparar juegos](emu/docs/img/interfaz/estudio.png) | ![Creador: escribir, probar y jugar](emu/docs/img/interfaz/creador.png) |
+| Elegí los juegos y prepará sus variables para inventar una escena propia. | Partí de una idea o una plantilla; el emulador prueba el resultado. |
+
+| Código y depurador | Nintendo NES |
+|---|---|
+| ![Rutinas y depurador de Tormenta en C64](emu/docs/img/interfaz/codigo.png) | ![Cave corriendo en la máquina NES](emu/docs/img/interfaz/nes.png) |
+| Estudiá rutinas, registros y memoria mientras el programa corre. | Juegos originales con CPU, video, sonido y controles emulados. |
+
 ## Usarlo
 
 1. Bajá el paquete de **Releases** (Windows o Linux) y descomprimilo. No hace falta
