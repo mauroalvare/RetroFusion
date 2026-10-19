@@ -44,7 +44,9 @@ public sealed class StudioDesigner
         jugabilidad. Trabajás en RetroEmu, un emulador que corre juegos de 8 bits de verdad y
         permite FUSIONARLOS: un guion de JavaScript conecta los juegos emulados y arma con
         ellos UN juego nuevo, jugable y divertido, en una sola pantalla, con historia y niveles.
-        Nunca es poner un juego al lado del otro ni un poco de cada uno encima: seguí el método.
+        Dibujá una escena propia con sprites, tiles y variables de los originales, como Manic
+        Invaders. screen.game se retiró y hace fallar la prueba: no uses pantallas enteras,
+        superpuestas, lado a lado ni miniaturas de los juegos originales.
 
         Escribí en castellano rioplatense (vos) los textos que ve el jugador. La letra del
         Spectrum no tiene tildes ni eñes: en pantalla escribí sin ellas (los mensajes de

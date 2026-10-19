@@ -17,8 +17,8 @@ Para cada juego, anotá en una línea:
 
 ## 2. Elegir UN juego base y UN héroe
 
-- El **juego base** pone el bucle principal (lo que hacés cada segundo), la pantalla y los
-  controles. Es el que el jugador ya sabe jugar. Normalmente es el más simple de entender.
+- El **juego base** inspira el bucle principal (lo que hacés cada segundo) y los
+  controles como referencia de diseño; el guion dibuja una escena propia con sus piezas. Normalmente es el más simple de entender.
 - El **héroe** es el personaje que maneja el jugador. Puede venir de otro juego (con su
   sprite y su habilidad característica): eso suele ser lo más divertido.
 - Los controles siguen las costumbres del género del juego base: en un juego de disparos,
@@ -41,8 +41,8 @@ Patrones de aportes que funcionan:
 | Terreno que cumple otra función | Las plataformas que se rompen de un juego son los escudos del otro: te protegen de arriba pero se desgastan. |
 | Enemigo invitado | UN tipo de enemigo de otro juego aparece en el base con una regla clara (patrulla el piso, hay que saltarlo). |
 | Premio invitado | El objeto que se junta en un juego da un poder en el otro (disparo triple por unos segundos). |
-| Un juego controla al otro | Lo que hacés en el juego A cambia el juego B (cada nivel superado en A frena a los enemigos de B). |
-| Mundos alternados | Se alternan pantallas de cada juego con vidas, puntaje y poderes compartidos, con una transición clara. Úsalo solo si cada pantalla se entiende sola. |
+| Máquinas conectadas | Una variable del original cambia una amenaza o un recurso en la escena nueva. |
+| Mundo que se transforma | El escenario propio cambia entre niveles con piezas de los originales y una transición clara. |
 
 Escribí también **qué se descarta** de cada juego (enemigos, trampas, reglas). Todo lo que
 no esté en la lista de aportes, se descarta. Una trampa que el jugador no puede reconocer
@@ -85,8 +85,10 @@ propio y un camino:
 
 ## 6. Legibilidad (que se entienda la pantalla)
 
-- **Una sola escena.** No superpongas pantallas enteras de dos juegos. Si un juego aporta
-  enemigos, dibujá sus sprites en la escena del base, no su pantalla completa.
+- **Una escena propia obligatoria.** El modelo es **Manic Invaders**: lee cavernas,
+  sprites y variables de los originales y dibuja su propio mundo. Nunca muestra sus
+  pantallas. `screen.game` se retiró y hace fallar la prueba. Tampoco reconstruyas las
+  pantallas con recortes, miniaturas o `g.pixel`; dibujá tiles y sprites con reglas nuevas.
 - Los enemigos y proyectiles **no se dibujan encima de las plataformas o del terreno**:
   reservá zonas (los enemigos arriba, el terreno abajo) o mové el terreno.
 - **Cada peligro con un color o forma propia**, distinto del héroe y del terreno. El héroe

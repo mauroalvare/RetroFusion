@@ -89,3 +89,15 @@ llama en cada escritura efectiva de la CPU, con la dirección de la instrucción
 Es nulo por defecto, así que no cuesta nada si nadie escucha. Es un contrato nuevo de
 `Retro.Core`: toda máquina nueva debería implementarlo.
 
+
+## D-014 Las fusiones dibujan una escena propia (2026-10-19)
+
+Por pedido del jugador se retiran las recetas clásicas, sus vistas side/overlay/pip y el
+CLI fuse (solo informa la retirada). Se conservan perfiles, MachineFactory, GameCatalog
+y los contratos compartidos con el estudio. Preparar pasa a StudioWindow.
+
+Se elimina la capacidad de copiar cuadros de los juegos: screen.game devuelve un error
+con la indicación de dibujar una escena propia con sprites y tiles, como Manic Invaders.
+StudioValidator rechaza el intento incluso si el guion captura el error. Las guías y
+las semillas piden una escena nueva. Los guiones antiguos que usaban esa API requieren
+reescritura; sus archivos se conservan.

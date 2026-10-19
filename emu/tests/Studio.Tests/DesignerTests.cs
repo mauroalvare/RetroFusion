@@ -104,6 +104,23 @@ public class DesignerTests
     }
 
     [Test]
+    public async Task SimulatedAi_ReplacesAFullGameScreenWithManicInvaders()
+    {
+        var found = TestGames.Find() ?? throw new IgnoreException("Hacen falta los juegos del usuario para la prueba del estudio.");
+        var manic = StudioLibrary.BuiltIn.Single(g => g.Id == "manic-invaders");
+        var ai = new ScriptedAi(Answer("Superpuesto", "function draw() { screen.game(games.b); }"),
+            Answer("Escena propia", manic.Script));
+        var outcome = await new StudioDesigner().WriteAsync(ai, Slots, ProfileLibrary.Find,
+            new GameConcept("Mi juego", "Escena propia", "p", "h"),
+            game => StudioValidator.Run(game, found.sources, found.romDir), CancellationToken.None);
+        Assert.That(outcome.Attempts, Is.EqualTo(2));
+        Assert.That(outcome.Game, Is.Not.Null, outcome.Error);
+        Assert.That(outcome.Report!.Ok, Is.True, outcome.Report.Summary);
+        Assert.That(ai.Requests[1].Turns.Last().Text, Does.Contain("sprites y tiles").And.Contain("escena"));
+        Assert.That(outcome.Game!.Script, Does.Not.Contain("screen.game"));
+    }
+
+    [Test]
     public void ChatAnswers_WithJsonAndCodeBlocks_AreRead()
     {
         string answer = """

@@ -102,37 +102,6 @@ public sealed class Canvas
             }
     }
 
-    /// <summary>Copies part of a game picture. <paramref name="transparent"/> (0xRRGGBB, or -1) is not drawn.</summary>
-    public void Picture(VideoFrame src, double x, double y, int sx, int sy, int sw, int sh, double scale, double alpha, int transparent)
-    {
-        if (scale <= 0 || sw <= 0 || sh <= 0)
-            return;
-        int dw = (int)Math.Round(sw * scale), dh = (int)Math.Round(sh * scale);
-        int ox = (int)Math.Floor(x), oy = (int)Math.Floor(y);
-        for (int dy = 0; dy < dh; dy++)
-        {
-            int ty = oy + dy;
-            if ((uint)ty >= (uint)Frame.Height)
-                continue;
-            int py = sy + (int)(dy / scale);
-            if ((uint)py >= (uint)src.Height)
-                continue;
-            for (int dx = 0; dx < dw; dx++)
-            {
-                int tx = ox + dx;
-                if ((uint)tx >= (uint)Frame.Width)
-                    continue;
-                int px = sx + (int)(dx / scale);
-                if ((uint)px >= (uint)src.Width)
-                    continue;
-                int c = src.Pixels[py * src.Width + px] & 0xFFFFFF;
-                if (c == transparent)
-                    continue;
-                Blend(tx, ty, c, alpha);
-            }
-        }
-    }
-
     public void Text(string text, double x, double y, int rgb, int scale, bool center)
     {
         if (_font == null)

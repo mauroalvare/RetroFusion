@@ -13,6 +13,21 @@ public class StudioGameTests
 
     private static StudioGame ManicInvaders() => StudioLibrary.BuiltIn.Single(g => g.Id == "manic-invaders");
 
+    [TestCase("screen.game(games.b);")]
+    [TestCase("screen.game(games.b, { scale: 0.1, alpha: 0.1 });")]
+    [TestCase("try { screen.game(games.b); } catch (e) {}")]
+    [TestCase("__h.RejectGamePicture();")]
+    public void Playtest_RejectsOriginalScreensEvenWhenTheScriptCatchesTheError(string drawing)
+    {
+        var (sources, romDir) = Games();
+        var game = ManicInvaders().Copy();
+        game.Script = "function init() { game.state('title'); game.score(0); }\n" +
+                      "function draw() { " + drawing + " }";
+        var report = StudioValidator.Run(game, sources, romDir, 1);
+        Assert.That(report.Ok, Is.False);
+        Assert.That(report.Error + string.Join(" ", report.Problems), Does.Contain("escena").And.Contain("sprites y tiles"));
+    }
+
     [Test]
     public void ManicInvaders_PassesThePlaytest()
     {
@@ -26,17 +41,15 @@ public class StudioGameTests
     }
 
     [Test]
-    public void PacManMina_CrossesCpusAndPassesThePlaytest()
+    public void PacManMina_IsRejectedUntilItHasItsOwnScene()
     {
         var (sources, romDir) = Games();
         if (!sources.ContainsKey("pacman-c64"))
             Assert.Ignore("Hace falta Pac_Man_C64_ROM_EN.zip en ROMs/.");
         var report = StudioValidator.Run(StudioLibrary.BuiltIn.Single(g => g.Id == "pacman-mina"), sources, romDir);
         TestContext.Out.WriteLine(report.Summary);
-        Assert.That(report.Error, Is.Null);
-        Assert.That(report.Ok, Is.True, string.Join("; ", report.Problems));
-        // the dots Pac-Man eats on the C64 are found by their colour inside the C64 picture area
-        Assert.That(report.Robots!.Single(r => r.Name == "explorador").Score, Is.GreaterThan(0), "comiendo puntos se suman puntos");
+        Assert.That(report.Ok, Is.False);
+        Assert.That(report.Error, Does.Contain("escena").And.Contain("screen.game"));
     }
 
     [Test]
@@ -105,7 +118,7 @@ public class StudioGameTests
         var (sources, romDir) = Games();
         var game = ManicInvaders().Copy();
         // two games pasted one over the other: no title, no score, no states
-        game.Script = "function draw() { screen.game(games.b); screen.game(games.a, { transparent: 0, alpha: 0.5 }); }";
+        game.Script = "function draw() { screen.clear(0); }";
         var report = StudioValidator.Run(game, sources, romDir, 5);
         TestContext.Out.WriteLine(report.Summary);
         Assert.That(report.Ok, Is.False);

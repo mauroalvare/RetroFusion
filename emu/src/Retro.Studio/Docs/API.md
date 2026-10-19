@@ -61,7 +61,6 @@ Todo se dibuja de nuevo en cada `draw()`. Colores 0xRRGGBB.
 | `screen.size(ancho, alto)` | Tamaño de la pantalla del juego fusionado (en `init`; por defecto 256x192, máximo 640x480). |
 | `screen.width`, `screen.height` | Tamaño actual. |
 | `screen.clear(color)` | Pinta todo. |
-| `screen.game(g, opciones)` | Dibuja la imagen del juego `g`. Opciones: `x`, `y` (destino), `sx`, `sy`, `sw`, `sh` (recorte dentro del cuadro; por defecto `g.area`), `scale` (ej. 0.5), `alpha` (0 a 1), `transparent` (color que no se dibuja, ej. `0x000000` para superponer solo lo que no es negro). |
 | `screen.sprite(s, x, y, color, {scale, flip, alpha})` | Dibuja un sprite (1 bit) en un color. `flip` lo espeja. |
 | `screen.spriteSize(s)` | `{w, h}` del sprite. |
 | `screen.rect(x, y, w, h, color, alpha)` | Rectángulo lleno. |
@@ -113,3 +112,15 @@ La prueba automática y la ventana del emulador necesitan saber qué pasa en el 
 - **Dificultad:** si algo resulta imposible o aburrido, ajustá velocidades (`g.speed`),
   frecuencias o premios.
 - Textos en castellano. No uses `async`, `setTimeout` ni `import`: todo pasa en `tick`.
+
+## Escena propia obligatoria
+
+Dibujá el mundo nuevo con `screen.sprite`, `screen.rect`, `screen.line` y `screen.text`.
+Leé sprites y tiles con `g.sprite`/`g.spriteAt`, y mapas y variables con las ayudas del
+perfil o `peek`. Manic Invaders es el modelo técnico: reconstruye las cavernas y pone
+en ellas los sprites y las reglas de los dos juegos.
+
+`screen.game` se retiró: no dibuja nada y hace fallar la prueba automática con un mensaje
+para corregir el guion. No uses pantallas completas, recortes, miniaturas ni mosaicos de
+capturas para reconstruir los originales. `g.pixel` sirve para observar el estado del
+juego, no para copiar su pantalla píxel por píxel.

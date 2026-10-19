@@ -12,7 +12,7 @@ namespace Retro.Studio;
 /// Runs a fusion game: the original games keep running on their emulated machines, and
 /// the game's JavaScript (sandboxed with Jint: no files, no network, limited time and
 /// memory) reads and writes their memory, presses their keys, pauses them and draws one
-/// picture from their pictures and sprites. 60 ticks per second.
+/// scene from their sprites, tiles and variables. 60 ticks per second.
 /// </summary>
 public sealed class StudioSession : IFusionRun
 {
@@ -61,6 +61,7 @@ public sealed class StudioSession : IFusionRun
     /// <summary>Last state reported: title, playing, gameover... (empty if the script never said).</summary>
     public string State { get; private set; } = "";
     public bool ReportsState { get; private set; }
+    internal bool SceneViolation { get; set; }
     public bool ReportsScore { get; private set; }
     public long Score { get; private set; }
     public int Level { get; private set; }
@@ -223,6 +224,10 @@ public sealed class StudioSession : IFusionRun
         Hud = "";
         Events.Clear();
         State = "";
+        ReportsState = false;
+        ReportsScore = false;
+        SceneViolation = false;
+        _inputMask = 0;
         Score = 0;
         Level = 0;
         Deaths.Clear();

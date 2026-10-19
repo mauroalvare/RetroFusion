@@ -28,7 +28,7 @@ public static class CreativeSeeds
         "pantalla de título que ya es jugable", "menús y mensajes como una terminal de computadora vieja",
         "la historia contada con viñetas o carteles de cine mudo entre niveles", "marcador grande estilo tablero deportivo",
         "transiciones con cortinas, persianas o barridos", "paleta reducida a dos o tres colores por nivel",
-        "la pantalla se divide, gira o cambia de tamaño según lo que pasa", "estética de monitor de fósforo verde o ámbar",
+        "la escena propia cambia su paleta y su geometría según lo que pasa", "estética de monitor de fósforo verde o ámbar",
         "título minimalista: una palabra gigante que se rompe al empezar", "medidores dibujados con los sprites de los juegos",
         "un narrador que comenta en una línea al pie", "mapa de progreso entre niveles en vez de tarjetas",
     };
@@ -43,8 +43,8 @@ public static class CreativeSeeds
     {
         "los roles se invierten: controlás a los enemigos de uno de los juegos", "el tiempo solo avanza cuando te movés",
         "la gravedad o la orientación cambian de nivel a nivel", "el puntaje también es la vida: gastarlo te salva",
-        "cada muerte deja un obstáculo o una ayuda para el intento siguiente", "a mitad de nivel los juegos intercambian protagonistas",
-        "lo que destruís en un juego aparece en el otro", "el héroe no puede atacar: solo esquivar, engañar o empujar",
+        "cada muerte deja un obstáculo o una ayuda para el intento siguiente", "a mitad de nivel el héroe cambia de habilidad en la escena propia",
+        "lo que destruís se convierte en terreno o recursos dentro del mundo nuevo", "el héroe no puede atacar: solo esquivar, engañar o empujar",
         "hay que perder a propósito algo para ganar otra cosa", "los enemigos aprenden: repiten lo que hiciste en el nivel anterior",
         "el escenario es el enemigo: se achica, se inunda o se apaga", "dos objetivos que se contradicen y hay que elegir",
     };
@@ -107,7 +107,7 @@ public static class CreativeSeeds
             sb.AppendLine("Ya existen estas fusiones con estos juegos: no las repitas ni copies su presentación (título, HUD, menús): " +
                           string.Join("; ", list) + ".");
         sb.AppendLine("Cada idea inventa su propia presentación (pantalla de título, HUD, menús, transiciones y paleta): nada de copiar la del ejemplo " +
-                      "ni repetir la de otra idea.");
+                      "ni repetir la de otra idea. Dibujá siempre una escena propia con sprites y tiles: como Manic Invaders, nunca con pantallas de los originales.");
         return sb.ToString();
     }
 }

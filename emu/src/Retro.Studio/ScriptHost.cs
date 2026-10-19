@@ -150,8 +150,12 @@ public sealed class ScriptHost
     public void DrawSprite(double handle, double x, double y, double color, double scale, bool flip, double alpha) =>
         _session.Canvas.Sprite(SpriteImage(handle), x, y, Num(color), Num(scale), flip, alpha);
 
-    public void DrawGame(string id, double x, double y, double sx, double sy, double sw, double sh, double scale, double alpha, double transparent) =>
-        _session.Canvas.Picture(S(id).Slot.Machine.Video, x, y, Num(sx), Num(sy), Num(sw), Num(sh), scale, alpha, Num(transparent));
+    // Keep a diagnostic for old scripts, with no route to copy a game framebuffer.
+    public void RejectGamePicture()
+    {
+        _session.SceneViolation = true;
+        throw new InvalidOperationException(StudioValidator.OwnSceneMessage);
+    }
 
     // ------------------------------------------------------------------ ui and sound
     public void Message(string text) => _session.AddMessage(text.Length > 120 ? text[..120] : text);
@@ -213,15 +217,7 @@ public sealed class ScriptHost
             __h.DrawSprite(s, x, y, c === undefined ? 0xFFFFFF : c, o.scale || 1, !!o.flip, o.alpha === undefined ? 1 : o.alpha);
           },
           spriteSize: function (s) { return { w: __h.SpriteW(s), h: __h.SpriteH(s) }; },
-          game: function (g, o) {
-            o = o || {};
-            var a = g.area;
-            __h.DrawGame(g.id, o.x || 0, o.y || 0,
-              o.sx === undefined ? a.x : o.sx, o.sy === undefined ? a.y : o.sy,
-              o.sw === undefined ? a.w : o.sw, o.sh === undefined ? a.h : o.sh,
-              o.scale === undefined ? 1 : o.scale, o.alpha === undefined ? 1 : o.alpha,
-              o.transparent === undefined || o.transparent === null ? -1 : o.transparent);
-          }
+          game: function () { __h.RejectGamePicture(); }
         };
         Object.defineProperty(screen, 'width', { get: function () { return __h.CanvasW(); } });
         Object.defineProperty(screen, 'height', { get: function () { return __h.CanvasH(); } });

@@ -37,6 +37,8 @@ public sealed record ValidationReport(
 /// </summary>
 public static class StudioValidator
 {
+    public const string OwnSceneMessage = "screen.game se retiró: dibujá tu propia escena con sprites y tiles " +
+        "(screen.sprite, screen.rect), como Manic Invaders; no muestres la pantalla de un juego entero.";
     public const int DefaultSecondsPerRobot = 30;
     private const int Tps = StudioSession.TicksPerSecond;
 
@@ -86,6 +88,12 @@ public static class StudioValidator
                 {
                     s.Update(1.0 / Tps);
                     ticks++;
+                    // A script cannot hide the violation by catching the JavaScript error.
+                    if (s.SceneViolation)
+                    {
+                        if (!problems.Contains(OwnSceneMessage)) problems.Add(OwnSceneMessage);
+                        return false;
+                    }
                     if (s.Error != null)
                         return false;
                 }
