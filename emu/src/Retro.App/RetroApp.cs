@@ -52,7 +52,7 @@ public sealed class RetroApp
 
     // --autotest <seconds> <png>: run, save a screenshot of the whole window, quit.
     private double _autotestSeconds = -1;
-    // --preparar <file>: prepares that game for the fusions from the fusion window
+    // --preparar <file>: prepares that game for the fusions from the studio
     private string? _autoPrepare;
     private string? _autotestShot;
     private double _elapsed;
@@ -223,7 +223,7 @@ public sealed class RetroApp
         }
         if (_autoPrepare != null)
         {
-            _fusion.Prepare(_autoPrepare);
+            _studio.Prepare(_autoPrepare);
             _autoPrepare = null;
         }
 

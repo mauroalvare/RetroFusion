@@ -28,7 +28,12 @@ public sealed class StudioWindow
     private bool _open;
     private string _folder;
     private readonly List<GameSource> _games = new();
-    private readonly List<string> _unprofiled = new();
+    private readonly Dictionary<string, string> _unprepared = new();
+    private readonly Dictionary<string, string> _labels = new();
+    private Task<Retro.Compat.PrepareResult>? _prepareTask;
+    private CancellationTokenSource? _prepareCts;
+    private string _preparing = "";
+    private volatile string _prepareProgress = "";
     private readonly List<string> _chosen = new();   // order = slots a, b, c
     private string _status = "";
 
@@ -91,17 +96,21 @@ public sealed class StudioWindow
     private void Scan()
     {
         _games.Clear();
-        _unprofiled.Clear();
+        _unprepared.Clear();
+        _labels.Clear();
         if (!Directory.Exists(_folder))
         {
             _status = "La carpeta no existe.";
             return;
         }
-        foreach (var g in Retro.Compat.GameCatalog.Scan(_folder))
+        var catalog = Retro.Compat.GameCatalog.Scan(_folder);
+        foreach (var g in catalog)
         {
             _games.Add(g.Source);
             if (!g.Prepared)
-                _unprofiled.Add(g.Profile.Name);
+                _unprepared[g.Profile.Id] = g.Path;
+            bool twin = catalog.Count(o => o.Profile.Name == g.Profile.Name) > 1;
+            _labels[g.Profile.Id] = twin ? $"{g.Profile.Name} · {Path.GetFileName(g.Path)}" : g.Profile.Name;
         }
         _status = $"{_games.Count} juegos listos para fusionar.";
     }
@@ -111,7 +120,7 @@ public sealed class StudioWindow
     private List<RecipeGame> Slots() =>
         _chosen.Select((id, i) => new RecipeGame { Slot = SlotNames[i], Profile = id }).ToList();
 
-    private bool Busy => _conceptTask != null || _designTask != null || _validateTask != null || _startTask != null;
+    private bool Busy => _prepareTask != null || _conceptTask != null || _designTask != null || _validateTask != null || _startTask != null;
 
     // ------------------------------------------------------------------ drawing
     private float? _panelLeft;
@@ -146,6 +155,40 @@ public sealed class StudioWindow
         ImGui.End();
     }
 
+    /// <summary>Progress of "Preparar" (the buttons are next to the games without verified variables).</summary>
+    private void DrawPreparation()
+    {
+        if (_unprepared.Count > 0 && _prepareTask == null)
+            AiPicker.Hint("Prepará estos juegos para que el guion pueda leer sus vidas, puntaje o posición y usar sus piezas en una escena propia.");
+        if (_prepareTask == null)
+            return;
+        ImGui.TextColored(new Vector4(1, 0.85f, 0.3f, 1), $"Preparando {_preparing}...");
+        AiPicker.Hint(_prepareProgress);
+        if (ImGui.Button("Cancelar la preparación"))
+            _prepareCts?.Cancel();
+    }
+
+    /// <summary>Command line --preparar: opens the window and prepares that file.</summary>
+    public void Prepare(string path)
+    {
+        Open();
+        StartPrepare(Path.GetFileName(path), path);
+    }
+
+    private void StartPrepare(string name, string path)
+    {
+        Retro.Compat.IPlayAdvisor? advisor = _ai.CreateProvider() is { } provider ? new AiPlayAdvisor(provider)
+            : _ai.Provider == "agent" ? new FolderPlayAdvisor(Path.Combine(Path.GetTempPath(), "RetroEmu-preparar", Path.GetFileNameWithoutExtension(path)))
+            : null;
+        var options = new Retro.Compat.PrepareOptions { FirmwareDirectory = _romDir, Advisor = advisor };
+        _preparing = name;
+        _prepareProgress = advisor != null ? $"Primero se prueban las teclas habituales; después decide {advisor.Name}."
+            : "Sin IA (\"copiar y pegar\" no sirve para esto): solo se prueban las teclas habituales.";
+        _prepareCts = new CancellationTokenSource();
+        var ct = _prepareCts.Token;
+        _prepareTask = Task.Run(() => Retro.Compat.GamePreparer.PrepareAsync(path, options, line => _prepareProgress = line, ct));
+    }
+
     private void DrawSetup()
     {
         ImGui.TextWrapped("Elegí 2 o 3 juegos y la IA inventa cómo mezclarlos en UN juego nuevo: los juegos originales corren de verdad " +
@@ -169,12 +212,22 @@ public sealed class StudioWindow
         {
             int slot = _chosen.IndexOf(g.Profile.Id);
             bool on = slot >= 0;
-            if (ImGui.Checkbox($"{g.Profile.Name}##{g.Profile.Id}", ref on))
+            if (ImGui.Checkbox($"{_labels.GetValueOrDefault(g.Profile.Id, g.Profile.Name)}##{g.Profile.Id}", ref on))
             {
                 if (on && _chosen.Count < 3) _chosen.Add(g.Profile.Id);
                 else _chosen.Remove(g.Profile.Id);
                 _concepts = null;
                 _problem = null;
+            }
+            if (_unprepared.TryGetValue(g.Profile.Id, out var file))
+            {
+                ImGui.SameLine();
+                ImGui.BeginDisabled(Busy);
+                if (ImGui.SmallButton($"Preparar##{g.Profile.Id}"))
+                    StartPrepare(g.Profile.Name, file);
+                ImGui.EndDisabled();
+                if (ImGui.IsItemHovered())
+                    ImGui.SetTooltip("Busca el arranque y verifica variables como vidas, puntaje y posición. Puede tardar unos minutos y usar la IA elegida.");
             }
             if (slot >= 0)
             {
@@ -182,8 +235,7 @@ public sealed class StudioWindow
                 ImGui.TextDisabled($"(games.{SlotNames[slot]})");
             }
         }
-        foreach (var name in _unprofiled)
-            AiPicker.Hint($"   {name}: sin preparar (sin variables todavía). Se puede usar; para que el guion lea sus vidas o su puntaje, preparalo en Fusión > Fusión clásica.");
+        DrawPreparation();
         if (_chosen.Count < 2)
         {
             ImGui.Spacing();
@@ -662,6 +714,26 @@ public sealed class StudioWindow
     // ------------------------------------------------------------------ background work
     private void Poll()
     {
+        if (_prepareTask is { IsCompleted: true } pt)
+        {
+            _prepareTask = null;
+            if (pt.IsFaulted)
+            {
+                var e = pt.Exception!.GetBaseException();
+                _status = e is OperationCanceledException ? "Preparación cancelada." : $"No se pudo preparar {_preparing}: {e.Message}";
+            }
+            else if (pt.IsCanceled)
+                _status = "Preparación cancelada.";
+            else if (pt.Result is { Ok: true } r)
+            {
+                Scan();
+                _status = $"{_preparing} quedó preparado: {r.Profile!.Variables.Count(v => !v.Value.ReadOnly)} variables verificadas " +
+                          $"({string.Join(", ", r.Profile.Variables.Keys)}). Ya aparece en la lista.";
+            }
+            else
+                _status = $"No se pudo preparar {_preparing}: {pt.Result.Problem}";
+            Console.WriteLine("preparar: " + _status);
+        }
         if (_conceptTask is { IsCompleted: true } ct)
         {
             _conceptTask = null;
