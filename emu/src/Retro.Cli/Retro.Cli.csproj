@@ -12,6 +12,7 @@
     <ProjectReference Include="..\Retro.Systems.C64\Retro.Systems.C64.csproj" />
     <ProjectReference Include="..\Retro.Systems.Nes\Retro.Systems.Nes.csproj" />
     <ProjectReference Include="..\Retro.Compat\Retro.Compat.csproj" />
+    <ProjectReference Include="..\Retro.Asm\Retro.Asm.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

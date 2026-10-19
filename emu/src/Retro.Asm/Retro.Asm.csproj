@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Retro.Core\Retro.Core.csproj" />
+    <ProjectReference Include="..\Retro.Cpu.M6502\Retro.Cpu.M6502.csproj" />
+    <ProjectReference Include="..\Retro.Cpu.Z80\Retro.Cpu.Z80.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

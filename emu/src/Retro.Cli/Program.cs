@@ -27,6 +27,7 @@ static int Usage()
           retro-cli lab <guion.json> [--juegos carpeta] [--cuadros n] [--salida hallazgos.json]
                     [--hipotesis tipo:dirección[:codificación:bytes]]... [--sin-verificar]
           retro-cli juegos <carpeta>   todos los juegos que se pueden fusionar, con el id de su perfil
+          retro-cli asm <fuente.s> [--cpu 6502|z80] [--salida x.prg|x.bin] [--lista]   ensamblador
           retro-cli ideas <perfil1,perfil2> [--ia ...] [--pedido "..."] [--juegos carpeta]   3 ideas de fusión del estudio
           retro-cli preparar <juego> [--ia sub-claude|sub-codex|sub-google|claude|ollama|agent|ninguna]
                     [--carpeta carpeta-del-agente] [--rondas n] [--perfiles carpeta] [--sin-guardar]
@@ -89,6 +90,9 @@ if (command == "lab")
 
 if (command == "juegos")
     return ListGames(mediaPath);
+
+if (command == "asm")
+    return Assemble(mediaPath, Opt("salida"), Opt("lista") != null, Opt("cpu") ?? "6502");
 
 if (command == "ideas")
     return await RunIdeas(mediaPath, Opt("ia"), Opt("pedido") ?? "", Opt("juegos"));
@@ -512,6 +516,34 @@ static async Task<int> RunIdeas(string profileList, string? ia, string wish, str
         Console.WriteLine("Cómo se juega: " + idea.HowToPlay);
         Console.WriteLine(idea.Design);
     }
+    return 0;
+}
+
+// Assembles a source file: a .prg (load address first, for the C64) or a raw binary.
+static int Assemble(string sourcePath, string? output, bool listing, string cpu)
+{
+    if (!File.Exists(sourcePath))
+    {
+        Console.Error.WriteLine($"No existe {sourcePath}.");
+        return 2;
+    }
+    var r = cpu.ToLowerInvariant() switch
+    {
+        "z80" => Retro.Asm.AsmZ80.Assemble(File.ReadAllText(sourcePath)),
+        _ => Retro.Asm.Asm6502.Assemble(File.ReadAllText(sourcePath)),
+    };
+    foreach (var e in r.Errors)
+        Console.Error.WriteLine($"{Path.GetFileName(sourcePath)}: {e}");
+    if (!r.Ok)
+        return 3;
+    if (listing)
+        foreach (var l in r.Listing)
+            Console.WriteLine(l);
+    output ??= Path.ChangeExtension(sourcePath, cpu.Equals("z80", StringComparison.OrdinalIgnoreCase) ? ".bin" : ".prg");
+    bool prg = Path.GetExtension(output).Equals(".prg", StringComparison.OrdinalIgnoreCase);
+    var bytes = prg ? new[] { (byte)r.Origin, (byte)(r.Origin >> 8) }.Concat(r.Bytes).ToArray() : r.Bytes;
+    File.WriteAllBytes(output, bytes);
+    Console.WriteLine($"{r.Bytes.Length} bytes desde ${r.Origin:X4} ({r.Symbols.Count} símbolos) -> {output}");
     return 0;
 }
 

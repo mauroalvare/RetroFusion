@@ -7,6 +7,7 @@
     <Project Path="src/Retro.Core/Retro.Core.csproj" />
     <Project Path="src/Retro.Cpu.I8080/Retro.Cpu.I8080.csproj" />
     <Project Path="src/Retro.Cpu.M6502/Retro.Cpu.M6502.csproj" />
+    <Project Path="src/Retro.Asm/Retro.Asm.csproj" />
     <Project Path="src/Retro.Cpu.Z80/Retro.Cpu.Z80.csproj" />
     <Project Path="src/Retro.Fusion/Retro.Fusion.csproj" />
     <Project Path="src/Retro.Machines/Retro.Machines.csproj" />
@@ -23,6 +24,7 @@
     <Project Path="tests/Fusion.Tests/Fusion.Tests.csproj" />
     <Project Path="tests/I8080.Tests/I8080.Tests.csproj" />
     <Project Path="tests/M6502.Tests/M6502.Tests.csproj" />
+    <Project Path="tests/Asm.Tests/Asm.Tests.csproj" />
     <Project Path="tests/Nes.Tests/Nes.Tests.csproj" />
     <Project Path="tests/Retro.Cpu.Z80.Tests/Retro.Cpu.Z80.Tests.csproj" />
     <Project Path="tests/Studio.Tests/Studio.Tests.csproj" />
