@@ -301,14 +301,27 @@ public static class GamePreparer
         Wait(100);
         seen.Add(Signature(m));
         PlayCheck check = CheckTwin();
-        for (int round = 1; round <= o.MaxRounds && !check.Playing; round++)
+        bool accepted = false;
+        PlayAdvice? lastAdvice = null;
+        for (int round = 1; round <= o.MaxRounds; round++)
         {
             ct.ThrowIfCancellationRequested();
+            bool aiDriving = o.Advisor != null && round > o.TrialRounds;
+            // the controls move something: that is the game, unless an AI is driving and has not
+            // said so (a shop or menu cursor also moves with the directions): then it is asked
+            if (check.Playing && (!aiDriving || lastAdvice?.Playing == true))
+            {
+                accepted = true;
+                break;
+            }
             r.Rounds = round;
-            var advisor = o.Advisor != null && round > o.TrialRounds ? o.Advisor : trial;
+            var advisor = aiDriving ? o.Advisor! : trial;
             if (!r.Advisors.Contains(advisor.Name))
                 r.Advisors.Add(advisor.Name);
-            var observation = Observe(m, twin, machine, machineName, r.Game, launch.Media.Name, round, frames, seen, history, check);
+            var observation = Observe(m, twin, machine, machineName, r.Game, launch.Media.Name, round, frames, seen, history,
+                check.Playing
+                    ? check with { Evidence = check.Evidence + ". Si esto ya es la partida, respondé playing=true y ninguna acción; si es un menú, una tienda o una demo, seguí." }
+                    : check);
             Say($"Ronda {round}: {advisor.Name} mira la pantalla...");
             PlayAdvice advice;
             try
@@ -323,6 +336,14 @@ public static class GamePreparer
                 o.Advisor = null;
                 advisor = trial;
                 advice = await trial.AdviseAsync(observation, ct);
+            }
+            lastAdvice = advice;
+            if (check.Playing && advice.Playing)
+            {
+                history.Add($"Ronda {round} ({advisor.Name}): confirma que es la partida. Motivo: {advice.Reason}.");
+                Say(history[^1]);
+                accepted = true;
+                break;
             }
             var done = new List<string>();
             foreach (var a in advice.Actions.Take(16))
@@ -352,12 +373,14 @@ public static class GamePreparer
             }
             seen.Add(Signature(m));
             check = CheckTwin();
-            string after = check.Playing ? "ya se juega: " + check.Evidence : "todavía no se juega";
+            string after = check.Playing ? "los controles mueven algo: " + check.Evidence : "todavía no se juega";
             history.Add($"Ronda {round} ({advisor.Name}): {string.Join(", ", done)}. Motivo: {advice.Reason}. Resultado: {after}." +
                         (advice.Playing && !check.Playing ? " (Se dijo que era la partida, pero los controles no mueven nada.)" : ""));
             Say(history[^1]);
         }
-        if (!check.Playing)
+        if (!accepted && check.Playing && (o.Advisor == null || lastAdvice?.Playing == true))
+            accepted = true;
+        if (!accepted)
         {
             r.Problem = $"No llegué a la partida en {o.MaxRounds} rondas. " + (o.Advisor == null && r.Advisors.Count == 1
                 ? "Con una IA configurada (Claude, ChatGPT o Gemini por suscripción) se puede intentar de nuevo."

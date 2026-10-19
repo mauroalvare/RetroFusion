@@ -74,6 +74,8 @@ public class PreparerTests
         public Task<PlayAdvice> AdviseAsync(PlayObservation o, CancellationToken ct)
         {
             Seen.Add(o);
+            if (o.PlayCheck.Contains("Si esto ya es la partida"))
+                return Task.FromResult(new PlayAdvice { Playing = true, Reason = "ya se mueve el héroe" });
             var advice = o.ScreenText != null && o.ScreenText.Contains("TYPE G")
                 ? new PlayAdvice { Reason = "pide la G", Actions = { new PlayAction("G", 8, 120) } }
                 : new PlayAdvice { Reason = "espero", Actions = { new PlayAction("", 0, 100) } };
@@ -132,6 +134,32 @@ public class PreparerTests
         Assert.That(p.Variables.Keys, Is.EquivalentTo(new[] { "heroX", "score" }), "solo las que la IA conserva, con sus nombres");
         Assert.That(p.Variables["score"].Encoding, Is.EqualTo("bcd"));
         Assert.That(p.Verified, Does.Contain("los nombres los puso la IA"));
+    }
+
+    /// <summary>An AI that never agrees it is the game (as when a shop cursor moves with the joystick).</summary>
+    private sealed class DoubtingAdvisor : IPlayAdvisor
+    {
+        public int Asked;
+        public string Name => "IA que duda";
+        public Task<PlayAdvice> AdviseAsync(PlayObservation o, CancellationToken ct)
+        {
+            Asked++;
+            return Task.FromResult(o.ScreenText != null && o.ScreenText.Contains("TYPE G")
+                ? new PlayAdvice { Reason = "pide la G", Actions = { new PlayAction("G", 8, 120) } }
+                : new PlayAdvice { Reason = "esto parece un menú", Actions = { new PlayAction("", 0, 60) } });
+        }
+    }
+
+    [Test]
+    public async Task WhenAnAiIsDriving_MovingControlsAloneDoNotMakeItTheGame()
+    {
+        string game = Path.Combine(_dir, "juego-g.prg");
+        File.WriteAllBytes(game, C64TestProgram.Game(C64TestProgram.TypeG));
+        var doubting = new DoubtingAdvisor();
+        var r = await GamePreparer.PrepareAsync(game, Options(doubting, rounds: 6), null, CancellationToken.None);
+        Assert.That(r.Ok, Is.False, "sin la confirmación de la IA no se da por buena");
+        Assert.That(r.Log, Has.Some.Contains("los controles mueven algo"));
+        Assert.That(doubting.Asked, Is.GreaterThan(1), "se le volvió a preguntar con la evidencia del detector");
     }
 
     [Test]
