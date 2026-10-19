@@ -101,3 +101,13 @@ con la indicación de dibujar una escena propia con sprites y tiles, como Manic 
 StudioValidator rechaza el intento incluso si el guion captura el error. Las guías y
 las semillas piden una escena nueva. Los guiones antiguos que usaban esa API requieren
 reescritura; sus archivos se conservan.
+
+## D-015 Actividad observable de las IAs por CLI (2026-10-19)
+
+`CliAgentProvider.Activity` expone una instantánea del proceso: estado, marcas de tiempo,
+cantidad de caracteres recibidos y los últimos 12.000 caracteres de stdout/stderr.
+La lectura por bloques conserva la respuesta completa para el diseñador; solo la vista
+de actividad se limita. La salida queda en memoria y se comparte con el panel
+**Abrir construcción** del estudio y del creador. No se cambia `IAiProvider`, el formato
+de respuesta ni los argumentos de los CLI. El contador es tiempo transcurrido; no es
+un porcentaje de avance ni revela texto que el CLI todavía no haya emitido.

@@ -27,6 +27,7 @@ public sealed class CreatorWindow
     private int _machine;               // index in Templates.All
     private string _wish = "";
     private volatile string _progress = "";
+    private readonly AiBuildWindow _build = new("creador");
     private string? _problem;
     private string? _problemDetail;
     private CancellationTokenSource? _cts;
@@ -143,13 +144,17 @@ public sealed class CreatorWindow
             FromTemplate();
         ImGui.EndDisabled();
         if (_progress.Length > 0)
-            ImGui.TextColored(Blue, _progress);
+        {
+            ImGui.PushStyleColor(ImGuiCol.Text, Blue);
+            ImGui.TextWrapped(_progress);
+            ImGui.PopStyleColor();
+        }
         if (_cts != null && _writeTask != null)
         {
-            ImGui.SameLine();
             if (ImGui.SmallButton("Cancelar"))
                 _cts.Cancel();
         }
+        _build.Draw(_writeTask != null, _progress, _cts);
         if (_problem != null)
         {
             ImGui.PushStyleColor(ImGuiCol.Text, Red);
@@ -348,6 +353,7 @@ public sealed class CreatorWindow
         _writeWish = _wish;
         _writeAuthor = provider.Name;
         _progress = $"{provider.Name} está escribiendo el juego...";
+        _build.Start(provider);
         var token = _cts.Token;
         string machine = _writeMachine, wish = _writeWish;
         _writeTask = Task.Run(() => new GameWriter().WriteAsync(provider, machine, wish, _romDir, token, p => _progress = p), token);
@@ -424,6 +430,7 @@ public sealed class CreatorWindow
         }
         if (_writeTask is { IsCompleted: true } wt)
         {
+            _build.Stop();
             _writeTask = null;
             _cts = null;
             if (!wt.IsCompletedSuccessfully)

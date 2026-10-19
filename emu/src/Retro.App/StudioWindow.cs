@@ -42,6 +42,7 @@ public sealed class StudioWindow
     private string _request = "";
     private List<GameConcept>? _concepts;
     private volatile string _progress = "";
+    private readonly AiBuildWindow _build = new("estudio");
     private string? _problem;          // last failure, shown in red
     private string? _problemDetail;    // validation report behind it
     private string? _lastTest;         // summary of the playtest of the game being played
@@ -444,13 +445,17 @@ public sealed class StudioWindow
     private void DrawProgress()
     {
         if (_progress.Length > 0)
-            ImGui.TextColored(Blue, _progress);
+        {
+            ImGui.PushStyleColor(ImGuiCol.Text, Blue);
+            ImGui.TextWrapped(_progress);
+            ImGui.PopStyleColor();
+        }
         if (_cts != null && (_conceptTask != null || _designTask != null))
         {
-            ImGui.SameLine();
             if (ImGui.SmallButton("Cancelar"))
                 _cts.Cancel();
         }
+        _build.Draw(_conceptTask != null || _designTask != null, _progress, _cts);
         if (_problem != null)
         {
             ImGui.PushStyleColor(ImGuiCol.Text, Red);
@@ -565,6 +570,7 @@ public sealed class StudioWindow
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
         _progress = $"{ai.Name} está pensando ideas...";
+        _build.Start(ai);
         _conceptTask = Task.Run(() => new StudioDesigner().ConceptsAsync(ai, slots, ProfileLibrary.Find, wish, token));
     }
 
@@ -598,6 +604,8 @@ public sealed class StudioWindow
                 _cts = new CancellationTokenSource();
                 var token = _cts.Token;
                 var sources = Sources();
+                _progress = $"{ai.Name} está escribiendo el juego...";
+                _build.Start(ai);
                 _designTask = Task.Run(() => new StudioDesigner().WriteAsync(ai, slots, ProfileLibrary.Find, concept,
                     game => StudioValidator.Run(game, sources, _romDir), token, p => _progress = p));
                 break;
@@ -628,6 +636,8 @@ public sealed class StudioWindow
                 _cts = new CancellationTokenSource();
                 var token = _cts.Token;
                 var sources = Sources();
+                _progress = $"{ai.Name} está preparando la corrección...";
+                _build.Start(ai);
                 _designTask = Task.Run(() => new StudioDesigner().ReviseAsync(ai, current, ProfileLibrary.Find, request,
                     game => StudioValidator.Run(game, sources, _romDir), token, p => _progress = p));
                 break;
@@ -736,6 +746,7 @@ public sealed class StudioWindow
         }
         if (_conceptTask is { IsCompleted: true } ct)
         {
+            _build.Stop();
             _conceptTask = null;
             if (ct.IsCompletedSuccessfully)
             {
@@ -747,6 +758,7 @@ public sealed class StudioWindow
         }
         if (_designTask is { IsCompleted: true } dt)
         {
+            _build.Stop();
             _designTask = null;
             if (!dt.IsCompletedSuccessfully)
                 Problem(Failure(dt.Exception));

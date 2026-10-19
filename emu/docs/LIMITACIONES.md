@@ -157,6 +157,12 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 
 ## App, CLI y paquetes
 
+- **Construcción con IA:** el panel muestra actividad observada del proceso y la salida
+  que el CLI emite. No revela razonamiento interno ni puede obtener texto que la herramienta
+  todavía no envió. Puede mostrar JSON o código según el formato del CLI. Conserva solo
+  los últimos 12.000 caracteres en memoria; no crea un registro de conversaciones en disco.
+  El tiempo transcurrido está disponible; la estimación del tiempo restante sigue pendiente.
+
 - En el C64, F1/F3/F5/F7 son teclas de la máquina: la carga rápida de estado pasa a F4 y
   el reinicio queda en el menú Máquina.
 - El release publicado en GitHub (v0.3.0) es anterior al C64. `Desktop\RetroEmu\Programa`

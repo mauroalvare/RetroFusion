@@ -78,6 +78,9 @@ public sealed class CliAgentProvider : IAiProvider
     private readonly string? _override;
     private readonly TimeSpan _timeout;
     private readonly string? _model;
+    private CliActivity? _activity;
+
+    public CliActivity? Activity => Volatile.Read(ref _activity);
 
     /// <param name="model">The model the tool uses (its --model / -m); null or empty = the tool's own default.</param>
     public CliAgentProvider(CliTool tool, string? overridePath, TimeSpan? timeout = null, string? model = null)
@@ -149,7 +152,9 @@ public sealed class CliAgentProvider : IAiProvider
         // the model goes before codex's "-" (stdin) and anywhere for the others
         args.InsertRange(_tool.Id == "sub-codex" ? 1 : 0, ModelArgs(_tool.Id, _model));
         // agy takes the prompt as an argument and does not read standard input
-        var (code, stdout, stderr) = await RunAsync(exe, args, work, agy ? "" : Flatten(request), _timeout, ct);
+        string previousOutput = Activity?.Output is { Length: > 0 } previous ? previous + "\n\n" : "";
+        var (code, stdout, stderr) = await RunAsync(exe, args, work, agy ? "" : Flatten(request), _timeout, ct,
+            activity => Volatile.Write(ref _activity, activity with { Output = CliActivity.Tail(previousOutput + activity.Output) }));
         try
         {
             string answer = _tool.Id switch
@@ -281,7 +286,7 @@ public sealed class CliAgentProvider : IAiProvider
     }
 
     internal static async Task<(int code, string stdout, string stderr)> RunAsync(string exe, IReadOnlyList<string> args, string workDir,
-        string stdin, TimeSpan timeout, CancellationToken ct)
+        string stdin, TimeSpan timeout, CancellationToken ct, Action<CliActivity>? activity = null)
     {
         var psi = new ProcessStartInfo
         {
@@ -320,32 +325,71 @@ public sealed class CliAgentProvider : IAiProvider
         {
             throw new AiException($"No se pudo ejecutar {exe}: {e.Message}");
         }
-        var outTask = p.StandardOutput.ReadToEndAsync(ct);
-        var errTask = p.StandardError.ReadToEndAsync(ct);
-        try
+        long started = Stopwatch.GetTimestamp(), lastOutput = started, characters = 0;
+        var output = new StringBuilder();
+        var gate = new object();
+        string status = "CLI en ejecución";
+        void Report(bool running)
         {
-            if (stdin.Length > 0)
-                await p.StandardInput.WriteAsync(stdin.AsMemory(), ct);
-            p.StandardInput.Close();
+            lock (gate)
+                activity?.Invoke(new CliActivity(status, running, started, Stopwatch.GetTimestamp(), lastOutput, characters, output.ToString()));
         }
-        catch (IOException)
+        async Task<string> ReadAsync(StreamReader reader)
         {
-            // the tool closed its input without reading it: its answer (or error) is still in the output
+            var answer = new StringBuilder();
+            var buffer = new char[2048];
+            int count;
+            while ((count = await reader.ReadAsync(buffer.AsMemory(), ct)) > 0)
+            {
+                answer.Append(buffer, 0, count);
+                lock (gate)
+                {
+                    characters += count;
+                    lastOutput = Stopwatch.GetTimestamp();
+                    output.Append(buffer, 0, count);
+                    if (output.Length > CliActivity.MaxOutputLength)
+                        output.Remove(0, output.Length - CliActivity.MaxOutputLength);
+                    Report(true);
+                }
+            }
+            return answer.ToString();
         }
+        Report(true);
+        var outTask = ReadAsync(p.StandardOutput);
+        var errTask = ReadAsync(p.StandardError);
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeoutCts.CancelAfter(timeout);
         try
         {
+            try
+            {
+                if (stdin.Length > 0)
+                    await p.StandardInput.WriteAsync(stdin.AsMemory(), timeoutCts.Token);
+                p.StandardInput.Close();
+            }
+            catch (IOException)
+            {
+                // The tool closed stdin; its answer or error is still in the output.
+            }
             await p.WaitForExitAsync(timeoutCts.Token);
+            string stdout = await outTask, stderr = await errTask;
+            status = p.ExitCode == 0 ? "CLI finalizado" : "CLI terminó con error";
+            return (p.ExitCode, stdout, stderr);
         }
         catch (OperationCanceledException)
         {
             try { p.Kill(entireProcessTree: true); } catch (InvalidOperationException) { }
+            // Observe both readers after killing the process, including cancellation while writing stdin.
+            try { await Task.WhenAll(outTask, errTask); } catch (OperationCanceledException) { }
+            status = ct.IsCancellationRequested ? "CLI cancelado" : "CLI detenido por tiempo máximo";
             if (ct.IsCancellationRequested)
                 throw;
             throw new AiException($"{Path.GetFileName(exe)} tardó más de {timeout.TotalMinutes:F0} minutos y lo detuve.");
         }
-        return (p.ExitCode, await outTask, await errTask);
+        finally
+        {
+            Report(false);
+        }
     }
 
     private static string Quote(string a) => a.Length > 0 && a.IndexOfAny(new[] { ' ', '"', '&', '|', '<', '>', '^' }) < 0 ? a : "\"" + a.Replace("\"", "\\\"") + "\"";

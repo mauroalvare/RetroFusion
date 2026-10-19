@@ -110,6 +110,58 @@ public class CliProviderTests
         Assert.That(e!.Message, Does.Contain("npm install -g @openai/codex"));
     }
 
+    private static async Task WaitForOutput(CliAgentProvider ai)
+    {
+        for (int i = 0; i < 150 && ai.Activity?.OutputCharacters is not > 0; i++)
+            await Task.Delay(20);
+        Assert.That(ai.Activity?.OutputCharacters, Is.GreaterThan(0), "salida observable antes de que termine el CLI");
+    }
+
+    [Test]
+    public async Task Activity_ShowsOutputBeforeTheCliFinishes()
+    {
+        string exe = Fake("agy", "echo preparando el juego 1>&2\nping -n 3 127.0.0.1 > nul\necho respuesta final");
+        var ai = new CliAgentProvider(CliTools.Google, exe);
+        var task = ai.CompleteAsync(Request(), CancellationToken.None);
+        await WaitForOutput(ai);
+        Assert.That(task.IsCompleted, Is.False);
+        Assert.That(ai.Activity!.Running, Is.True);
+        Assert.That(ai.Activity.Output, Does.Contain("preparando el juego"));
+        Assert.That(await task, Does.Contain("respuesta final"));
+        Assert.That(ai.Activity!.Running, Is.False);
+        Assert.That(ai.Activity.Status, Is.EqualTo("CLI finalizado"));
+        Assert.That(ai.Activity.Output, Does.Contain("respuesta final"));
+        TimeSpan elapsed = ai.Activity.Elapsed;
+        await Task.Delay(30);
+        Assert.That(ai.Activity.Elapsed, Is.EqualTo(elapsed), "el reloj se detiene al salir el proceso");
+    }
+
+    [Test]
+    public async Task Activity_CancelStopsTheProcessAndUpdatesTheStatus()
+    {
+        string exe = Fake("agy", "echo trabajando 1>&2\nping -n 30 127.0.0.1 > nul\necho no deberia llegar");
+        var ai = new CliAgentProvider(CliTools.Google, exe);
+        using var cancellation = new CancellationTokenSource();
+        var task = ai.CompleteAsync(Request(), cancellation.Token);
+        await WaitForOutput(ai);
+        cancellation.Cancel();
+        Assert.CatchAsync<OperationCanceledException>(async () => await task);
+        Assert.That(ai.Activity!.Running, Is.False);
+        Assert.That(ai.Activity.Status, Is.EqualTo("CLI cancelado"));
+        Assert.That(ai.Activity.Output, Does.Not.Contain("no deberia llegar"));
+    }
+
+    [Test]
+    public async Task Activity_IsBoundedWithoutTruncatingTheActualAnswer()
+    {
+        string exe = Fake("agy", "for /l %%i in (1,1,250) do echo 012345678901234567890123456789012345678901234567890123456789\necho ultima linea");
+        var ai = new CliAgentProvider(CliTools.Google, exe);
+        string answer = await ai.CompleteAsync(Request(), CancellationToken.None);
+        Assert.That(answer.Length, Is.GreaterThan(CliActivity.MaxOutputLength));
+        Assert.That(ai.Activity!.Output.Length, Is.LessThanOrEqualTo(CliActivity.MaxOutputLength));
+        Assert.That(ai.Activity.Output, Does.Contain("ultima linea"));
+    }
+
     [Test]
     public void Settings_CreateTheSubscriptionProviders()
     {

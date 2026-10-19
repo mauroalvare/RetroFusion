@@ -106,6 +106,17 @@ inventar una fusión. `screen.game` está retirado: toda escena se dibuja con sp
 y primitivas, como Manic Invaders. `StudioValidator` rechaza el intento y devuelve cómo
 corregirlo. Las pruebas de `tests/Studio.Tests` usan IA simulada.
 
+Mientras la IA propone, escribe o corrige un juego, **Abrir construcción** muestra la
+etapa, el tiempo transcurrido, el estado del proceso CLI y su salida conforme llega.
+Está disponible en el estudio y en el creador; permite cancelar y conserva en memoria
+los últimos 12.000 caracteres de esa construcción. Algunos CLI entregan el texto recién
+al terminar: que no haya texto todavía no significa que el proceso haya fallado.
+El contador mide tiempo transcurrido; la estimación del tiempo restante sigue pendiente.
+
+Las instrucciones para la IA sí forman parte del producto: `src/Retro.Studio/Docs/GUIA-FUSION.md`
+y `API.md` están versionadas y se incorporan a la app. Los archivos locales de coordinación
+de agentes quedan fuera del repositorio.
+
 Comprobación de la ventana (sin molestar al jugador):
 
 ```powershell
