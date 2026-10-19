@@ -9,12 +9,28 @@ namespace Retro.Asm;
 /// </summary>
 public sealed record GameTemplate(string Machine, string Name, string Cpu, string Source, string Output, string Guide);
 
+/// <summary>An example game: its machine, what it is, how it is played and its source.</summary>
+public sealed record ExampleGame(string Machine, string Title, string Pitch, string HowToPlay, string Source);
+
 /// <summary>
 /// The minimal games every new game starts from (Spectrum and C64): they boot, draw,
 /// read the controls and make a sound. They live as .s files next to this class.
 /// </summary>
 public static class Templates
 {
+    /// <summary>Original games written only from the machine guides; they pass the same trial an AI's game goes through.</summary>
+    public static IReadOnlyList<ExampleGame> Examples { get; } = new[]
+    {
+        new ExampleGame("c64", "Tormenta",
+            "Una tormenta en el mar: el bote junta los salvavidas que caen y esquiva los rayos; cada 10 salvavidas todo cae más rápido.",
+            "Joystick en el puerto 2, izquierda y derecha. Tres vidas; al perderlas, el disparo empieza otra partida.",
+            Read("tormenta-c64.s", "Examples")),
+        new ExampleGame("zx48", "El jardín de los topos",
+            "Los topos asoman por 24 agujeros del jardín: golpealos antes de que se escondan; cada golpe los apura.",
+            "Q A O P o el Kempston mueven el cursor; ESPACIO o el disparo golpea. Si se escapan 5, se termina y el disparo vuelve a empezar.",
+            Read("topos-zx48.s", "Examples")),
+    };
+
     public static IReadOnlyList<GameTemplate> All { get; } = new[]
     {
         new GameTemplate("c64", "Commodore 64", "6502", Read("c64.s"), ".prg", Read("c64.md")),
@@ -23,10 +39,10 @@ public static class Templates
 
     public static GameTemplate? For(string machine) => All.FirstOrDefault(t => t.Machine.Equals(machine, StringComparison.OrdinalIgnoreCase));
 
-    private static string Read(string name)
+    private static string Read(string name, string folder = "Templates")
     {
         var asm = Assembly.GetExecutingAssembly();
-        using var s = asm.GetManifestResourceStream("Retro.Asm.Templates." + name) ?? throw new InvalidOperationException($"falta la plantilla {name}");
+        using var s = asm.GetManifestResourceStream($"Retro.Asm.{folder}.{name}") ?? throw new InvalidOperationException($"falta {folder}/{name}");
         using var r = new StreamReader(s, Encoding.UTF8);
         return r.ReadToEnd();
     }

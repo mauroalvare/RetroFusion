@@ -18,6 +18,7 @@ public sealed class RetroApp
     private readonly Retro.Ai.AiSettings _ai = Retro.Ai.AiSettings.Load();
     private readonly FusionWindow _fusion;
     private readonly StudioWindow _studio;
+    private readonly CreatorWindow _creator;
     private readonly GameLibrary _library = new();
     private string? _autoStudio;
     private readonly CodeWindow _code;
@@ -69,6 +70,7 @@ public sealed class RetroApp
         _studio = new StudioWindow(_host, _romDir, games, _ai);
         _fusion.OpenStudio = _studio.Open;
         _code = new CodeWindow(_host, _ai, ShowInDebugger);
+        _creator = new CreatorWindow(_romDir, _ai, OpenFile);
         Raylib.SetTargetFPS(Math.Max(60, Raylib.GetMonitorRefreshRate(Raylib.GetCurrentMonitor())));
         // The audio device pulls samples through a callback on its own thread, so the
         // emulator can pace itself on the real consumption rate.
@@ -103,6 +105,8 @@ public sealed class RetroApp
                 _autoStudio = args[++i];
             else if (args[i] == "--preparar" && i + 1 < args.Length)
                 _autoPrepare = args[++i];
+            else if (args[i] == "--crear-window")
+                _creator.Open();
             else if (args[i] == "--studio-window")
                 _studio.Open();
             else if (args[i] == "--fusion-window")
@@ -235,6 +239,7 @@ public sealed class RetroApp
         _browser.Draw(OpenFile);
         _fusion.Draw();
         _studio.Draw();
+        _creator.Draw();
         _code.Draw();
         DrawPopups();
         rlImGui.End();
@@ -324,7 +329,7 @@ public sealed class RetroApp
     {
         float top = 22, bottom = 24;
         // the AI studio panel sits on the right while you play: the game uses the rest
-        float w = Raylib.GetScreenWidth() - _studio.RightReserve(Raylib.GetScreenWidth()), h = Raylib.GetScreenHeight() - top - bottom;
+        float w = Raylib.GetScreenWidth() - Math.Max(_studio.RightReserve(Raylib.GetScreenWidth()), _creator.RightReserve(Raylib.GetScreenWidth())), h = Raylib.GetScreenHeight() - top - bottom;
         float s = MathF.Min(w / _texW, h / _texH);
         if (_scale > 0)
             s = MathF.Min(s, MathF.Max(1, MathF.Floor(s)));
@@ -617,6 +622,13 @@ public sealed class RetroApp
             ImGui.Separator();
             ImGui.TextDisabled("Con IA: un juego nuevo que mezcla los juegos de verdad,");
             ImGui.TextDisabled("y le pedís cambios. Clásica: juegos a la vez con reglas.");
+            ImGui.EndMenu();
+        }
+        if (ImGui.BeginMenu("Crear"))
+        {
+            if (ImGui.MenuItem("Juego de 8 bits nuevo (C64 o Spectrum)...")) _creator.Open();
+            ImGui.TextDisabled("La IA escribe un juego original en ensamblador,");
+            ImGui.TextDisabled("lo prueba con un robot y lo corrige hasta que anda.");
             ImGui.EndMenu();
         }
         if (ImGui.BeginMenu("Código"))

@@ -515,8 +515,17 @@ plantilla; el pedido del jugador o, sin pedido, una semilla al azar
 informe de la prueba (más la imagen de la pantalla), así la conversación no crece aunque el
 programa sea largo. Termina cuando pasa la prueba o a los 5 intentos.
 
+**Juegos creados (`CreatedGames`, en Retro.Ai):** cada juego es una carpeta en
+"Juegos creados" (junto al programa o más arriba; si no hay, en Documentos/RetroEmu) con
+`juego.s`, `juego.prg` o `juego.tap`, `juego.png` y `juego.json` (título, cómo se juega,
+pedido, autor y el informe de la última prueba). `TryAgain` vuelve a ensamblar y probar
+después de una edición; `ExportExamples` copia los ejemplos una vez. La ventana
+`CreatorWindow` (menú Crear) usa todo esto y abre el programa con `OpenFile`, igual que
+cualquier juego.
+
 Lo que falta: citar rutinas de juegos originales (juego, hash de la edición, dirección) sin
-copiar sus bytes, una ventana en la app, y plantillas para NES y Space Invaders.
+copiar sus bytes, la IA por copiar y pegar o por carpeta de agentes en el creador, y
+plantillas para NES y Space Invaders.
 
 ## Cómo agregar una CPU o una máquina
 

@@ -52,6 +52,7 @@ dotnet test tests/Retro.Cpu.Z80.Tests -c Release --filter "TestCategory=Long"   
 
 # la app (sin ventana ni sonido para pruebas automáticas; la captura va relativa al directorio actual)
 dotnet run --project src/Retro.App -- --hidden --mute --autotest 10 out/prueba.png <juego>
+dotnet run --project src/Retro.App -- --hidden --mute --crear-window --autotest 12 out/crear.png   # ventana Crear
 src/Retro.App/bin/Debug/net10.0/RetroEmu.exe                 # con ventana, para el usuario
 
 # retro-cli (C=src/Retro.Cli/bin/Debug/net10.0/retro-cli.exe)

@@ -53,18 +53,12 @@ public class HomebrewTrialTests
     [Test]
     public void TheExampleGames_PassTheTrial()
     {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null && !Directory.Exists(Path.Combine(dir.FullName, "src", "Retro.Asm", "Examples")))
-            dir = dir.Parent;
-        Assert.That(dir, Is.Not.Null);
-        var examples = Directory.GetFiles(Path.Combine(dir!.FullName, "src", "Retro.Asm", "Examples"), "*.s");
-        Assert.That(examples, Has.Length.GreaterThanOrEqualTo(2));
-        foreach (var path in examples)
+        Assert.That(Templates.Examples.Select(e => e.Machine), Is.EquivalentTo(new[] { "c64", "zx48" }), "uno por máquina");
+        foreach (var e in Templates.Examples)
         {
-            string machine = Path.GetFileNameWithoutExtension(path).Split('-')[^1];
-            var r = HomebrewTrial.Run(File.ReadAllText(path), machine, _firmware);
-            Assert.That(r.Ok, Is.True, $"{Path.GetFileName(path)}:\n{r.Summary}");
-            Assert.That(r.Checks.All(c => c.Ok), Is.True, $"{Path.GetFileName(path)} también suena:\n{r.Summary}");
+            var r = HomebrewTrial.Run(e.Source, e.Machine, _firmware);
+            Assert.That(r.Ok, Is.True, $"{e.Title}:\n{r.Summary}");
+            Assert.That(r.Checks.All(c => c.Ok), Is.True, $"{e.Title} también suena:\n{r.Summary}");
         }
     }
 

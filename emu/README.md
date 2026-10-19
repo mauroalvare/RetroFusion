@@ -339,7 +339,20 @@ cada hallazgo.
 Sirve para pruebas automáticas y para que una IA verifique compatibilidad sin mirar la
 pantalla.
 
-## Crear un juego de 8 bits desde cero (`retro-cli crear`)
+## Crear un juego de 8 bits desde cero (menú Crear)
+
+**Crear > Juego de 8 bits nuevo** abre una ventana donde elegís la máquina (Commodore 64 o
+ZX Spectrum), la IA y, si querés, qué juego te gustaría. La IA lo escribe en ensamblador,
+el emulador lo prueba con un jugador robot y la IA lo corrige hasta que anda; cuando pasa,
+arranca solo. **Empezar desde la plantilla** crea uno mínimo para editar a mano, sin IA.
+
+Cada juego queda en una carpeta de **Juegos creados** (junto al programa, como Juegos
+fusionados): `juego.s` (el programa), `juego.prg` o `juego.tap` (se cargan en este o en
+cualquier emulador), `juego.png` y `juego.json`. Después de editar `juego.s`, **Probar de
+nuevo** lo ensambla y lo prueba otra vez. La primera vez que se abre la ventana aparecen dos
+juegos de ejemplo listos para jugar.
+
+### Desde la línea de comandos
 
 `crear` empieza un juego nuevo para el Commodore 64 o el ZX Spectrum desde una plantilla
 mínima en ensamblador: arranca sola, escribe un título, mueve un personaje con los

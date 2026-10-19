@@ -30,6 +30,7 @@ foreach ($rid in $Runtimes) {
     "Poné acá tus juegos (sueltos o en .zip). El emulador reconoce solo para qué máquina es cada uno." |
         Set-Content (Join-Path $out "ROMs/LEEME.txt") -Encoding utf8
     New-Item -ItemType Directory -Force (Join-Path $out "Juegos fusionados") | Out-Null
+    New-Item -ItemType Directory -Force (Join-Path $out "Juegos creados") | Out-Null
     Copy-Item (Join-Path $root "README.md") (Join-Path $out "README.md")
     Copy-Item (Join-Path $root "docs/ARQUITECTURA.md") (Join-Path $out "ARQUITECTURA.md")
     @"
