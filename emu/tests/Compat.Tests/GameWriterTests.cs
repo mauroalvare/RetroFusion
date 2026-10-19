@@ -96,6 +96,44 @@ public class GameWriterTests
     }
 
     [Test]
+    public void TheCopyAndPastePrompt_CarriesTheGuide_AndTheAnswerMayHaveBracesInTheCode()
+    {
+        var t = Templates.For("c64")!;
+        string prompt = GameWriter.ManualPrompt(t, "un faro", new Random(1));
+        Assert.That(prompt, Does.Contain("$DC00").And.Contain("Pedido del jugador: un faro").And.Contain("```asm"));
+        var d = GameWriter.ParseDraft("{\"title\": \"Faro\", \"pitch\": \"luz\"}\n```asm\n; {llaves} en un comentario\n nop\n```", out var error);
+        Assert.That(error, Is.Null);
+        Assert.That(d!.Title, Is.EqualTo("Faro"));
+        Assert.That(d.Source, Does.Contain("{llaves}"));
+    }
+
+    [Test]
+    public void TheAgentFolder_HasTheTask_AndGetsTheReportAndThePicture()
+    {
+        string dir = Path.Combine(Path.GetTempPath(), "retroemu-agente-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            GameWorkspace.Create("zx48", "una carrera de caracoles", new Random(2), "retro-cli probar juego.s", dir);
+            Assert.That(File.ReadAllText(Path.Combine(dir, "TAREA.md")), Does.Contain("una carrera de caracoles").And.Contain("retro-cli probar juego.s"));
+            Assert.That(File.ReadAllText(Path.Combine(dir, "GUIA.md")), Does.Contain("Kempston"));
+            Assert.That(File.ReadAllText(Path.Combine(dir, "CLAUDE.md")), Does.Contain("TAREA.md"));
+            var read = GameWorkspace.Read(dir)!.Value;
+            Assert.That(read.draft.Source, Is.EqualTo(Templates.For("zx48")!.Source), "juego.s arranca como la plantilla");
+            File.WriteAllText(Path.Combine(dir, GameWorkspace.InfoFile), "{\"title\": \"Caracoles\", \"pitch\": \"lentos\", \"howToPlay\": \"Q A O P\"}");
+            read = GameWorkspace.Read(dir)!.Value;
+            Assert.That(read.draft.Title, Is.EqualTo("Caracoles"));
+            GameWorkspace.WriteReport(dir, Retro.Compat.HomebrewTrial.Run(read.draft.Source, "zx48", _firmware));
+            Assert.That(File.ReadAllText(Path.Combine(dir, GameWorkspace.ReportFile)), Does.StartWith("# Listo"));
+            Assert.That(File.Exists(Path.Combine(dir, GameWorkspace.PictureFile)), Is.True);
+        }
+        finally
+        {
+            if (Directory.Exists(dir))
+                Directory.Delete(dir, true);
+        }
+    }
+
+    [Test]
     public void WithoutARequest_EachTimeStartsFromAnotherSeed()
     {
         var t = Templates.For("zx48")!;

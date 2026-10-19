@@ -80,6 +80,7 @@ $C crear c64 out/juego.s                                     # deja out/juego.s 
 $C asm out/zx.s --cpu z80 --salida out/zx.tap --lista
 $C crear zx48 out/nuevo.s --ia sub-codex --pedido "..."      # la IA lo escribe, se prueba con el robot y se corrige
 $C probar out/juego.s                                        # la misma prueba para un juego editado a mano
+$C crear c64 out/tarea --ia agent --pedido "..."             # carpeta para un agente (TAREA.md, GUIA.md, juego.s)
 
 # paquetes autocontenidos (Windows y Linux) en emu/dist
 pwsh tools/publish.ps1 -Version 0.4.0

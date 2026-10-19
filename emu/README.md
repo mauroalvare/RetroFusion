@@ -346,6 +346,12 @@ ZX Spectrum), la IA y, si querés, qué juego te gustaría. La IA lo escribe en 
 el emulador lo prueba con un jugador robot y la IA lo corrige hasta que anda; cuando pasa,
 arranca solo. **Empezar desde la plantilla** crea uno mínimo para editar a mano, sin IA.
 
+Sin API también se puede: con **copiar y pegar**, la ventana te da la consigna para el chat
+de tu IA, pegás la respuesta y el emulador la prueba (si falla, te da el pedido de
+corrección). Con la **carpeta para agentes**, arma una carpeta con la tarea, la guía y la
+plantilla; tu agente (Claude Code, Codex, Antigravity...) escribe `juego.s` y el emulador lo
+prueba cada vez que lo guarda y le deja `informe.md` y `captura.png`.
+
 Cada juego queda en una carpeta de **Juegos creados** (junto al programa, como Juegos
 fusionados): `juego.s` (el programa), `juego.prg` o `juego.tap` (se cargan en este o en
 cualquier emulador), `juego.png` y `juego.json`. Después de editar `juego.s`, **Probar de
@@ -397,7 +403,8 @@ retro-cli probar faro.s
 ```
 
 `probar` le hace la misma prueba a un juego editado a mano y deja el `.prg` o `.tap` y una
-captura al lado.
+captura al lado. `retro-cli crear zx48 carpeta --ia agent` arma la carpeta de un agente que
+trabaja desde la terminal (prueba con `probar`).
 
 En `src/Retro.Asm/Examples/` hay dos juegos originales escritos solo con esas guías, que
 pasan la misma prueba: **Tormenta** (C64: un bote junta salvavidas y esquiva rayos, con

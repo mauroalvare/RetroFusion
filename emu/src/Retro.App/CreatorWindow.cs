@@ -38,6 +38,19 @@ public sealed class CreatorWindow
     private Task<int>? _exportTask;
     private bool _exported;
 
+    // copy and paste: the prompt the player takes to a chat, and the answer they bring back
+    private string? _manualPrompt;
+    private string _pasted = "";
+    private GameDraft? _manualDraft;
+    private Task<(GameDraft draft, TrialReport report)>? _manualTask;
+
+    // agent folder: the emulator tries juego.s every time the agent saves it
+    private string? _agentDir;
+    private DateTime _agentSeen;
+    private double _agentPoll;
+    private Task<(GameDraft draft, TrialReport report)>? _agentTask;
+    private string? _agentReport;
+
     public CreatorWindow(string romDir, AiSettings ai, Action<string> play)
     {
         _romDir = romDir;
@@ -57,7 +70,7 @@ public sealed class CreatorWindow
         }
     }
 
-    private bool Busy => _writeTask != null || _templateTask != null || _retryTask != null;
+    private bool Busy => _writeTask != null || _templateTask != null || _retryTask != null || _manualTask != null || _agentTask != null;
 
     private float? _panelLeft;
 
@@ -103,16 +116,26 @@ public sealed class CreatorWindow
         bool callable = AiPicker.IsApi(_ai.Provider);
         if (callable)
             AiPicker.Settings(_ai, "Cada intento es un pedido a la IA; un juego suele llevar de 1 a 5.");
+        else if (_ai.Provider == "manual")
+            AiPicker.Hint("Te doy la consigna para pegar en el chat de tu IA y vos pegás acá su respuesta. El emulador prueba el juego y, si falla, " +
+                          "te da el texto para devolvérselo.");
         else
-            AiPicker.Hint("Para escribir juegos elegí una IA por suscripción o por API (copiar y pegar y la carpeta de agentes todavía no). " +
-                          "Con \"Empezar desde la plantilla\" no hace falta IA.");
+            AiPicker.Hint("El emulador arma una carpeta con la tarea, la guía de la máquina y la plantilla. Tu agente escribe juego.s; " +
+                          "el emulador lo prueba solo cada vez que lo guarda y le deja informe.md y captura.png.");
         ImGui.TextUnformatted("Qué juego querés (opcional):");
         ImGui.InputTextMultiline("##pedido-crear", ref _wish, 1000, new Vector2(-1, 44));
         AiPicker.Hint("Ej.: \"un faro que guía barcos en una tormenta\", \"un laberinto con fantasmas tímidos\", \"algo para dos jugadores\". " +
                       "Vacío: la IA sortea un género, un mundo, un tono y una regla rara, distintos cada vez.");
-        ImGui.BeginDisabled(Busy || !callable);
-        if (ImGui.Button("Escribir el juego con IA"))
-            Write();
+        ImGui.BeginDisabled(Busy || _agentDir != null);
+        if (ImGui.Button(callable ? "Escribir el juego con IA" : _ai.Provider == "manual" ? "Preparar la consigna" : "Preparar la carpeta del agente"))
+        {
+            if (callable)
+                Write();
+            else if (_ai.Provider == "manual")
+                StartManual();
+            else
+                StartAgent();
+        }
         ImGui.EndDisabled();
         ImGui.SameLine();
         ImGui.BeginDisabled(Busy);
@@ -138,6 +161,122 @@ public sealed class CreatorWindow
                 ImGui.TreePop();
             }
         }
+        if (_manualPrompt != null)
+            DrawManual();
+        if (_agentDir != null)
+            DrawAgent();
+    }
+
+    private void DrawManual()
+    {
+        ImGui.Separator();
+        ImGui.TextColored(Gold, _manualDraft == null ? "Copiar y pegar" : $"Corregir \"{_manualDraft.Title}\"");
+        if (ImGui.Button(_manualDraft == null ? "1. Copiar la consigna" : "1. Copiar el pedido de corrección"))
+        {
+            ImGui.SetClipboardText(_manualPrompt);
+            _progress = "Copiado: pegalo en el chat de tu IA y copiá toda su respuesta.";
+        }
+        ImGui.TextUnformatted("2. Pegá acá la respuesta completa:");
+        ImGui.InputTextMultiline("##respuesta-crear", ref _pasted, 200_000, new Vector2(-1, 90));
+        ImGui.BeginDisabled(Busy || _pasted.Trim().Length == 0);
+        if (ImGui.Button("3. Probar el juego"))
+            TryPasted();
+        ImGui.EndDisabled();
+        ImGui.SameLine();
+        if (ImGui.SmallButton("Dejar"))
+        {
+            _manualPrompt = null;
+            _manualDraft = null;
+            _pasted = "";
+        }
+    }
+
+    private void DrawAgent()
+    {
+        ImGui.Separator();
+        ImGui.TextColored(Gold, "Carpeta del agente");
+        ImGui.TextWrapped(_agentDir);
+        if (ImGui.Button("Abrir la carpeta##agente"))
+            Process.Start(new ProcessStartInfo { FileName = _agentDir, UseShellExecute = true });
+        ImGui.SameLine();
+        if (ImGui.Button("Copiar la instrucción para el agente"))
+        {
+            ImGui.SetClipboardText($"Trabajá en la carpeta {_agentDir}: leé TAREA.md y seguí sus instrucciones.");
+            _progress = "Copiado: pegalo en tu agente (Claude Code, Codex, Antigravity...).";
+        }
+        ImGui.SameLine();
+        if (ImGui.SmallButton("Dejar de esperar"))
+        {
+            _agentDir = null;
+            _agentReport = null;
+            return;
+        }
+        AiPicker.Hint(_agentTask != null ? "Probando lo que guardó el agente..." : "Esperando que el agente guarde juego.s...");
+        if (_agentReport != null && ImGui.TreeNode("Último informe##agente"))
+        {
+            ImGui.TextWrapped(_agentReport);
+            ImGui.TreePop();
+        }
+    }
+
+    private void StartManual()
+    {
+        _problem = _problemDetail = null;
+        _agentDir = null;
+        _manualDraft = null;
+        _pasted = "";
+        _manualPrompt = GameWriter.ManualPrompt(Templates.All[_machine], _wish, Random.Shared);
+        _writeMachine = Templates.All[_machine].Machine;
+        _writeWish = _wish;
+        _progress = "Consigna lista: copiala con el botón 1.";
+    }
+
+    private void TryPasted()
+    {
+        var draft = GameWriter.ParseDraft(_pasted, out var error);
+        if (draft == null)
+        {
+            Problem("No pude leer la respuesta: " + error + ". Copiá toda la respuesta de la IA, con el bloque de código.");
+            return;
+        }
+        _problem = _problemDetail = null;
+        _progress = $"Probando \"{draft.Title}\" en el emulador...";
+        string machine = _writeMachine;
+        _manualTask = Task.Run(() => (draft, HomebrewTrial.Run(draft.Source, machine, _romDir)));
+    }
+
+    private void StartAgent()
+    {
+        _problem = _problemDetail = null;
+        _manualPrompt = null;
+        _writeMachine = Templates.All[_machine].Machine;
+        _writeWish = _wish;
+        string cli = Path.Combine(AppContext.BaseDirectory, OperatingSystem.IsWindows() ? "retro-cli.exe" : "retro-cli");
+        _agentDir = GameWorkspace.Create(_writeMachine, _wish, Random.Shared, File.Exists(cli) ? $"\"{cli}\" probar {GameWorkspace.SourceFile}" : null);
+        _agentSeen = GameWorkspace.Read(_agentDir)?.written ?? DateTime.MinValue;
+        _agentReport = null;
+        _progress = "Carpeta lista: pasale la instrucción a tu agente.";
+    }
+
+    /// <summary>Once a second: if the agent saved juego.s again, try it.</summary>
+    private void PollAgent()
+    {
+        if (_agentDir == null || _agentTask != null)
+            return;
+        _agentPoll += ImGui.GetIO().DeltaTime;
+        if (_agentPoll < 1)
+            return;
+        _agentPoll = 0;
+        if (GameWorkspace.Read(_agentDir) is not { } read || read.written <= _agentSeen)
+            return;
+        _agentSeen = read.written;
+        string dir = _agentDir, machine = _writeMachine;
+        _agentTask = Task.Run(() =>
+        {
+            var report = HomebrewTrial.Run(read.draft.Source, machine, _romDir);
+            GameWorkspace.WriteReport(dir, report);
+            return (read.draft, report);
+        });
     }
 
     private void DrawGames()
@@ -202,6 +341,8 @@ public sealed class CreatorWindow
             return;
         }
         _problem = _problemDetail = null;
+        _manualPrompt = null;
+        _agentDir = null;
         _cts = new CancellationTokenSource();
         _writeMachine = Templates.All[_machine].Machine;
         _writeWish = _wish;
@@ -229,6 +370,51 @@ public sealed class CreatorWindow
 
     private void Poll()
     {
+        PollAgent();
+        if (_manualTask is { IsCompleted: true } mt)
+        {
+            _manualTask = null;
+            if (!mt.IsCompletedSuccessfully)
+                Problem(Failure(mt.Exception));
+            else if (mt.Result.report.Ok)
+            {
+                var g = CreatedGames.Save(mt.Result.draft, mt.Result.report, _writeMachine, _writeWish, AiPicker.ShortName("manual"));
+                _games = null;
+                _manualPrompt = null;
+                _manualDraft = null;
+                _pasted = "";
+                _progress = $"\"{g.Title}\" pasó la prueba.";
+                _play(g.ProgramPath);
+            }
+            else
+            {
+                _manualDraft = mt.Result.draft;
+                _manualPrompt = GameWriter.ManualFixPrompt(mt.Result.draft, mt.Result.report);
+                _pasted = "";
+                Problem($"\"{mt.Result.draft.Title}\" no pasó la prueba: copiá el pedido de corrección y pegale la respuesta nueva.", mt.Result.report.Summary);
+            }
+        }
+        if (_agentTask is { IsCompleted: true } at)
+        {
+            _agentTask = null;
+            if (!at.IsCompletedSuccessfully)
+                Problem(Failure(at.Exception));
+            else
+            {
+                _agentReport = at.Result.report.Summary;
+                if (at.Result.report.Ok)
+                {
+                    var g = CreatedGames.Save(at.Result.draft, at.Result.report, _writeMachine, _writeWish, "agente");
+                    _games = null;
+                    _agentDir = null;
+                    _agentReport = null;
+                    _progress = $"\"{g.Title}\" pasó la prueba.";
+                    _play(g.ProgramPath);
+                }
+                else
+                    _progress = "El juego del agente todavía no pasa la prueba (el agente tiene el informe en su carpeta).";
+            }
+        }
         if (_exportTask is { IsCompleted: true } et)
         {
             _exportTask = null;

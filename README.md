@@ -3,7 +3,9 @@
 Emulador de computadoras y consolas de 8 bits (**RetroEmu**) que corre los juegos
 originales con emulación real de CPU y hardware, y los **fusiona** con IA en juegos
 nuevos: el estudio propone ideas, escribe el juego, lo prueba con jugadores robot y saca
-versiones nuevas con lo que le pidas.
+versiones nuevas con lo que le pidas. También **crea juegos de 8 bits desde cero**: la IA
+los escribe en ensamblador para un Commodore 64 o un ZX Spectrum emulados, un jugador robot
+los prueba y quedan como un `.prg` o un `.tap` que corre en cualquier emulador.
 
 - Código del emulador y documentación completa: [emu/README.md](emu/README.md)
 - Arquitectura: [emu/docs/ARQUITECTURA.md](emu/docs/ARQUITECTURA.md)
@@ -60,6 +62,23 @@ Willy muere, Pac-Man también pierde una.
 
 Las capturas son del emulador corriendo las fusiones con copias propias de los juegos; los
 juegos no se incluyen.
+
+## Juegos de 8 bits creados desde cero
+
+Menú **Crear > Juego de 8 bits nuevo**: elegís la máquina y, si querés, qué juego te
+gustaría; la IA lo escribe en ensamblador con una guía del hardware, el emulador lo
+ensambla, lo carga como cualquier juego y un jugador robot lo prueba; si algo falla, la IA
+recibe el informe y una imagen de la pantalla y lo corrige. Sin pedido, cada vez parte de
+una semilla distinta (género, mundo, tono y una regla rara). Funciona con tu IA por
+suscripción o por API, copiando y pegando en un chat, o con un agente que trabaja en una
+carpeta.
+
+Estos dos vienen incluidos como ejemplo (originales, escritos solo con las guías):
+
+| Tormenta (Commodore 64) | El jardín de los topos (ZX Spectrum) |
+|---|---|
+| ![Tormenta](emu/docs/img/creados/tormenta.png) | ![El jardín de los topos](emu/docs/img/creados/topos.png) |
+| Un bote junta salvavidas y esquiva rayos; sprites, sonido del SID y puntaje. | Golpear a los topos que asoman en 24 agujeros antes de que se escapen. |
 
 ## Usarlo
 

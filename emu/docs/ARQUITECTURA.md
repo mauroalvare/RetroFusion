@@ -521,11 +521,13 @@ programa sea largo. Termina cuando pasa la prueba o a los 5 intentos.
 pedido, autor y el informe de la última prueba). `TryAgain` vuelve a ensamblar y probar
 después de una edición; `ExportExamples` copia los ejemplos una vez. La ventana
 `CreatorWindow` (menú Crear) usa todo esto y abre el programa con `OpenFile`, igual que
-cualquier juego.
+cualquier juego. Sin API: copiar y pegar (`GameWriter.ManualPrompt` y `ManualFixPrompt`; la
+respuesta es un JSON con los textos y el programa en un bloque de código) y la carpeta para
+agentes (`GameWorkspace`: TAREA.md, GUIA.md, plantilla.s, juego.s, juego.json; la ventana
+prueba juego.s cada vez que cambia y escribe informe.md y captura.png).
 
 Lo que falta: citar rutinas de juegos originales (juego, hash de la edición, dirección) sin
-copiar sus bytes, la IA por copiar y pegar o por carpeta de agentes en el creador, y
-plantillas para NES y Space Invaders.
+copiar sus bytes, y plantillas para NES y Space Invaders.
 
 ## Cómo agregar una CPU o una máquina
 

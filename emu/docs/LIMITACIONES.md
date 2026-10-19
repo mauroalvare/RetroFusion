@@ -145,8 +145,10 @@ arreglar algo, se borra la entrada y se menciona en el commit.
   interfaz ese puerto devuelve basura y el bloque se movería solo. El emulador siempre
   tiene el Kempston conectado.
 - La plantilla del C64 mueve el sprite solo en X de 0 a 255 (no usa el bit 9 de $D010).
-- En la ventana Crear, la IA tiene que ser por suscripción o por API: copiar y pegar y la
-  carpeta de agentes todavía no escriben juegos de 8 bits.
+- Con copiar y pegar, la IA del chat no ve la imagen de la prueba (solo el informe en texto;
+  el jugador ve la pantalla en el emulador).
+- El creador todavía no se probó con una IA real (sí con una simulada y con dos juegos
+  escritos siguiendo solo las guías), para no gastar el cupo del usuario.
 - La prueba no juzga si el juego es divertido ni si cumple el pedido: mira que arranque,
   dibuje, responda a los controles y aguante 30 segundos de juego al azar. Un juego que se
   termina solo (sin controles) o que se maneja con teclas que el robot no conoce no pasa.

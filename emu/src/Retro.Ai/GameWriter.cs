@@ -72,12 +72,27 @@ public sealed class GameWriter
         "Devolvé title (el nombre del juego), pitch (de qué se trata, en una oración), howToPlay (controles y objetivo), changes (qué " +
         "hiciste o corregiste, en una o dos oraciones) y source (el programa COMPLETO en ensamblador, no solo los cambios).";
 
-    public static string FirstPrompt(GameTemplate t, string wish, Random rng) =>
-        (wish.Trim().Length > 0
+    /// <summary>What to make: the player's request, or a seed drawn at random when there is none.</summary>
+    public static string Request(string wish, Random rng) =>
+        wish.Trim().Length > 0
             ? $"Pedido del jugador: {wish.Trim()}\nEl pedido manda; si deja algo libre, sorprendé (semilla por si sirve: {CreativeSeeds.DrawOriginal(rng)})."
             : "El jugador no pidió nada: sorprendelo con un juego que no se parezca al último que hiciste. Partí de esta semilla, sorteada esta " +
-              $"vez (si una parte no encaja con la máquina, cambiala por algo igual de inesperado): {CreativeSeeds.DrawOriginal(rng)}.") +
-        $"\nEscribí el juego para {t.Name}. " + AnswerShape;
+              $"vez (si una parte no encaja con la máquina, cambiala por algo igual de inesperado): {CreativeSeeds.DrawOriginal(rng)}.";
+
+    public static string FirstPrompt(GameTemplate t, string wish, Random rng) =>
+        Request(wish, rng) + $"\nEscribí el juego para {t.Name}. " + AnswerShape;
+
+    private const string ManualShape =
+        "\n\nRespondé con un JSON {\"title\": \"...\", \"pitch\": \"...\", \"howToPlay\": \"...\", \"changes\": \"...\"} y después el programa " +
+        "COMPLETO en un bloque ```asm ... ```.";
+
+    /// <summary>Everything in one text, for a chat the player copies it into (no API).</summary>
+    public static string ManualPrompt(GameTemplate t, string wish, Random rng) =>
+        Guide(t) + "\n\n" + Request(wish, rng) + $"\nEscribí el juego para {t.Name}." + ManualShape;
+
+    /// <summary>The fix request for the same chat: the trial report (the player sees the screen in the emulator).</summary>
+    public static string ManualFixPrompt(GameDraft current, TrialReport report) =>
+        $"Probé \"{current.Title}\" en el emulador y no pasó:\n{report.Summary.TrimEnd()}\nCorregí lo que falla sin perder lo que anda." + ManualShape;
 
     public static string FixPrompt(GameDraft current, TrialReport report) => $"""
         Este es tu juego "{current.Title}" como está ahora:
@@ -145,12 +160,13 @@ public sealed class GameWriter
         string? source = null;
         var fence = Regex.Match(answer, "```(?:asm|s|z80|6502|assembly)?[ \\t]*\\r?\\n(.*?)```", RegexOptions.Singleline | RegexOptions.IgnoreCase);
         string title = "", pitch = "", how = "", changes = "";
-        int open = answer.IndexOf('{'), close = answer.LastIndexOf('}');
+        string texts = fence.Success ? answer.Remove(fence.Index, fence.Length) : answer;   // the code may have braces
+        int open = texts.IndexOf('{'), close = texts.LastIndexOf('}');
         if (open >= 0 && close > open)
         {
             try
             {
-                using var doc = JsonDocument.Parse(answer[open..(close + 1)]);
+                using var doc = JsonDocument.Parse(texts[open..(close + 1)]);
                 var e = doc.RootElement;
                 title = Str(e, "title");
                 pitch = Str(e, "pitch");

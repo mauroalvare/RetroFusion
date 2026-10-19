@@ -32,7 +32,9 @@ static int Usage()
                     [--pedido "..."] [--intentos n]
                     sin --ia: empieza un juego desde la plantilla de la máquina (arranca, dibuja, lee los
                     controles y suena). Con --ia: la IA escribe un juego original, se prueba en el
-                    emulador con un jugador robot y lo corrige hasta que pasa. Deja el .s, el .prg o .tap y una captura
+                    emulador con un jugador robot y lo corrige hasta que pasa. Deja el .s, el .prg o .tap y una captura.
+                    Con --ia agent: arma una carpeta (la del argumento, o una nueva) para un agente que escribe juego.s
+                    y lo prueba con retro-cli probar
           retro-cli probar <juego.s> [--maquina c64|zx48]   prueba un juego escrito a mano como lo prueba la IA
           retro-cli ideas <perfil1,perfil2> [--ia ...] [--pedido "..."] [--juegos carpeta]   3 ideas de fusión del estudio
           retro-cli preparar <juego> [--ia sub-claude|sub-codex|sub-google|claude|ollama|agent|ninguna]
@@ -606,6 +608,16 @@ static async Task<int> WriteGame(string machine, string? sourcePath, string ia, 
     {
         Console.Error.WriteLine($"No hay plantilla para {machine}. Máquinas: {string.Join(", ", Retro.Asm.Templates.All.Select(x => x.Machine))}.");
         return 2;
+    }
+    if (ia == "agent")
+    {
+        // a folder for a coding agent: the task, the guide and juego.s; it tries the game with "probar"
+        string cli = Environment.ProcessPath ?? "retro-cli";
+        string dir = Retro.Ai.GameWorkspace.Create(t.Machine, wish, Random.Shared, $"\"{cli}\" probar {Retro.Ai.GameWorkspace.SourceFile}",
+            sourcePath != null ? Path.GetFullPath(sourcePath) : null);
+        Console.WriteLine($"Carpeta para el agente: {dir}");
+        Console.WriteLine($"Decile a tu agente: \"Trabajá en la carpeta {dir}: leé TAREA.md y seguí sus instrucciones.\"");
+        return 0;
     }
     sourcePath ??= "juego.s";
     if (File.Exists(sourcePath))
