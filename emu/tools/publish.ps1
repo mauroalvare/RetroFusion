@@ -3,7 +3,7 @@
 #   pwsh tools/publish.ps1 -Runtimes osx-arm64   -> other targets
 param(
     [string[]]$Runtimes = @("win-x64", "linux-x64"),
-    [string]$Version = "0.1.0"
+    [string]$Version = "0.1.1"
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
