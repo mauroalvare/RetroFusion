@@ -2,8 +2,8 @@
 
 Emulador de computadoras antiguas que ejecuta el software original con emulación real
 de CPU y hardware, más un depurador para estudiar los procesadores por dentro, un visor
-de código para entender y modificar los juegos, y **fusiones**: dos o tres juegos
-corriendo a la vez y conectados entre sí, diseñadas a mano o por la IA que elijas.
+de código para entender y modificar los juegos, y **fusiones con IA**: juegos nuevos con
+escena propia, sprites, tiles y variables de los originales, como **Manic Invaders**.
 
 **Disponible hoy:**
 
@@ -16,12 +16,13 @@ corriendo a la vez y conectados entre sí, diseñadas a mano o por la IA que eli
   libre Open ROMs; con las ROMs originales es más compatible. Probado con Pac-Man,
   Ghostbusters y Spy vs Spy (con sus intros y menús de trainer).
 
-**Fusión entre CPUs distintas:** la receta "Pac-Miner" corre Pac-Man en un C64 (6510) y
-Manic Miner en un Spectrum (Z80) a la vez, conectados por sus variables (un fantasma que
-atrapa a Pac-Man le quita aire a Willy; una llave de Willy le da una vida a Pac-Man).
-Menú **Fusión > Fusión clásica**.
+**Fusión como juego nuevo:** Manic Invaders combina las cavernas y a Willy del Spectrum
+con la flota y el láser del arcade. El guion dibuja todo en una escena propia; las máquinas
+originales aportan sus piezas y variables. **Fusión > Crear juego fusionado con IA**.
 
-**Plan:** Atari 800, Apple II y NES (misma CPU 6502), Spectrum 128K, TK90X, MSX y Amstrad
+- **Nintendo NES**: CPU 2A03, PPU y APU; cartuchos iNES con mappers 0 y 3.
+
+**Plan:** Atari 800, Apple II (misma CPU 6502), Spectrum 128K, TK90X, MSX y Amstrad
 CPC (Z80), IBM PC/XT (8088) y Atari ST y Amiga 500 (68000). Ver [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)
 y, para lo que viene con IA, [docs/IDEAS.md](docs/IDEAS.md).
 
@@ -208,67 +209,28 @@ ve (sin adivinar las siguientes), saltear o esperar de una vez las presentacione
 cursores de a una casilla y buscar qué falta cuando una tecla no responde. RetroEmu nunca ve tu contraseña ni tus
 credenciales: la herramienta oficial de cada empresa hace el login.
 
-Los juegos fusionados se guardan con todas sus versiones en `RetroEmu/juegos` (dentro de
-la carpeta de datos del usuario).
+Los juegos fusionados se guardan con todas sus versiones en **Juegos fusionados** junto
+al programa, o en Documentos/RetroEmu. Las copias antiguas de `%APPDATA%/RetroEmu/juegos`
+se siguen leyendo. La actualización conserva los archivos del jugador; una copia sin
+modificar del ejemplo retirado Pac-Man en la Mina deja de ofrecerse en el menú.
 
-## Fusión clásica con reglas (menú Fusión)
+## Preparar los juegos desde el estudio
 
-Dos o tres juegos corren al mismo tiempo, cada uno con su emulación real, y se conectan
-con **reglas** que leen y escriben su memoria. En la fusión incluida, *Invaders Miner*,
-Miner Willy recorre la Central Cavern mientras los invasores bajan encima de él: las
-mismas flechas mueven a Willy y al cañón, cada invasor abatido le da aire a Willy, si
-Willy muere perdés una nave y juntar llaves te devuelve naves.
+En **Fusión > Crear juego fusionado con IA**, cada juego sin variables verificadas lleva
+el botón **Preparar**. Busca la partida, encuentra vidas, puntaje, tiempo y posición,
+verifica cada hallazgo y guarda el perfil para esa copia (SHA-256) en
+`%APPDATA%/RetroEmu/profiles`. El progreso y **Cancelar la preparación** aparecen en la
+misma ventana. Puede usar la IA elegida para superar menús difíciles.
 
-1. **Fusión > Fusionar juegos.** La ventana muestra **todos** los juegos de tu carpeta
-   (subcarpetas incluidas) que el emulador puede correr. Los que tienen **perfil** (dónde
-   guarda cada juego sus vidas, puntaje y posición, y qué teclas usa) sirven para reglas;
-   los demás se fusionan igual con controles compartidos y cualquier vista.
-2. **Preparar**, al lado de un juego sin variables, hace el perfil solo: llega a la
-   partida probando las teclas habituales (y, si hace falta, con la IA elegida), encuentra
-   vidas, puntaje, tiempo y posición, comprueba cada una escribiendo valores en la memoria
-   y guarda el perfil para tu copia (por su huella SHA-256) en
-   `%APPDATA%\RetroEmu\profiles`. Tarda uno o dos minutos.
-3. Marcá 2 o 3 juegos. Aparecen las recetas que ya existen para esa combinación:
-   **Jugar esta fusión**. Las fusiones que ya existen también están en **Máquina > Juegos
-   que ya tienen fusión**, y en la lista de cada máquina los juegos con fusión llevan su
-   marca.
-4. Si la combinación no existe, armala con IA. Escribí lo que querés ("que cada salto de
-   Willy dispare el cañón", "modo caos", "cooperativo para dos") y elegí la IA:
+Sin preparar, el estudio tiene controles, máquina y un arranque básico; necesita conocer
+las piezas o variables que usa su diseño. Preparar ayuda a obtenerlas, pero no garantiza
+que cualquier combinación produzca un buen juego.
 
-| IA | Cómo se conecta |
-|---|---|
-| Claude, ChatGPT o Gemini con tu suscripción | Igual que en los juegos fusionados con IA: Claude Code, Codex CLI o Antigravity CLI con tu cuenta, sin clave de API. |
-| Claude (API de Anthropic) | Con tu clave de API (o la variable `ANTHROPIC_API_KEY`). El emulador valida la receta y, si tiene errores, se los devuelve a Claude para que la corrija (hasta 3 intentos). Cada receta cuesta unos centavos de tu cuenta. |
-| ChatGPT (API de OpenAI) | Con tu clave de API de OpenAI (o la variable `OPENAI_API_KEY`) y el modelo que elijas (por defecto `gpt-6.1-sol`). Mismo circuito de validación, con la respuesta atada al esquema de la receta. La API se paga aparte de ChatGPT Plus: cada receta cuesta unos centavos de tu cuenta. |
-| Gemini (API de Google) | Con tu clave de Google AI Studio (o la variable `GEMINI_API_KEY`) y el modelo que elijas (por defecto `gemini-3.8-flash`). Mismo circuito de validación. La capa gratuita no cobra pero tiene límites por minuto y por día; con facturación activada cada receta cuesta unos centavos. |
-| Ollama (IA local, gratis) | Con Ollama abierto en tu PC (`ollama serve`) y un modelo descargado. Mismo circuito de validación. |
-| Copiar y pegar | Para ChatGPT, Gemini, Claude.ai o cualquier chat: copiás la consigna, pegás la respuesta y el emulador la valida. Si hay errores, te da el texto para devolvérselo a la IA. |
-| Carpeta para agentes | Para Antigravity, Claude Code, Codex o Gemini CLI: el emulador crea una carpeta con `TAREA.md`, los perfiles y las instrucciones (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`). El agente escribe `receta.json` y el emulador la detecta sola; si tiene errores, los deja en `errores.md` para que el agente los corrija. |
-
-4. Mientras jugás podés cambiar la vista (lado a lado, superpuestos o uno dentro del
-   otro) y la transparencia, ver los valores en vivo y los eventos, elegir qué juego
-   muestran el depurador y el visor de código, y guardar la receta.
-
-Controles de las fusiones (la receta decide a qué juego llega cada acción):
-
-| PC | Acción |
-|---|---|
-| Flechas (o gamepad) | Mover |
-| Ctrl o Z | Disparar |
-| Espacio o X | Saltar |
-| Enter o 1 | Empezar |
-| 5 o C | Moneda |
-
-Una receta es un JSON chico. Ejemplo de regla: `{"when": "a.aliens decreases", "do":
-["b.air += 2"]}`. Las condiciones son `increases`, `decreases`, `changes`, `equals N`,
-`above N` y `below N` (o `every` N ticks), y las acciones `=`, `+=`, `-=`, copiar de otra
-variable, `press` (apretar un control), `pause`, `swap` (cambiar el juego del fondo) y
-`message`. Las recetas y perfiles tuyos se guardan en `RetroEmu/recipes` y
-`RetroEmu/profiles` dentro de la carpeta de datos del usuario (`%APPDATA%` en Windows,
-`~/.config` en Linux).
-
-¿Un juego no tiene perfil? Abrilo, andá a **Código > Buscar variables**, encontrá sus
-vidas o su puntaje y agregalas: desde ese momento aparece en la ventana de fusiones.
+La fusión clásica por recetas se retiró. Ya no hay vistas superpuestas, lado a lado ni
+una pantalla dentro de otra. `screen.game` tampoco dibuja capturas: el validador rechaza
+su uso y pide dibujar una escena con sprites y tiles. El ejemplo incluido es Manic
+Invaders. Pac-Man en la Mina se retiró porque mostraba la pantalla completa de Pac-Man;
+una versión futura necesitaría un laberinto y una jugabilidad propios.
 
 ## Código del juego (menú Código o Ctrl+K)
 
@@ -314,7 +276,6 @@ retro-cli run snapshot.z80 --trace 200
 ```
 
 ```bash
-retro-cli fuse invaders-miner --games ROMs --ticks 1800 --press 120:fire:3 --screenshot fusion.png
 ```
 
 ```bash
@@ -333,7 +294,7 @@ retro-cli preparar ROMs/Spy_vs_Spy_C64_EN.zip --ia sub-claude
 retro-cli lab ../compat/juegos/zx48-manicminer.json --cuadros 12000
 ```
 
-`juegos` lista todo lo que se puede fusionar con el id que va en una receta; `preparar`
+`juegos` lista todo lo que se puede fusionar con el id que usa el estudio; `preparar`
 hace el perfil de un juego (con `--ia agent --carpeta X` responde un agente por archivos, y
 con `--ia ninguna` solo se prueban teclas); `lab` estudia la memoria de un juego y verifica
 cada hallazgo.

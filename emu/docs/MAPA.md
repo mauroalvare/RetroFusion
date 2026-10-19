@@ -21,10 +21,10 @@ Fuente única de rutas y comandos de desarrollo. El diseño interno está en
 | `src/Retro.Systems.Spectrum`, `Retro.Systems.Arcade`, `Retro.Systems.C64`, `Retro.Systems.Nes` | Máquinas |
 | `src/Retro.Machines` | Catálogo de máquinas (qué máquina es cada archivo) y `MachineLauncher` (arranca una máquina con un juego); lo usan la app, el CLI, las fusiones y la compatibilidad |
 | `src/Retro.Compat` | Matriz de compatibilidad: guiones por juego, ejecutor sin ventana con sonda de controles, informe JSON y Markdown, descubrimiento de guiones |
-| `src/Retro.Fusion` | Perfiles de juegos (`Profiles/*.json`), recetas (`Recipes/*.json`), `FusionSession`, `MachineFactory` |
+| `src/Retro.Fusion` | Perfiles (`Profiles/*.json`), `MachineFactory`, `IFusionRun` y ranuras del estudio |
 | `src/Retro.Studio` | Juegos fusionados con guion JS: sesión, validador, diseñador IA, `Docs/GUIA-FUSION.md` y `Docs/API.md`, juegos incluidos en `Games/` |
 | `src/Retro.Ai` | Proveedores de IA (CLIs por suscripción, APIs, Ollama), carpeta para agentes |
-| `src/Retro.App` | App de escritorio (raylib + Dear ImGui): `RetroApp`, `EmulatorHost`, `InputMapper`, `MachineCatalog`, ventanas de código, fusión y estudio |
+| `src/Retro.App` | App de escritorio (raylib + Dear ImGui): `RetroApp`, `EmulatorHost`, `InputMapper`, `MachineCatalog`, ventanas de código, estudio (incluye Preparar) y creador |
 | `src/Retro.Asm` | Ensambladores 6502 y Z80 (núcleo común de dos pasadas), plantillas de juego y guías del hardware por máquina (`Templates/*.s` y `*.md`) y la cinta `.tap` con cargador BASIC (`SpectrumTap`) |
 | `src/Retro.Cli` | `retro-cli`: ejecución sin ventana |
 | `tests/*` | NUnit: `Retro.Cpu.Z80.Tests`, `I8080.Tests`, `M6502.Tests`, `Zx.Tests`, `Arcade.Tests`, `C64.Tests`, `Compat.Tests`, `Fusion.Tests`, `Studio.Tests`, `Asm.Tests` |
@@ -60,7 +60,6 @@ $C info <archivo|zip>                                        # qué máquina rec
 $C run juego.nes --frames 900 --press 300:P1_START:10 --screenshot out/nes.png   # NES sin ventana
 $C run <archivo|zip> --frames 3000 --press 400:SPACE:6 --shot-every 300 --shot-prefix out/x
 $C run <c64.t64> --frames 2000 --text --disasm C000:20 --dump 0400:40
-$C fuse <receta.json> --games <carpeta-juegos> --ticks 600 --screenshot out/f.png
 $C studio manic-invaders --games <carpeta-juegos> --shots out/s
 
 # matriz de compatibilidad (Release es mucho más rápido: la matriz entera tarda ~75 s)
@@ -71,7 +70,7 @@ $C compat compat/juegos --solo c64-pac --juegos ... --salida compat/resultados.j
 # laboratorio de ingeniería inversa: llega al juego con un guion y busca vidas, tiempo y posiciones
 $C lab compat/juegos/zx48-manicminer.json --cuadros 12000 --salida lab/zx48-manicminer.json
 
-# fusiones con cualquier juego de la carpeta: ids para las recetas, y preparar uno (partida, variables verificadas, perfil por hash)
+# fusiones con cualquier juego de la carpeta: ids para el estudio, y preparar uno (partida, variables verificadas, perfil por hash)
 $C juegos C:/Users/mauro/Downloads/ROMs
 $C preparar C:/Users/mauro/Downloads/ROMs/Spy_vs_Spy_C64_EN.zip --ia agent --carpeta out/agente   # o --ia sub-claude, o --ia ninguna
 
@@ -99,3 +98,19 @@ en la línea de comandos los espacios se escriben `_` (`JOY2_FIRE`).
 | `C:\Users\mauro\Downloads\ROMs` | Juegos del usuario; `revision\` tiene el inventario con hashes (`inventario-roms.json`) y los informes de la auditoría de ROMs |
 | `C:\Users\mauro\Desktop\RetroEmu\ROMs` | Copia de los juegos que usa la app del Escritorio |
 | `%APPDATA%\RetroEmu` | Estados guardados, anotaciones de código y configuración de IA de la app |
+
+## Fusiones con escena propia
+
+**Fusión > Crear juego fusionado con IA** es la entrada para elegir juegos, prepararlos e
+inventar una fusión. `screen.game` está retirado: toda escena se dibuja con sprites, tiles
+y primitivas, como Manic Invaders. `StudioValidator` rechaza el intento y devuelve cómo
+corregirlo. Las pruebas de `tests/Studio.Tests` usan IA simulada.
+
+Comprobación de la ventana (sin molestar al jugador):
+
+```powershell
+dotnet run --project src/Retro.App -c Release -- --hidden --mute --studio-window --autotest 10 out/estudio.png
+```
+
+Ya no existen FusionWindow, FusionDesigner, recetas clásicas ni vistas side/overlay/pip.
+Los ejemplos incluidos son Manic Invaders (estudio), Tormenta y Topos (creador).

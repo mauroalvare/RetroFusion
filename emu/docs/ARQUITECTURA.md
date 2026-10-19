@@ -26,15 +26,15 @@ src/
   Retro.Compat             Matriz de compatibilidad reproducible: guiones, ejecutor sin ventana,
                            sonda de controles, informe con evidencia.
   Retro.Fusion             Perfiles de juegos (variables de RAM, controles, arranque),
-                           recetas de fusión y la sesión que corre 2 o 3 máquinas a la vez.
-  Retro.Ai                 Proveedores de IA (Claude, ChatGPT, Gemini, Ollama), diseñador de recetas con
-                           validación, carpeta para agentes, explicador de rutinas.
+                           MachineFactory y los contratos compartidos con el estudio.
+  Retro.Ai                 Proveedores de IA (Claude, ChatGPT, Gemini, Ollama), creador de juegos,
+                           carpetas para agentes y explicador de rutinas.
   Retro.Studio             Juegos fusionados con guion: sesión que corre los juegos y un
                            JavaScript aislado (Jint), lienzo, validador con jugador robot,
                            diseñador con IA (ideas, guion, correcciones, versiones).
   Retro.App                Aplicación de escritorio (raylib + Dear ImGui): pantalla,
                            sonido, teclado/joystick, depurador, selector de archivos,
-                           ventanas de fusión y de código.
+                           ventanas del estudio, del creador y de código.
   Retro.Asm                Ensambladores 6502 y Z80, plantillas de juego por máquina y la
                            cinta .tap del Spectrum (cargador BASIC que arranca solo).
   Retro.Cli                Ejecutor sin ventana: carga, corre N cuadros, aprieta teclas,
@@ -53,8 +53,8 @@ tests/
                            fallos, exclusiones, informe).
   Asm.Tests                Ida y vuelta de cada instrucción por el desensamblador, y las
                            plantillas corriendo en el C64 y el Spectrum emulados.
-  Fusion.Tests             Recetas, reglas, diseñador con una IA simulada, fusión con
-                           los juegos reales y análisis de código de Manic Miner.
+  Fusion.Tests             Perfiles, variables, proveedores con IA simulada y análisis de código.
+  Studio.Tests             Manic Invaders, rechazo de pantallas copiadas y diseño con IA simulada.
 ```
 
 Todas las máquinas implementan `IMachine`. La aplicación y el ejecutor sin ventana
@@ -354,32 +354,27 @@ Lo que se agrega por comodidad no altera la ejecución:
    rotación y los colores de la lámina, el sonido (solo con el amplificador, 735–746
    muestras por cuadro) y los estados guardados.
 
-## Fusiones
+## Perfiles y máquinas para el estudio (Retro.Fusion)
 
-Una fusión no mezcla el código de los juegos: corre cada juego en su propia máquina
-emulada y los conecta por la memoria.
+Los originales corren en máquinas independientes. El estudio toma sprites, tiles, mapas y
+variables para construir un juego nuevo con escena propia. Manic Invaders es la referencia.
 
-- **Perfil** (`GameProfile`, JSON): para qué máquina es el juego, cómo reconocer sus
-  archivos, sus variables (dirección, codificación `uint8`/`uint16`/`bcd`/`ascii`,
-  máscara, rango, solo lectura), qué tecla es cada acción abstracta (`left`, `right`,
-  `fire`, `jump`, `start`, `coin`...) y el guion de arranque (`load-tape`, `wait N`,
-  `press TECLA N`). Las direcciones se encuentran con `MemorySearch` y se verifican
-  jugando.
-- **Receta** (`FusionRecipe`, JSON): qué juego va en cada ranura (a, b, c), la vista
-  (`side`, `overlay`, `pip`), a qué juegos llega cada acción del jugador y las reglas.
-  `FusionRecipe.Validate` revisa todo contra los perfiles y devuelve errores en
-  castellano, que es lo que se le reenvía a la IA para que corrija.
-- **Sesión** (`FusionSession`): 60 ticks por segundo. En cada tick cada máquina avanza el
-  tiempo real a su propia frecuencia de cuadro (50 Hz el Spectrum, 59,54 Hz la placa
-  arcade), se leen las variables, se disparan las reglas por flanco (comparando con el
-  tick anterior y con un tiempo de espera por regla), se mezclan los sonidos y el
-  `Compositor` arma la imagen. Los primeros 30 ticks no disparan reglas, para que el
-  arranque de los juegos no cuente como evento.
+- **Perfil** (`GameProfile`, JSON): máquina, edición, variables, controles, arranque,
+  gráficos y ayudas para interpretar la memoria.
+- **`MachineFactory`** crea y arranca las máquinas a partir de esos perfiles;
+  **`GameCatalog`** (Retro.Compat) encuentra los juegos del usuario y ofrece perfiles básicos
+  cuando no hay uno verificado. **Preparar**, en el estudio, obtiene variables verificadas.
+- **`RecipeGame`**, cuyo nombre se conserva para los juegos guardados, asigna un perfil a
+  una ranura. **`FusionSlot`**, **`FusionEvent`** e **`IFusionRun`** conectan la sesión del
+  estudio con la app, la entrada y el audio.
+
+Se retiraron `FusionRecipe`, `FusionSession`, `Compositor`, `FusionDesigner`, la carpeta de
+recetas para agentes y sus vistas side/overlay/pip. El CLI `fuse` informa la retirada y
+dirige a `studio`.
 
 ## Juegos fusionados con guion (Retro.Studio)
 
-Las recetas con reglas conectan juegos que siguen viéndose por separado. Un juego
-fusionado, en cambio, es un juego nuevo en una sola pantalla:
+Un juego fusionado es un juego nuevo en una sola escena dibujada por su guion:
 
 - **`StudioSession`** corre las máquinas (cada una a su frecuencia, con pausa, velocidad y
   volumen propios) y, en cada tick, llama al guion: `tick(input)` y después `draw()`. El
@@ -395,8 +390,9 @@ fusionado, en cambio, es un juego nuevo en una sola pantalla:
   arcade) y `helpers` (funciones en JavaScript como `g.aliens()` o `g.willy()` que traducen
   la memoria del juego a posiciones en pantalla, verificadas con capturas). La IA usa las
   ayudas en vez de adivinar direcciones.
-- **`Canvas`** dibuja imágenes de los juegos (recorte, escala, transparencia), sprites de 1
-  bit, rectángulos, líneas y texto con la letra de la ROM del Spectrum.
+- **`Canvas`** dibuja sprites de 1 bit, rectángulos, líneas y texto con la letra de la ROM
+  del Spectrum. No copia cuadros de las máquinas. `screen.game` solo devuelve un error
+  que exige escena propia; el validador registra el intento aunque el guion capture el error.
 - **Arranque instantáneo:** la primera vez cada juego arranca con su guion de arranque (la
   cinta carga por la ROM); el estado queda en memoria y reiniciar o probar otra versión
   carga ese estado.
@@ -435,9 +431,7 @@ acepta, como `additionalProperties`. `OllamaProvider` usa la API local de Ollama
 mismo esquema. Los chats sin API y los agentes se conectan copiando la consigna o con la
 carpeta de `AgentWorkspace`.
 
-`FusionDesigner` arma la consigna con los perfiles de los juegos elegidos y el pedido del
-usuario, valida la respuesta y, si tiene errores, la devuelve con la lista de problemas
-(hasta 3 intentos). `CodeExplainer` le pasa a la IA una rutina desensamblada, las rutinas
+`CodeExplainer` le pasa a la IA una rutina desensamblada, las rutinas
 que llama con los nombres ya conocidos y las variables del perfil, y guarda la respuesta
 (nombre, explicación, pseudocódigo, comentarios) en las anotaciones del juego.
 

@@ -102,12 +102,12 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 
 ## Fusiones y estudio
 
-- Las recetas por reglas admiten 2 o 3 juegos (`FusionRecipe` lo valida). T-023.
+- El estudio permite elegir 2 o 3 juegos; todavía falta el presupuesto de recursos para N juegos. T-023.
 - Los perfiles incluidos (`Retro.Fusion/Profiles`) se asocian por nombre de archivo; los
   que hace "Preparar" van por la huella SHA-256 de la copia (otra edición necesita su
   propio perfil). T-053.
 - Los juegos sin preparar se fusionan sin arranque: empiezan en su título o menú y el
-  jugador los lleva a la partida; las reglas no pueden leer sus variables.
+  jugador o el guion los lleva a la partida; el guion todavía no conoce sus variables.
 - "Preparar" sin IA solo pasa arranques simples (una tecla para empezar). Los cracks de
   C64 con intro, documentos y preguntas de trucos necesitan la IA o un agente; en esta PC
   no hay ningún CLI de IA con sesión iniciada, así que la app usa la prueba de teclas o la
@@ -124,14 +124,14 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 - Hay perfiles de Manic Miner (Spectrum), Space Invaders (arcade) y Pac-Man de C64 (vidas
   verificadas; X e Y son valores derivados, solo lectura). Pac-Man de Spectrum y los demás
   juegos de C64 todavía no tienen perfil. T-022.
-- "Pac-Man en la Mina" (estudio, C64 + Spectrum) lee al Pac-Man de C64 por los sprites del
-  VIC (4 = Pac-Man, 0-3 fantasmas) y nota los puntos comidos por su color (0xB8C76F): no
-  distingue puntos de pastillas ni ve los fantasmas comidos ni la fruta (el puntaje del
-  original no está ubicado en memoria). Cuando la vida se pierde por aire o por el
-  guardián, Pac-Man no hace la animación de muerte del original (se frena un momento). Las
-  vidas del original se mantienen en 5 y las lleva el guion. T-017.
-- En la vista "lado a lado" de la app, la ventana de la fusión tapa parte del juego de la
-  derecha (observado con Pac-Miner); falta reservarle espacio como al estudio. T-023.
+- La fusión clásica y sus vistas superpuestas se retiraron. El estudio exige una escena
+  propia: `screen.game` no dibuja y hace fallar la prueba, incluso si el guion captura el error.
+  Esto impide copiar pantallas por esa API; no es un detector visual de similitud ni garantiza
+  creatividad o diversión. Los sprites, mapas y variables siguen disponibles.
+- Pac-Man en la Mina dejó de incluirse: usaba la pantalla entera de Pac-Man. Rehacerlo exige
+  extraer el laberinto y los gráficos del VIC y diseñar reglas propias; se priorizó el modelo
+  ya jugable de Manic Invaders. Se conservan los archivos guardados por el usuario; una copia
+  sin modificar del antiguo ejemplo no se ofrece en el menú.
 - El validador de jugabilidad comprueba estados (título, empezar, puntaje, muertes,
   reinicio, pantalla congelada) con 3 robots; no detecta todavía controles sin efecto,
   reglas en bucle, audio saturado ni pantallas ilegibles. T-026. No mide diversión.

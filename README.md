@@ -14,10 +14,11 @@ los prueba y quedan como un `.prg` o un `.tap` que corre en cualquier emulador.
 
 ## Fusiones incluidas
 
-Una muestra de lo que se puede hacer: cada fusión corre los juegos **originales** a la
-vez, cada uno en su propia máquina emulada, y los conecta. Se juegan desde **Máquina >
-Juegos que ya tienen fusión** si los juegos están en tu carpeta `ROMs`. Con **Fusión** podés
-mezclar cualquier otro juego que el emulador corra.
+Cada fusión dibuja una **escena propia** con sprites, tiles y variables de los originales,
+que corren en sus máquinas emuladas. El resultado tiene sus reglas, objetivos y controles.
+Se juegan desde **Máquina > Juegos que ya tienen fusión** si los juegos están en tu carpeta
+`ROMs`. Con **Fusión** podés crear otro juego con las piezas de los que el emulador corra.
+El estudio rechaza el uso de `screen.game` para mostrar las pantallas de los originales.
 
 ### Manic Invaders — creado con IA
 
