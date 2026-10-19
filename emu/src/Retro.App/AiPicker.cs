@@ -139,12 +139,26 @@ public static class AiPicker
             else ai.CliPaths[tool.Id] = path.Trim().Trim('"');
             ai.Save();
         }
+        string model = ai.CliModels.GetValueOrDefault(tool.Id, "");
+        ImGui.SetNextItemWidth(320);
+        if (ImGui.InputTextWithHint("Modelo", "vacío = el que usa la herramienta", ref model, 100))
+        {
+            if (string.IsNullOrWhiteSpace(model)) ai.CliModels.Remove(tool.Id);
+            else ai.CliModels[tool.Id] = model.Trim();
+            ai.Save();
+        }
+        Hint(tool.Id switch
+        {
+            "sub-claude" => "Ej.: opus, sonnet, haiku o un nombre completo como claude-opus-5-5.",
+            "sub-codex" => "El nombre de un modelo de Codex (como en codex -m).",
+            _ => "El nombre de un modelo de Antigravity (\"agy models\" los lista).",
+        });
         Hint($"Usa tu suscripción ({tool.Subscription}): no hace falta clave de API ni se paga aparte; cada pedido cuenta para los límites de uso de tu plan. RetroEmu nunca ve tu contraseña: entrás una sola vez en {tool.Name}.");
         bool testing = s_test is { IsCompleted: false };
         ImGui.BeginDisabled(testing || found == null);
         if (ImGui.Button(testing ? "Probando..." : "Probar conexión"))
         {
-            var provider = new CliAgentProvider(tool, ai.CliPaths.GetValueOrDefault(tool.Id), TimeSpan.FromMinutes(3));
+            var provider = new CliAgentProvider(tool, ai.CliPaths.GetValueOrDefault(tool.Id), TimeSpan.FromMinutes(3), ai.CliModels.GetValueOrDefault(tool.Id));
             s_testResult = "";
             s_test = Task.Run(() => provider.TestAsync(CancellationToken.None));
         }

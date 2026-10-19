@@ -95,23 +95,30 @@ public sealed class AiSettings
     public string GeminiApiKey { get; set; } = "";
     /// <summary>Where each subscription tool is, when it is not found on PATH (tool id -> path).</summary>
     public Dictionary<string, string> CliPaths { get; set; } = new();
+    /// <summary>The model each subscription tool uses (tool id -> model); missing or empty = the tool's own default.</summary>
+    public Dictionary<string, string> CliModels { get; set; } = new();
+    /// <summary>A model for this run only (retro-cli --modelo), over <see cref="CliModels"/>; not saved.</summary>
+    [System.Text.Json.Serialization.JsonIgnore] public string? SessionModel { get; set; }
     public string OllamaUrl { get; set; } = "http://localhost:11434";
     public string OllamaModel { get; set; } = "llama3.1";
 
     private static string FilePath =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "RetroEmu", "ia.json");
 
+    /// <summary>The saved settings; RETROEMU_MODELO (retro-cli --modelo) picks the subscription tool's model for this run.</summary>
     public static AiSettings Load()
     {
+        var s = new AiSettings();
         try
         {
             if (File.Exists(FilePath))
-                return JsonSerializer.Deserialize<AiSettings>(File.ReadAllText(FilePath), GameProfile.Json) ?? new AiSettings();
+                s = JsonSerializer.Deserialize<AiSettings>(File.ReadAllText(FilePath), GameProfile.Json) ?? s;
         }
         catch (JsonException)
         {
         }
-        return new AiSettings();
+        s.SessionModel = Environment.GetEnvironmentVariable("RETROEMU_MODELO");
+        return s;
     }
 
     public void Save()
@@ -126,7 +133,8 @@ public sealed class AiSettings
         "openai" => new OpenAiProvider(KeyOrEnv(OpenAiApiKey, "OPENAI_API_KEY"), OpenAiModel),
         "gemini" => new GeminiProvider(KeyOrEnv(GeminiApiKey, "GEMINI_API_KEY"), GeminiModel),
         "ollama" => new OllamaProvider(OllamaUrl, OllamaModel),
-        "sub-claude" or "sub-codex" or "sub-google" => new CliAgentProvider(CliTools.ById(Provider)!, CliPaths.GetValueOrDefault(Provider)),
+        "sub-claude" or "sub-codex" or "sub-google" => new CliAgentProvider(CliTools.ById(Provider)!, CliPaths.GetValueOrDefault(Provider),
+            model: string.IsNullOrWhiteSpace(SessionModel) ? CliModels.GetValueOrDefault(Provider) : SessionModel),
         _ => null,   // manual and agent modes are driven by the UI
     };
 

@@ -39,6 +39,20 @@ public class CliProviderTests
         schema ? JsonSerializer.SerializeToElement(new { type = "object", properties = new { title = new { type = "string" } } }) : null);
 
     [Test]
+    public void TheChosenModel_GoesWithEachToolsOwnFlag()
+    {
+        Assert.That(CliAgentProvider.ModelArgs("sub-claude", "opus"), Is.EqualTo(new[] { "--model", "opus" }));
+        Assert.That(CliAgentProvider.ModelArgs("sub-codex", " gpt-x "), Is.EqualTo(new[] { "-m", "gpt-x" }));
+        Assert.That(CliAgentProvider.ModelArgs("sub-google", "flash"), Is.EqualTo(new[] { "--model", "flash" }));
+        Assert.That(CliAgentProvider.ModelArgs("sub-claude", ""), Is.Empty, "vacío = el modelo de la herramienta");
+        var settings = new AiSettings { Provider = "sub-claude" };
+        settings.CliModels["sub-claude"] = "sonnet";
+        Assert.That(settings.CreateProvider()!.Name, Does.Contain("sonnet"));
+        settings.SessionModel = "haiku";
+        Assert.That(settings.CreateProvider()!.Name, Does.Contain("haiku"), "--modelo manda sobre lo guardado");
+    }
+
+    [Test]
     public void Flatten_KeepsInstructionsTurnsAndSchema()
     {
         string text = CliAgentProvider.Flatten(Request(schema: true));

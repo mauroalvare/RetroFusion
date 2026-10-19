@@ -77,15 +77,24 @@ public sealed class CliAgentProvider : IAiProvider
     private readonly CliTool _tool;
     private readonly string? _override;
     private readonly TimeSpan _timeout;
+    private readonly string? _model;
 
-    public CliAgentProvider(CliTool tool, string? overridePath, TimeSpan? timeout = null)
+    /// <param name="model">The model the tool uses (its --model / -m); null or empty = the tool's own default.</param>
+    public CliAgentProvider(CliTool tool, string? overridePath, TimeSpan? timeout = null, string? model = null)
     {
         _tool = tool;
         _override = overridePath;
         _timeout = timeout ?? TimeSpan.FromMinutes(15);
+        _model = string.IsNullOrWhiteSpace(model) ? null : model.Trim();
     }
 
-    public string Name => $"{_tool.Name} (suscripción)";
+    public string Name => _model != null ? $"{_tool.Name} ({_model}, suscripción)" : $"{_tool.Name} (suscripción)";
+
+    /// <summary>The arguments that choose the model, for each tool.</summary>
+    public static IEnumerable<string> ModelArgs(string toolId, string? model) =>
+        string.IsNullOrWhiteSpace(model) ? Array.Empty<string>()
+        : toolId == "sub-codex" ? new[] { "-m", model.Trim() }
+        : new[] { "--model", model.Trim() };
 
     /// <summary>The whole conversation as one text, since these tools take a single prompt.</summary>
     public static string Flatten(AiRequest request)
@@ -137,6 +146,8 @@ public sealed class CliAgentProvider : IAiProvider
             _ => agy ? AgyArgs(request, work)
                      : new() { "-p", "Respondé la consigna que te paso por la entrada estándar.", "--output-format", "json" },
         };
+        // the model goes before codex's "-" (stdin) and anywhere for the others
+        args.InsertRange(_tool.Id == "sub-codex" ? 1 : 0, ModelArgs(_tool.Id, _model));
         // agy takes the prompt as an argument and does not read standard input
         var (code, stdout, stderr) = await RunAsync(exe, args, work, agy ? "" : Flatten(request), _timeout, ct);
         try

@@ -187,7 +187,9 @@ prueba automática rechaza). La API de los guiones está en
 | Ollama | Gratis y local, pero los modelos chicos programan peor. |
 
 Para las tres opciones de suscripción, la ventana muestra si encontró la herramienta, cómo
-instalarla si falta y un botón **Probar conexión**.
+instalarla si falta, el **modelo** que usa (vacío = el de la herramienta; por ejemplo
+`opus`, `sonnet` o `haiku` en Claude Code; en el CLI, `--modelo`) y un botón **Probar
+conexión**.
 
 **Cómo se portan al preparar un juego** (pruebas del 18/10 con dos cracks de C64 que tienen
 intro, documentos, menú de trucos, nombre y tienda antes de la partida; cada ronda de IA ve

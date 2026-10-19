@@ -35,6 +35,8 @@ static int Usage()
                     emulador con un jugador robot y lo corrige hasta que pasa. Deja el .s, el .prg o .tap y una captura.
                     Con --ia agent: arma una carpeta (la del argumento, o una nueva) para un agente que escribe juego.s
                     y lo prueba con retro-cli probar
+          Con --ia sub-claude, sub-codex o sub-google, --modelo <nombre> elige el modelo de esa herramienta
+          (si no, el guardado en la app o el que usa la herramienta).
           retro-cli probar <juego.s> [--maquina c64|zx48]   prueba un juego escrito a mano como lo prueba la IA
           retro-cli ideas <perfil1,perfil2> [--ia ...] [--pedido "..."] [--juegos carpeta]   3 ideas de fusión del estudio
           retro-cli preparar <juego> [--ia sub-claude|sub-codex|sub-google|claude|ollama|agent|ninguna]
@@ -84,6 +86,8 @@ for (int i = 2; i < args.Length; i++)
     list.Add(value);
 }
 string? Opt(string k) => opts.TryGetValue(k, out var v) ? v[^1] : null;
+if (Opt("modelo") is { } cliModel)
+    Environment.SetEnvironmentVariable("RETROEMU_MODELO", cliModel);   // the model of the subscription tool, for this run
 
 if (command == "studio")
     return RunStudio(mediaPath, Opt("games") ?? ".", Opt("seconds"), Opt("shots"));
