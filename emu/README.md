@@ -197,9 +197,11 @@ el texto, un dibujo y la captura de la pantalla):
 |---|---|---|---|
 | Codex CLI | 4 rondas, 58 s | 14 rondas: dedujo que la tienda exige trampas | Prudente; con la instrucción de juntar acciones ya contesta un menú entero por ronda. |
 | Claude Code | 2 rondas, 63 s; nombró bien el reloj (`clockMinutes`) | 15 rondas, 261 s | Se adelanta: manda teclas para pantallas que todavía no vio; mantenía el joystick y se pasaba de casilla. |
-| Antigravity CLI | 4 rondas, 205 s; también nombró el reloj | ver abajo | Muy prudente: una acción por ronda y esperas largas; lento por consulta. |
+| Antigravity CLI | 4 rondas, 205 s; también nombró el reloj | No llegó en 24 rondas: entendió que las trampas son obligatorias, pero cambiaba de categoría con la trampa levantada y la soltaba | Muy prudente: una acción por ronda y esperas largas; lento por consulta (hasta un minuto). |
 
-La instrucción común se ajustó con lo que se vio: juntar las acciones de la pantalla que se
+Cada ronda manda solo la pantalla actual con el historial de lo hecho (no la conversación
+entera), para gastar menos cupo de tu plan. Cuando una IA maneja, la partida la confirma ella:
+el cursor de una tienda o de un menú también se mueve con el joystick. La instrucción común se ajustó con lo que se vio: juntar las acciones de la pantalla que se
 ve (sin adivinar las siguientes), saltear o esperar de una vez las presentaciones, mover los
 cursores de a una casilla y buscar qué falta cuando una tecla no responde. RetroEmu nunca ve tu contraseña ni tus
 credenciales: la herramienta oficial de cada empresa hace el login.

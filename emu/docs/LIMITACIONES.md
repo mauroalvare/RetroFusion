@@ -113,6 +113,11 @@ arreglar algo, se borra la entrada y se menciona en el commit.
   no hay ningún CLI de IA con sesión iniciada, así que la app usa la prueba de teclas o la
   carpeta para agentes. Ghostbusters (C64) exige comprar trampas en la tienda y la maneja
   con el joystick del puerto 1; Spy vs Spy, un jugador, con el del puerto 2.
+- El detector de partida acepta cualquier pantalla donde una dirección mueve algo cada vez más
+  lejos: un cursor de tienda o de menú también lo cumple. Con una IA al mando, la IA tiene que
+  confirmarlo; con la prueba de teclas sola, puede tomar un menú por la partida.
+- Con Antigravity, Ghostbusters no llegó a la partida en 24 rondas (se trabó en la tienda);
+  Codex y Claude sí. Cada consulta de Antigravity tarda hasta un minuto.
 - Los perfiles preparados de Spy vs Spy, Ghostbusters y Cheman tienen posición y tiempo o
   vidas. Ghostbusters y Cheman quedaron sin puntaje (jugando al azar no suman puntos); el
   "score" de Spy vs Spy ($B15C) subió una sola vez y puede no ser el puntaje.
