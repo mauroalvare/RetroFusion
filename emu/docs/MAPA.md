@@ -25,8 +25,9 @@ Fuente única de rutas y comandos de desarrollo. El diseño interno está en
 | `src/Retro.Studio` | Juegos fusionados con guion JS: sesión, validador, diseñador IA, `Docs/GUIA-FUSION.md` y `Docs/API.md`, juegos incluidos en `Games/` |
 | `src/Retro.Ai` | Proveedores de IA (CLIs por suscripción, APIs, Ollama), carpeta para agentes |
 | `src/Retro.App` | App de escritorio (raylib + Dear ImGui): `RetroApp`, `EmulatorHost`, `InputMapper`, `MachineCatalog`, ventanas de código, fusión y estudio |
+| `src/Retro.Asm` | Ensambladores 6502 y Z80 (núcleo común de dos pasadas), plantillas de juego por máquina (`Templates/*.s`) y la cinta `.tap` con cargador BASIC (`SpectrumTap`) |
 | `src/Retro.Cli` | `retro-cli`: ejecución sin ventana |
-| `tests/*` | NUnit: `Retro.Cpu.Z80.Tests`, `I8080.Tests`, `M6502.Tests`, `Zx.Tests`, `Arcade.Tests`, `C64.Tests`, `Compat.Tests`, `Fusion.Tests`, `Studio.Tests` |
+| `tests/*` | NUnit: `Retro.Cpu.Z80.Tests`, `I8080.Tests`, `M6502.Tests`, `Zx.Tests`, `Arcade.Tests`, `C64.Tests`, `Compat.Tests`, `Fusion.Tests`, `Studio.Tests`, `Asm.Tests` |
 | `compat/juegos/*.json` | Un guion de compatibilidad por archivo de juego (106 hoy; los curados tienen `"curated": true`) |
 | `lab/*.json` | Hallazgos del laboratorio de ingeniería inversa por juego (hipótesis, evidencia, confianza, quién escribe) |
 | `compat/resultados.json` | Último resultado de la matriz con toda la evidencia (lo genera `retro-cli compat`) |
@@ -72,6 +73,10 @@ $C lab compat/juegos/zx48-manicminer.json --cuadros 12000 --salida lab/zx48-mani
 # fusiones con cualquier juego de la carpeta: ids para las recetas, y preparar uno (partida, variables verificadas, perfil por hash)
 $C juegos C:/Users/mauro/Downloads/ROMs
 $C preparar C:/Users/mauro/Downloads/ROMs/Spy_vs_Spy_C64_EN.zip --ia agent --carpeta out/agente   # o --ia sub-claude, o --ia ninguna
+
+# juegos de 8 bits desde cero: plantilla por máquina, ensamblador y cinta que arranca sola
+$C crear c64 out/juego.s                                     # deja out/juego.s y out/juego.prg
+$C asm out/zx.s --cpu z80 --salida out/zx.tap --lista
 
 # paquetes autocontenidos (Windows y Linux) en emu/dist
 pwsh tools/publish.ps1 -Version 0.4.0

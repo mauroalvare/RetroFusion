@@ -94,6 +94,14 @@ public class AsmZ80Tests
     }
 
     [Test]
+    public void LocalLabelsMayBeNamedLikeRegisters()
+    {
+        var r = AsmZ80.Assemble(" org $8000\ndelay: ld c,30\n@d: dec c\n jr nz,@d\n@c: djnz @c\n");
+        Assert.That(r.Ok, Is.True, string.Join("; ", r.Errors));
+        Assert.That(r.Bytes, Is.EqualTo(new byte[] { 0x0E, 30, 0x0D, 0x20, 0xFD, 0x10, 0xFE }));
+    }
+
+    [Test]
     public void MistakesSayWhereAndWhat()
     {
         var r = AsmZ80.Assemble(" ld a,b\n ld b,(de)\n");

@@ -192,7 +192,10 @@ public static class AsmZ80
         /// <summary>A number, label or calculation: not a register, not in parentheses, and naming no register (IX+5 is not one).</summary>
         private static bool IsExpression(string s) =>
             s.Length > 0 && !Reserved.Contains(s) && !Wrapped(s) &&
-            !System.Text.RegularExpressions.Regex.Matches(s, @"[A-Za-z_][A-Za-z0-9_']*").Any(m => Reserved.Contains(m.Value) && !IsHexLiteral(s, m.Index));
+            !System.Text.RegularExpressions.Regex.Matches(s, @"[A-Za-z_][A-Za-z0-9_']*").Any(m => Reserved.Contains(m.Value) && !IsHexLiteral(s, m.Index) && !IsLocalLabel(s, m.Index));
+
+        /// <summary>@d or @c are local labels, not the registers D or C.</summary>
+        private static bool IsLocalLabel(string s, int at) => at > 0 && s[at - 1] == '@';
 
         /// <summary>The letters of $FE or 0FFh are digits, not the registers F or E.</summary>
         private static bool IsHexLiteral(string s, int at)

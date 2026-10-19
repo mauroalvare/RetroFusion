@@ -339,6 +339,45 @@ cada hallazgo.
 Sirve para pruebas automáticas y para que una IA verifique compatibilidad sin mirar la
 pantalla.
 
+## Crear un juego de 8 bits desde cero (`retro-cli crear`)
+
+`crear` empieza un juego nuevo para el Commodore 64 o el ZX Spectrum desde una plantilla
+mínima en ensamblador: arranca sola, escribe un título, mueve un personaje con los
+controles y suena. El ensamblador incluido (6502 y Z80) lo deja listo para cargar como
+cualquier juego: un `.prg` en el C64 y, en el Spectrum, una cinta `.tap` con un cargador
+BASIC que arranca el código solo.
+
+```bash
+retro-cli crear c64 mijuego.s
+```
+
+```bash
+retro-cli run mijuego.prg --frames 300 --press 100:JOY2_RIGHT:60 --screenshot mijuego.png
+```
+
+```bash
+retro-cli crear zx48 otro.s
+```
+
+```bash
+retro-cli asm otro.s --cpu z80 --salida otro.tap --lista
+```
+
+```bash
+retro-cli run otro.tap --autoload --until-tape-end --frames 300 --press 50:P:40 --screenshot otro.png
+```
+
+- **C64** (`.org $0801`): la línea BASIC `10 SYS 2061`, la pantalla limpia, el sprite 0
+  movido con el joystick del puerto 2 y el disparo que cambia el borde y suena por el SID.
+- **Spectrum** (`org $8000`): el título impreso con la ROM, un bloque de color movido con
+  Q A O P o el Kempston, y un pitido con ESPACIO o el disparo.
+- **Ensamblador:** etiquetas (las que empiezan con `@` son locales a la última etiqueta
+  común), constantes con `=` o `EQU`, expresiones con `+ - * / & | ^ << >>`, `<` y `>`
+  (byte bajo y alto), `$` (dónde empieza la línea) y números `$FF`, `0FFh`, `0xFF` o
+  `%1010`. Directivas con o sin punto: `org`, `byte`/`db`/`defb`/`defm`/`text`,
+  `word`/`dw`/`defw`, `fill`/`ds`/`defs`/`res`. Los errores dicen la línea y qué está mal;
+  `--lista` muestra cada línea con su dirección y sus bytes.
+
 ## Compilar y probar
 
 Requiere el .NET SDK 10.

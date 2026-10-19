@@ -27,7 +27,9 @@ static int Usage()
           retro-cli lab <guion.json> [--juegos carpeta] [--cuadros n] [--salida hallazgos.json]
                     [--hipotesis tipo:dirección[:codificación:bytes]]... [--sin-verificar]
           retro-cli juegos <carpeta>   todos los juegos que se pueden fusionar, con el id de su perfil
-          retro-cli asm <fuente.s> [--cpu 6502|z80] [--salida x.prg|x.bin] [--lista]   ensamblador
+          retro-cli asm <fuente.s> [--cpu 6502|z80] [--salida x.prg|x.bin|x.tap] [--lista]   ensamblador
+          retro-cli crear <c64|zx48> [juego.s]   empieza un juego nuevo desde la plantilla de la máquina
+                    (arranca, dibuja, lee los controles y suena) y lo deja ensamblado (.prg o .tap)
           retro-cli ideas <perfil1,perfil2> [--ia ...] [--pedido "..."] [--juegos carpeta]   3 ideas de fusión del estudio
           retro-cli preparar <juego> [--ia sub-claude|sub-codex|sub-google|claude|ollama|agent|ninguna]
                     [--carpeta carpeta-del-agente] [--rondas n] [--perfiles carpeta] [--sin-guardar]
@@ -93,6 +95,9 @@ if (command == "juegos")
 
 if (command == "asm")
     return Assemble(mediaPath, Opt("salida"), Opt("lista") != null, Opt("cpu") ?? "6502");
+
+if (command == "crear")
+    return CreateGame(mediaPath, args.Length > 2 && !args[2].StartsWith("--") ? args[2] : null);
 
 if (command == "ideas")
     return await RunIdeas(mediaPath, Opt("ia"), Opt("pedido") ?? "", Opt("juegos"));
@@ -540,10 +545,44 @@ static int Assemble(string sourcePath, string? output, bool listing, string cpu)
         foreach (var l in r.Listing)
             Console.WriteLine(l);
     output ??= Path.ChangeExtension(sourcePath, cpu.Equals("z80", StringComparison.OrdinalIgnoreCase) ? ".bin" : ".prg");
-    bool prg = Path.GetExtension(output).Equals(".prg", StringComparison.OrdinalIgnoreCase);
-    var bytes = prg ? new[] { (byte)r.Origin, (byte)(r.Origin >> 8) }.Concat(r.Bytes).ToArray() : r.Bytes;
+    var bytes = Path.GetExtension(output).ToLowerInvariant() switch
+    {
+        ".prg" => new[] { (byte)r.Origin, (byte)(r.Origin >> 8) }.Concat(r.Bytes).ToArray(),
+        // a Spectrum tape with a BASIC loader that runs the code by itself
+        ".tap" => Retro.Asm.SpectrumTap.Build(r.Bytes, r.Origin, Path.GetFileNameWithoutExtension(output)),
+        _ => r.Bytes,
+    };
     File.WriteAllBytes(output, bytes);
     Console.WriteLine($"{r.Bytes.Length} bytes desde ${r.Origin:X4} ({r.Symbols.Count} símbolos) -> {output}");
+    return 0;
+}
+
+// A new game from the template of a machine: writes the source and leaves it assembled.
+static int CreateGame(string machine, string? sourcePath)
+{
+    var t = Retro.Asm.Templates.For(machine);
+    if (t == null)
+    {
+        Console.Error.WriteLine($"No hay plantilla para {machine}. Máquinas: {string.Join(", ", Retro.Asm.Templates.All.Select(x => x.Machine))}.");
+        return 2;
+    }
+    sourcePath ??= "juego.s";
+    if (File.Exists(sourcePath))
+    {
+        Console.Error.WriteLine($"{sourcePath} ya existe: elegí otro nombre para no pisarlo.");
+        return 2;
+    }
+    File.WriteAllText(sourcePath, t.Source);
+    var (r, file) = Retro.Asm.Templates.Build(t.Source, t.Machine);
+    foreach (var e in r.Errors)
+        Console.Error.WriteLine($"{Path.GetFileName(sourcePath)}: {e}");
+    if (file == null)
+        return 3;
+    string output = Path.ChangeExtension(sourcePath, t.Output);
+    File.WriteAllBytes(output, file);
+    Console.WriteLine($"{t.Name}: {sourcePath} ({r.Bytes.Length} bytes desde ${r.Origin:X4}) -> {output}");
+    Console.WriteLine($"Probalo:  retro-cli run {output} --frames 300 --screenshot juego.png{(t.Machine == "zx48" ? " --autoload --until-tape-end" : "")}");
+    Console.WriteLine($"Después de editarlo:  retro-cli asm {sourcePath} --cpu {t.Cpu} --salida {output}");
     return 0;
 }
 

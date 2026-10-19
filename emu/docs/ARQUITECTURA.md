@@ -35,6 +35,8 @@ src/
   Retro.App                Aplicación de escritorio (raylib + Dear ImGui): pantalla,
                            sonido, teclado/joystick, depurador, selector de archivos,
                            ventanas de fusión y de código.
+  Retro.Asm                Ensambladores 6502 y Z80, plantillas de juego por máquina y la
+                           cinta .tap del Spectrum (cargador BASIC que arranca solo).
   Retro.Cli                Ejecutor sin ventana: carga, corre N cuadros, aprieta teclas,
                            guarda capturas PNG y audio WAV, traza instrucciones.
 tests/
@@ -49,6 +51,8 @@ tests/
                            análisis de rutinas.
   Compat.Tests             Ejecutor de compatibilidad con programas propios (sonda, determinismo,
                            fallos, exclusiones, informe).
+  Asm.Tests                Ida y vuelta de cada instrucción por el desensamblador, y las
+                           plantillas corriendo en el C64 y el Spectrum emulados.
   Fusion.Tests             Recetas, reglas, diseñador con una IA simulada, fusión con
                            los juegos reales y análisis de código de Manic Miner.
 ```
@@ -456,6 +460,33 @@ Las anotaciones (`CodeAnnotations`: nombres, comentarios, explicaciones, pseudoc
 cambios al código) se guardan por juego en `RetroEmu/anotaciones`. Los cambios se
 escriben con `ICodePatch` en las máquinas cuyo programa está en ROM (la placa arcade) y
 con `Poke` en las demás; el archivo original nunca se modifica.
+
+## Ensambladores y creador de juegos (Retro.Asm)
+
+El creador de juegos de 8 bits (T-060) escribe programas nuevos para las máquinas reales;
+no copia binarios de nadie. Tiene tres piezas:
+
+- **`AsmCore`**: lo común a cualquier CPU. Dos pasadas (la primera mide y junta etiquetas,
+  la segunda emite), etiquetas locales con `@`, constantes, directivas y un evaluador de
+  expresiones. Si la primera pasada no conoce un valor, asume el tamaño largo y la segunda
+  lo respeta, así las etiquetas no se mueven entre pasadas.
+- **`Asm6502` y `AsmZ80`**: no tienen tablas de opcodes escritas a mano; se arman con los
+  desensambladores de las CPUs. El 6502 recorre `M6502Disassembler.Table` (primero las
+  oficiales). El Z80 desensambla cada codificación (simple, CB, ED, DD/FD y DD/FD CB) con
+  bytes marcadores en los operandos y así aprende la plantilla de texto de cada una
+  (`LD (IX+d),n`). La prueba de ida y vuelta pasa cada instrucción por el desensamblador y
+  el ensamblador: si uno se equivoca, el otro lo delata.
+- **`Templates`**: un juego mínimo por máquina (`Templates/c64.s`, `Templates/zx48.s`,
+  recursos incrustados) y cómo se empaqueta: `.prg` con su dirección de carga para el C64
+  y, para el Spectrum, `SpectrumTap`, que arma una cinta con la línea
+  `10 CLEAR 32767: LOAD "" CODE: RANDOMIZE USR 32768` (con los números ocultos de cinco
+  bytes) y el bloque de código, cada uno con cabecera y suma XOR. Las pruebas cargan la
+  cinta por la ROM como un usuario, aprietan teclas y miran la RAM y la pantalla.
+
+Los pasos que siguen: que una IA escriba el juego desde un pedido, lo ensamble, lo corra y
+corrija con lo que ve en pantalla y los errores del ensamblador, el jugador robot que lo
+valida, y citar rutinas de juegos originales (juego, hash de la edición, dirección) sin
+copiar sus bytes.
 
 ## Cómo agregar una CPU o una máquina
 

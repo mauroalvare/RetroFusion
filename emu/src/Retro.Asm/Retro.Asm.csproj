@@ -6,6 +6,10 @@
     <ProjectReference Include="..\Retro.Cpu.Z80\Retro.Cpu.Z80.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Templates\*.s" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

@@ -136,6 +136,18 @@ arreglar algo, se borra la entrada y se menciona en el commit.
   reinicio, pantalla congelada) con 3 robots; no detecta todavía controles sin efecto,
   reglas en bucle, audio saturado ni pantallas ilegibles. T-026. No mide diversión.
 
+## Creador de juegos (T-060)
+
+- Hay plantillas para el C64 y el Spectrum 48K; NES y Space Invaders todavía no.
+- Los ensambladores no tienen macros, `include`, ensamblado condicional ni segmentos: un
+  archivo, un origen.
+- La plantilla del Spectrum lee el Kempston en el puerto $1F; en un Spectrum real sin la
+  interfaz ese puerto devuelve basura y el bloque se movería solo. El emulador siempre
+  tiene el Kempston conectado.
+- La plantilla del C64 mueve el sprite solo en X de 0 a 255 (no usa el bit 9 de $D010).
+- Todavía no hay IA que escriba juegos ni ventana en la app: solo `retro-cli crear` y
+  `retro-cli asm`.
+
 ## App, CLI y paquetes
 
 - En el C64, F1/F3/F5/F7 son teclas de la máquina: la carga rápida de estado pasa a F4 y
