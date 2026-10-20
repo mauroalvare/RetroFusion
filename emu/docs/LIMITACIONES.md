@@ -14,6 +14,7 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 - Un perfil genérico por nombre puede corresponder a otra edición; se prioriza el hash
   cuando existe. Un perfil que enumera hashes ya no se reutiliza por nombre si no coincide.
 - El congelado se repone por cuadro; no intercepta cada instrucción que escribe la variable.
+  En la vista avanzada de fusiones se repone por tick compartido.
 
 ## Máquinas
 

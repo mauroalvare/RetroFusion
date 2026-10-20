@@ -21,8 +21,9 @@ public sealed partial class CodeWindow
     private readonly AiBuildWindow _routineActivity = new("rutinas", "Actividad de la IA", "Ver actividad de la IA");
     private string _modificationWish = "", _modificationPasted = "";
     private readonly Dictionary<string, string> _variableInputs = new();
+    private readonly Action? _openStudio;
 
-    public void OpenModifications() { Open(); _modificationsMode = true; }
+    public void OpenModifications() { _host.RefreshLoadedProfile(); Open(); _modificationsMode = true; }
     public void OpenFinder() { Open(); _finderOnOpen = true; _variablesOnOpen = false; }
     public float RightReserve(float width) => _open && _modificationsMode && _modificationPanelLeft is float left && left > width / 2 ? width - left : 0;
 
@@ -68,6 +69,9 @@ public sealed partial class CodeWindow
             if (ImGui.Button("Buscar variables en esta partida")) OpenFinder();
             ImGui.SameLine();
             if (ImGui.Button("Analizar el código")) Open();
+            if (_openStudio != null && ImGui.Button("Preparar un juego en el estudio"))
+            { _open = false; _openStudio(); }
+            AiPicker.Hint("Después de prepararlo, volvé con Ctrl+M: se busca el perfil nuevo para esta copia sin reiniciar tu partida.");
             return;
         }
         ImGui.TextColored(LabelColor, "Variables conocidas");

@@ -47,7 +47,10 @@ El análisis de propuestas parte del perfil de esa edición; no descubre por sí
 la memoria del juego. **Buscar otras variables** abre el buscador: empezá una búsqueda,
 hacé algo en el juego y filtrá por **Cambió**, **Disminuyó**, **Aumentó** o un valor concreto.
 Al reducir las direcciones podés nombrar y guardar una variable en tu perfil.
-También podés preparar el juego desde el estudio.
+**Preparar un juego en el estudio** abre las herramientas de preparación automática:
+buscá tu juego y pulsá Preparar. Al terminar, volvé con Ctrl+M; el panel busca el perfil
+nuevo de esa copia sin reiniciar tu partida. La preparación usa la IA elegida si está
+configurada, y se inicia cuando la pedís.
 
 **Ver rutinas y análisis del código** abre las herramientas anteriores: desensamblado,
 nombres, comentarios y explicación con IA de una rutina. Esa explicación también tiene

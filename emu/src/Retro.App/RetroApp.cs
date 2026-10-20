@@ -69,7 +69,7 @@ public sealed class RetroApp
         Retro.Studio.StudioLibrary.ExportBuiltIns();
         _browser = new FileBrowser(games);
         _studio = new StudioWindow(_host, _romDir, games, _ai);
-        _code = new CodeWindow(_host, _ai, ShowInDebugger);
+        _code = new CodeWindow(_host, _ai, ShowInDebugger, OpenFusionStudio);
         _creator = new CreatorWindow(_romDir, _ai, OpenFile);
         _gamesWindow = new GamesWindow(_library, OpenFile, PlayFusion, _browser.Open, OpenFusionStudio, OpenCreator,
             visible =>

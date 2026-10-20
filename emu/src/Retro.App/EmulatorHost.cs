@@ -65,6 +65,7 @@ public sealed class EmulatorHost
     public string? LastStopReason { get; private set; }
     public string? LoadedMedia { get; private set; }
     public GameProfile? LoadedProfile { get; private set; }
+    private IReadOnlyList<MediaFile> _loadedFiles = [];
     /// <summary>Changes on load, restart or state restoration, even when the file name is unchanged.</summary>
     public long MediaRevision { get; private set; }
     public event Action<IMachine>? BeforeFrame;
@@ -115,6 +116,7 @@ public sealed class EmulatorHost
         var cart = Retro.Systems.Nes.NesCartridge.Load(file.Data);
         SetMachine(new Retro.Systems.Nes.Nes(cart), info);
         LoadedMedia = file.Name;
+        _loadedFiles = [file];
         LoadedProfile = ProfileLibrary.ForFiles([file]);
         Status = $"{file.Name}: {cart.Describe()}. Mando: flechas, Z = B, X = A, Enter = Start, Shift derecho = Select.";
     }
@@ -132,6 +134,7 @@ public sealed class EmulatorHost
             description += " Sonidos: sintetizados (aproximan los circuitos analógicos).";
         SetMachine(m, info);
         LoadedMedia = "invaders";
+        _loadedFiles = files.ToArray();
         LoadedProfile = ProfileLibrary.ForFiles(files);
         Status = description + " Moneda: 5 o C, empezar: 1.";
     }
@@ -171,6 +174,7 @@ public sealed class EmulatorHost
         Paused = false;
         LoadedMedia = null;
         LoadedProfile = null;
+        _loadedFiles = [];
         Debug.Clear();
         _audio.Clear();
     }
@@ -182,6 +186,7 @@ public sealed class EmulatorHost
         {
             var r = C64Media.Load(c64, file);
             LoadedMedia = file.Name;
+            _loadedFiles = [file];
             LoadedProfile = profile;
             MediaRevision++;
             _quickState = null;
@@ -192,6 +197,7 @@ public sealed class EmulatorHost
         var zx = Zx ?? throw new InvalidOperationException("No hay un ZX Spectrum encendido.");
         var result = SpectrumMedia.Load(zx, file);
         LoadedMedia = file.Name;
+        _loadedFiles = [file];
         LoadedProfile = profile;
         MediaRevision++;
         _quickState = null;
@@ -412,6 +418,16 @@ public sealed class EmulatorHost
         Machine.LoadState(File.ReadAllBytes(path));
         StateRestored();
         Status = "Estado cargado: " + Path.GetFileName(path);
+    }
+
+    /// <summary>Finds a newly prepared profile without restarting the running game.</summary>
+    public void RefreshLoadedProfile()
+    {
+        if (Fusion != null || _loadedFiles.Count == 0) return;
+        var profile = ProfileLibrary.ForFiles(_loadedFiles);
+        if (profile?.ToJson() == LoadedProfile?.ToJson()) return;
+        LoadedProfile = profile;
+        MediaRevision++;
     }
 
     /// <summary>Invalidates game-bound work and clears sound/pacing after a state change.</summary>

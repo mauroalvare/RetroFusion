@@ -457,6 +457,8 @@ pausada sin mostrar la imagen del experimento. No toca medios ni perfiles. El ho
 El guardado de regreso completo de esta vista se ofrece para originales.
 
 `EmulatorHost.LoadedProfile` se obtiene con los bytes reales del medio. `MediaRevision`
+cambia también si al reabrir Modificar aparece un perfil nuevo para esos mismos bytes;
+eso permite preparar el juego en el estudio y volver a la partida sin recargarla. La revisión
 cambia al cargar, recargar, reiniciar o restaurar; las tareas, borradores, congelados y
 propuestas se vinculan a revisión y máquina. Se cancelan o descartan respuestas viejas,
 incluidas las explicaciones de rutinas. Se conservan los guardados rápidos solo mientras

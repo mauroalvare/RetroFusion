@@ -52,6 +52,20 @@ public sealed class ModificationHostTests
     }
 
     [Test]
+    public void NewlyPreparedProfileCanBeLoadedWithoutChangingTheRunningPartida()
+    {
+        var tape = Tape(); var host = Host(); host.Load(tape, false);
+        Assert.That(host.LoadedProfile, Is.Null);
+        byte[] before = host.Machine!.SaveState(); long revision = host.MediaRevision;
+        ProfileLibrary.Save(new GameProfile { Id = "new-preparation", Name = "Test", Machine = "zx48", Match = new() { Sha256 = [ProfileMatch.HashOf(tape)] } });
+        host.RefreshLoadedProfile();
+        Assert.That(host.LoadedProfile?.Id, Is.EqualTo("new-preparation")); Assert.That(host.MediaRevision, Is.GreaterThan(revision));
+        Assert.That(host.Machine.SaveState(), Is.EqualTo(before));
+        revision = host.MediaRevision; host.RefreshLoadedProfile();
+        Assert.That(host.MediaRevision, Is.EqualTo(revision), "Reopening Modificar must not discard an existing experiment when its profile is unchanged.");
+    }
+
+    [Test]
     public void FreezeIsReappliedForEveryEmulatedFrameIncludingTurbo()
     {
         var host = Host();

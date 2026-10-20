@@ -63,11 +63,12 @@ public sealed partial class CodeWindow : IDisposable
     private string _newVarDescription = "";
     private string _bootText = "";
 
-    public CodeWindow(EmulatorHost host, AiSettings ai, Action<uint> showInDebugger)
+    public CodeWindow(EmulatorHost host, AiSettings ai, Action<uint> showInDebugger, Action? openStudio = null)
     {
         _host = host;
         _ai = ai;
         _showInDebugger = showInDebugger;
+        _openStudio = openStudio;
         _host.BeforeFrame += ApplyFrozen;
     }
 
