@@ -303,8 +303,7 @@ public sealed partial class CodeWindow : IDisposable
     {
         if (_map == null)
         {
-            ImGui.TextWrapped("El emulador anota cada instrucción que la CPU ejecuta. Jugá un rato (así pasa por más partes del juego) y tocá \"Analizar el código\": " +
-                              "el programa se divide en rutinas, que podés renombrar, comentar, hacer explicar por una IA (con pseudocódigo) y modificar.");
+            ImGui.TextWrapped("Jugá un momento y pulsá Analizar el código para ver las rutinas ejecutadas.");
             return;
         }
         float listWidth = 300;
@@ -494,7 +493,7 @@ public sealed partial class CodeWindow : IDisposable
             Patch(m, a, string.Join(" ", Enumerable.Repeat("00", ins.Length)));
         }
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Reemplaza la instrucción por NOP (no hacer nada). Ej.: anular la resta de vidas = vidas infinitas.");
+            ImGui.SetTooltip("Reemplaza la instrucción por NOP: la CPU deja de ejecutar esa operación.");
     }
 
     private void SetComment(uint a, string text)
@@ -556,7 +555,7 @@ public sealed partial class CodeWindow : IDisposable
 
     private void DrawPatches(IMachine m)
     {
-        ImGui.TextWrapped("Los cambios se aplican a la copia del juego en memoria. Se guardan con el juego para volver a aplicarlos (por ejemplo después de reiniciar o volver a cargar la cinta).");
+        ImGui.TextWrapped("Los parches modifican la partida en memoria. Podés guardarlos y volver a aplicarlos al cargar el juego.");
         if (_notes.Patches.Count == 0)
         {
             ImGui.TextDisabled("Todavía no hiciste cambios. En la pestaña Rutinas elegí una línea y cambiá sus bytes o anulala.");
@@ -623,7 +622,7 @@ public sealed partial class CodeWindow : IDisposable
         if (ImGui.Button("Copiar consigna para otra IA"))
         {
             ImGui.SetClipboardText(CodeExplainer.ManualPrompt(CodeExplainer.Prompt(m, r, _notes, _profile, _map!)));
-            _explainStatus = "Consigna copiada: pegala en ChatGPT, Gemini, Claude.ai o tu agente y pegá abajo su respuesta.";
+            _explainStatus = "Pedido copiado. Pegalo en tu IA y traé la respuesta completa.";
         }
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip("Elegí la IA y su conexión en Modificar > Variables y cambios divertidos.");
@@ -692,12 +691,11 @@ public sealed partial class CodeWindow : IDisposable
     {
         if (_profile == null)
         {
-            ImGui.TextWrapped("Este juego todavía no tiene perfil. En \"Buscar variables\" encontrá dónde guarda las vidas, el puntaje o la posición: " +
-                              "con eso se crea el perfil y el juego ya se puede fusionar con otros.");
+            ImGui.TextWrapped("Este juego no tiene perfil. Usá Buscar variables para identificar sus datos.");
             return;
         }
         ImGui.TextWrapped(_profile.Description);
-        ImGui.TextDisabled("Cambiá un valor y apretá Enter. \"Congelar\" lo mantiene fijo (vidas infinitas, aire infinito...).");
+        AiPicker.Hint("Enter aplica el valor. Congelar lo mantiene fijo.");
         DrawVariableValues(m, true);
 
         ImGui.Separator();
@@ -723,7 +721,7 @@ public sealed partial class CodeWindow : IDisposable
             changed = true;
         }
         if (changed) ProfileLibrary.Save(_profile);
-        ImGui.TextDisabled("Se guarda solo en tus perfiles. \"press ENTER 40\" = mantener ENTER 40 cuadros; \"wait 100\" = esperar 100 cuadros.");
+        AiPicker.Hint("N indica la duración en cuadros. Los cambios se guardan automáticamente en el perfil.");
     }
 
     private void DrawVariableValues(IMachine m, bool addresses)
@@ -784,8 +782,7 @@ public sealed partial class CodeWindow : IDisposable
 
     private void DrawFinder(IMachine m)
     {
-        ImGui.TextWrapped("Como los buscadores de trucos clásicos: tocá Empezar, hacé algo en el juego (perdé una vida, juntá puntos, movete) " +
-                          "y decí cómo cambió el valor. Repetí hasta que queden pocas direcciones.");
+        ImGui.TextWrapped("Empezá la búsqueda, jugá un momento y filtrá según cómo cambió el valor. Repetí para reducir los resultados.");
         var (start, end) = RamRange(m);
         if (ImGui.Button(_search == null ? "Empezar búsqueda" : "Empezar de nuevo"))
         {
@@ -815,10 +812,10 @@ public sealed partial class CodeWindow : IDisposable
             return;
         }
         ImGui.SetNextItemWidth(160);
-        ImGui.InputTextWithHint("##nuevavar", "nombre (ej. lives)", ref _newVarName, 32);
+        ImGui.InputTextWithHint("##nuevavar", "Nombre de la variable", ref _newVarName, 32);
         ImGui.SameLine();
         ImGui.SetNextItemWidth(-1);
-        ImGui.InputTextWithHint("##desc", "qué es (ej. vidas de reserva, baja al morir)", ref _newVarDescription, 200);
+        ImGui.InputTextWithHint("##desc", "Qué representa", ref _newVarDescription, 200);
         foreach (var (address, value) in _search.Results(40))
         {
             ImGui.TextUnformatted($"${address:X4} = {value,3}");

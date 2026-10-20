@@ -9,15 +9,15 @@ public static class AiPicker
     public static readonly string[] Ids = { "sub-claude", "sub-codex", "sub-google", "manual", "agent", "claude", "openai", "gemini", "ollama" };
     public static readonly string[] Names =
     {
-        "Claude con tu suscripción Pro/Max (Claude Code, sin API)",
-        "ChatGPT con tu suscripción Plus/Pro (Codex CLI, sin API)",
-        "Gemini con tu cuenta de Google (Antigravity CLI, sin API)",
-        "Copiar y pegar en cualquier chat (ChatGPT, Gemini, Claude.ai...)",
-        "Carpeta para agentes (Antigravity, Claude Code, Codex, Gemini CLI)",
-        "Claude por API (se paga aparte, con clave)",
-        "ChatGPT por API (se paga aparte, con clave)",
-        "Gemini por API (con clave de Google AI Studio)",
-        "Ollama (IA local en tu PC, gratis)",
+        "Claude Code (cuenta de Claude)",
+        "Codex CLI (cuenta de ChatGPT)",
+        "Antigravity CLI (cuenta de Google)",
+        "Copiar y pegar",
+        "Carpeta para un agente",
+        "Claude API",
+        "OpenAI API",
+        "Gemini API",
+        "Ollama (local)",
     };
     private static readonly string[] ClaudeModels = { "claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5" };
 
@@ -78,11 +78,12 @@ public static class AiPicker
             {
                 string key = ai.ClaudeApiKey;
                 ImGui.SetNextItemWidth(320);
-                if (ImGui.InputText("Clave de API (vacía = ANTHROPIC_API_KEY)", ref key, 200, ImGuiInputTextFlags.Password))
+                if (ImGui.InputText("Clave de API", ref key, 200, ImGuiInputTextFlags.Password))
                 {
                     ai.ClaudeApiKey = key.Trim();
                     ai.Save();
                 }
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip("Si está vacía, usa ANTHROPIC_API_KEY del entorno.");
                 int model = Math.Max(0, Array.IndexOf(ClaudeModels, ai.ClaudeModel));
                 ImGui.SetNextItemWidth(320);
                 if (ImGui.Combo("Modelo", ref model, ClaudeModels, ClaudeModels.Length))
@@ -90,35 +91,39 @@ public static class AiPicker
                     ai.ClaudeModel = ClaudeModels[model];
                     ai.Save();
                 }
-                Hint($"{costNote} Se cobra en tu cuenta de Anthropic. Si Claude rechaza un pedido, se reintenta solo con otro modelo.");
+                Hint("La API se cobra por separado de tu suscripción. " + costNote);
                 break;
             }
             case "openai":
             {
                 string key = ai.OpenAiApiKey, model = ai.OpenAiModel;
                 ImGui.SetNextItemWidth(320);
-                if (ImGui.InputText("Clave de API (vacía = OPENAI_API_KEY)", ref key, 200, ImGuiInputTextFlags.Password))
+                if (ImGui.InputText("Clave de API", ref key, 200, ImGuiInputTextFlags.Password))
                 {
                     ai.OpenAiApiKey = key.Trim();
                     ai.Save();
                 }
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip("Si está vacía, usa OPENAI_API_KEY del entorno.");
                 ImGui.SetNextItemWidth(320);
                 if (ImGui.InputText("Modelo de OpenAI", ref model, 100)) { ai.OpenAiModel = model; ai.Save(); }
-                Hint($"Vacío = {OpenAiProvider.DefaultModel}. {costNote} Se cobra en tu cuenta de la API de OpenAI, que se paga aparte de ChatGPT Plus (la clave se crea en platform.openai.com).");
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip($"Si está vacío, usa {OpenAiProvider.DefaultModel}.");
+                Hint("La API se cobra por separado de tu suscripción. " + costNote);
                 break;
             }
             case "gemini":
             {
                 string key = ai.GeminiApiKey, model = ai.GeminiModel;
                 ImGui.SetNextItemWidth(320);
-                if (ImGui.InputText("Clave de API (vacía = GEMINI_API_KEY)", ref key, 200, ImGuiInputTextFlags.Password))
+                if (ImGui.InputText("Clave de API", ref key, 200, ImGuiInputTextFlags.Password))
                 {
                     ai.GeminiApiKey = key.Trim();
                     ai.Save();
                 }
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip("Si está vacía, usa GEMINI_API_KEY del entorno.");
                 ImGui.SetNextItemWidth(320);
                 if (ImGui.InputText("Modelo de Gemini", ref model, 100)) { ai.GeminiModel = model; ai.Save(); }
-                Hint($"Vacío = {GeminiProvider.DefaultModel}. La clave se crea en aistudio.google.com. Con la capa gratuita no pagás, pero tiene límites por minuto y por día y Google puede usar los pedidos para mejorar sus productos; con facturación activada, {costNote.ToLowerInvariant()}");
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip($"Si está vacío, usa {GeminiProvider.DefaultModel}.");
+                Hint("La API tiene sus propios límites y condiciones. " + costNote);
                 break;
             }
             case "ollama":
@@ -128,7 +133,7 @@ public static class AiPicker
                 if (ImGui.InputText("Dirección de Ollama", ref url, 200)) { ai.OllamaUrl = url; ai.Save(); }
                 ImGui.SetNextItemWidth(320);
                 if (ImGui.InputText("Modelo de Ollama", ref model, 100)) { ai.OllamaModel = model; ai.Save(); }
-                Hint("Necesita Ollama abierto (ollama serve) y el modelo descargado (ollama pull llama3.1). Es gratis, pero los modelos chicos programan peor.");
+                Hint("Ollama debe estar abierto y tener el modelo instalado.");
                 break;
             }
         }
@@ -144,10 +149,10 @@ public static class AiPicker
         else
         {
             ImGui.TextColored(new System.Numerics.Vector4(1, 0.6f, 0.4f, 1), $"No encontré {tool.Name} en esta PC.");
-            Hint(tool.InstallHint);
+            Hint($"Instalá {tool.Name} e iniciá sesión antes de continuar.");
         }
         ImGui.SetNextItemWidth(320);
-        if (ImGui.InputTextWithHint("Ruta (si no lo encuentra solo)", "vacío = buscar solo", ref path, 400))
+        if (ImGui.InputTextWithHint("Ruta", "Detección automática", ref path, 400))
         {
             if (string.IsNullOrWhiteSpace(path)) ai.CliPaths.Remove(tool.Id);
             else ai.CliPaths[tool.Id] = path.Trim().Trim('"');
@@ -155,19 +160,13 @@ public static class AiPicker
         }
         string model = ai.CliModels.GetValueOrDefault(tool.Id, "");
         ImGui.SetNextItemWidth(320);
-        if (ImGui.InputTextWithHint("Modelo", "vacío = el que usa la herramienta", ref model, 100))
+        if (ImGui.InputTextWithHint("Modelo", "El de la herramienta", ref model, 100))
         {
             if (string.IsNullOrWhiteSpace(model)) ai.CliModels.Remove(tool.Id);
             else ai.CliModels[tool.Id] = model.Trim();
             ai.Save();
         }
-        Hint(tool.Id switch
-        {
-            "sub-claude" => "Ej.: opus, sonnet, haiku o un nombre completo como claude-opus-5-5.",
-            "sub-codex" => "El nombre de un modelo de Codex (como en codex -m).",
-            _ => "El nombre de un modelo de Antigravity (\"agy models\" los lista).",
-        });
-        Hint($"Usa tu suscripción ({tool.Subscription}): no hace falta clave de API ni se paga aparte; cada pedido cuenta para los límites de uso de tu plan. RetroEmu nunca ve tu contraseña: entrás una sola vez en {tool.Name}.");
+        Hint("Usa tu cuenta y los límites de tu plan.");
         bool testing = s_test is { IsCompleted: false };
         ImGui.BeginDisabled(testing || found == null);
         if (ImGui.Button(testing ? "Probando..." : "Probar conexión"))
@@ -177,6 +176,8 @@ public static class AiPicker
             s_test = Task.Run(() => provider.TestAsync(CancellationToken.None));
         }
         ImGui.EndDisabled();
+        if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+            ImGui.SetTooltip("Envía un pedido breve para comprobar la sesión. Cuenta para los límites de tu plan.");
         if (s_test is { IsCompleted: true } t)
         {
             s_testResult = t.IsCompletedSuccessfully ? $"Funciona. Respondió: \"{t.Result}\"" : "No funcionó: " + t.Exception!.GetBaseException().Message;

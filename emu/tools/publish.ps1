@@ -32,6 +32,14 @@ foreach ($rid in $Runtimes) {
     New-Item -ItemType Directory -Force (Join-Path $out "Juegos fusionados") | Out-Null
     New-Item -ItemType Directory -Force (Join-Path $out "Juegos creados") | Out-Null
     Copy-Item (Join-Path $root "README.md") (Join-Path $out "README.md")
+    $playerDocs = Join-Path $out "docs"
+    New-Item -ItemType Directory -Force $playerDocs | Out-Null
+    Copy-Item (Join-Path $root "docs/MODIFICACIONES.md") (Join-Path $playerDocs "MODIFICACIONES.md")
+    $playerImages = Join-Path $playerDocs "img/interfaz"
+    New-Item -ItemType Directory -Force $playerImages | Out-Null
+    foreach ($image in "biblioteca.png", "modificaciones.png") {
+        Copy-Item (Join-Path $root "docs/img/interfaz/$image") (Join-Path $playerImages $image)
+    }
     Copy-Item (Join-Path $root "docs/ARQUITECTURA.md") (Join-Path $out "ARQUITECTURA.md")
     @"
 Firmware incluido

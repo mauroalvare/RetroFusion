@@ -39,8 +39,7 @@ public sealed partial class CodeWindow
         ImGui.TextColored(LabelColor, _gameName);
         if (_host.Fusion != null)
         {
-            ImGui.TextWrapped("Estás jugando una fusión. Para cambiar sus reglas, abrí Fusión y pedile una versión nueva al estudio. " +
-                "Los experimentos con punto de regreso completo están disponibles al jugar un original.");
+            ImGui.TextWrapped("Para cambiar esta fusión, pedí una versión nueva en el estudio. El regreso de partida solo está disponible en originales.");
             if (ImGui.Button("Variables del original enfocado (avanzado)"))
             { Open(); _variablesOnOpen = true; }
             return;
@@ -50,12 +49,13 @@ public sealed partial class CodeWindow
             ImGui.TextWrapped("Abrí un juego desde Jugar para experimentar con su partida.");
             return;
         }
-        ImGui.TextWrapped("Cambiá un valor y apretá Enter. Congelar lo repone antes de cada cuadro del juego. " +
-            "El primer cambio guarda un punto de regreso; volver restaura toda la partida a ese momento.");
+        ImGui.TextWrapped("Cambiá un valor y confirmá con Enter. Congelar lo mantiene fijo.");
         if (_status.Length > 0) ImGui.TextWrapped(_status);
         ImGui.BeginDisabled(_modifications?.CanRestore != true);
         if (ImGui.Button("Volver antes de probar")) RestoreModifications();
         ImGui.EndDisabled();
+        if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+            ImGui.SetTooltip("El primer cambio guarda la partida. Volver deshace también el progreso jugado desde ese momento.");
         ImGui.SameLine();
         ImGui.BeginDisabled(_modifications?.Frozen.Count is not > 0);
         if (ImGui.Button("Soltar todos los congelados"))
@@ -64,14 +64,13 @@ public sealed partial class CodeWindow
         ImGui.Separator();
         if (_profile == null || _profile.Variables.Count == 0)
         {
-            ImGui.TextWrapped("Todavía no hay variables conocidas para esta edición. Podés buscarlas jugando y filtrando qué cambia, " +
-                "o preparar el juego desde el estudio. La IA necesita esos datos para proponer cambios concretos.");
+            ImGui.TextWrapped("No hay variables conocidas para esta edición. Buscalas en la partida o prepará el juego en el estudio.");
             if (ImGui.Button("Buscar variables en esta partida")) OpenFinder();
             ImGui.SameLine();
             if (ImGui.Button("Analizar el código")) Open();
             if (_openStudio != null && ImGui.Button("Preparar un juego en el estudio"))
             { _open = false; _openStudio(); }
-            AiPicker.Hint("Después de prepararlo, volvé con Ctrl+M: se busca el perfil nuevo para esta copia sin reiniciar tu partida.");
+            AiPicker.Hint("Cuando termine la preparación, volvé con Ctrl+M.");
             return;
         }
         ImGui.TextColored(LabelColor, "Variables conocidas");
@@ -80,11 +79,12 @@ public sealed partial class CodeWindow
         ImGui.SameLine();
         if (ImGui.SmallButton("Ver rutinas y análisis del código")) Open();
         ImGui.Separator();
-        ImGui.TextColored(LabelColor, "Ideas para experimentar con IA");
+        ImGui.TextColored(LabelColor, "Pedir ideas a la IA");
         AiPicker.Combo(_ai);
         if (AiPicker.IsApi(_ai.Provider)) AiPicker.Settings(_ai, "Pedir ideas usa una llamada a la IA elegida.");
+        ImGui.TextUnformatted("Qué querés probar (opcional):");
         ImGui.InputTextMultiline("##experimento", ref _modificationWish, 1200, new Vector2(-1, 48));
-        AiPicker.Hint("Contá qué querés probar: más dificultad, recursos extra o una situación extraña. Recibir ideas no cambia la partida.");
+        AiPicker.Hint("Las propuestas se aplican cuando pulsás Probar estos cambios.");
         bool busy = _modificationTask != null;
         bool writable = _profile.Variables.Any(v => !v.Value.ReadOnly);
         if (!writable) AiPicker.Hint("Los datos conocidos son de solo lectura. Buscá otra variable para poder experimentar.");

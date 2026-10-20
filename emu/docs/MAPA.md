@@ -14,6 +14,9 @@ o pulsar Actualizar. **Ver > Herramientas avanzadas** muestra Código y Depurar;
 atajos siguen funcionando.
 
 El estudio limita la lista de selección a una zona con desplazamiento y búsqueda.
+Las ayudas para jugar están en **Ayuda > Abrir y jugar**, **Controles de la partida**
+y **Atajos**. Los controles corresponden al sistema o a la fusión activos. El README
+del paquete es una guía breve; los contratos para agentes se entregan por separado.
 Muestra los juegos elegidos y separa **Proponer ideas** de **Mi idea**; las carpetas y
 las fusiones anteriores se despliegan cuando se necesitan.
 Si el CLI elegido está encontrado, su ruta y configuración se repliegan bajo

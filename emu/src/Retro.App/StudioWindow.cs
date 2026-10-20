@@ -143,7 +143,7 @@ public sealed class StudioWindow
         var vp = ImGui.GetMainViewport();
         ImGui.SetNextWindowPos(new Vector2(vp.Pos.X + vp.Size.X - 540, vp.Pos.Y + 30), ImGuiCond.FirstUseEver);
         ImGui.SetNextWindowSize(new Vector2(530, Math.Min(760, vp.Size.Y - 70)), ImGuiCond.FirstUseEver);
-        if (!ImGui.Begin("Crear juego fusionado con IA", ref _open))
+        if (!ImGui.Begin("Fusionar juegos", ref _open))
         {
             _panelLeft = null;
             ImGui.End();
@@ -161,7 +161,7 @@ public sealed class StudioWindow
     private void DrawPreparation()
     {
         if (_unprepared.Count > 0 && _prepareTask == null)
-            AiPicker.Hint("Prepará estos juegos para que el guion pueda leer sus vidas, puntaje o posición y usar sus piezas en una escena propia.");
+            AiPicker.Hint("Preparar identifica datos del juego para usarlos en la fusión.");
         if (_prepareTask == null)
             return;
         ImGui.TextColored(new Vector4(1, 0.85f, 0.3f, 1), $"Preparando {_preparing}...");
@@ -184,8 +184,8 @@ public sealed class StudioWindow
             : null;
         var options = new Retro.Compat.PrepareOptions { FirmwareDirectory = _romDir, Advisor = advisor };
         _preparing = name;
-        _prepareProgress = advisor != null ? $"Primero se prueban las teclas habituales; después decide {advisor.Name}."
-            : "Sin IA (\"copiar y pegar\" no sirve para esto): solo se prueban las teclas habituales.";
+        _prepareProgress = advisor != null ? $"Buscando el arranque con ayuda de {advisor.Name}."
+            : "Buscando el arranque sin IA. Copiar y pegar no admite esta tarea.";
         _prepareCts = new CancellationTokenSource();
         var ct = _prepareCts.Token;
         _prepareTask = Task.Run(() => Retro.Compat.GamePreparer.PrepareAsync(path, options, line => _prepareProgress = line, ct));
@@ -193,8 +193,7 @@ public sealed class StudioWindow
 
     private void DrawSetup()
     {
-        ImGui.TextWrapped("Combiná las reglas de 2 o 3 juegos en uno nuevo, con una mecánica y una presentación propias. " +
-                          "Después de jugarlo podés pedir cambios y conservar sus versiones.");
+        ImGui.TextWrapped("Elegí 2 o 3 juegos para crear una fusión con reglas propias.");
         if (ImGui.TreeNode("Carpetas de juegos"))
         {
             ImGui.SetNextItemWidth(-90);
@@ -238,7 +237,7 @@ public sealed class StudioWindow
                     StartPrepare(g.Profile.Name, file);
                 ImGui.EndDisabled();
                 if (ImGui.IsItemHovered())
-                    ImGui.SetTooltip("Busca el arranque y verifica variables como vidas, puntaje y posición. Puede tardar unos minutos y usar la IA elegida.");
+                    ImGui.SetTooltip("Analiza el arranque y los datos del juego. Puede usar la IA elegida y tardar varios minutos.");
             }
         }
         ImGui.EndChild();
@@ -248,7 +247,6 @@ public sealed class StudioWindow
         if (_chosen.Count < 2)
         {
             ImGui.Spacing();
-            ImGui.TextUnformatted("Marcá 2 o 3 juegos.");
             return;
         }
 
@@ -262,14 +260,13 @@ public sealed class StudioWindow
 
         ImGui.Separator();
         ImGui.TextColored(Gold, "2. Inventá la fusión");
-        DrawAiChooser("Cada idea o versión es un pedido a la IA (unos centavos; escribir un juego usa más que proponer ideas).");
+        DrawAiChooser("La creación puede necesitar varios pedidos a la IA.");
         if (ImGui.BeginTabBar("forma-de-idea"))
         {
             if (ImGui.BeginTabItem("Proponer ideas"))
             {
                 ImGui.TextUnformatted("Enfoque o pedido (opcional):");
                 ImGui.InputTextMultiline("##deseo", ref _wish, 1000, new Vector2(-1, 44));
-                AiPicker.Hint("Ej.: \"una carrera cooperativa\", \"un puzle sin disparos\", \"que las rutas cambien al robar\".");
                 ImGui.BeginDisabled(Busy);
                 if (ImGui.Button("Proponer 3 ideas")) AskConcepts();
                 ImGui.EndDisabled();
@@ -334,11 +331,9 @@ public sealed class StudioWindow
         if (AiPicker.IsApi(_ai.Provider))
             AiPicker.Settings(_ai, costNote);
         else if (_ai.Provider == "manual")
-            AiPicker.Hint("Te doy la consigna para pegar en el chat de tu IA y vos pegás acá la respuesta. El emulador prueba el juego y, si falla, te da el texto para devolvérselo.");
+            AiPicker.Hint("Copiá el pedido a tu chat y pegá acá la respuesta.");
         else if (_ai.Provider == "agent")
-            AiPicker.Hint("El emulador arma una carpeta con la tarea, la API y los juegos. Tu agente escribe juego.js; el emulador lo prueba solo cada vez que lo guarda y le deja informe.md.");
-        else
-            AiPicker.Hint("La IA escribe el juego y el emulador lo prueba. Durante la creación podés abrir Construcción para ver su actividad y cancelar.");
+            AiPicker.Hint("Prepará la carpeta y pasale la tarea a tu agente.");
     }
 
     private void DrawPlaying(StudioSession s)
@@ -409,9 +404,9 @@ public sealed class StudioWindow
 
         ImGui.Separator();
         ImGui.TextColored(Gold, "Pedile un cambio a la IA");
-        AiPicker.Hint("Una corrección (\"los invasores son muy rápidos\", \"que el láser atraviese\") o una visión totalmente distinta (\"que ahora sea cooperativo\", \"que Willy sea el que invade\"). Cada pedido es una versión nueva; las anteriores quedan guardadas.");
+        AiPicker.Hint("Describí el cambio. Se guardará como una versión nueva.");
         ImGui.InputTextMultiline("##pedido", ref _request, 2000, new Vector2(-1, 56));
-        DrawAiChooser("Cada versión es un pedido a la IA (unos centavos).");
+        DrawAiChooser("Cada versión puede necesitar varios pedidos a la IA.");
         ImGui.BeginDisabled(Busy || _request.Trim().Length < 3);
         if (ImGui.Button("Hacer versión nueva"))
             Revise(g, _request.Trim());
@@ -489,7 +484,7 @@ public sealed class StudioWindow
             if (ImGui.Button("1. Copiar la consigna"))
             {
                 ImGui.SetClipboardText(m.Prompt);
-                _progress = "Consigna copiada: pegala en el chat de tu IA y copiá toda su respuesta.";
+                _progress = "Pedido copiado. Pegalo en tu chat y traé la respuesta completa.";
             }
             ImGui.TextUnformatted("2. Pegá acá la respuesta:");
             ImGui.InputTextMultiline("##respuesta", ref _pasted, 300_000, new Vector2(-1, 90));
@@ -519,7 +514,9 @@ public sealed class StudioWindow
             ImGui.SameLine();
             if (ImGui.Button("Dejar de esperar"))
                 _agentDir = null;
-            AiPicker.Hint("Pedile a tu agente: \"leé TAREA.md y hacelo\". Cada vez que guarde juego.js lo pruebo solo; cuando funcione arranca acá.");
+            if (ImGui.SmallButton("Copiar instrucción para el agente"))
+                ImGui.SetClipboardText($"Trabajá en la carpeta {_agentDir}: leé TAREA.md y seguí sus instrucciones.");
+            AiPicker.Hint("El juego se prueba cuando el agente guarda sus cambios.");
         }
     }
 

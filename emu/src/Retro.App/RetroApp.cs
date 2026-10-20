@@ -646,23 +646,16 @@ public sealed class RetroApp
         {
             if (ImGui.MenuItem("Crear juego fusionado con IA...")) OpenFusionStudio();
             if (ImGui.MenuItem("Detener la fusión", "", false, _host.Fusion != null)) _host.StopFusion();
-            ImGui.Separator();
-            ImGui.TextDisabled("Con IA: un juego nuevo que mezcla los juegos de verdad,");
-            ImGui.TextDisabled("Los originales siguen en Máquina > Juegos originales.");
             ImGui.EndMenu();
         }
         if (ImGui.BeginMenu("Crear"))
         {
             if (ImGui.MenuItem("Juego de 8 bits nuevo (C64 o Spectrum)...")) OpenCreator();
-            ImGui.TextDisabled("La IA escribe un juego original en ensamblador,");
-            ImGui.TextDisabled("lo prueba con un robot y lo corrige hasta que anda.");
             ImGui.EndMenu();
         }
         if ((_advancedTools || _debugMode) && ImGui.BeginMenu("Código"))
         {
             if (ImGui.MenuItem("Ver el código del juego (rutinas, IA, cambios)...", "Ctrl+K", false, _host.Machine != null)) _code.Open();
-            ImGui.TextDisabled("Desensamblado por rutinas, con nombres, comentarios,");
-            ImGui.TextDisabled("pseudocódigo con IA, trucos y buscador de variables.");
             ImGui.EndMenu();
         }
         if ((_advancedTools || _debugMode) && ImGui.BeginMenu("Depurar"))
@@ -684,24 +677,63 @@ public sealed class RetroApp
         }
         if (ImGui.BeginMenu("Ayuda"))
         {
-            ImGui.TextUnformatted("ZX Spectrum: letras y números directos; Shift = CAPS SHIFT,");
-            ImGui.TextUnformatted("Ctrl = SYMBOL SHIFT, Backspace = DELETE, flechas + Alt = joystick.");
-            ImGui.TextUnformatted("Commodore 64: teclado directo, Esc = RUN/STOP, RePág = RESTORE,");
-            ImGui.TextUnformatted("F1 F3 F5 F7 del C64 (F4 carga el estado), Ctrl izq. = C=, Tab = CTRL,");
-            ImGui.TextUnformatted("flechas + Alt (o Ctrl der.) = joystick (puerto 2; se cambia en Máquina).");
-            ImGui.TextUnformatted("Space Invaders: 5 o C = moneda, 1/2 = jugadores,");
-            ImGui.TextUnformatted("flechas (o A/D) = mover, Espacio = disparar, T = tilt.");
-            ImGui.Separator();
-            ImGui.TextUnformatted("F2/F3 estado rápido, F5 reinicio, F6 cinta, F8 turbo,");
-            ImGui.TextUnformatted("F9 pausa, F10 paso, F11 pantalla completa, F12 depurador.");
-            ImGui.TextUnformatted("Arrastrá un juego (.tap/.tzx/.z80/.sna, .t64/.prg o invaders.zip) a la ventana,");
-            ImGui.TextUnformatted("o elegilo en Máquina: cada máquina lista los juegos de tu carpeta.");
-            ImGui.Separator();
-            ImGui.TextUnformatted("Fusión: flechas mover, Ctrl/Z disparar, Espacio/X saltar,");
-            ImGui.TextUnformatted("Enter/1 empezar, 5/C moneda. Código: Ctrl+K.");
+            if (ImGui.BeginMenu("Abrir y jugar"))
+            {
+                ImGui.TextUnformatted("Abrí Tus juegos con Jugar o Ctrl+L y elegí Jugar.");
+                ImGui.TextUnformatted("También podés arrastrar un archivo a la ventana.");
+                ImGui.TextUnformatted("Hacé clic en la pantalla para usar el teclado.");
+                ImGui.EndMenu();
+            }
+            if (ImGui.BeginMenu("Controles de la partida"))
+            {
+                DrawControlsHelp();
+                ImGui.EndMenu();
+            }
+            if (ImGui.BeginMenu("Atajos"))
+            {
+                ImGui.TextUnformatted("Ctrl+L: tus juegos    Ctrl+M: modificar");
+                ImGui.TextUnformatted(_host.C64 != null ? "F2: guardar estado    F4: cargar estado" : "F2: guardar estado    F3: cargar estado");
+                ImGui.TextUnformatted("F8: turbo    F9: pausa    F11: pantalla completa");
+                ImGui.TextUnformatted("Ctrl+K: código    F10: paso    F12: depurador");
+                ImGui.EndMenu();
+            }
             ImGui.EndMenu();
         }
         ImGui.EndMainMenuBar();
+    }
+
+    private void DrawControlsHelp()
+    {
+        if (_host.Fusion is Retro.Studio.StudioSession fusion)
+        {
+            ImGui.TextWrapped(fusion.Game.HowToPlay);
+            return;
+        }
+        switch (_host.Machine?.Id)
+        {
+            case "zx48":
+                ImGui.TextUnformatted("Teclado: letras y números del juego.");
+                ImGui.TextUnformatted("Shift: CAPS SHIFT    Ctrl: SYMBOL SHIFT    Backspace: DELETE");
+                ImGui.TextUnformatted("Joystick: flechas y Alt. Elegí el tipo en Máquina.");
+                break;
+            case "c64":
+                ImGui.TextUnformatted("Joystick: flechas y Alt o Ctrl derecho.");
+                ImGui.TextUnformatted("Si no responde, cambiá el puerto en Máquina > Joystick.");
+                ImGui.TextUnformatted("Esc: RUN/STOP    RePág: RESTORE    Ctrl izquierdo: C=    Tab: CTRL");
+                ImGui.TextUnformatted("F1, F3, F5 y F7 son las teclas del C64.");
+                break;
+            case "nes":
+                ImGui.TextUnformatted("Flechas: mover    X: A    Z: B");
+                ImGui.TextUnformatted("Enter: Start    Shift derecho: Select");
+                break;
+            case "invaders":
+                ImGui.TextUnformatted("Flechas o A/D: mover    Espacio: disparar");
+                ImGui.TextUnformatted("5 o C: moneda    1/2: empezar    T: tilt");
+                break;
+            default:
+                ImGui.TextUnformatted("Abrí un juego para ver sus controles.");
+                break;
+        }
     }
 
     /// <summary>
@@ -792,9 +824,8 @@ public sealed class RetroApp
     private void DrawOriginalGames()
     {
         if (!ImGui.BeginMenu("   Juegos originales##originales")) return;
-        ImGui.TextDisabled("Los originales se conservan aunque crees o juegues una fusión.");
         ImGui.SetNextItemWidth(300);
-        ImGui.InputTextWithHint("##buscar-original", "Buscar por nombre (ej.: Spy)", ref _originalSearch, 150);
+        ImGui.InputTextWithHint("##buscar-original", "Buscar por nombre", ref _originalSearch, 150);
         ImGui.Separator();
         var games = _library.Originals(_originalSearch).ToList();
         if (games.Count == 0)
@@ -838,7 +869,6 @@ public sealed class RetroApp
             string.Join(" + ", games.Select(g => Retro.Fusion.ProfileLibrary.Find(g.Profile)?.Name ?? g.Profile));
         string Missing(IEnumerable<Retro.Fusion.RecipeGame> games) =>
             string.Join(", ", games.Where(g => !have.Contains(g.Profile)).Select(g => Retro.Fusion.ProfileLibrary.Find(g.Profile)?.Name ?? g.Profile));
-        ImGui.TextDisabled("Creados con IA (un juego nuevo que mezcla los originales):");
         if (studio.Count == 0)
             ImGui.TextDisabled("   Ninguno todavía: Fusión > Crear juego fusionado con IA.");
         foreach (var s in studio)
@@ -852,7 +882,6 @@ public sealed class RetroApp
                 ImGui.TextDisabled($"   {s.Title}: falta {Missing(s.Games)} en tu carpeta");
         }
         ImGui.Separator();
-        ImGui.TextDisabled("Para crear otro juego con escena propia: Fusión > Crear juego fusionado con IA.");
         ImGui.EndMenu();
     }
 
@@ -1259,9 +1288,7 @@ public sealed class RetroApp
             else
                 _errorPopup = "No existe el archivo " + _testPath;
         }
-        ImGui.TextDisabled(m.Id == "invaders"
-            ? "Ejemplo: INR A / JMP $2000 (bucle en la RAM de trabajo)."
-            : "Ejemplo: cambia el borde en bucle (LD A,2 / OUT ($FE),A / INC A / JR).");
+        ImGui.TextDisabled("Escribí bytes en hexadecimal o cargá un archivo binario.");
         ImGui.End();
     }
 }

@@ -53,8 +53,6 @@ public sealed class GamesWindow(GameLibrary library, Action<string> playOriginal
         if (!open) Close();
         if (shown)
         {
-            ImGui.TextColored(new Vector4(1, 0.85f, 0.3f, 1), "Elegí un juego y empezá a jugar");
-            ImGui.TextWrapped("Tus originales, las fusiones y los juegos nuevos tienen su propio lugar.");
             if (ImGui.Button("Abrir archivo...")) { Close(); browse(); }
             ImGui.SameLine();
             if (ImGui.Button("Fusionar juegos")) { Close(); fuse(); }
@@ -74,7 +72,6 @@ public sealed class GamesWindow(GameLibrary library, Action<string> playOriginal
             {
                 if (ImGui.BeginTabItem("Originales"))
                 {
-                    ImGui.TextDisabled("Siempre disponibles, aunque también tengan una fusión.");
                     var games = library.Originals(_search).ToList();
                     if (BeginList())
                     {
@@ -83,12 +80,11 @@ public sealed class GamesWindow(GameLibrary library, Action<string> playOriginal
                                 () => playOriginal(game.Path), game.NotYet == null && game.Confidence >= 50);
                         ImGui.EndTable();
                     }
-                    if (games.Count == 0) ImGui.TextWrapped(library.Scanning ? "Buscando tus juegos..." : "No hay originales con ese nombre. Podés abrir un archivo con el botón de arriba.");
+                    if (games.Count == 0) ImGui.TextWrapped(library.Scanning ? "Buscando juegos..." : "No hay resultados. Usá Abrir archivo para agregar un juego.");
                     ImGui.EndTabItem();
                 }
                 if (ImGui.BeginTabItem("Fusionados"))
                 {
-                    ImGui.TextDisabled("Juegos que combinan tus originales. Cada entrada abre su última versión.");
                     var have = library.Entries.Where(e => e.ProfileId != null).Select(e => e.ProfileId!).ToHashSet();
                     var games = _fusions.Where(g => Matches(g.Title)).ToList();
                     if (BeginList())
@@ -102,12 +98,11 @@ public sealed class GamesWindow(GameLibrary library, Action<string> playOriginal
                         }
                         ImGui.EndTable();
                     }
-                    if (games.Count == 0) ImGui.TextWrapped("No hay fusiones con ese nombre. Usá Fusionar juegos para inventar una.");
+                    if (games.Count == 0) ImGui.TextWrapped("No hay resultados. Usá Fusionar juegos para crear una fusión.");
                     ImGui.EndTabItem();
                 }
                 if (ImGui.BeginTabItem("Creados"))
                 {
-                    ImGui.TextDisabled("Juegos nuevos hechos desde cero.");
                     var games = _created.Where(g => Matches(g.Title)).ToList();
                     if (BeginList())
                     {
@@ -116,7 +111,7 @@ public sealed class GamesWindow(GameLibrary library, Action<string> playOriginal
                                 () => playOriginal(game.ProgramPath), File.Exists(game.ProgramPath));
                         ImGui.EndTable();
                     }
-                    if (games.Count == 0) ImGui.TextWrapped("No hay juegos creados con ese nombre. Usá Crear un juego para empezar uno.");
+                    if (games.Count == 0) ImGui.TextWrapped("No hay resultados. Usá Crear un juego para empezar.");
                     ImGui.EndTabItem();
                 }
                 ImGui.EndTabBar();

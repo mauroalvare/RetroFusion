@@ -105,8 +105,7 @@ public sealed class CreatorWindow
 
     private void DrawNew()
     {
-        ImGui.TextWrapped("La IA escribe un juego ORIGINAL en ensamblador para una máquina de verdad (emulada), lo prueba con un " +
-                          "jugador robot y lo corrige hasta que anda. También podés empezar uno vos desde la plantilla y editarlo.");
+        ImGui.TextWrapped("Elegí una máquina y describí el juego que querés crear.");
         ImGui.TextUnformatted("Máquina:");
         for (int i = 0; i < Templates.All.Count; i++)
         {
@@ -116,17 +115,14 @@ public sealed class CreatorWindow
         AiPicker.Combo(_ai, "##ia-crear");
         bool callable = AiPicker.IsApi(_ai.Provider);
         if (callable)
-            AiPicker.Settings(_ai, "Cada intento es un pedido a la IA; un juego suele llevar de 1 a 5.");
+            AiPicker.Settings(_ai, "La creación puede necesitar varios pedidos a la IA.");
         else if (_ai.Provider == "manual")
-            AiPicker.Hint("Te doy la consigna para pegar en el chat de tu IA y vos pegás acá su respuesta. El emulador prueba el juego y, si falla, " +
-                          "te da el texto para devolvérselo.");
+            AiPicker.Hint("Copiá el pedido a tu chat y pegá acá la respuesta.");
         else
-            AiPicker.Hint("El emulador arma una carpeta con la tarea, la guía de la máquina y la plantilla. Tu agente escribe juego.s; " +
-                          "el emulador lo prueba solo cada vez que lo guarda y le deja informe.md y captura.png.");
+            AiPicker.Hint("Prepará la carpeta y pasale la tarea a tu agente.");
         ImGui.TextUnformatted("Qué juego querés (opcional):");
         ImGui.InputTextMultiline("##pedido-crear", ref _wish, 1000, new Vector2(-1, 44));
-        AiPicker.Hint("Ej.: \"un faro que guía barcos en una tormenta\", \"un laberinto con fantasmas tímidos\", \"algo para dos jugadores\". " +
-                      "Vacío: la IA sortea un género, un mundo, un tono y una regla rara, distintos cada vez.");
+        AiPicker.Hint("Dejalo vacío si preferís que la IA elija la idea.");
         ImGui.BeginDisabled(Busy || _agentDir != null);
         if (ImGui.Button(callable ? "Escribir el juego con IA" : _ai.Provider == "manual" ? "Preparar la consigna" : "Preparar la carpeta del agente"))
         {
@@ -179,7 +175,7 @@ public sealed class CreatorWindow
         if (ImGui.Button(_manualDraft == null ? "1. Copiar la consigna" : "1. Copiar el pedido de corrección"))
         {
             ImGui.SetClipboardText(_manualPrompt);
-            _progress = "Copiado: pegalo en el chat de tu IA y copiá toda su respuesta.";
+            _progress = "Pedido copiado. Pegalo en tu chat y traé la respuesta completa.";
         }
         ImGui.TextUnformatted("2. Pegá acá la respuesta completa:");
         ImGui.InputTextMultiline("##respuesta-crear", ref _pasted, 200_000, new Vector2(-1, 90));
@@ -188,7 +184,7 @@ public sealed class CreatorWindow
             TryPasted();
         ImGui.EndDisabled();
         ImGui.SameLine();
-        if (ImGui.SmallButton("Dejar"))
+        if (ImGui.SmallButton("Cancelar##manual"))
         {
             _manualPrompt = null;
             _manualDraft = null;
@@ -207,7 +203,7 @@ public sealed class CreatorWindow
         if (ImGui.Button("Copiar la instrucción para el agente"))
         {
             ImGui.SetClipboardText($"Trabajá en la carpeta {_agentDir}: leé TAREA.md y seguí sus instrucciones.");
-            _progress = "Copiado: pegalo en tu agente (Claude Code, Codex, Antigravity...).";
+            _progress = "Instrucción copiada. Pegala en tu agente.";
         }
         ImGui.SameLine();
         if (ImGui.SmallButton("Dejar de esperar"))
@@ -293,12 +289,16 @@ public sealed class CreatorWindow
             Directory.CreateDirectory(CreatedGames.UserFolder);
             Process.Start(new ProcessStartInfo { FileName = CreatedGames.UserFolder, UseShellExecute = true });
         }
-        ImGui.SameLine();
-        ImGui.TextDisabled(CreatedGames.UserFolder);
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip(CreatedGames.UserFolder);
         if (_games.Count == 0)
         {
             AiPicker.Hint("Todavía no hay ninguno.");
             return;
+        }
+        if (ImGui.TreeNode("Editar juegos a mano"))
+        {
+            AiPicker.Hint("Abrí la carpeta del juego y modificá juego.s. Después usá Probar de nuevo.");
+            ImGui.TreePop();
         }
         foreach (var g in _games)
         {
@@ -332,7 +332,6 @@ public sealed class CreatorWindow
                 ImGui.TextWrapped(g.Trial);
                 ImGui.TreePop();
             }
-            AiPicker.Hint("Para cambiarlo a mano: editá juego.s en su carpeta y apretá Probar de nuevo.");
             ImGui.PopID();
         }
     }

@@ -38,8 +38,8 @@ internal sealed class AiBuildWindow(string id, string title = "Construcción del
             {
                 ImGui.TextUnformatted(activity.Status);
                 ImGui.TextDisabled(activity.OutputCharacters == 0
-                    ? "Esta llamada todavía no emitió texto."
-                    : $"Última salida hace {Duration(activity.QuietFor)} · {activity.OutputCharacters:N0} caracteres en esta llamada.");
+                    ? "Todavía no hay salida."
+                    : $"Sin salida nueva hace {Duration(activity.QuietFor)} · {activity.OutputCharacters:N0} caracteres");
                 ImGui.BeginChild("salida", new Vector2(0, -70), ImGuiChildFlags.Borders, ImGuiWindowFlags.HorizontalScrollbar);
                 bool atBottom = ImGui.GetScrollY() >= ImGui.GetScrollMaxY() - 2;
                 ImGui.TextUnformatted(activity.Output.Length > 0 ? activity.Output : "Esperando salida del CLI...");
@@ -48,7 +48,7 @@ internal sealed class AiBuildWindow(string id, string title = "Construcción del
             }
             else
                 ImGui.TextWrapped(_cli != null ? "Preparando la llamada al CLI..." : "Esperando la respuesta de la IA...");
-            ImGui.TextWrapped("Se muestra lo que la herramienta envía; algunas entregan todo el texto recién al terminar.");
+            AiPicker.Hint("Algunas herramientas muestran la respuesta recién al terminar.");
             if (busy && cancellation != null && ImGui.Button("Cancelar##construccion")) cancellation.Cancel();
         }
         ImGui.End();
