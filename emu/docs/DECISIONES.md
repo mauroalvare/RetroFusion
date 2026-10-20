@@ -111,3 +111,14 @@ de actividad se limita. La salida queda en memoria y se comparte con el panel
 **Abrir construcción** del estudio y del creador. No se cambia `IAiProvider`, el formato
 de respuesta ni los argumentos de los CLI. El contador es tiempo transcurrido; no es
 un porcentaje de avance ni revela texto que el CLI todavía no haya emitido.
+
+## D-016 Diseños de fusión sin una plantilla universal (2026-10-20)
+
+Las guías dejan de imponer base/héroe invitado, tres niveles y carteles por novedad.
+Se piden unión mecánica, regla única y diferencia frente a diseños anteriores. Los
+conceptos incorporan `mechanicLink`, `uniqueRule` y `difference`; los conceptos guardados
+anteriores siguen leyéndose, y el documento de diseño se guarda como texto igual que antes.
+La escritura directa y las propuestas reciben un resumen acotado de los diseños previos
+de la misma combinación. No se envía el guion completo de Manic Invaders como molde.
+Los estados de prueba no prescriben menús ni presentación. El validador comprueba ejecución
+y jugabilidad básica, no puede garantizar originalidad ni reemplaza comparar partidas.

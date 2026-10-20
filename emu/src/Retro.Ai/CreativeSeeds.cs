@@ -106,8 +106,9 @@ public static class CreativeSeeds
         if (list.Count > 0)
             sb.AppendLine("Ya existen estas fusiones con estos juegos: no las repitas ni copies su presentación (título, HUD, menús): " +
                           string.Join("; ", list) + ".");
-        sb.AppendLine("Cada idea inventa su propia presentación (pantalla de título, HUD, menús, transiciones y paleta): nada de copiar la del ejemplo " +
-                      "ni repetir la de otra idea. Dibujá siempre una escena propia con sprites y tiles: como Manic Invaders, nunca con pantallas de los originales.");
+        sb.AppendLine("Las semillas son posibilidades, no una receta: la unión mecánica de los originales manda. Cada idea debe cambiar decisiones centrales, " +
+                      "no solo el estilo. Aplicá la prueba de quitar un original y describí la regla única. No hay menú ni progresión universal: " +
+                      "diseñá presentación, avisos y ritmo para esta idea. Dibujá una escena propia con sprites y tiles, sin copiar la del ejemplo.");
         return sb.ToString();
     }
 }

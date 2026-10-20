@@ -77,6 +77,35 @@ public class DesignerTests
     }
 
     [Test]
+    [NonParallelizable]
+    public async Task DirectWriting_ReceivesEarlierMechanicsButNotAnExampleToClone()
+    {
+        string previous = StudioLibrary.UserFolder;
+        string dir = Path.Combine(Path.GetTempPath(), "retro-designs-" + Guid.NewGuid());
+        try
+        {
+            StudioLibrary.UserFolder = dir;
+            StudioLibrary.Save(new StudioGame { Id = "senderos", Title = "Senderos vivos", Games = Slots,
+                Pitch = "Las balas construyen rutas para escapar.",
+                Design = "El mapa decide el rebote de los proyectiles. Avisos mediante luces en el terreno.",
+                Script = "function draw() {}" });
+            var ai = new ScriptedAi(Answer("Otra unión", "// bien"));
+            await new StudioDesigner().WriteAsync(ai, Slots, ProfileLibrary.Find,
+                new GameConcept("", "", "otra mezcla", ""), Fake, CancellationToken.None);
+            var sent = ai.Requests.Single();
+            Assert.That(sent.Turns[0].Text, Does.Contain("Las balas construyen rutas").And.Contain("luces en el terreno"));
+            Assert.That(sent.System, Does.Not.Contain(StudioDesigner.ExampleScript.Trim()), "no enviar un juego entero como molde");
+            var parsed = StudioDesigner.ParseConcepts("""{"ideas":[{"title":"Nueva","mechanicLink":"robar altera el mapa","uniqueRule":"dos riesgos inseparables","difference":"el espacio deja de ser fijo"}]}""");
+            Assert.That(parsed.Single().Design, Does.Contain("robar altera el mapa").And.Contain("el espacio deja de ser fijo"));
+        }
+        finally
+        {
+            StudioLibrary.UserFolder = previous;
+            if (Directory.Exists(dir)) Directory.Delete(dir, true);
+        }
+    }
+
+    [Test]
     public async Task Write_SendsTheTestFailureBackAndKeepsTheFixedVersion()
     {
         var ai = new ScriptedAi(Answer("Mi juego", "function tick() { x(); }"), Answer("Mi juego", "// bien\nfunction tick() {}"));

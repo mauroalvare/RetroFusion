@@ -4,7 +4,8 @@ Un juego fusionado es un guion de JavaScript que corre encima de juegos de 8 bit
 **emulados de verdad**. Cada juego original sigue funcionando con su propio código (sus
 enemigos, su física, sus niveles, su sonido). El guion los conecta: lee y escribe su
 memoria, aprieta sus teclas, los pausa o acelera, y arma **una sola pantalla** con partes
-de sus pantallas y con sus sprites originales.
+de sus datos, tiles y sprites originales. La unión tiene que afectar las decisiones del
+jugador; un original no puede quedar reducido a decoración.
 
 El guion es JavaScript estándar (ES2020, sin módulos ni `import`, sin acceso a archivos ni
 a internet). Cada llamada a `tick` o `draw` tiene un límite de tiempo: nada de bucles
@@ -69,6 +70,10 @@ Todo se dibuja de nuevo en cada `draw()`. Colores 0xRRGGBB.
 | `screen.text(texto, x, y, color, {scale, center})` | Texto con la letra del ZX Spectrum (8x8 píxeles por letra). Con `center: true`, `x` es el centro. |
 
 ## El estado del juego: `game` (obligatorio)
+
+Estos estados son instrumentación: no obligan a usar el mismo menú, carteles, HUD o
+estructura de niveles en todas las fusiones. Una introducción puede estar integrada en
+el mundo; un nivel puede representar una ronda o fase sin una tarjeta de transición.
 
 La prueba automática y la ventana del emulador necesitan saber qué pasa en el juego:
 

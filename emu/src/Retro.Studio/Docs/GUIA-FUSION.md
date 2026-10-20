@@ -1,194 +1,122 @@
-# Método para fusionar juegos y que salga un juego jugable
+# Método para inventar una fusión única y jugable
 
-Este método sirve para cualquier combinación de juegos (2, 3 o más) y para cualquier IA o
-agente. Seguilo en orden. El error más común es poner un poco de un juego y un poco del
-otro, uno encima del otro: eso no es un juego, es ruido. Una fusión buena se juega como
-**un solo juego** que alguien que nunca vio los originales entiende en 10 segundos.
+Fusionar significa crear una regla de juego que nace del encuentro de los originales.
+No alcanza con cambiar sprites, juntar enemigos o decorar un juego con elementos del otro.
+La misma pareja puede dar juegos completamente diferentes: no existe una receta universal.
 
-## 1. Entender cada juego
+## 1. Entender qué hace especial a cada original
 
-Para cada juego, anotá en una línea:
+Para cada juego identificá su verbo, objetivo, riesgo, recurso y una regla reconocible.
+Buscá relaciones entre esas reglas, no solo parecidos visuales. Un laberinto puede cambiar
+la trayectoria de disparos; robar un objeto puede cambiar quién persigue a quién; destruir
+enemigos puede abrir rutas que cambian cómo se combate. Son posibilidades, no moldes.
 
-- **Verbo principal:** qué hace el jugador todo el tiempo (disparar, saltar, esquivar, juntar, manejar).
-- **Objetivo:** cómo se gana o se avanza (limpiar la oleada, juntar las llaves y salir).
-- **Amenazas:** qué te mata.
-- **Recurso o tensión:** qué te apura (aire, tiempo, munición, combustible).
-- **Lo más reconocible:** el personaje, los enemigos, un sonido, un gráfico.
+## 2. Encontrar el punto de unión
 
-## 2. Elegir UN juego base y UN héroe
+Proponé una **regla inseparable**: explicá cómo una acción procedente de un juego transforma
+las decisiones del otro. Escribí un ejemplo concreto de diez segundos de partida.
 
-- El **juego base** inspira el bucle principal (lo que hacés cada segundo) y los
-  controles como referencia de diseño; el guion dibuja una escena propia con sus piezas. Normalmente es el más simple de entender.
-- El **héroe** es el personaje que maneja el jugador. Puede venir de otro juego (con su
-  sprite y su habilidad característica): eso suele ser lo más divertido.
-- Los controles siguen las costumbres del género del juego base: en un juego de disparos,
-  **Espacio y Ctrl disparan** (en el guion, `input.jump` y `input.fire` disparan los dos);
-  en uno de plataformas, Espacio y flecha arriba saltan. Como máximo 3 acciones. Si hay
-  disparo y salto a la vez, uno va a la flecha arriba.
+- **Prueba de quitar un original:** si quitás cualquiera de los juegos y el bucle principal
+  sigue siendo el mismo, falta integración. Un aporte solo gráfico o sonoro no alcanza.
+- Puede haber un juego base, una mezcla equilibrada o un género nuevo. No impongas siempre
+  base + héroe invitado + recurso. En `baseGame` podés escribir "ninguno dominante".
+- Elegí un protagonista, varios, un tablero o un sistema según lo que se juega. No todos
+  los diseños necesitan un héroe, vidas, disparos, plataformas o enemigos.
+- Conservá lo reconocible de cada original, transformá sus reglas y explicá qué descartás.
+  Nunca inventes direcciones de memoria ni capacidades que los perfiles no ofrecen.
 
-## 3. Elegir de 1 a 3 aportes de los otros juegos
+## 3. Diferenciar las propuestas y las versiones existentes
 
-Un **aporte** es una pieza de otro juego que **cambia una decisión del jugador** dentro
-del bucle base. Cada aporte tiene que responder: "¿qué hace distinto el jugador gracias a
-esto?". Si no cambia nada, sacalo.
+Compará tus ideas con las fusiones anteriores incluidas en el pedido. Cambiar nombre,
+color, cartel o posición del HUD no constituye una idea distinta. Variá el bucle de
+decisiones, el objetivo, la organización del espacio o la relación entre los juegos.
+Si el jugador pide una corrección pequeña, conservá su juego; si pide una fusión nueva,
+justificá en qué cambia realmente.
 
-Patrones de aportes que funcionan:
+Para cada propuesta describí la **unión mecánica**, su **regla única**, su **identidad**
+visual y jugable y la **diferencia** frente a las otras ideas y fusiones previas.
 
-| Patrón | Ejemplo |
-|---|---|
-| Héroe trasplantado | El minero de un juego de plataformas reemplaza a la nave: ahora puede saltar a plataformas. |
-| Recurso injertado | El aire o el combustible de un juego pasa a ser la presión del otro: si no atacás, te ahogás. |
-| Terreno que cumple otra función | Las plataformas que se rompen de un juego son los escudos del otro: te protegen de arriba pero se desgastan. |
-| Enemigo invitado | UN tipo de enemigo de otro juego aparece en el base con una regla clara (patrulla el piso, hay que saltarlo). |
-| Premio invitado | El objeto que se junta en un juego da un poder en el otro (disparo triple por unos segundos). |
-| Máquinas conectadas | Una variable del original cambia una amenaza o un recurso en la escena nueva. |
-| Mundo que se transforma | El escenario propio cambia entre niveles con piezas de los originales y una transición clara. |
+## 4. Diseñar la partida y su presentación juntos
 
-Escribí también **qué se descarta** de cada juego (enemigos, trampas, reglas). Todo lo que
-no esté en la lista de aportes, se descarta. Una trampa que el jugador no puede reconocer
-(una planta que mata y nadie avisó) arruina el juego.
+Definí objetivo, controles y condición de final adecuados al género. La progresión puede
+ser una sala que evoluciona, rondas, un recorrido continuo, un mapa, una campaña o una
+partida breve. No hay una cantidad obligatoria de niveles ni una plantilla de menús.
 
-## 4. Reglas claras
+El título puede integrarse en el escenario, ser jugable o aparecer de forma breve. Una
+transición puede ocurrir dentro del mundo. Los avisos pueden ser animaciones, sonidos,
+cambios en el entorno o instrucciones contextuales. No detengas cada novedad con un cartel.
+El HUD puede ser lateral, mínimo, diegético o no hacer falta: mostrale al jugador solo la
+información que necesita, en el lugar y momento que le sirva.
 
-- **Objetivo** en una frase y **derrota** en una frase.
-- **Vidas** (o lo que haga de vida) y **puntaje**: el jugador tiene que poder saber cuánto le
-  queda y cómo le va, pero la forma de mostrarlo es libre.
-- **Progresión:** oleadas o niveles que empiezan fáciles y se ponen más difíciles.
-- **Dificultad inicial baja:** menos enemigos y más lentos que en el original al
-  principio. Si traés enemigos de un juego, traé **pocos** (una fila, no una pared).
-- **Justicia:** el jugador siempre tiene una manera de evitar cada peligro (moverse,
-  saltar, cubrirse, dispararle). Cajas de choque un poco más chicas que el sprite. Medio
-  segundo de invulnerabilidad al reaparecer.
-- **Recompensa:** cada cosa buena que hace el jugador tiene respuesta: sonido, explosión,
-  puntos, mensaje.
+Los mensajes del emulador y los estados para la prueba automática **no son un menú de
+juego obligatorio**. Cada fusión inventa su lenguaje visual, sus pantallas y su ritmo.
 
-## 5. Mundo, niveles e historia
+## 5. Escena propia y controles claros
 
-Un juego se siente como un juego (y no como una mezcla al azar) cuando tiene un mundo
-propio y un camino:
+- Dibujá una **escena propia** con sprites, tiles y datos originales. Manic Invaders sirve
+  como referencia de integración técnica, no como plantilla de género, menú o estructura.
+  `screen.game` está retirado: no uses pantallas completas, miniaturas ni reconstrucciones
+  de la imagen original con `g.pixel`; esa función sirve para observar, no para copiar cuadros.
+- Mantené legibles el espacio, las amenazas y los elementos interactivos. No hay una
+  distribución obligatoria de enemigos arriba y plataformas abajo: resolvelo según este
+  diseño, sin ocultar al jugador ni las amenazas detrás del terreno.
+- Usá pocos controles y explicalos dentro de la presentación elegida. En un juego de
+  disparos, Espacio/Ctrl disparan; si hay salto y disparo, diferenciá las acciones.
+- No copies título, carteles, HUD, mensajes, paleta o navegación de otra fusión como un
+  conjunto. No basta con recolorearlos.
 
-- **Premisa (historia):** 2 o 3 frases que expliquen por qué se cruzan los mundos y qué
-  quiere el héroe ("una flota invasora se posó sobre las minas; Willy tiene que juntar las
-  llaves y escapar antes de que aterrice"). Va en el título y le da sentido a cada regla.
-- **Niveles:** al menos 3, con mapas distintos. Si un perfil ofrece los niveles originales
-  (por ejemplo `g.cavernData(n)` en Manic Miner), usalos: son mapas diseñados y probados.
-  Si no, armá mapas propios con los mosaicos o sprites de los juegos.
-- **Una novedad por nivel:** cada nivel presenta UNA cosa nueva (un enemigo, una mecánica,
-  más velocidad) y la anuncia con un cartel. Nunca todo junto en el primer nivel.
-- **Presentar cada nivel:** el jugador se entera del nivel nuevo y de su novedad con una
-  forma propia de este juego (una tarjeta, un mapa de progreso, una viñeta, un narrador, un
-  cambio de paleta), con un momento de calma antes de que empiece.
-- **Final:** qué pasa al terminar el último nivel (pantalla de victoria) o, si es infinito,
-  cómo sigue subiendo la dificultad.
-- **Puntaje con sentido:** puntos por lo que importa (enemigos, objetos, terminar un nivel,
-  tiempo o recurso sobrante) y un récord visible.
+## 6. Instrumentación para poder probarlo
 
-## 6. Legibilidad (que se entienda la pantalla)
+El guion informa `game.state('title')`, `game.state('playing')` y `game.state('gameover')`,
+además de `game.score`, `game.death` y `game.level` cuando corresponde. Es el contrato de
+la prueba, no una orden de dibujar tres pantallas, tres niveles o un marcador convencional.
 
-- **Una escena propia obligatoria.** El modelo es **Manic Invaders**: lee cavernas,
-  sprites y variables de los originales y dibuja su propio mundo. Nunca muestra sus
-  pantallas. `screen.game` se retiró y hace fallar la prueba. Tampoco reconstruyas las
-  pantallas con recortes, miniaturas o `g.pixel`; dibujá tiles y sprites con reglas nuevas.
-- Los enemigos y proyectiles **no se dibujan encima de las plataformas o del terreno**:
-  reservá zonas (los enemigos arriba, el terreno abajo) o mové el terreno.
-- **Cada peligro con un color o forma propia**, distinto del héroe y del terreno. El héroe
-  siempre visible.
-- Como máximo unos 25 enemigos y 4 proyectiles enemigos en pantalla a la vez.
-- **Presentación propia:** el HUD, la pantalla de título, los menús y las transiciones se
-  diseñan para ESTE juego (un panel lateral, la información dentro del mundo, colores en vez
-  de números, un tablero, un narrador...). No uses siempre el mismo esquema de puntaje
-  arriba y barra abajo: dos fusiones no deberían parecerse al mirarlas.
-- **Mensajes cortos** cuando algo nuevo aparece por primera vez ("¡Cuidado: el guardián
-  patrulla el piso, saltalo!").
+El estado inicial permite entender objetivo y controles y empezar con start, Espacio o
+disparo; puede ser una introducción integrada en el mundo. El fin permite reiniciar con
+start, restaurando variables y los juegos originales que se usen. El contador de nivel
+puede representar una fase o ronda; no exige tarjetas entre ellas.
 
-## 7. Estructura obligatoria del guion
+## 7. Usar las máquinas originales con criterio
 
-El guion tiene que avisar en qué parte está con `game.state(...)`, e informar lo que pasa
-con `game.score`, `game.death` y `game.level`: así se puede probar automáticamente.
+Reutilizá comportamientos originales cuando suman al diseño; el guion los conecta y puede
+transformar sus consecuencias. Un original puede estar pausado si se usan sus datos o
+recursos para implementar su regla dentro de la nueva escena. Cada juego debe aportar
+una mecánica identificable aunque no haga falta ejecutar su pantalla todo el tiempo.
 
-1. **Título** (`game.state('title')`): nombre, objetivo y controles en pantalla. Los juegos
-   en pausa. Empieza con start, Espacio o disparo. La forma es libre: animado, jugable, una
-   viñeta, un menú propio.
-2. **Jugando** (`game.state('playing')`).
-3. **Fin** (`game.state('gameover')`): puntaje final y "start para jugar de nuevo". Al
-   apretar start, todo vuelve a empezar (`g.restart()` en cada juego, variables del guion
-   reiniciadas) y se pasa a jugando o al título.
-4. Cada vez que el jugador suma puntos: `game.score(puntos)`. Cada vez que pierde una vida:
-   `game.death('causa')` (ej. 'bomba', 'guardián', 'sin aire'). Al pasar de nivel u oleada:
-   `game.level(n)`.
+Controlá efectos ocultos que rompan la partida: pausar, reiniciar, ajustar velocidad y
+volumen o usar ayudas del perfil. Convertí coordenadas con una sola función y usala para
+dibujar y para los choques. Si falta un dato, indicá la limitación; no lo adivines.
 
-## 8. Usar los juegos originales con criterio
+## 8. Justicia, aprendizaje y prueba
 
-- Lo que el juego base hace bien (la formación que acelera, la física, la música)
-  **dejalo correr de verdad** y conectalo; no lo reprogrames.
-- Los otros juegos pueden aportar solo **gráficos y sonido** (sus sprites, sus mosaicos)
-  y estar en pausa: no hace falta que corran si no aportan comportamiento. Pausados y con
-  volumen 0 no molestan.
-- Si el original hace algo que rompe tu diseño (mata al personaje oculto, frena todo),
-  controlalo desde el guion: ayudas del perfil, `poke`, pausar, reiniciar.
-- Convertí coordenadas con UNA función (`toScene(o)`) y usala igual para dibujar y para
-  los choques.
+Empezá con una situación comprensible y un riesgo que se pueda evitar. Enseñá una novedad
+por vez mediante la forma que tenga sentido en este juego. Evitá trampas invisibles,
+reapariciones mortales y estrategias que ganen sin tomar decisiones.
 
-## 9. Probar y ajustar con números
+Los robots quieto, caminante y tirador ayudan a detectar fallos, pero no juzgan creatividad
+ni entienden todos los géneros. Interpretá el informe según el diseño: un puzle puede no
+tener disparos y una carrera puede no tener muertes. Explicá los límites de la prueba y
+probá a propósito las decisiones difíciles; no conviertas todo en un shooter para aprobar.
 
-La prueba automática juega con tres robots (uno quieto, uno que camina y salta al azar,
-uno que dispara sin parar) y mide:
+Mirá las capturas y verificá controles, progreso, final y reinicio. Si el jugador no puede
+entender la regla nueva, simplificá o enseñala mejor antes de sumar más elementos.
 
-- Si hay título, si start empieza el juego y si después del fin se puede volver a jugar.
-- Cuánto tarda cada robot en morir por primera vez, de qué muere y cuántos puntos suma.
+## Lista de control
 
-Valores sanos para un juego de acción: los robots activos sobreviven en promedio **más de 8
-segundos**; el que dispara **suma puntos**; ninguna causa de muerte explica casi todas
-las muertes (si todas son "bomba", hay demasiadas bombas).
+- [ ] Quitar cualquiera de los originales cambia una decisión central, no solo su aspecto.
+- [ ] Puedo describir la regla única y diez segundos concretos de partida.
+- [ ] La propuesta cambia el bucle o la relación entre juegos respecto de las anteriores.
+- [ ] Menús, HUD, avisos y progresión nacen de este diseño, sin una plantilla universal.
+- [ ] La escena es propia y no reconstruye pantallas originales.
+- [ ] Controles, objetivo y final se entienden; se puede reiniciar.
+- [ ] Los estados e informes permiten probar el juego, sin dictar su presentación.
+- [ ] Revisé jugabilidad y capturas; pasar el validador no demuestra calidad creativa.
 
-Los robots juegan al azar: no suben plataformas ni buscan llaves. Si el peligro está donde
-ellos no llegan, la prueba puede decir "nadie perdió una vida" aunque arriba haya tensión.
-En ese caso probá también la parte difícil a propósito (por ejemplo, poniendo al héroe ahí
-al empezar en una copia del guion) y mirá las capturas.
+## Anti-patrones
 
-**Buscá estrategias que rompan el juego:** si quedarse quieto en un lugar seguro es la
-mejor jugada (disparar desde abajo de un piso sin riesgo para siempre), falta una presión
-que obligue a moverse. Lo mejor es tener dos presiones, cada una resuelta con el verbo de
-un juego distinto (en Manic Invaders el aire solo vuelve con las llaves, que están donde
-caen las bombas, y disparar frena a la flota que baja).
-
-Cuidado con lo que el original hace "bien" pero rompe la fusión: el último invasor de
-Space Invaders es rapidísimo; en una pantalla más chica aterriza enseguida. Ajustalo
-(`g.speed`) para que sea justo. Si la prueba dice que es muy
-difícil, bajá cantidad y velocidad de enemigos (`g.speed`), agrandá los huecos, sumá
-cobertura. Si nadie suma puntos, revisá que los choques y los disparos funcionen.
-
-Mirá también las capturas: ¿se distingue el héroe? ¿se entiende qué te mata?
-
-## 10. Lista de control (todo tiene que ser "sí")
-
-- [ ] Se entiende como UN juego: hay un juego base, un héroe y de 1 a 3 aportes.
-- [ ] Cada aporte cambia una decisión del jugador.
-- [ ] Todo lo que no es aporte se descartó (no quedan trampas sin explicar).
-- [ ] Objetivo y derrota claros, vidas, puntaje, progresión.
-- [ ] Hay premisa (historia), al menos 3 niveles con mapas distintos, una novedad por nivel y un final.
-- [ ] La presentación (título, HUD, menús, transiciones) es propia de este juego, no la de otra fusión.
-- [ ] Empieza fácil: pocos enemigos y lentos.
-- [ ] Controles del género del juego base, como máximo 3 acciones, explicados en el título.
-- [ ] Nada se dibuja encima del terreno; cada peligro tiene color propio.
-- [ ] Título → jugando → fin → revancha, con `game.state`, `game.score`, `game.death`, `game.level`.
-- [ ] La prueba automática pasa sin problemas.
-
-## Anti-patrones (no hacer)
-
-- Dos juegos enteros corriendo a la vez y uno encima del otro.
-- Traer todos los enemigos del otro juego (una pared de 55 invasores que tapa el nivel).
-- Peligros del juego original que no se ven venir o no se explican.
-- Disparos enemigos constantes sin cobertura ni manera de esquivarlos.
-- Controles que contradicen al género (en un juego de naves, Espacio no dispara).
-- Ganar puntos sin acción del jugador, o no poder ganarlos nunca.
-- Que el jugador no sepa qué hacer al empezar.
-- Repetir la presentación de otra fusión (el mismo título, PUNTOS y RECORD arriba, la misma
-  barra de recurso) o hacer siempre el mismo tipo de juego con los mismos juegos.
-
-## Si a un juego le falta información
-
-Las ayudas del perfil (`g.willy()`, `g.aliens()`...) son la manera segura de saber dónde
-está cada cosa. Si hace falta algo que el perfil no tiene, se encuentra con el buscador de
-memoria del emulador (Código > Buscar variables) y se verifica dibujando cajas sobre
-capturas antes de usarlo. Nunca adivines una dirección de memoria.
+- Superponer juegos enteros o alternarlos sin una regla que los vincule.
+- Un juego intacto con el héroe, el color o los enemigos del otro como adorno.
+- Repetir base + héroe invitado + tres niveles + los mismos carteles en cada fusión.
+- Llamar "única" a una variante que solo cambia textos, colores o posiciones del HUD.
+- Usar el ejemplo técnico como guion inicial para cambiarle nombres.
+- Inventar datos de memoria, esconder peligros o declarar calidad creativa solo por aprobar robots.

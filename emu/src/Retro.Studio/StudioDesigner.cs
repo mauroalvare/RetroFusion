@@ -23,7 +23,7 @@ public sealed class StudioDesigner
     public const int MaxAttempts = 3;
 
     public static string ApiDoc { get; } = Resource("Docs.API.md");
-    /// <summary>The method every fusion follows (Docs/GUIA-FUSION.md): one base game, a hero, 1 to 3 contributions, levels, story, playtest.</summary>
+    /// <summary>Mechanic-led design, individual presentation and playtesting; no universal game template.</summary>
     public static string Method { get; } = Resource("Docs.GUIA-FUSION.md");
     private static StudioGame? Example => StudioLibrary.BuiltIn.FirstOrDefault(g => g.Id == "manic-invaders") ?? StudioLibrary.BuiltIn.FirstOrDefault();
     public static string ExampleScript { get; } = Example?.Script ?? "";
@@ -43,7 +43,7 @@ public sealed class StudioDesigner
         Sos un diseñador y programador de videojuegos retro, creativo y muy cuidadoso con la
         jugabilidad. Trabajás en RetroEmu, un emulador que corre juegos de 8 bits de verdad y
         permite FUSIONARLOS: un guion de JavaScript conecta los juegos emulados y arma con
-        ellos UN juego nuevo, jugable y divertido, en una sola pantalla, con historia y niveles.
+        ellos UN juego nuevo, jugable y divertido, con reglas inseparables e identidad propia.
         Dibujá una escena propia con sprites, tiles y variables de los originales, como Manic
         Invaders. screen.game se retiró y hace fallar la prueba: no uses pantallas enteras,
         superpuestas, lado a lado ni miniaturas de los juegos originales.
@@ -58,14 +58,10 @@ public sealed class StudioDesigner
 
         ## Referencia técnica: el guion de "Manic Invaders" (Space Invaders + Manic Miner)
 
-        Está para que veas cómo se usa la API en un juego completo (estados, niveles, choques,
-        sonido, game.score). NO es un estilo a copiar: no repitas su pantalla de título, su HUD
-        (PUNTOS y RECORD arriba), su barra de aire, sus tarjetas de nivel ni su estructura de
-        menús. Cada juego nuevo inventa su propia presentación.
-
-        ```javascript
-        {ExampleScript}
-        ```
+        NO es un estilo a copiar. No se incluye el guion completo para evitar usarlo como
+        molde. Usá la API documentada y resolvé desde cero las reglas de esta combinación.
+        No repitas su menú, sus carteles, su HUD ni su progresión. Cambiar colores no basta.
+        Antes de programar aplicá la prueba de quitar un original y explicá la regla única.
         """;
 
     /// <summary>Everything the AI must know about each game: picture, variables, controls, sprites, helpers.</summary>
@@ -113,12 +109,15 @@ public sealed class StudioDesigner
     {
         ("baseGame", "Juego base"),
         ("hero", "Héroe"),
-        ("contributions", "Aportes de los otros juegos (de 1 a 3, cada uno con qué decisión cambia)"),
+        ("contributions", "Aportes de cada original y decisiones que cambian"),
+        ("mechanicLink", "Unión mecánica inseparable (qué cambia al quitar cualquiera de los juegos)"),
+        ("uniqueRule", "Regla única y ejemplo de diez segundos de partida"),
+        ("difference", "Diferencia mecánica frente a las otras ideas y fusiones previas"),
         ("discarded", "Se descarta"),
         ("goal", "Objetivo"),
         ("lose", "Derrota"),
         ("story", "Historia"),
-        ("levels", "Niveles (al menos 3, una novedad por nivel, y el final)"),
+        ("levels", "Progresión propia (fases, rondas, mundo continuo o niveles según el diseño)"),
         ("controls", "Controles"),
         ("presentation", "Presentación propia (pantalla de título, HUD, menús, transiciones y paleta)"),
         ("readability", "Legibilidad"),
@@ -175,10 +174,11 @@ public sealed class StudioDesigner
             : $"Lo que quiere el jugador: \"{wish.Trim()}\". Proponé 3 ideas que respeten ese pedido, con enfoques distintos.");
         var existing = StudioLibrary.For(slots.Select(s => s.Profile)).Select(g => $"\"{g.Title}\" ({g.Approach})");
         sb.Append(CreativeSeeds.Brief(Random.Shared, 3, existing, !string.IsNullOrWhiteSpace(wish)));
+        sb.Append(PreviousDesigns(slots));
         sb.AppendLine("Seguí el método (pasos 1 a 6). Cada idea es un juego completo con: title (nombre del juego nuevo), approach " +
                       "(el enfoque de la mezcla en una frase), pitch (la premisa: 2 a 4 oraciones), howToPlay (objetivo y controles) y el " +
                       "documento de diseño: " + string.Join(", ", DesignFields.Select(f => $"{f.Key} ({f.Label.ToLowerInvariant()})")) + ". " +
-                      "Tienen que ser realizables con la API y las ayudas de los perfiles (usá los niveles originales si un perfil los ofrece). " +
+                      "Tienen que ser realizables con la API y las ayudas de los perfiles. No hay menú, número de niveles ni género obligatorio. " +
                       "Antes de responder, revisá cada idea con la lista de control y con los anti-patrones, y descartá las que no la pasen.");
         return sb.ToString();
     }
@@ -226,7 +226,7 @@ public sealed class StudioDesigner
 
     private const string AnswerShape =
         "Devolvé title, approach, pitch (la premisa), howToPlay, design (el documento de diseño completo y actualizado, una línea por " +
-        "parte: juego base, héroe, aportes, se descarta, objetivo, derrota, historia, niveles, controles, presentación, legibilidad), changes (qué " +
+        "parte: unión mecánica, regla única, diferencia, aportes, se descarta, objetivo, final, progresión, controles, presentación, legibilidad), changes (qué " +
         "hiciste o cambiaste, en una o dos oraciones) y script (el guion de JavaScript COMPLETO, no solo los cambios).";
 
     public static string WritePrompt(IReadOnlyList<RecipeGame> slots, Func<string, GameProfile?> find, GameConcept concept)
@@ -235,6 +235,7 @@ public sealed class StudioDesigner
         sb.AppendLine("Escribí el juego fusionado con estos juegos:");
         sb.AppendLine();
         sb.Append(GamesText(slots, find));
+        sb.Append(PreviousDesigns(slots));
         if (string.IsNullOrWhiteSpace(concept.Title))
             sb.AppendLine("La idea del jugador (inventale un buen título y completá lo que falte): " + concept.Pitch);
         else
@@ -252,11 +253,23 @@ public sealed class StudioDesigner
         else
             sb.AppendLine("Todavía no hay documento de diseño: armalo primero siguiendo el método (pasos 1 a 6) y después escribí el guion.");
         sb.AppendLine();
-        sb.AppendLine("Escribí el guion completo, jugable de punta a punta, siguiendo el método: título con historia y controles, niveles con " +
-                      "una novedad cada uno, choques justos, puntaje, mensajes, sonido, fin del juego y revancha, y game.state, " +
+        sb.AppendLine("Escribí el guion completo, jugable de punta a punta, con la regla única y una progresión adecuada a su género. " +
+                      "Aplicá la prueba de quitar un original: ambos deben cambiar decisiones centrales. Presentación y avisos propios; game.state, " +
                       "game.score, game.death y game.level. La presentación (título, HUD, menús, transiciones, paleta) es la que dice el " +
                       "diseño, propia de este juego: no la del ejemplo ni la de otras fusiones. Antes de responder, revisá la lista de control.");
         sb.AppendLine(AnswerShape);
+        return sb.ToString();
+    }
+
+    private static string PreviousDesigns(IReadOnlyList<RecipeGame> slots)
+    {
+        var previous = StudioLibrary.For(slots.Select(s => s.Profile)).OrderByDescending(g => g.Created).Take(5).ToList();
+        if (previous.Count == 0) return "";
+        static string Limit(string text, int max) => text.Length <= max ? text : text[..max];
+        var sb = new StringBuilder("\nFusiones anteriores de esta combinación, solo para compararlas y NO copiarlas:\n");
+        foreach (var game in previous)
+            sb.AppendLine($"- {game.Title}: {Limit(game.Pitch, 400)}\n  Diseño: {Limit(game.Design, 1400)}");
+        sb.AppendLine("Explicá qué decisión central cambia en tu propuesta. No alcanza con otro nombre, cartel o HUD.\n");
         return sb.ToString();
     }
 

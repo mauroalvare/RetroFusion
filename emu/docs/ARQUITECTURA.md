@@ -402,11 +402,12 @@ Un juego fusionado es un juego nuevo en una sola escena dibujada por su guion:
   estructura (título, juego, fin, revancha), si se pueden sumar puntos, cuándo y de qué se
   muere, y si la imagen está viva. Los problemas hacen fallar la prueba; las notas son
   consejos. Su informe, con capturas, es lo que se le devuelve a la IA o al agente.
-- **El método** (`Docs/GUIA-FUSION.md`) va en cada pedido junto con la API y un ejemplo
-  que lo sigue (Manic Invaders, con su documento de diseño). Las ideas y los juegos llevan
-  un documento de diseño (juego base, héroe, aportes, descartes, objetivo, derrota,
-  historia, niveles, controles, legibilidad) que la IA escribe antes del guion y mantiene
-  en cada versión.
+- **El método** (`Docs/GUIA-FUSION.md`) y la API piden unión mecánica, regla única,
+  diferencia frente a otras propuestas e identidad propia. No se impone un juego base,
+  un número de niveles ni un menú. Los estados de la prueba son instrumentación.
+  Manic Invaders es una referencia técnica; su guion completo no viaja como molde.
+  Las propuestas y la escritura directa reciben un resumen acotado de diseños anteriores
+  de la misma combinación para evitar repetir su mecánica y presentación.
 - **`StudioDesigner`** tiene tres pasos: ideas (3 conceptos con enfoques distintos), escribir
   (guion + prueba + correcciones) y revisar (pedido del jugador + versión nueva). Las
   respuestas usan salidas estructuradas por API, o JSON + bloque de código desde un chat.
