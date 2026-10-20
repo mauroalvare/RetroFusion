@@ -2,18 +2,29 @@
 #   pwsh tools/publish.ps1                       -> Windows x64 + Linux x64
 #   pwsh tools/publish.ps1 -Runtimes osx-arm64   -> other targets
 param(
+    [ValidatePattern('^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$')]
     [string[]]$Runtimes = @("win-x64", "linux-x64"),
-    [string]$Version = "0.1.1"
+    [ValidatePattern('^\d+\.\d+\.\d+$')]
+    [string]$Version = "0.1.2"
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
-$dist = Join-Path $root "dist"
+$dist = [IO.Path]::GetFullPath((Join-Path $root "dist"))
+if ((Test-Path -LiteralPath $dist) -and ((Get-Item -LiteralPath $dist).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+    throw "La carpeta dist no puede ser un enlace."
+}
 New-Item -ItemType Directory -Force $dist | Out-Null
 
 foreach ($rid in $Runtimes) {
     $name = "RetroEmu-$Version-$rid"
-    $out = Join-Path $dist $name
-    if (Test-Path $out) { Remove-Item -Recurse -Force $out }
+    $out = [IO.Path]::GetFullPath((Join-Path $dist $name))
+    if ([IO.Directory]::GetParent($out).FullName -ne $dist) { throw "Destino fuera de dist: $out" }
+    if (Test-Path -LiteralPath $out) {
+        if ((Get-Item -LiteralPath $out).Attributes -band [IO.FileAttributes]::ReparsePoint) {
+            throw "El destino no puede ser un enlace: $out"
+        }
+        Remove-Item -LiteralPath $out -Recurse -Force
+    }
     Write-Host "== $name"
     foreach ($proj in "src/Retro.App", "src/Retro.Cli") {
         dotnet publish (Join-Path $root $proj) -c Release -r $rid --self-contained true -o $out `
@@ -25,12 +36,7 @@ foreach ($rid in $Runtimes) {
     Copy-Item (Join-Path $root "roms/48.rom") (Join-Path $out "firmware/48.rom")
     # free C64 firmware (Open ROMs, LGPL-3) with its license
     Copy-Item -Recurse -Force (Join-Path $root "roms/c64") (Join-Path $out "firmware/c64")
-    # the folders the player fills: games (never included) and fusion games
-    New-Item -ItemType Directory -Force (Join-Path $out "ROMs") | Out-Null
-    "Poné acá tus juegos (sueltos o en .zip). El emulador reconoce solo para qué máquina es cada uno." |
-        Set-Content (Join-Path $out "ROMs/LEEME.txt") -Encoding utf8
-    New-Item -ItemType Directory -Force (Join-Path $out "Juegos fusionados") | Out-Null
-    New-Item -ItemType Directory -Force (Join-Path $out "Juegos creados") | Out-Null
+    # Empty player-library folders would hide existing libraries in a parent folder.
     Copy-Item (Join-Path $root "README.md") (Join-Path $out "README.md")
     $playerDocs = Join-Path $out "docs"
     New-Item -ItemType Directory -Force $playerDocs | Out-Null
@@ -57,7 +63,7 @@ Los juegos no se incluyen.
 
     if ($rid.StartsWith("win")) {
         $zip = Join-Path $dist "$name.zip"
-        if (Test-Path $zip) { Remove-Item $zip }
+        if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip }
         Compress-Archive -Path $out -DestinationPath $zip
         Write-Host "   -> $zip"
     }

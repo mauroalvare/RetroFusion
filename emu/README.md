@@ -8,7 +8,7 @@ Jugá tus juegos originales, combiná sus reglas o creá un juego de 8 bits.
 2. En **Tus juegos**, elegí un título y pulsá **Jugar**.
 3. Para agregar uno, usá **Abrir archivo** o arrastralo a la ventana.
 
-También podés guardar tus archivos en la carpeta **ROMs** junto al programa.
+También podés crear una carpeta **ROMs** junto al programa para reunir tus archivos.
 Los juegos se consiguen por separado. Los originales siguen disponibles después de crear una fusión.
 
 ![Tus juegos](docs/img/interfaz/biblioteca.png)
@@ -21,6 +21,7 @@ muestra las teclas del juego o sistema activo. También se puede usar un mando.
 | Atajo | Acción |
 |---|---|
 | Ctrl+L | Abrir Tus juegos |
+| Ctrl+O | Abrir un archivo |
 | Ctrl+M | Modificar la partida |
 | F2 | Guardar estado rápido |
 | F3 / F4 en C64 | Cargar estado rápido |
@@ -30,6 +31,8 @@ muestra las teclas del juego o sistema activo. También se puede usar un mando.
 
 Las cintas pueden tardar en cargar. Si el joystick del C64 no responde,
 cambiá el puerto en **Máquina > Joystick**.
+Los estados guardados están disponibles en originales. Si un estado está dañado,
+la partida actual se conserva.
 
 ## Fusionar o crear
 
@@ -42,6 +45,8 @@ desde un chat, una carpeta para tu agente o una API. Las APIs tienen sus propias
 condiciones y cargos. Las herramientas instaladas usan los límites de tu cuenta.
 
 Durante un pedido, **Abrir construcción** muestra la actividad disponible y permite cancelar.
+Los juegos nuevos se guardan en **Documentos/RetroEmu**, o en las carpetas **Juegos fusionados**
+y **Juegos creados** que ya tengas junto al programa o en una carpeta superior.
 
 ## Modificar
 

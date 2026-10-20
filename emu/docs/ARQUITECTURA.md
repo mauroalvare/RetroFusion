@@ -443,11 +443,27 @@ acepta, como `additionalProperties`. `OllamaProvider` usa la API local de Ollama
 mismo esquema. Los chats sin API y los agentes se conectan copiando la consigna o con la
 carpeta de `AgentWorkspace`.
 
+Un proceso CLI que termina con código distinto de cero produce un error aunque haya
+escrito un borrador parcial. Los archivos temporales propios de respuesta y consignas
+largas se eliminan también al cancelar o agotar el tiempo. Las pruebas usan procesos
+simulados para cubrir éxito, error y cancelación.
+
 `CodeExplainer` le pasa a la IA una rutina desensamblada, las rutinas
 que llama con los nombres ya conocidos y las variables del perfil, y guarda la respuesta
 (nombre, explicación, pseudocódigo, comentarios) en las anotaciones del juego.
 
 ## Análisis de código
+
+`EmulatorHost` carga estados de originales con un punto de regreso de CPU, hardware,
+memoria y píxeles: si el lector rechaza el archivo, restaura ese punto antes de informar
+el error. El guardado en disco escribe un archivo temporal propio y luego reemplaza el
+destino; un fallo de escritura no destruye el estado anterior. La carga rápida conserva
+también la imagen para partidas en pausa. Cargar limpia el sonido pendiente y los objetivos
+temporales del depurador. Las fusiones no ofrecen estos comandos porque un estado de una
+máquina no incluye el guion ni las otras máquinas.
+
+Las bibliotecas omiten metadatos ilegibles o incompletos sin modificar los archivos del
+jugador. Los campos de texto anulados se normalizan antes de llegar a la interfaz.
 
 `CodeWindow` comparte el editor avanzado con la vista **Modificar**. `GameModifications`
 valida y aplica lotes de variables, mantiene congelados y conserva un único punto de

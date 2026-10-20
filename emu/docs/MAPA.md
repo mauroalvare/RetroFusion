@@ -122,7 +122,7 @@ $C probar out/juego.s                                        # la misma prueba p
 $C crear c64 out/tarea --ia agent --pedido "..."             # carpeta para un agente (TAREA.md, GUIA.md, juego.s)
 
 # paquetes autocontenidos (Windows y Linux) en emu/dist
-pwsh tools/publish.ps1 -Version 0.4.0
+pwsh tools/publish.ps1 -Version 0.1.2
 ```
 
 Teclas de `--press`: las de cada máquina (`SPACE`, `ENTER`/`RETURN`, `CAPS SHIFT`,
@@ -130,6 +130,11 @@ Teclas de `--press`: las de cada máquina (`SPACE`, `ENTER`/`RETURN`, `CAPS SHIF
 en la línea de comandos los espacios se escriben `_` (`JOY2_FIRE`).
 
 ## Ubicaciones fuera del repositorio
+
+Los paquetes no crean bibliotecas vacías: así se siguen encontrando las carpetas de juegos
+en un directorio superior al actualizar. Para una biblioteca portátil nueva, creá `ROMs`
+junto al ejecutable. Sin carpetas portátiles, los juegos creados y fusionados se guardan
+en Documentos/RetroEmu.
 
 | Ruta | Qué es |
 |---|---|

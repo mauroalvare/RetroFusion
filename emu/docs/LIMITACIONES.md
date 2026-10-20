@@ -192,9 +192,11 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 
 - En el C64, F1/F3/F5/F7 son teclas de la máquina: la carga rápida de estado pasa a F4 y
   el reinicio queda en el menú Máquina.
-- El release publicado en GitHub (v0.3.0) es anterior al C64. `Desktop\RetroEmu\Programa`
-  se compiló del commit d15a6c2 antes de los últimos retoques del CLI (`info` de C64 y
-  creación de máquinas C64 en fusiones). T-052.
+- Los estados guardados de la app corresponden a originales. Una fusión necesita guardar
+  también el guion y todas sus máquinas; hasta implementar ese formato, estas opciones
+  están deshabilitadas durante una fusión. Se puede reiniciar desde el estudio.
+- Los estados en archivo validan el formato de máquina, no el hash del juego. Hay que
+  usarlos con el mismo juego y firmware con que se guardaron.
 - `retrofusion/` (kit Python inicial) no tiene su punto de entrada `retro.py`: no se puede
   correr tal cual.
 

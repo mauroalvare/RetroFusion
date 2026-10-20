@@ -81,12 +81,15 @@ o crear; el código y el depurador se activan desde **Ver > Herramientas avanzad
 
 1. Bajá el paquete de **Releases** (Windows o Linux) y descomprimilo. No hace falta
    instalar nada.
-2. Poné tus juegos en la carpeta `ROMs` (sueltos o en .zip). No se incluyen juegos: usá
+2. Creá una carpeta `ROMs` junto al programa y poné ahí tus juegos (sueltos o en .zip). No se incluyen juegos: usá
    copias que tengas derecho a usar.
-3. Tus juegos fusionados van en `Juegos fusionados` (cada juego es una carpeta con un
-   `.json` y un `.js`; se pueden compartir).
+3. Los juegos nuevos se guardan en `Documentos/RetroEmu`, o en las carpetas
+   `Juegos fusionados` y `Juegos creados` si ya existen junto al programa o en una carpeta superior.
 4. Abrí `RetroEmu`, buscá un juego en **Tus juegos** y pulsá **Jugar**. También podés
    arrastrar un archivo o usar **Abrir archivo...**.
+
+Para actualizar, descomprimí la entrega en una carpeta nueva y conservá tus carpetas de juegos.
+Los estados guardados se ofrecen en los originales; las fusiones se reinician desde el estudio.
 
 Para compilarlo desde el código hace falta el .NET SDK 10:
 
