@@ -14,6 +14,35 @@ public class StudioGameTests
     private static StudioGame ManicInvaders() => StudioLibrary.BuiltIn.Single(g => g.Id == "manic-invaders");
 
     [Test]
+    public void BrokenStoredMetadata_DoesNotCloseTheLibraryOrChangePlayerFiles()
+    {
+        string previous = StudioLibrary.UserFolder;
+        string dir = Path.Combine(Path.GetTempPath(), "RetroEmu-metadata-" + Guid.NewGuid());
+        try
+        {
+            StudioLibrary.UserFolder = dir;
+            string own = Path.Combine(dir, "prueba");
+            Directory.CreateDirectory(own);
+            File.WriteAllText(Path.Combine(own, "v1.json"), "{\"id\":\"prueba\",\"script\":null}");
+            File.WriteAllText(Path.Combine(own, "v2.json"), "null");
+            File.WriteAllText(Path.Combine(own, "v3.json"), "{\"id\":\"prueba\",\"games\":[null],\"script\":\"function draw() {}\"}");
+            const string json = "{\"id\":\"prueba\",\"title\":null,\"pitch\":null,\"games\":null,\"version\":4,\"script\":\"function draw() {}\"}";
+            File.WriteAllText(Path.Combine(own, "v4.json"), json);
+            var game = StudioLibrary.AllVersions().Single(g => g.Id == "prueba");
+            Assert.That(game.Version, Is.EqualTo(4));
+            Assert.That(game.Title, Is.EqualTo("prueba"));
+            Assert.That(game.Pitch, Is.Not.Null);
+            Assert.That(game.ProfileIds, Is.Empty);
+            Assert.That(File.ReadAllText(Path.Combine(own, "v4.json")), Is.EqualTo(json));
+        }
+        finally
+        {
+            StudioLibrary.UserFolder = previous;
+            if (Directory.Exists(dir)) Directory.Delete(dir, true);
+        }
+    }
+
+    [Test]
     public void RetiredExample_IsNotBundledButAPlayerRewriteIsPreserved()
     {
         Assert.That(StudioLibrary.BuiltIn.Select(g => g.Id), Does.Not.Contain("pacman-mina"));

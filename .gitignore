@@ -5,6 +5,7 @@ obj/
 *.user
 __pycache__/
 *.pyc
+TestResults/
 
 # --- Salidas locales (capturas, paquetes, ventanas)
 emu/out/

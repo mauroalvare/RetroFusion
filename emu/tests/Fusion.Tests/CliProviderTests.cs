@@ -93,6 +93,49 @@ public class CliProviderTests
         Assert.That(answer.Trim(), Is.EqualTo("respuesta final de codex"));
     }
 
+    [TestCase("codex")]
+    [TestCase("agy")]
+    [TestCase("gemini")]
+    public void FailedProcess_DoesNotReturnAPartialAnswer(string tool)
+    {
+        string exe = Fake(tool, "more > nul\necho borrador incompleto\nexit /b 17");
+        var ai = new CliAgentProvider(tool == "codex" ? CliTools.Codex : CliTools.Google, exe);
+        var error = Assert.ThrowsAsync<AiException>(() => ai.CompleteAsync(Request(), CancellationToken.None));
+        Assert.That(error!.Message, Does.Contain("falló"));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task LongPrompt_RemovesOnlyItsOwnFileAfterTheProcess(bool fail)
+    {
+        string capture = Path.Combine(_dir, "argument.txt");
+        string exe = Fake("agy", $">\"{capture}\" echo %~2\necho respuesta\nexit /b {(fail ? 17 : 0)}");
+        var ai = new CliAgentProvider(CliTools.Google, exe);
+        var request = new AiRequest(new string('a', 25000), new[] { new AiTurn(true, "idea") }, null);
+        if (fail)
+            Assert.ThrowsAsync<AiException>(() => ai.CompleteAsync(request, CancellationToken.None));
+        else
+            await ai.CompleteAsync(request, CancellationToken.None);
+        string argument = File.ReadAllText(capture);
+        var match = System.Text.RegularExpressions.Regex.Match(argument, @"archivo (.+): leelo");
+        Assert.That(match.Success, Is.True, argument);
+        Assert.That(File.Exists(match.Groups[1].Value), Is.False, "la consigna temporal no queda abandonada");
+    }
+
+    [Test]
+    public async Task Cancel_RemovesThePartialLastMessage()
+    {
+        string capture = Path.Combine(_dir, "last-message.txt");
+        string exe = Fake("codex", $"more > nul\n>\"%~4\" echo borrador\n>\"{capture}\" echo %~4\necho trabajando\nping -n 30 127.0.0.1 > nul");
+        var ai = new CliAgentProvider(CliTools.Codex, exe);
+        using var cancellation = new CancellationTokenSource();
+        var task = ai.CompleteAsync(Request(), cancellation.Token);
+        await WaitForOutput(ai);
+        cancellation.Cancel();
+        Assert.CatchAsync<OperationCanceledException>(async () => await task);
+        Assert.That(File.Exists(File.ReadAllText(capture).Trim()), Is.False);
+    }
+
     [Test]
     public async Task Antigravity_ReturnsItsText()
     {

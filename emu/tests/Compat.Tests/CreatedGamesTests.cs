@@ -35,6 +35,36 @@ public class CreatedGamesTests
     }
 
     [Test]
+    public void LockedMetadata_DoesNotHideOtherGamesOrChangeFiles()
+    {
+        string locked = Path.Combine(_folder, "ocupado", "juego.json");
+        string good = Path.Combine(_folder, "bueno", "juego.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(locked)!);
+        Directory.CreateDirectory(Path.GetDirectoryName(good)!);
+        const string json = "{\"Title\":\"Mi juego\",\"Machine\":\"c64\"}";
+        File.WriteAllText(locked, json);
+        File.WriteAllText(good, json);
+        using (File.Open(locked, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            Assert.That(CreatedGames.All().Select(g => g.Folder), Is.EqualTo(new[] { Path.GetDirectoryName(good) }));
+        Assert.That(File.ReadAllText(locked), Is.EqualTo(json));
+    }
+
+    [Test]
+    public void NullMetadata_StaysSafeToDisplayAndUnknownMachinesAreSkipped()
+    {
+        string own = Path.Combine(_folder, "mi-juego", "juego.json");
+        string unknown = Path.Combine(_folder, "desconocido", "juego.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(own)!);
+        Directory.CreateDirectory(Path.GetDirectoryName(unknown)!);
+        File.WriteAllText(own, "{\"Title\":null,\"Pitch\":null,\"HowToPlay\":null,\"Author\":null,\"Request\":null,\"Trial\":null,\"Machine\":\"c64\"}");
+        File.WriteAllText(unknown, "{\"Machine\":null}");
+        var game = CreatedGames.All().Single();
+        Assert.That(game.Title, Is.EqualTo("mi-juego"));
+        Assert.That(new[] { game.Pitch, game.HowToPlay, game.Author, game.Request, game.Trial }, Is.All.Not.Null);
+        Assert.That(game.ProgramPath, Does.EndWith("juego.prg"));
+    }
+
+    [Test]
     public void TheExamples_AreCopiedOnce_ReadyToPlay()
     {
         Assert.That(CreatedGames.ExportExamples(_firmware), Is.EqualTo(2));

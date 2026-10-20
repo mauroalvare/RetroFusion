@@ -34,8 +34,23 @@ public sealed class StudioGame
     public string Author { get; set; } = "";
     public DateTime Created { get; set; } = DateTime.Now;
 
-    public static StudioGame Parse(string json) =>
-        JsonSerializer.Deserialize<StudioGame>(json, GameProfile.Json) ?? throw new InvalidDataException("Juego vacío.");
+    public static StudioGame Parse(string json)
+    {
+        var game = JsonSerializer.Deserialize<StudioGame>(json, GameProfile.Json)
+                   ?? throw new InvalidDataException("Juego vacío.");
+        game.Id ??= "";
+        game.Title = string.IsNullOrWhiteSpace(game.Title) ? game.Id : game.Title;
+        game.Pitch ??= "";
+        game.Approach ??= "";
+        game.HowToPlay ??= "";
+        game.Design ??= "";
+        game.Author ??= "";
+        game.Script ??= "";
+        game.Games ??= new();
+        if (game.Games.Any(g => g == null || string.IsNullOrWhiteSpace(g.Slot) || string.IsNullOrWhiteSpace(g.Profile)))
+            throw new InvalidDataException("La lista de originales contiene un juego incompleto.");
+        return game;
+    }
 
     public string ToJson() => JsonSerializer.Serialize(this, GameProfile.Json);
 
@@ -125,7 +140,12 @@ public static class StudioLibrary
             if (!Directory.Exists(folder))
                 continue;
             foreach (var dir in Directory.GetDirectories(folder))
-                foreach (var f in Directory.GetFiles(dir, "v*.json"))
+            {
+                string[] files;
+                try { files = Directory.GetFiles(dir, "v*.json"); }
+                catch (IOException) { continue; }
+                catch (UnauthorizedAccessException) { continue; }
+                foreach (var f in files)
                 {
                     try
                     {
@@ -138,7 +158,10 @@ public static class StudioLibrary
                     }
                     catch (JsonException) { }
                     catch (IOException) { }
+                    catch (InvalidDataException) { }
+                    catch (UnauthorizedAccessException) { }
                 }
+            }
         }
         return byKey.Values.ToList();
     }

@@ -69,14 +69,20 @@ public static class CreatedGames
             try
             {
                 var g = JsonSerializer.Deserialize<CreatedGame>(File.ReadAllText(path), Json);
-                if (g == null)
+                if (g == null || Templates.For(g.Machine ?? "") == null)
                     continue;
+                g.Title = string.IsNullOrWhiteSpace(g.Title) ? Path.GetFileName(dir) : g.Title;
+                g.Pitch ??= "";
+                g.HowToPlay ??= "";
+                g.Request ??= "";
+                g.Author ??= "";
+                g.Trial ??= "";
                 g.Folder = dir;
                 list.Add(g);
             }
-            catch (JsonException)
+            catch (Exception e) when (e is JsonException or IOException or UnauthorizedAccessException)
             {
-                // a hand-edited json that broke: the folder stays, the list skips it
+                // Broken or temporarily unreadable metadata does not hide the other games.
             }
         }
         return list.OrderByDescending(g => g.Created).ToList();

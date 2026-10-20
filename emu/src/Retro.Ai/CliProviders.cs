@@ -132,46 +132,51 @@ public sealed class CliAgentProvider : IAiProvider
         string work = Path.Combine(Path.GetTempPath(), "RetroEmu-ia");
         Directory.CreateDirectory(work);
         string lastMessage = Path.Combine(work, $"respuesta-{Guid.NewGuid():N}.txt");
-        bool agy = Path.GetFileNameWithoutExtension(exe).Equals("agy", StringComparison.OrdinalIgnoreCase);
-        var images = request.Images ?? Array.Empty<string>();
-        List<string> args = _tool.Id switch
-        {
-            // json output carries the text in "result" and tells failures (no login, limits) apart;
-            // pictures are read with the Read tool, allowed only for their folder
-            "sub-claude" => images.Count == 0
-                ? new() { "-p", "--output-format", "json", "--permission-mode", "dontAsk" }
-                : new List<string> { "-p", "--output-format", "json", "--permission-mode", "dontAsk", "--allowedTools", "Read" }
-                    .Concat(images.Select(Path.GetDirectoryName).Distinct().SelectMany(d => new[] { "--add-dir", d! })).ToList(),
-            // "-" = the prompt comes from stdin; read-only sandbox by default; no git repo needed; -i attaches pictures
-            "sub-codex" => new List<string> { "exec", "--skip-git-repo-check", "-o", lastMessage }
-                .Concat(images.SelectMany(i => new[] { "-i", i })).Append("-").ToList(),
-            // the -p text is appended to stdin, which carries the real prompt
-            _ => agy ? AgyArgs(request, work)
-                     : new() { "-p", "Respondé la consigna que te paso por la entrada estándar.", "--output-format", "json" },
-        };
-        // the model goes before codex's "-" (stdin) and anywhere for the others
-        args.InsertRange(_tool.Id == "sub-codex" ? 1 : 0, ModelArgs(_tool.Id, _model));
-        // agy takes the prompt as an argument and does not read standard input
-        string previousOutput = Activity?.Output is { Length: > 0 } previous ? previous + "\n\n" : "";
-        var (code, stdout, stderr) = await RunAsync(exe, args, work, agy ? "" : Flatten(request), _timeout, ct,
-            activity => Volatile.Write(ref _activity, activity with { Output = CliActivity.Tail(previousOutput + activity.Output) }));
+        string? promptFile = null;
         try
         {
+            bool agy = Path.GetFileNameWithoutExtension(exe).Equals("agy", StringComparison.OrdinalIgnoreCase);
+            var images = request.Images ?? Array.Empty<string>();
+            List<string> args = _tool.Id switch
+            {
+                // json output carries the text in "result" and tells failures (no login, limits) apart;
+                // pictures are read with the Read tool, allowed only for their folder
+                "sub-claude" => images.Count == 0
+                    ? new() { "-p", "--output-format", "json", "--permission-mode", "dontAsk" }
+                    : new List<string> { "-p", "--output-format", "json", "--permission-mode", "dontAsk", "--allowedTools", "Read" }
+                        .Concat(images.Select(Path.GetDirectoryName).Distinct().SelectMany(d => new[] { "--add-dir", d! })).ToList(),
+                // "-" = the prompt comes from stdin; read-only sandbox by default; no git repo needed; -i attaches pictures
+                "sub-codex" => new List<string> { "exec", "--skip-git-repo-check", "-o", lastMessage }
+                    .Concat(images.SelectMany(i => new[] { "-i", i })).Append("-").ToList(),
+                // the -p text is appended to stdin, which carries the real prompt
+                _ => agy ? AgyArgs(request, work, out promptFile)
+                         : new() { "-p", "Respondé la consigna que te paso por la entrada estándar.", "--output-format", "json" },
+            };
+            // the model goes before codex's "-" (stdin) and anywhere for the others
+            args.InsertRange(_tool.Id == "sub-codex" ? 1 : 0, ModelArgs(_tool.Id, _model));
+            // agy takes the prompt as an argument and does not read standard input
+            string previousOutput = Activity?.Output is { Length: > 0 } previous ? previous + "\n\n" : "";
+            var (code, stdout, stderr) = await RunAsync(exe, args, work, agy ? "" : Flatten(request), _timeout, ct,
+                activity => Volatile.Write(ref _activity, activity with { Output = CliActivity.Tail(previousOutput + activity.Output) }));
+            if (code != 0)
+                throw new AiException(Failure(stderr.Length > 0 ? stderr : stdout));
             string answer = _tool.Id switch
             {
                 "sub-claude" => ClaudeResult(stdout, stderr, code),
                 "sub-codex" => File.Exists(lastMessage) ? File.ReadAllText(lastMessage) : stdout,
                 _ => agy ? AgyResult(stdout) : GeminiResult(stdout),
             };
-            if (code != 0 && string.IsNullOrWhiteSpace(answer))
-                throw new AiException(Failure(stderr.Length > 0 ? stderr : stdout));
             if (string.IsNullOrWhiteSpace(answer))
                 throw new AiException($"{_tool.Name} no devolvió ninguna respuesta. {Tail(stderr)}");
             return answer;
         }
         finally
         {
-            try { File.Delete(lastMessage); } catch (IOException) { }
+            foreach (string? file in new[] { lastMessage, promptFile })
+                if (file != null)
+                    try { File.Delete(file); }
+                    catch (IOException) { }
+                    catch (UnauthorizedAccessException) { }
         }
     }
 
@@ -180,16 +185,17 @@ public sealed class CliAgentProvider : IAiProvider
     /// does not fit in a Windows command line), the schema with --json-schema, and the folders
     /// of the pictures and of that file in its workspace, in the read-only plan mode.
     /// </summary>
-    private static List<string> AgyArgs(AiRequest request, string work)
+    private static List<string> AgyArgs(AiRequest request, string work, out string? promptFile)
     {
+        promptFile = null;
         string prompt = Flatten(request);
         var dirs = (request.Images ?? Array.Empty<string>()).Select(i => Path.GetDirectoryName(i)!).ToList();
         if (prompt.Length > 24000)
         {
-            string file = Path.Combine(work, $"consigna-{Guid.NewGuid():N}.md");
-            File.WriteAllText(file, prompt, new UTF8Encoding(false));
+            promptFile = Path.Combine(work, $"consigna-{Guid.NewGuid():N}.md");
+            File.WriteAllText(promptFile, prompt, new UTF8Encoding(false));
             dirs.Add(work);
-            prompt = $"La consigna completa está en el archivo {file}: leelo entero y hacé exactamente lo que pide (respondé solo con lo que pide).";
+            prompt = $"La consigna completa está en el archivo {promptFile}: leelo entero y hacé exactamente lo que pide (respondé solo con lo que pide).";
         }
         var args = new List<string> { "-p", prompt, "--output-format", "json" };
         if (request.Schema is JsonElement schema)
