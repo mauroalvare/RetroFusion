@@ -8,7 +8,7 @@ public sealed class FileBrowser
 {
     private static readonly HashSet<string> Known = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".zip", ".tap", ".tzx", ".z80", ".sna", ".rfstate", ".prg", ".d64", ".t64", ".crt", ".dsk", ".do",
+        ".zip", ".tap", ".tzx", ".z80", ".sna", ".rfstate", ".nes", ".prg", ".d64", ".t64", ".crt", ".dsk", ".do",
         ".po", ".woz", ".adf", ".st", ".msa", ".exe", ".com", ".rom", ".bin", ".xex", ".atr", ".d88",
     };
 

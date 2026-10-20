@@ -93,4 +93,89 @@ public sealed class ModificationHostTests
         Assert.That(host.MediaRevision, Is.GreaterThan(revision)); Assert.That(host.Audio.Count, Is.Zero);
         revision = host.MediaRevision; host.Reset(false); Assert.That(host.MediaRevision, Is.GreaterThan(revision));
     }
+
+    [Test]
+    public void DamagedStateFilePreservesTheCurrentCpuMemoryAndPicture()
+    {
+        var host = Host(); var machine = host.Machine!;
+        byte[] old = machine.SaveState();
+        string path = Path.Combine(_directory, "damaged.rfstate");
+        File.WriteAllBytes(path, old[..^10]);
+        machine.Memory.Poke(0x8000, 73); machine.Cpu.ProgramCounter = 0x9123;
+        machine.Video.Pixels[0] = 0x123456;
+        byte[] before = machine.SaveState(); long revision = host.MediaRevision;
+        Assert.Throws<InvalidDataException>(() => host.LoadStateFromFile(path));
+        Assert.That(machine.SaveState(), Is.EqualTo(before), "A partial load must be rolled back.");
+        Assert.That(machine.Video.Pixels[0], Is.EqualTo(0x123456));
+        Assert.That(host.MediaRevision, Is.EqualTo(revision));
+    }
+
+    [Test]
+    public void QuickSaveRestoresThePausedPictureAlongWithTheMachine()
+    {
+        var host = Host(); var machine = host.Machine!;
+        host.Paused = true; machine.Video.Pixels[0] = 0x123456; machine.Memory.Poke(0x8000, 0);
+        host.QuickSave();
+        machine.Video.Pixels[0] = 0x654321; machine.Memory.Poke(0x8000, 9);
+        host.QuickLoad();
+        Assert.That(machine.Video.Pixels[0], Is.EqualTo(0x123456));
+        Assert.That(machine.Memory.Peek(0x8000), Is.Zero);
+        Assert.That(host.Paused, Is.True);
+    }
+
+    [Test, Platform("Win")]
+    public void FailedSlotOverwriteKeepsThePreviousFileAndRemovesItsTemporaryFile()
+    {
+        var host = Host(); string dir = Path.Combine(_directory, "new-slots");
+        string path = Path.Combine(dir, "slot.rfstate");
+        host.SaveStateToFile(path);
+        byte[] saved = File.ReadAllBytes(path);
+        host.Machine!.Memory.Poke(0x8000, 9);
+        using (var locked = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            var error = Assert.Catch(() => host.SaveStateToFile(path));
+            Assert.That(error, Is.InstanceOf<IOException>().Or.InstanceOf<UnauthorizedAccessException>());
+        }
+        Assert.That(File.ReadAllBytes(path), Is.EqualTo(saved));
+        Assert.That(Directory.GetFiles(dir), Has.Length.EqualTo(1));
+    }
+
+    private sealed class OwnFusion(IMachine first, IMachine second) : IFusionRun
+    {
+        public string Title => "Private test";
+        public string Description => "";
+        public IReadOnlyList<FusionSlot> Slots { get; } = new[]
+        {
+            new FusionSlot { Id = "a", Profile = new(), Machine = first },
+            new FusionSlot { Id = "b", Profile = new(), Machine = second }
+        };
+        public VideoFrame Video => first.Video;
+        public List<FusionEvent> Events { get; } = new();
+        public long Tick => 0;
+        public void SetInput(string input, bool pressed) { }
+        public void Update(double seconds) { }
+        public int DrainAudio(short[] destination) => 0;
+    }
+
+    [Test]
+    public void FusionStateCommandsDoNotRestoreOneOriginalIntoAnother()
+    {
+        var host = Host(); var first = host.Machine!;
+        var second = new Retro.Systems.Spectrum.Spectrum48(new byte[0x4000]);
+        host.StartFusion(new OwnFusion(first, second)); host.QuickSave();
+        host.FusionFocus = "b"; second.Memory.Poke(0x8000, 73);
+        byte[] before = second.SaveState(); host.QuickLoad();
+        Assert.That(second.SaveState(), Is.EqualTo(before));
+        string path = Path.Combine(_directory, "fusion.rfstate"); host.SaveStateToFile(path);
+        Assert.That(File.Exists(path), Is.False, "Saving a focused machine is not a complete fusion save.");
+    }
+
+    [Test]
+    public void ClearingAudioDoesNotReplaySamplesFromThePreviousGame()
+    {
+        var audio = new AudioQueue(16); audio.Push(new short[] { 16000 });
+        var sample = new short[1]; audio.Pop(sample); Assert.That(sample[0], Is.EqualTo(16000));
+        audio.Clear(); var silence = new short[8]; audio.Pop(silence);
+        Assert.That(silence, Is.All.Zero);
+    }
 }

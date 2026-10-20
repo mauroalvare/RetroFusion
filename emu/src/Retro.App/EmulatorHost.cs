@@ -34,7 +34,7 @@ public sealed class EmulatorHost
     public void StartFusion(Retro.Fusion.IFusionRun session)
     {
         MediaRevision++;
-        _quickState = null;
+        DiscardQuickState();
         Fusion = session;
         foreach (var slot in session.Slots)
             slot.Machine.ExecutedMap ??= new bool[0x10000];   // the code view sees what each game ran
@@ -47,7 +47,7 @@ public sealed class EmulatorHost
     public void StopFusion()
     {
         MediaRevision++;
-        _quickState = null;
+        DiscardQuickState();
         Fusion = null;
         _audio.Clear();
         Status = "Fusión detenida.";
@@ -68,6 +68,7 @@ public sealed class EmulatorHost
     private IReadOnlyList<MediaFile> _loadedFiles = [];
     /// <summary>Changes on load, restart or state restoration, even when the file name is unchanged.</summary>
     public long MediaRevision { get; private set; }
+    public bool CanUseStates => Fusion == null && _machine != null;
     public event Action<IMachine>? BeforeFrame;
     public double EffectiveSpeed { get; private set; } = 1;
 
@@ -77,6 +78,7 @@ public sealed class EmulatorHost
     private readonly Stopwatch _speedWatch = Stopwatch.StartNew();
     private long _speedFrames;
     private byte[]? _quickState;
+    private int[]? _quickPixels;
     private ushort? _runToAddress;
 
     public AudioQueue Audio => _audio;
@@ -166,7 +168,7 @@ public sealed class EmulatorHost
     private void SetMachine(IMachine m, MachineInfo info)
     {
         MediaRevision++;
-        _quickState = null;
+        DiscardQuickState();
         Fusion = null;
         m.ExecutedMap = new bool[0x10000];   // the code view sees everything the game ran
         Machine = m;
@@ -189,7 +191,7 @@ public sealed class EmulatorHost
             _loadedFiles = [file];
             LoadedProfile = profile;
             MediaRevision++;
-            _quickState = null;
+            DiscardQuickState();
             Status = $"{file.Name}: {r.Description}" + (r.Warnings.Count > 0 ? " (" + string.Join("; ", r.Warnings) + ")" : "");
             Paused = false;
             return;
@@ -200,7 +202,7 @@ public sealed class EmulatorHost
         _loadedFiles = [file];
         LoadedProfile = profile;
         MediaRevision++;
-        _quickState = null;
+        DiscardQuickState();
         Status = $"{file.Name}: {result.Description}" + (result.Warnings.Count > 0 ? " (" + string.Join("; ", result.Warnings) + ")" : "");
         if (result.Kind == SpectrumMediaKind.Tape && autoType)
         {
@@ -388,36 +390,73 @@ public sealed class EmulatorHost
     // -- save states -------------------------------------------------------------
     public void QuickSave()
     {
-        if (Machine == null)
+        if (!OriginalStateAvailable())
             return;
-        _quickState = Machine.SaveState();
-        Status = "Estado guardado en memoria (F2). F3 para volver.";
+        _quickState = Machine!.SaveState();
+        _quickPixels = Machine.Video.Pixels.ToArray();
+        Status = $"Estado guardado en memoria (F2). {(C64 != null ? "F4" : "F3")} para volver.";
     }
 
     public void QuickLoad()
     {
-        if (Machine == null || _quickState == null)
+        if (!OriginalStateAvailable() || _quickState == null)
             return;
-        Machine.LoadState(_quickState);
-        StateRestored();
+        RestoreState(_quickState, _quickPixels);
         Status = "Estado restaurado.";
     }
 
     public void SaveStateToFile(string path)
     {
-        if (Machine == null)
+        if (!OriginalStateAvailable())
             return;
-        File.WriteAllBytes(path, Machine.SaveState());
+        string fullPath = Path.GetFullPath(path);
+        Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
+        string temporary = fullPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            File.WriteAllBytes(temporary, Machine!.SaveState());
+            File.Move(temporary, fullPath, overwrite: true);
+        }
+        finally
+        {
+            try { File.Delete(temporary); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
         Status = "Estado guardado: " + Path.GetFileName(path);
     }
 
     public void LoadStateFromFile(string path)
     {
-        if (Machine == null)
+        if (!OriginalStateAvailable())
             return;
-        Machine.LoadState(File.ReadAllBytes(path));
-        StateRestored();
+        RestoreState(File.ReadAllBytes(path));
         Status = "Estado cargado: " + Path.GetFileName(path);
+    }
+
+    private void DiscardQuickState() { _quickState = null; _quickPixels = null; }
+
+    private bool OriginalStateAvailable()
+    {
+        if (Fusion != null) Status = "Las fusiones no admiten estados guardados. Reiniciá desde el estudio.";
+        return CanUseStates;
+    }
+
+    private void RestoreState(byte[] state, int[]? pixels = null)
+    {
+        var machine = Machine!;
+        byte[] previous = machine.SaveState();
+        int[] previousPixels = machine.Video.Pixels.ToArray();
+        try { machine.LoadState(state); }
+        catch (Exception error) when (error is IOException or InvalidDataException or ArgumentException or IndexOutOfRangeException or InvalidOperationException or OverflowException)
+        {
+            machine.LoadState(previous);
+            previousPixels.CopyTo(machine.Video.Pixels, 0);
+            throw new InvalidDataException("El estado está dañado o no corresponde a esta máquina. Se conservó la partida actual.", error);
+        }
+        if (pixels != null && pixels.Length == machine.Video.Pixels.Length)
+            pixels.CopyTo(machine.Video.Pixels, 0);
+        StateRestored();
     }
 
     /// <summary>Finds a newly prepared profile without restarting the running game.</summary>
@@ -476,7 +515,10 @@ public sealed class AudioQueue
     public void Clear()
     {
         lock (_sync)
+        {
             _read = _write = _count = 0;
+            _last = 0;
+        }
     }
 
     /// <summary>Drops the oldest samples so that only <paramref name="keep"/> remain.</summary>

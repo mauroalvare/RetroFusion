@@ -492,6 +492,7 @@ public sealed class RetroApp
         if (Raylib.IsKeyPressed(KeyboardKey.F11))
             Raylib.ToggleFullscreen();
         bool ctrl = Raylib.IsKeyDown(KeyboardKey.LeftControl) || Raylib.IsKeyDown(KeyboardKey.RightControl);
+        if (ctrl && Raylib.IsKeyPressed(KeyboardKey.O)) _browser.Open();
         if (ctrl && Raylib.IsKeyPressed(KeyboardKey.K) && _host.Machine != null)
             _code.Open();
         if (ctrl && Raylib.IsKeyPressed(KeyboardKey.L)) _gamesWindow.Open();
@@ -555,16 +556,16 @@ public sealed class RetroApp
             }
             ImGui.MenuItem("Escribir LOAD \"\" al abrir cintas", "", ref _autoType);
             ImGui.Separator();
-            if (ImGui.MenuItem("Guardar estado rápido", "F2")) _host.QuickSave();
-            if (ImGui.MenuItem("Cargar estado rápido", "F3")) _host.QuickLoad();
-            if (ImGui.BeginMenu("Ranuras de estado"))
+            if (ImGui.MenuItem("Guardar estado rápido", "F2", false, _host.CanUseStates)) _host.QuickSave();
+            if (ImGui.MenuItem("Cargar estado rápido", _host.C64 != null ? "F4" : "F3", false, _host.CanUseStates)) _host.QuickLoad();
+            if (ImGui.BeginMenu("Ranuras de estado", _host.CanUseStates))
             {
                 string id = _host.Machine?.Id ?? "none";
                 for (int i = 1; i <= 5; i++)
                 {
                     string file = StatePath(id, i);
-                    if (ImGui.MenuItem($"Guardar en ranura {i}")) _host.SaveStateToFile(file);
-                    if (ImGui.MenuItem($"Cargar ranura {i}", "", false, File.Exists(file))) _host.LoadStateFromFile(file);
+                    if (ImGui.MenuItem($"Guardar en ranura {i}")) TryStateAction(() => _host.SaveStateToFile(file));
+                    if (ImGui.MenuItem($"Cargar ranura {i}", "", false, File.Exists(file))) TryStateAction(() => _host.LoadStateFromFile(file));
                 }
                 ImGui.EndMenu();
             }
@@ -692,7 +693,8 @@ public sealed class RetroApp
             if (ImGui.BeginMenu("Atajos"))
             {
                 ImGui.TextUnformatted("Ctrl+L: tus juegos    Ctrl+M: modificar");
-                ImGui.TextUnformatted(_host.C64 != null ? "F2: guardar estado    F4: cargar estado" : "F2: guardar estado    F3: cargar estado");
+                ImGui.TextUnformatted(_host.Fusion != null ? "Los estados guardados están disponibles en originales."
+                    : _host.C64 != null ? "F2: guardar estado    F4: cargar estado" : "F2: guardar estado    F3: cargar estado");
                 ImGui.TextUnformatted("F8: turbo    F9: pausa    F11: pantalla completa");
                 ImGui.TextUnformatted("Ctrl+K: código    F10: paso    F12: depurador");
                 ImGui.EndMenu();
@@ -888,8 +890,14 @@ public sealed class RetroApp
     private static string StatePath(string machineId, int slot)
     {
         string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "RetroEmu", "states");
-        Directory.CreateDirectory(dir);
         return Path.Combine(dir, $"{machineId}_slot{slot}.rfstate");
+    }
+
+    private void TryStateAction(Action action)
+    {
+        try { action(); }
+        catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
+        { _errorPopup = "No se pudo guardar o cargar el estado: " + error.Message; }
     }
 
     private void DrawStatusBar()
