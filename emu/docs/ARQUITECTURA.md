@@ -13,6 +13,7 @@ src/
                            video, audio, breakpoints, apertura de archivos (.zip), PNG.
   Retro.Cpu.Z80            Núcleo Z80 + desensamblador. No sabe nada del Spectrum.
   Retro.Cpu.I8080          Núcleo Intel 8080 + desensamblador.
+  Retro.Cpu.I8088          Primer núcleo funcional 8088, parcial y sin tiempo por ciclo.
   Retro.Cpu.M6502          Núcleo MOS 6502/6510 (NMOS, con los opcodes no documentados)
                            + desensamblador.
   Retro.Systems.Spectrum   ZX Spectrum 48K: memoria, ULA, cinta, snapshots, símbolos.
@@ -42,6 +43,7 @@ src/
 tests/
   Retro.Cpu.Z80.Tests      FUSE (1.356 casos) + ZEXDOC/ZEXALL.
   I8080.Tests              TST8080, 8080PRE, CPUTEST y 8080EXM con ciclos exactos.
+  I8088.Tests              Programas propios: ALU, segmentos, pila, interrupciones y cadenas.
   M6502.Tests              SingleStepTests de Tom Harte (256.000 casos, cada ciclo de
                            bus) y la suite funcional de Klaus Dormann.
   C64.Tests                CIA, VIC-II, arranque, SYS, Open ROMs, estados guardados y
@@ -120,6 +122,15 @@ instrucción del manual de Intel: CALL condicional 17 si salta y 11 si no, RET c
 
 `EI` habilita las interrupciones recién después de la instrucción siguiente. Al aceptar
 una interrupción se ejecuta la instrucción que la placa pone en el bus de datos: un RST.
+
+## Intel 8088: primer hito funcional
+
+Existe un intérprete parcial con registros, segmentación de 20 bits, ModR/M, ALU,
+pila, saltos, interrupciones, cadenas y E/S de byte. El comando `cpu8088 demo` ejecuta
+una suma propia y llega a HLT. No hay aún prelectura ni tiempo por ciclo: no se conecta
+a periféricos ni implementa `ICpuDebugView` hasta contar con un reloj válido. No cambia
+las CPUs actuales ni habilita PC/XT en el lanzador. La cobertura exacta, pruebas y
+siguientes pasos están en [I8088.md](I8088.md).
 
 ## Placa de Space Invaders (Taito/Midway 8080)
 
@@ -550,7 +561,8 @@ La próxima ampliación prioriza los juegos de PC DOS, en este orden:
 | 3 | Intel 80386, después diferencias del 80486 | PC DOS con VGA y sonido AdLib/Sound Blaster |
 | 4 | Motorola 68000 | Primero Atari ST; después Amiga 500 con sus chips OCS |
 
-Son etapas pendientes. Cada una requiere pruebas de CPU y periféricos, integración en
+PC/XT tiene iniciado el núcleo funcional; las máquinas siguen pendientes. Cada una
+requiere pruebas de CPU y periféricos, integración en
 app y CLI, y juegos con arranque y controles comprobados por edición. Para usar un juego
 en fusiones también hace falta un perfil verificado. Reconocer un archivo o completar
 la CPU no alcanza para declarar compatible la máquina.
@@ -570,7 +582,7 @@ registradas por separado.
 | 3 | 6502 / 6510 | Commodore 64 (.t64, .prg) | Hecha (Pac-Man, Ghostbusters, Spy vs Spy) |
 | 3n | 2A03 (6502) | NES (.nes, mappers 0 y 3) | Hecha, con sonido (4 homebrew de Mojon Twins llegan al juego) |
 | 3b | 6502 | Discos .d64 y cartuchos del C64, Atari 800, Apple II | Pendiente |
-| 4 | 8086 / 8088 | IBM PC / XT con DOS | Pendiente |
+| 4 | 8086 / 8088 | IBM PC / XT con DOS | Núcleo 8088 parcial; máquina pendiente |
 | 4b | 80286 | PC AT con DOS y EGA | Pendiente, después de PC/XT |
 | 4c | 80386 / 80486 | PC DOS con VGA y sonido | Pendiente, después de PC AT |
 | 5 | 68000 | Atari ST, Amiga 500 | Pendiente |

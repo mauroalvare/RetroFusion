@@ -6,6 +6,13 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 
 ## Máquinas
 
+### IBM PC/XT (T-038)
+
+- Hay un núcleo 8088 parcial accesible por `cpu8088 demo`; todavía no hay máquina PC,
+  BIOS/DOS ni juegos compatibles. Faltan instrucciones, desensamblador, prelectura y
+  temporización del bus. No se verificó con una suite de hardware externa. Cobertura
+  observada y próximos pasos en [I8088.md](I8088.md).
+
 ### ZX Spectrum
 
 - Solo el modelo 48K. Los juegos 128K (4 de Mojon Twins en `descargados-autores\Spectrum-128K`)

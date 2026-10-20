@@ -122,3 +122,14 @@ La escritura directa y las propuestas reciben un resumen acotado de los diseños
 de la misma combinación. No se envía el guion completo de Manic Invaders como molde.
 Los estados de prueba no prescriben menús ni presentación. El validador comprueba ejecución
 y jugabilidad básica, no puede garantizar originalidad ni reemplaza comparar partidas.
+
+## D-017 Núcleo 8088 funcional antes del bus temporizado de PC/XT (2026-10-20)
+
+`I8088Bus` agrega accesos de byte a direcciones físicas de 20 bits y puertos de 16 bits.
+`I8088Cpu` resuelve segmento/offset y ejecuta una instrucción o iteración REP por `Step`;
+una IRQ pendiente se conserva hasta poder aceptarla. Es un primer hito de estado y
+direccionamiento, sin conteo de ciclos, prelectura ni máquina. No implementa aún
+`ICpuDebugView`, cuyo contador de ciclos implicaría una precisión que todavía no tiene.
+Los contratos de máquinas actuales no cambian. El CLI agrega `cpu8088 <bin|demo>` para
+probar programas crudos con un límite de pasos, sin simular servicios BIOS/DOS ni
+declarar disponible PC/XT. Los opcodes pendientes producen errores con CS:IP.
