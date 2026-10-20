@@ -71,7 +71,7 @@ public sealed class RetroApp
         _studio = new StudioWindow(_host, _romDir, games, _ai);
         _code = new CodeWindow(_host, _ai, ShowInDebugger);
         _creator = new CreatorWindow(_romDir, _ai, OpenFile);
-        _gamesWindow = new GamesWindow(_library, OpenFile, _studio.PlayById, _browser.Open, _studio.Open, _creator.Open,
+        _gamesWindow = new GamesWindow(_library, OpenFile, PlayFusion, _browser.Open, OpenFusionStudio, OpenCreator,
             visible =>
             {
                 if (visible) { _pausedBeforeLibrary = _host.Paused; _host.Paused = true; }
@@ -96,6 +96,7 @@ public sealed class RetroApp
         {
             _errorPopup = e.Message + "\n\nCopiá la ROM a la carpeta firmware/ junto al programa.";
         }
+        bool openedFile = false;
         for (int i = 0; i < args.Length; i++)
         {
             if (args[i] == "--debug")
@@ -110,17 +111,20 @@ public sealed class RetroApp
             else if (args[i] == "--preparar" && i + 1 < args.Length)
                 _autoPrepare = args[++i];
             else if (args[i] == "--crear-window")
-                _creator.Open();
+                OpenCreator();
             else if (args[i] == "--studio-window")
-                _studio.Open();
+                OpenFusionStudio();
             else if (args[i] == "--code")
                 _code.Open();
             else if (args[i] == "--mute")
                 _muted = true;
             else if (args[i] != "--hidden" && File.Exists(args[i]))
+            {
                 OpenFile(args[i]);
+                openedFile = true;
+            }
         }
-        if (!args.Any(File.Exists) && !args.Any(a => a is "--studio" or "--preparar" or "--crear-window" or "--studio-window" or "--code" or "--debug"))
+        if (!openedFile && !args.Any(a => a is "--studio" or "--preparar" or "--crear-window" or "--studio-window" or "--code" or "--debug"))
             _gamesWindow.Open();
     }
 
@@ -195,7 +199,7 @@ public sealed class RetroApp
         HandleDroppedFiles();
         _library.Poll();
         bool imguiKeyboard = ImGui.GetIO().WantTextInput || _gamesWindow.IsOpen;
-        HandleHotkeys(imguiKeyboard);
+        HandleHotkeys(ImGui.GetIO().WantTextInput);
         var m = _host.Machine;
         if (m != null)
         {
@@ -217,7 +221,7 @@ public sealed class RetroApp
         }
         if (_autoStudio != null)
         {
-            _studio.PlayById(_autoStudio);
+            PlayFusion(_autoStudio);
             _autoStudio = null;
         }
         if (_autoPrepare != null)
@@ -427,8 +431,13 @@ public sealed class RetroApp
         ".tzx" => 0, ".tap" => 1, ".z80" => 2, ".sna" => 3, _ => 9,
     };
 
+    private void OpenFusionStudio() { _gamesWindow.Close(); _studio.Open(); }
+    private void OpenCreator() { _gamesWindow.Close(); _creator.Open(); }
+    private void PlayFusion(string id) { _gamesWindow.Close(); _studio.PlayById(id); }
+
     private void Launch(MachineCatalog.Candidate c)
     {
+        _gamesWindow.Close();
         try
         {
             if (_host.Machine != null)
@@ -453,6 +462,7 @@ public sealed class RetroApp
 
     private void LaunchArcade(MachineInfo info, IReadOnlyList<MediaFile> files, string? folder)
     {
+        _gamesWindow.Close();
         try
         {
             if (_host.Machine != null)
@@ -478,6 +488,7 @@ public sealed class RetroApp
         if (ctrl && Raylib.IsKeyPressed(KeyboardKey.K) && _host.Machine != null)
             _code.Open();
         if (ctrl && Raylib.IsKeyPressed(KeyboardKey.L)) _gamesWindow.Open();
+        if (_gamesWindow.IsOpen) return;
         if (_host.Machine == null)
             return;
         // the C64 has its own F1 F3 F5 F7 keys (games say "press F1"): there quick load is
@@ -552,7 +563,7 @@ public sealed class RetroApp
             ImGui.Separator();
             if (ImGui.MenuItem("Reiniciar", "F5")) _host.Reset(false);
             if (ImGui.MenuItem("Reinicio total (borra RAM)", "Shift+F5")) _host.Reset(true);
-            if (ImGui.MenuItem(_host.Paused ? "Continuar" : "Pausa", "F9"))
+            if (ImGui.MenuItem(_host.Paused ? "Continuar" : "Pausa", "F9", false, !_gamesWindow.IsOpen))
             {
                 if (_host.Paused) _host.Continue(); else _host.Pause("Pausa");
             }
@@ -618,7 +629,7 @@ public sealed class RetroApp
         }
         if (ImGui.BeginMenu("Fusión"))
         {
-            if (ImGui.MenuItem("Crear juego fusionado con IA...")) _studio.Open();
+            if (ImGui.MenuItem("Crear juego fusionado con IA...")) OpenFusionStudio();
             if (ImGui.MenuItem("Detener la fusión", "", false, _host.Fusion != null)) _host.StopFusion();
             ImGui.Separator();
             ImGui.TextDisabled("Con IA: un juego nuevo que mezcla los juegos de verdad,");
@@ -627,7 +638,7 @@ public sealed class RetroApp
         }
         if (ImGui.BeginMenu("Crear"))
         {
-            if (ImGui.MenuItem("Juego de 8 bits nuevo (C64 o Spectrum)...")) _creator.Open();
+            if (ImGui.MenuItem("Juego de 8 bits nuevo (C64 o Spectrum)...")) OpenCreator();
             ImGui.TextDisabled("La IA escribe un juego original en ensamblador,");
             ImGui.TextDisabled("lo prueba con un robot y lo corrige hasta que anda.");
             ImGui.EndMenu();
@@ -713,7 +724,7 @@ public sealed class RetroApp
             {
                 if (mi.Id is "zx48" or "c64" && ImGui.MenuItem("Encender sin juego"))
                 {
-                    try { _host.Start(mi, _romDir); }
+                    try { _gamesWindow.Close(); _host.Start(mi, _romDir); }
                     catch (Exception e) { _errorPopup = e.Message; }
                 }
                 if (games.Count == 0)
@@ -820,7 +831,7 @@ public sealed class RetroApp
             if (s.Games.All(g => have.Contains(g.Profile)))
             {
                 if (ImGui.MenuItem($"{s.Title}   ({Names(s.Games)})##estudio-{s.Id}"))
-                    _studio.PlayById(s.Id);
+                    PlayFusion(s.Id);
             }
             else
                 ImGui.TextDisabled($"   {s.Title}: falta {Missing(s.Games)} en tu carpeta");

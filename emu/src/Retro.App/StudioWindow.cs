@@ -35,6 +35,7 @@ public sealed class StudioWindow
     private string _preparing = "";
     private volatile string _prepareProgress = "";
     private readonly List<string> _chosen = new();   // order = slots a, b, c
+    private string _gameSearch = "";
     private string _status = "";
 
     private string _wish = "";
@@ -113,7 +114,7 @@ public sealed class StudioWindow
             bool twin = catalog.Count(o => o.Profile.Name == g.Profile.Name) > 1;
             _labels[g.Profile.Id] = twin ? $"{g.Profile.Name} · {Path.GetFileName(g.Path)}" : g.Profile.Name;
         }
-        _status = $"{_games.Count} juegos listos para fusionar.";
+        _status = $"{_games.Count} juegos encontrados.";
     }
 
     private IReadOnlyDictionary<string, GameSource> Sources() => _games.ToDictionary(g => g.Profile.Id);
@@ -192,27 +193,35 @@ public sealed class StudioWindow
 
     private void DrawSetup()
     {
-        ImGui.TextWrapped("Elegí 2 o 3 juegos y la IA inventa cómo mezclarlos en UN juego nuevo: los juegos originales corren de verdad " +
-                          "y un guion los conecta (los enemigos de uno invaden al otro, el héroe de uno gana el poder del otro...). " +
-                          "Después le pedís cambios y saca versiones nuevas.");
-        ImGui.SetNextItemWidth(-90);
-        ImGui.InputText("##carpeta", ref _folder, 1024);
-        ImGui.SameLine();
-        if (ImGui.Button("Buscar"))
-            Scan();
-        AiPicker.Hint(_status);
-        if (ImGui.SmallButton("Abrir la carpeta de juegos fusionados"))
+        ImGui.TextWrapped("Combiná las reglas de 2 o 3 juegos en uno nuevo, con una mecánica y una presentación propias. " +
+                          "Después de jugarlo podés pedir cambios y conservar sus versiones.");
+        if (ImGui.TreeNode("Carpetas de juegos"))
         {
-            Directory.CreateDirectory(StudioLibrary.UserFolder);
-            Process.Start(new ProcessStartInfo { FileName = StudioLibrary.UserFolder, UseShellExecute = true });
+            ImGui.SetNextItemWidth(-90);
+            ImGui.InputText("##carpeta", ref _folder, 1024);
+            ImGui.SameLine();
+            if (ImGui.Button("Buscar")) Scan();
+            if (ImGui.SmallButton("Abrir mis juegos fusionados"))
+            {
+                Directory.CreateDirectory(StudioLibrary.UserFolder);
+                Process.Start(new ProcessStartInfo { FileName = StudioLibrary.UserFolder, UseShellExecute = true });
+            }
+            ImGui.TextWrapped(StudioLibrary.UserFolder);
+            ImGui.TreePop();
         }
-        ImGui.SameLine();
-        ImGui.TextDisabled(StudioLibrary.UserFolder);
+        AiPicker.Hint(_status);
         ImGui.Separator();
-        foreach (var g in _games)
+        ImGui.TextColored(Gold, $"1. Elegí los juegos ({_chosen.Count}/3)");
+        ImGui.SetNextItemWidth(-1);
+        ImGui.InputTextWithHint("##buscar-juego", "Buscar por nombre o máquina", ref _gameSearch, 150);
+        var matches = _games.Where(g => _labels.GetValueOrDefault(g.Profile.Id, g.Profile.Name).Contains(_gameSearch.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
+        ImGui.BeginChild("elegir-juegos", new Vector2(0, Math.Clamp(ImGui.GetWindowHeight() * 0.28f, 110, 200)), ImGuiChildFlags.Borders);
+        if (matches.Count == 0) ImGui.TextWrapped("No encontré juegos con ese nombre. Probá otra búsqueda.");
+        foreach (var g in matches)
         {
             int slot = _chosen.IndexOf(g.Profile.Id);
             bool on = slot >= 0;
+            ImGui.BeginDisabled(Busy || !on && _chosen.Count >= 3);
             if (ImGui.Checkbox($"{_labels.GetValueOrDefault(g.Profile.Id, g.Profile.Name)}##{g.Profile.Id}", ref on))
             {
                 if (on && _chosen.Count < 3) _chosen.Add(g.Profile.Id);
@@ -220,6 +229,7 @@ public sealed class StudioWindow
                 _concepts = null;
                 _problem = null;
             }
+            ImGui.EndDisabled();
             if (_unprepared.TryGetValue(g.Profile.Id, out var file))
             {
                 ImGui.SameLine();
@@ -230,12 +240,10 @@ public sealed class StudioWindow
                 if (ImGui.IsItemHovered())
                     ImGui.SetTooltip("Busca el arranque y verifica variables como vidas, puntaje y posición. Puede tardar unos minutos y usar la IA elegida.");
             }
-            if (slot >= 0)
-            {
-                ImGui.SameLine();
-                ImGui.TextDisabled($"(games.{SlotNames[slot]})");
-            }
         }
+        ImGui.EndChild();
+        if (_chosen.Count > 0)
+            ImGui.TextWrapped("Elegidos: " + string.Join(" + ", _chosen.Select(id => _games.FirstOrDefault(g => g.Profile.Id == id)?.Profile.Name ?? id)));
         DrawPreparation();
         if (_chosen.Count < 2)
         {
@@ -245,58 +253,63 @@ public sealed class StudioWindow
         }
 
         var existing = StudioLibrary.For(_chosen).ToList();
-        if (existing.Count > 0)
+        if (existing.Count > 0 && ImGui.TreeNode("Fusiones anteriores de esta combinación"))
         {
-            ImGui.Separator();
-            ImGui.TextUnformatted("Juegos fusionados que ya existen con estos juegos:");
             foreach (var game in existing)
                 DrawGameCard(game);
+            ImGui.TreePop();
         }
 
         ImGui.Separator();
-        ImGui.TextColored(Gold, "Inventar uno nuevo");
+        ImGui.TextColored(Gold, "2. Inventá la fusión");
         DrawAiChooser("Cada idea o versión es un pedido a la IA (unos centavos; escribir un juego usa más que proponer ideas).");
-        ImGui.TextUnformatted("Enfoque o pedido (opcional):");
-        ImGui.InputTextMultiline("##deseo", ref _wish, 1000, new Vector2(-1, 44));
-        AiPicker.Hint("Ej.: \"que sea cooperativo\", \"que Willy maneje el cañón\", \"un juego de carreras\", \"algo absurdo y caótico\".");
-        ImGui.BeginDisabled(Busy);
-        if (ImGui.Button("Proponer 3 ideas"))
-            AskConcepts();
-        ImGui.EndDisabled();
-
-        if (_concepts != null)
+        if (ImGui.BeginTabBar("forma-de-idea"))
         {
-            ImGui.Separator();
-            ImGui.TextUnformatted("Ideas de la IA (elegí una):");
-            foreach (var c in _concepts)
+            if (ImGui.BeginTabItem("Proponer ideas"))
             {
-                ImGui.PushID(c.Title);
-                ImGui.TextColored(Gold, c.Title);
-                ImGui.SameLine();
-                ImGui.TextDisabled(c.Approach);
-                ImGui.TextWrapped(c.Pitch);
-                AiPicker.Hint("Cómo se juega: " + c.HowToPlay);
-                if (c.Design.Length > 0 && ImGui.TreeNode("Diseño##" + c.Title))
-                {
-                    ImGui.TextWrapped(c.Design);
-                    ImGui.TreePop();
-                }
+                ImGui.TextUnformatted("Enfoque o pedido (opcional):");
+                ImGui.InputTextMultiline("##deseo", ref _wish, 1000, new Vector2(-1, 44));
+                AiPicker.Hint("Ej.: \"una carrera cooperativa\", \"un puzle sin disparos\", \"que las rutas cambien al robar\".");
                 ImGui.BeginDisabled(Busy);
-                if (ImGui.Button("Hacer este juego"))
-                    Write(c);
+                if (ImGui.Button("Proponer 3 ideas")) AskConcepts();
                 ImGui.EndDisabled();
-                ImGui.Spacing();
-                ImGui.PopID();
+                if (_concepts != null)
+                {
+                    ImGui.Separator();
+                    ImGui.TextUnformatted("Ideas de la IA (elegí una):");
+                    foreach (var c in _concepts)
+                    {
+                        ImGui.PushID(c.Title);
+                        ImGui.TextColored(Gold, c.Title);
+                        ImGui.SameLine();
+                        ImGui.TextDisabled(c.Approach);
+                        ImGui.TextWrapped(c.Pitch);
+                        AiPicker.Hint("Cómo se juega: " + c.HowToPlay);
+                        if (c.Design.Length > 0 && ImGui.TreeNode("Diseño##" + c.Title))
+                        {
+                            ImGui.TextWrapped(c.Design);
+                            ImGui.TreePop();
+                        }
+                        ImGui.BeginDisabled(Busy);
+                        if (ImGui.Button("Hacer este juego")) Write(c);
+                        ImGui.EndDisabled();
+                        ImGui.Spacing();
+                        ImGui.PopID();
+                    }
+                }
+                ImGui.EndTabItem();
             }
+            if (ImGui.BeginTabItem("Mi idea"))
+            {
+                ImGui.TextUnformatted("Contá cómo querés unir los juegos:");
+                ImGui.InputTextMultiline("##idea", ref _ownIdea, 2000, new Vector2(-1, 60));
+                ImGui.BeginDisabled(Busy || _ownIdea.Trim().Length < 10);
+                if (ImGui.Button("Hacer mi idea")) Write(new GameConcept("", "", _ownIdea.Trim(), ""));
+                ImGui.EndDisabled();
+                ImGui.EndTabItem();
+            }
+            ImGui.EndTabBar();
         }
-
-        ImGui.Separator();
-        ImGui.TextUnformatted("O contá tu propia idea completa:");
-        ImGui.InputTextMultiline("##idea", ref _ownIdea, 2000, new Vector2(-1, 60));
-        ImGui.BeginDisabled(Busy || _ownIdea.Trim().Length < 10);
-        if (ImGui.Button("Hacer mi idea"))
-            Write(new GameConcept("", "", _ownIdea.Trim(), ""));
-        ImGui.EndDisabled();
         DrawProgress();
     }
 
@@ -322,8 +335,10 @@ public sealed class StudioWindow
             AiPicker.Settings(_ai, costNote);
         else if (_ai.Provider == "manual")
             AiPicker.Hint("Te doy la consigna para pegar en el chat de tu IA y vos pegás acá la respuesta. El emulador prueba el juego y, si falla, te da el texto para devolvérselo.");
-        else
+        else if (_ai.Provider == "agent")
             AiPicker.Hint("El emulador arma una carpeta con la tarea, la API y los juegos. Tu agente escribe juego.js; el emulador lo prueba solo cada vez que lo guarda y le deja informe.md.");
+        else
+            AiPicker.Hint("La IA escribe el juego y el emulador lo prueba. Durante la creación podés abrir Construcción para ver su actividad y cancelar.");
     }
 
     private void DrawPlaying(StudioSession s)

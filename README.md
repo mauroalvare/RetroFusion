@@ -16,9 +16,11 @@ los prueba y quedan como un `.prg` o un `.tap` que corre en cualquier emulador.
 
 Cada fusión dibuja una **escena propia** con sprites, tiles y variables de los originales,
 que corren en sus máquinas emuladas. El resultado tiene sus reglas, objetivos y controles.
-Se juegan desde **Máquina > Juegos que ya tienen fusión** si los juegos están en tu carpeta
-`ROMs`. Con **Fusión** podés crear otro juego con las piezas de los que el emulador corra.
+Se juegan desde **Jugar > Fusionados** si los juegos están en tu carpeta `ROMs`.
+Con **Fusionar juegos** podés crear otro juego con las piezas de los que el emulador corra.
 El estudio rechaza el uso de `screen.game` para mostrar las pantallas de los originales.
+Las instrucciones piden una unión entre las mecánicas y una regla propia para cada pareja;
+el género, los menús, el HUD y la progresión se diseñan para ese juego.
 
 ### Manic Invaders — creado con IA
 
@@ -53,10 +55,16 @@ Estos dos vienen incluidos como ejemplo (originales, escritos solo con las guía
 
 ## La app por dentro
 
+![Biblioteca con búsqueda y juegos originales, fusionados y creados](emu/docs/img/interfaz/biblioteca.png)
+
+Al abrirla aparece **Tus juegos**: buscá por nombre y elegí **Jugar**. Los originales
+siguen en su pestaña aunque hayas creado una fusión. Desde ahí también podés fusionar
+o crear; el código y el depurador se activan desde **Ver > Herramientas avanzadas**.
+
 | Estudio de fusiones | Creador de juegos de 8 bits |
 |---|---|
 | ![Estudio: elegir y preparar juegos](emu/docs/img/interfaz/estudio.png) | ![Creador: escribir, probar y jugar](emu/docs/img/interfaz/creador.png) |
-| Elegí los juegos y prepará sus variables para inventar una escena propia. | Partí de una idea o una plantilla; el emulador prueba el resultado. |
+| Buscá y elegí los originales; pedí propuestas o escribí tu propia idea. | Partí de una idea o una plantilla; el emulador prueba el resultado. |
 
 | Código y depurador | Nintendo NES |
 |---|---|
@@ -71,7 +79,8 @@ Estos dos vienen incluidos como ejemplo (originales, escritos solo con las guía
    copias que tengas derecho a usar.
 3. Tus juegos fusionados van en `Juegos fusionados` (cada juego es una carpeta con un
    `.json` y un `.js`; se pueden compartir).
-4. Abrí `RetroEmu` y arrastrá un juego a la ventana, o usá **Máquina** y **Fusión**.
+4. Abrí `RetroEmu`, buscá un juego en **Tus juegos** y pulsá **Jugar**. También podés
+   arrastrar un archivo o usar **Abrir archivo...**.
 
 Para compilarlo desde el código hace falta el .NET SDK 10:
 

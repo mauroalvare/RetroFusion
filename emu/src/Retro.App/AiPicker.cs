@@ -55,7 +55,21 @@ public static class AiPicker
     {
         if (CliTools.ById(ai.Provider) is { } tool)
         {
-            SubscriptionSettings(ai, tool);
+            string? found = CliTools.Find(tool, ai.CliPaths.GetValueOrDefault(tool.Id));
+            if (found == null) SubscriptionSettings(ai, tool);
+            else
+            {
+                string model = ai.CliModels.GetValueOrDefault(tool.Id, "");
+                ImGui.TextColored(new System.Numerics.Vector4(0.5f, 1, 0.5f, 1), $"{tool.Name} encontrado{(model.Length == 0 ? "" : " · " + model)}");
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip(found);
+                ImGui.PushID(tool.Id);
+                if (ImGui.TreeNode("Cambiar modelo o conexión"))
+                {
+                    SubscriptionSettings(ai, tool);
+                    ImGui.TreePop();
+                }
+                ImGui.PopID();
+            }
             return;
         }
         switch (ai.Provider)

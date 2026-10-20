@@ -13,6 +13,13 @@ comienza la partida elegida. Las fusiones y los juegos creados se actualizan al 
 o pulsar Actualizar. **Ver > Herramientas avanzadas** muestra Código y Depurar; sus
 atajos siguen funcionando.
 
+El estudio limita la lista de selección a una zona con desplazamiento y búsqueda.
+Muestra los juegos elegidos y separa **Proponer ideas** de **Mi idea**; las carpetas y
+las fusiones anteriores se despliegan cuando se necesitan.
+Si el CLI elegido está encontrado, su ruta y configuración se repliegan bajo
+**Cambiar modelo o conexión**. Encontrarlo no comprueba el inicio de sesión ni consume
+un pedido; la prueba de conexión sigue siendo una acción explícita.
+
 ## Raíz
 
 | Ruta | Qué es |

@@ -22,14 +22,25 @@ originales aportan sus piezas y variables. **Fusión > Crear juego fusionado con
 
 - **Nintendo NES**: CPU 2A03, PPU y APU; cartuchos iNES con mappers 0 y 3.
 
-**Plan:** Atari 800, Apple II (misma CPU 6502), Spectrum 128K, TK90X, MSX y Amstrad
-CPC (Z80), IBM PC/XT (8088) y Atari ST y Amiga 500 (68000). Ver [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)
+**En desarrollo:** primer núcleo 8088, todavía parcial y sin máquina PC/XT ni DOS.
+Su diagnóstico y límites están en [docs/I8088.md](docs/I8088.md). La ampliación prioriza
+PC/XT, después PC AT (286) y PC DOS con VGA (386/486), antes de Atari ST y Amiga (68000).
+También siguen previstos Atari 800, Apple II, Spectrum 128K, TK90X, MSX y Amstrad CPC.
+Ver [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)
 y, para lo que viene con IA, [docs/IDEAS.md](docs/IDEAS.md).
 
 ## Uso
 
-Abrí `RetroEmu` (Windows: `RetroEmu.exe`) y arrastrá un juego a la ventana, o usá
-**Archivo > Abrir**: el emulador reconoce para qué máquina es cada archivo. El menú
+Abrí `RetroEmu` (Windows: `RetroEmu.exe`): aparece **Tus juegos**, con búsqueda y pestañas
+**Originales**, **Fusionados** y **Creados**. Elegí uno y pulsá **Jugar**; los originales
+siguen disponibles aunque tengan una fusión. También podés abrir un archivo, fusionar
+o crear desde los botones de arriba. Volvé a la biblioteca con **Jugar** o Ctrl+L.
+
+![Biblioteca de juegos](docs/img/interfaz/biblioteca.png)
+
+Podés arrastrar un juego o usar **Archivo > Abrir**: el emulador reconoce para qué
+máquina es cada archivo. **Ver > Herramientas avanzadas** muestra Código y Depurar.
+El menú
 **Máquina** muestra las máquinas agrupadas por CPU; cada una dice qué necesita y lista los
 juegos de tu carpeta que corre (clic para jugar). Las máquinas que todavía no están
 implementadas muestran cuáles de tus juegos las van a usar. Acepta `.tap`, `.tzx`, `.z80`, `.sna`, `.t64`, `.prg` y también `.zip`, incluso
