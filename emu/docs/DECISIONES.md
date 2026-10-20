@@ -149,3 +149,26 @@ aplica: el jugador elige una prueba. Los perfiles con hashes de ediciones concre
 coinciden por esos hashes; un nombre igual ya no permite aplicarlos a otra copia.
 Las propuestas dependen de variables conocidas; no implican descubrir toda la RAM ni
 demostrar el efecto sugerido. La UI debe invalidarlas al cambiar/restaurar la partida.
+
+## D-019 Contrato común de diseño y encargos estables (2026-10-20)
+
+`Retro.Ai.GameDesignGuide` incrusta `Docs/DISENO-JUEGOS.md`. El creador y el estudio
+incluyen el mismo contrato en los pedidos a proveedores y en copiar/pegar; sus carpetas
+para agentes lo exportan con ese nombre y TAREA.md remite a él. Las guías técnicas de
+máquina y API siguen separadas. No se impone género, menú, HUD, héroe ni número de niveles.
+Los agentes de fusión ya no reciben un ejemplo completo como programa inicial.
+
+El creador conserva el pedido y una única semilla durante los reintentos. Compara hasta
+cinco resúmenes de juegos anteriores de la misma máquina, sin leer ni enviar sus programas.
+Las correcciones manuales incluyen contexto técnico y la versión actual; el estudio
+conserva además su pedido inicial y usa el último borrador como base para campos omitidos.
+`StudioWorkspace.Read` importa `design`, conservando los originales seleccionados.
+
+Los esquemas y los modos manual/carpeta piden textos breves: title 60, pitch 240,
+howToPlay 320 y changes 400 caracteres; approach de fusión 180. El diseño detallado
+queda en design o comentarios, separado de las ayudas del jugador. Los lectores
+siguen aceptando juegos guardados anteriores, sin recortar sus textos.
+
+Pasar el robot no certifica diversión ni creatividad. Las guías explicitan ese límite
+y exigen distinguir evidencia de hipótesis. No se añade un extractor de rutinas de ROMs
+ni se finge que los perfiles sean ese análisis; la parte restante de T-060 sigue pendiente.

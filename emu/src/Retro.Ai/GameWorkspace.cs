@@ -27,6 +27,7 @@ public static class GameWorkspace
         var t = Templates.For(machine) ?? throw new ArgumentException($"no hay plantilla para {machine}");
         string dir = folder ?? Path.Combine(Root, $"{t.Machine}-{DateTime.Now:yyyyMMdd-HHmmss}");
         Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, GameDesignGuide.FileName), GameDesignGuide.Text);
         File.WriteAllText(Path.Combine(dir, "GUIA.md"), t.Guide);
         File.WriteAllText(Path.Combine(dir, "plantilla.s"), t.Source);
         File.WriteAllText(Path.Combine(dir, SourceFile), t.Source);
@@ -39,30 +40,30 @@ public static class GameWorkspace
         string tarea = $"""
             # Tarea: escribir un juego original de 8 bits para {t.Name}
 
-            RetroEmu emula el {t.Name} con precisión (CPU {t.Cpu.ToUpperInvariant()}, video y sonido). Hay que escribir
-            un juego NUEVO en ensamblador que corra en esa máquina como cualquier juego de la época.
+            Escribí un juego NUEVO y ORIGINAL en ensamblador {t.Cpu.ToUpperInvariant()} para {t.Name}.
+            Las instrucciones son independientes del agente o editor que uses.
 
             ## Qué juego
 
-            {GameWriter.Request(wish, rng)}
-
-            ## Reglas
-
-            - Original: no copies código, gráficos, música, nombres ni personajes de juegos existentes.
-            - Un solo archivo, `{SourceFile}`. Ya tiene la plantilla: mantené su arranque (hasta `start`) y cambiá lo demás.
-            - Jugable de verdad: el jugador se mueve con los controles que prueba el robot (los dice la guía), hay un
-              objetivo o un reto que crece, puntaje o progreso a la vista, y al terminar la partida vuelve a empezar.
-            - Gráficos claros (forma y color distinguen al jugador, los enemigos y lo que se junta) y sonidos cortos.
+            {GameWriter.Brief(t, wish, rng)}
 
             ## Cómo trabajar
 
-            1. Leé `GUIA.md`: memoria libre, pantalla, controles, sonido y la sintaxis del ensamblador de RetroEmu.
-            2. Escribí el juego completo en `{SourceFile}` (la plantilla original queda en `plantilla.s`).
-            3. Completá `{InfoFile}`: "title" (el nombre), "pitch" (de qué se trata, una oración) y "howToPlay".
+            1. Leé `{GameDesignGuide.FileName}` (diseño, originalidad y calidad) y `GUIA.md`
+               (memoria, pantalla, controles, sonido y sintaxis del ensamblador).
+            2. Escribí una ficha breve de diseño en comentarios de `{SourceFile}` y luego el juego completo.
+               `plantilla.s` aporta el arranque hasta `start` y demostraciones técnicas: no es el juego a recolorear.
+               Implementá estados, reglas y recursos propios. No agregues dependencias.
+            3. Completá `{InfoFile}`: "title" (hasta 60 caracteres), "pitch" (una oración, hasta 240)
+               y "howToPlay" (objetivo y teclas, hasta 320). La explicación de diseño no va en la ayuda del jugador.
             4. {test}
-            5. Corregí hasta que `{ReportFile}` diga "Listo". La prueba ensambla, carga el juego, mira que arranque y
-               dibuje, busca con qué controles se mueve el jugador (también después del disparo, por si hay título) y un
-               robot juega al azar 30 segundos mirando que no se trabe.
+            5. La prueba ensambla, carga, comprueba dibujo y movimiento sostenido con los controles documentados
+               y ejecuta un robot aleatorio unos 30 segundos. Si aparece un fallo, corregí su causa conservando el pedido.
+            6. Un informe "Listo" solo aprueba esa prueba técnica. Revisá también objetivo, decisiones, legibilidad,
+               progreso, final y reinicio según el contrato de diseño. Si no pudiste probarlos, indicá qué falta.
+
+            RetroEmu vuelve a probar `{SourceFile}` al guardarlo y actualiza `{ReportFile}`.
+            Si no recibiste rutinas de ROMs analizadas, no afirmes haberlas estudiado ni copies código de los originales.
 
             Textos para el jugador en castellano.
             """;
@@ -103,7 +104,7 @@ public static class GameWorkspace
     public static void WriteReport(string dir, TrialReport report)
     {
         string text = report.Ok
-            ? "# Listo\n\nEl juego pasó la prueba. El jugador ya lo puede jugar en RetroEmu.\n\n" + report.Summary
+            ? "# Listo\n\nPasó la prueba técnica automática. Falta comprobar manualmente las decisiones, el objetivo, el equilibrio y la calidad visual.\n\n" + report.Summary
             : "# Hay que corregir\n\n" + report.Summary + $"\nCorregí {SourceFile} y guardalo de nuevo.\n";
         File.WriteAllText(Path.Combine(dir, ReportFile), text);
         if (report.LastPicture != null)

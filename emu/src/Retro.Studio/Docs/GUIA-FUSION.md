@@ -7,9 +7,9 @@ La misma pareja puede dar juegos completamente diferentes: no existe una receta 
 ## 1. Entender qué hace especial a cada original
 
 Para cada juego identificá su verbo, objetivo, riesgo, recurso y una regla reconocible.
-Buscá relaciones entre esas reglas, no solo parecidos visuales. Un laberinto puede cambiar
-la trayectoria de disparos; robar un objeto puede cambiar quién persigue a quién; destruir
-enemigos puede abrir rutas que cambian cómo se combate. Son posibilidades, no moldes.
+Buscá relaciones entre esas reglas, no solo parecidos visuales. Describí una consecuencia
+compartida: lo que hacés con una regla debe cambiar cómo tomás decisiones con la otra.
+Aplicá también el contrato común de diseño incluido en el pedido.
 
 ## 2. Encontrar el punto de unión
 
@@ -53,8 +53,7 @@ juego obligatorio**. Cada fusión inventa su lenguaje visual, sus pantallas y su
 
 ## 5. Escena propia y controles claros
 
-- Dibujá una **escena propia** con sprites, tiles y datos originales. Manic Invaders sirve
-  como referencia de integración técnica, no como plantilla de género, menú o estructura.
+- Dibujá una **escena propia** con sprites, tiles y datos originales.
   `screen.game` está retirado: no uses pantallas completas, miniaturas ni reconstrucciones
   de la imagen original con `g.pixel`; esa función sirve para observar, no para copiar cuadros.
 - Mantené legibles el espacio, las amenazas y los elementos interactivos. No hay una
@@ -86,6 +85,11 @@ una mecánica identificable aunque no haga falta ejecutar su pantalla todo el ti
 Controlá efectos ocultos que rompan la partida: pausar, reiniciar, ajustar velocidad y
 volumen o usar ayudas del perfil. Convertí coordenadas con una sola función y usala para
 dibujar y para los choques. Si falta un dato, indicá la limitación; no lo adivines.
+
+La disponibilidad de una ROM no demuestra que conozcas sus rutinas. Trabajá con las
+variables, controles, sprites, ayudas y huellas realmente proporcionados en el pedido.
+Una captura o el nombre del archivo no justifican inventar direcciones. Si el perfil
+no permite la interacción central, explicá qué dato debe prepararse antes de implementarla.
 
 ## 8. Justicia, aprendizaje y prueba
 

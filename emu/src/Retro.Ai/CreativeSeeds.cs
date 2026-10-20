@@ -74,12 +74,20 @@ public static class CreativeSeeds
         "el tiempo solo avanza cuando te movés", "el puntaje también es la vida: gastarlo te salva", "cada muerte deja una ayuda para el intento siguiente",
         "el héroe no puede atacar: solo esquivar, engañar o empujar", "el escenario se achica, se inunda o se apaga", "dos objetivos que se contradicen y hay que elegir",
         "salir por un borde de la pantalla es entrar por el otro", "lo que juntás te hace más lento", "los enemigos solo se mueven cuando no los mirás de frente",
-        "los controles se invierten un rato, con aviso", "cada nivel cambia una regla y lo dice al empezar", "la música marca cuándo se puede saltar o disparar",
+        "una misma acción cambia de función según el estado visible del mundo", "las acciones transforman las rutas disponibles", "el sonido avisa un cambio de estado antes de que ocurra",
+    };
+
+    public static readonly string[] OriginalDecisions =
+    {
+        "arriesgar un recurso limitado para abrir otra posibilidad", "cambiar el espacio para controlar una amenaza",
+        "elegir entre avanzar ahora o preparar una ruta segura", "coordinar acciones con efectos que tardan en aparecer",
+        "transformar un obstáculo en una herramienta", "administrar espacio sin perder libertad de movimiento",
+        "alternar dos usos de la misma acción con un coste visible", "predecir un patrón y decidir cuándo interrumpirlo",
     };
 
     /// <summary>A seed for a game written from scratch: genre, world, tone and twist.</summary>
     public static string DrawOriginal(Random rng) =>
-        $"género: {Pick(rng, Genres)}; protagonista y mundo: {Pick(rng, Worlds)}; tono: {Pick(rng, Tones)}; regla insólita: {Pick(rng, OriginalTwists)}";
+        $"género: {Pick(rng, Genres)}; protagonista y mundo: {Pick(rng, Worlds)}; tono: {Pick(rng, Tones)}; regla insólita: {Pick(rng, OriginalTwists)}; decisión a explorar: {Pick(rng, OriginalDecisions)}";
 
     /// <summary>One seed: form, presentation, tone and twist, drawn with <paramref name="rng"/>.</summary>
     public static string Draw(Random rng) =>

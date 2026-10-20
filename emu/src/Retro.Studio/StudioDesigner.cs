@@ -44,24 +44,22 @@ public sealed class StudioDesigner
         jugabilidad. Trabajás en RetroEmu, un emulador que corre juegos de 8 bits de verdad y
         permite FUSIONARLOS: un guion de JavaScript conecta los juegos emulados y arma con
         ellos UN juego nuevo, jugable y divertido, con reglas inseparables e identidad propia.
-        Dibujá una escena propia con sprites, tiles y variables de los originales, como Manic
-        Invaders. screen.game se retiró y hace fallar la prueba: no uses pantallas enteras,
+        Dibujá una escena propia con sprites, tiles y variables de los originales.
+        screen.game se retiró y hace fallar la prueba: no uses pantallas enteras,
         superpuestas, lado a lado ni miniaturas de los juegos originales.
 
         Escribí en castellano rioplatense (vos) los textos que ve el jugador. La letra del
         Spectrum no tiene tildes ni eñes: en pantalla escribí sin ellas (los mensajes de
         ui.message y ui.hud sí las pueden llevar).
 
+        {GameDesignGuide.Text}
+
         {Method}
 
         {ApiDoc}
 
-        ## Referencia técnica: el guion de "Manic Invaders" (Space Invaders + Manic Miner)
-
-        NO es un estilo a copiar. No se incluye el guion completo para evitar usarlo como
-        molde. Usá la API documentada y resolvé desde cero las reglas de esta combinación.
-        No repitas su menú, sus carteles, su HUD ni su progresión. Cambiar colores no basta.
-        Antes de programar aplicá la prueba de quitar un original y explicá la regla única.
+        Manic Invaders es una referencia de integración técnica. NO es un estilo a copiar.
+        Su programa completo no se incluye como plantilla. Resolvé esta combinación desde cero.
         """;
 
     /// <summary>Everything the AI must know about each game: picture, variables, controls, sprites, helpers.</summary>
@@ -75,6 +73,9 @@ public sealed class StudioDesigner
                 continue;
             sb.AppendLine($"### games.{slot.Slot}: {p.Name} (perfil \"{p.Id}\", máquina {p.Machine})");
             sb.AppendLine(p.Description);
+            sb.AppendLine(p.Match.Sha256.Count > 0
+                ? "Huellas reconocidas por este perfil (SHA-256): " + string.Join(", ", p.Match.Sha256)
+                : "Este perfil no declara huellas SHA-256; no asumas que sus datos sirven para cualquier edición.");
             sb.AppendLine(p.Machine switch
             {
                 "zx48" => "Imagen: 256x192 (ZX Spectrum, g.area dentro de un cuadro de 352x296 con borde).",
@@ -83,6 +84,8 @@ public sealed class StudioDesigner
                 _ => "",
             });
             sb.AppendLine("Variables (g.get / g.set):");
+            if (p.Variables.Count == 0)
+                sb.AppendLine("No hay variables verificadas en este perfil. No inventes datos de memoria; indicá si el diseño necesita preparación adicional.");
             foreach (var (name, v) in p.Variables)
                 sb.AppendLine($"- {name}{(v.ReadOnly ? " (solo lectura)" : "")}: {v.Description} [{v.Min}..{v.Max}]");
             sb.AppendLine("Controles (g.control): " + string.Join(", ", p.Controls.Select(c => $"{c.Key} = tecla {c.Value}")));
@@ -127,10 +130,10 @@ public sealed class StudioDesigner
     {
         var props = new Dictionary<string, object>
         {
-            ["title"] = new { type = "string" },
-            ["approach"] = new { type = "string" },
-            ["pitch"] = new { type = "string" },
-            ["howToPlay"] = new { type = "string" },
+            ["title"] = new { type = "string", maxLength = 60 },
+            ["approach"] = new { type = "string", maxLength = 180 },
+            ["pitch"] = new { type = "string", maxLength = 240 },
+            ["howToPlay"] = new { type = "string", maxLength = 320 },
         };
         foreach (var (key, _) in DesignFields)
             props[key] = new { type = "string" };
@@ -176,7 +179,7 @@ public sealed class StudioDesigner
         sb.Append(CreativeSeeds.Brief(Random.Shared, 3, existing, !string.IsNullOrWhiteSpace(wish)));
         sb.Append(PreviousDesigns(slots));
         sb.AppendLine("Seguí el método (pasos 1 a 6). Cada idea es un juego completo con: title (nombre del juego nuevo), approach " +
-                      "(el enfoque de la mezcla en una frase), pitch (la premisa: 2 a 4 oraciones), howToPlay (objetivo y controles) y el " +
+                      "(el enfoque de la mezcla en una frase), pitch (la premisa en una oración), howToPlay (objetivo y teclas en dos o tres líneas) y el " +
                       "documento de diseño: " + string.Join(", ", DesignFields.Select(f => $"{f.Key} ({f.Label.ToLowerInvariant()})")) + ". " +
                       "Tienen que ser realizables con la API y las ayudas de los perfiles. No hay menú, número de niveles ni género obligatorio. " +
                       "Antes de responder, revisá cada idea con la lista de control y con los anti-patrones, y descartá las que no la pasen.");
@@ -214,20 +217,22 @@ public sealed class StudioDesigner
         required = new[] { "title", "approach", "pitch", "howToPlay", "design", "changes", "script" },
         properties = new
         {
-            title = new { type = "string" },
-            approach = new { type = "string" },
-            pitch = new { type = "string" },
-            howToPlay = new { type = "string" },
+            title = new { type = "string", maxLength = 60 },
+            approach = new { type = "string", maxLength = 180 },
+            pitch = new { type = "string", maxLength = 240 },
+            howToPlay = new { type = "string", maxLength = 320 },
             design = new { type = "string" },
-            changes = new { type = "string" },
+            changes = new { type = "string", maxLength = 400 },
             script = new { type = "string" },
         },
     });
 
     private const string AnswerShape =
-        "Devolvé title, approach, pitch (la premisa), howToPlay, design (el documento de diseño completo y actualizado, una línea por " +
+        "Devolvé title (hasta 60 caracteres), approach (hasta 180), pitch (una oración, hasta 240), howToPlay (objetivo y teclas, hasta 320), " +
+        "design (el documento de diseño completo y actualizado, una línea por " +
         "parte: unión mecánica, regla única, diferencia, aportes, se descarta, objetivo, final, progresión, controles, presentación, legibilidad), changes (qué " +
-        "hiciste o cambiaste, en una o dos oraciones) y script (el guion de JavaScript COMPLETO, no solo los cambios).";
+        "hiciste o cambiaste, hasta 400 caracteres) y script (el guion de JavaScript COMPLETO, no solo los cambios). " +
+        "El documento de diseño no debe aparecer como un tutorial extenso dentro del juego.";
 
     public static string WritePrompt(IReadOnlyList<RecipeGame> slots, Func<string, GameProfile?> find, GameConcept concept)
     {
@@ -425,7 +430,9 @@ public sealed class StudioDesigner
     public static string ManualRevisePrompt(StudioGame current, Func<string, GameProfile?> find, string request) =>
         Guide + "\n\n" + RevisePrompt(current, current.Games, find, request) + ManualShape;
 
-    public static string ManualFixPrompt(ValidationReport report) => FixRequest(report) + ManualShape;
+    public static string ManualFixPrompt(ValidationReport report, StudioGame? current = null) =>
+        (current != null ? "Esta es la última versión que se debe corregir; conserva su diseño:\n" + current.ToJson() + "\n\n" : "") +
+        FixRequest(report) + ManualShape;
 
     // ------------------------------------------------------------------ helpers
     private static string Str(JsonElement e, string name, string fallback = "") =>

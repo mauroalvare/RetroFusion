@@ -394,7 +394,7 @@ public sealed class CreatorWindow
             else
             {
                 _manualDraft = mt.Result.draft;
-                _manualPrompt = GameWriter.ManualFixPrompt(mt.Result.draft, mt.Result.report);
+                _manualPrompt = GameWriter.ManualFixPrompt(mt.Result.draft, mt.Result.report, _writeWish);
                 _pasted = "";
                 Problem($"\"{mt.Result.draft.Title}\" no pasó la prueba: copiá el pedido de corrección y pegale la respuesta nueva.", mt.Result.report.Summary);
             }

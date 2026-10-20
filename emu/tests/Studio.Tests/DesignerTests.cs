@@ -74,6 +74,7 @@ public class DesignerTests
         Assert.That(ideas[0].Design, Does.Contain("las 20 cavernas"));
         Assert.That(ai.Requests[0].Turns[0].Text, Does.Contain("cooperativo"));
         Assert.That(ai.Requests[0].Schema, Is.Not.Null);
+        Assert.That(ai.Requests[0].System, Does.Contain(GameDesignGuide.Text), "la conexión directa recibe el contrato común");
     }
 
     [Test]
@@ -172,5 +173,49 @@ public class DesignerTests
 
         Assert.That(StudioDesigner.ParseGame("no sé", new StudioGame(), out error), Is.Null);
         Assert.That(error, Does.Contain("guion"));
+    }
+
+    [Test]
+    public void ManualWritingAndCorrections_KeepTheContractAndLatestDesign()
+    {
+        string start = StudioDesigner.ManualWritePrompt(Slots, ProfileLibrary.Find,
+            new GameConcept("Unión", "Propia", "Una regla que une decisiones", "Dos acciones"));
+        var current = new StudioGame { Title = "Actual", Design = "Diseño corregido", Script = "function draw() {}", Games = Slots };
+        string correction = start + "\n\n" + StudioDesigner.ManualFixPrompt(Fake(current), current);
+        Assert.That(correction, Does.Contain(GameDesignGuide.Text).And.Contain(current.ToJson()));
+        Assert.That(correction, Does.Contain("Una regla que une decisiones"), "el pedido inicial acompaña a la última versión");
+    }
+
+    [Test]
+    public void ProfilesWithoutVerifiedVariables_DoNotInviteInventedRomData()
+    {
+        var profile = new GameProfile { Id = "sin-datos", Name = "Edición local", Machine = "zx48" };
+        var slots = new[] { new RecipeGame { Slot = "a", Profile = profile.Id } };
+        string prompt = StudioDesigner.GamesText(slots, _ => profile);
+        Assert.That(prompt, Does.Contain("No hay variables verificadas").And.Contain("no declara huellas SHA-256"));
+        profile.Match.Sha256.Add(new string('a', 64));
+        Assert.That(StudioDesigner.GamesText(slots, _ => profile), Does.Contain(new string('a', 64)).And.Not.Contain("no declara huellas"));
+    }
+
+    [Test]
+    public void AgentWorkspace_UsesTheSameContractAndImportsDesignWithoutChangingOriginals()
+    {
+        string dir = Path.Combine(Path.GetTempPath(), "retro-design-workspace-" + Guid.NewGuid().ToString("N"));
+        var template = new StudioGame { Id = "propio", Title = "Pedido", Games = Slots.ToList(), Design = "Diseño inicial" };
+        try
+        {
+            StudioWorkspace.Create(template, "Mantener la decisión central", ProfileLibrary.Find, null, dir);
+            Assert.That(File.ReadAllText(Path.Combine(dir, GameDesignGuide.FileName)), Is.EqualTo(GameDesignGuide.Text));
+            Assert.That(File.ReadAllText(Path.Combine(dir, "TAREA.md")), Does.Contain(GameDesignGuide.FileName).And.Contain("regla inseparable"));
+            Assert.That(File.Exists(Path.Combine(dir, "ejemplo.js")), Is.False, "no entregar un juego completo como molde");
+            var edited = template.Copy(); edited.Title = "Nueva versión"; edited.Design = "Diseño actualizado con regla propia";
+            edited.Games = new() { new RecipeGame { Slot = "x", Profile = "otro-juego" } };
+            File.WriteAllText(Path.Combine(dir, StudioWorkspace.GameFile), edited.ToJson());
+            File.WriteAllText(Path.Combine(dir, StudioWorkspace.ScriptFile), "function draw() {}");
+            var read = StudioWorkspace.Read(dir, template)!.Value.game;
+            Assert.That(read.Design, Is.EqualTo(edited.Design), "el diseño escrito por el agente debe llegar a la versión importada");
+            Assert.That(read.Games.Select(g => g.Profile), Is.EqualTo(Slots.Select(g => g.Profile)), "los originales seleccionados se conservan");
+        }
+        finally { if (Directory.Exists(dir)) Directory.Delete(dir, true); }
     }
 }

@@ -157,6 +157,14 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 
 ## Creador de juegos (T-060)
 
+- Las instrucciones de diseño son comunes a proveedores/CLI, copiar y pegar y carpetas
+  para agentes. Su entrega y la conservación del pedido se prueban con IA simulada;
+  eso no mide la creatividad ni la calidad de una generación real.
+- El creador compara hasta cinco resúmenes previos de la misma máquina; no recibe sus
+  programas ni analiza automáticamente rutinas de ROMs. Ese análisis y su comprobación
+  anti-copia siguen pendientes. Los perfiles de fusión solo aportan los datos declarados.
+- Los textos nuevos se piden breves en las instrucciones y esquemas. Los juegos antiguos
+  o las respuestas manuales pueden conservar textos más largos; no se recortan sus controles.
 - Hay plantillas para el C64 y el Spectrum 48K; NES y Space Invaders todavía no.
 - Los ensambladores no tienen macros, `include`, ensamblado condicional ni segmentos: un
   archivo, un origen.

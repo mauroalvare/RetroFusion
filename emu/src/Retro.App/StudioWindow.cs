@@ -660,10 +660,12 @@ public sealed class StudioWindow
 
     private void StartManual(string title, string prompt, StudioGame template, bool first)
     {
+        var current = template;
         void OnAnswer(string answer)
         {
-            var game = StudioDesigner.ParseGame(answer, template, out var error)
+            var game = StudioDesigner.ParseGame(answer, current, out var error)
                        ?? throw new AiException(error ?? "no se pudo leer");
+            current = game;
             _manual = null;
             ValidateThen(game, (g, report) =>
             {
@@ -672,7 +674,8 @@ public sealed class StudioWindow
                 else
                 {
                     Problem("El juego todavía falla: copiá la consigna de corrección y pegásela a tu IA.", report);
-                    _manual = new ManualStep("Corregir: pegale esto a tu IA", StudioDesigner.ManualFixPrompt(report), OnAnswer);
+                    _manual = new ManualStep("Corregir: pegale esto a tu IA",
+                        prompt + "\n\n" + StudioDesigner.ManualFixPrompt(report, g), OnAnswer);
                 }
             });
         }

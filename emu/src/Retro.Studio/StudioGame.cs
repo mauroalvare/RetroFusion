@@ -22,7 +22,7 @@ public sealed class StudioGame
     /// <summary>How the games are mixed (invasion, crossed powers, alternating worlds, remix...).</summary>
     public string Approach { get; set; } = "";
     public string HowToPlay { get; set; } = "";
-    /// <summary>The design document (base game, hero, contributions, what is discarded, goal, story, levels...), see Docs/GUIA-FUSION.md.</summary>
+    /// <summary>Mechanic link, distinct rule, decisions, progression and presentation; see Docs/GUIA-FUSION.md.</summary>
     public string Design { get; set; } = "";
     public List<RecipeGame> Games { get; set; } = new();
     public string Script { get; set; } = "";

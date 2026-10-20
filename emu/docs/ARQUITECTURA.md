@@ -532,12 +532,19 @@ El detector de partida sigue cada byte cada 8 cuadros y suma los pasos: una coor
 avanza 2 puntos por cuadro recorre 160 en 80 cuadros, y una sola resta de bytes la leería
 como -96 (por eso no veía a los jugadores rápidos).
 
-**La IA que escribe (`GameWriter`, en Retro.Ai):** el sistema lleva las reglas (original,
-un solo archivo, jugable con los controles del robot), la guía de la máquina y la
-plantilla; el pedido del jugador o, sin pedido, una semilla al azar
-(`CreativeSeeds.DrawOriginal`). Cada intento es un solo turno con el programa actual y el
-informe de la prueba (más la imagen de la pantalla), así la conversación no crece aunque el
-programa sea largo. Termina cuando pasa la prueba o a los 5 intentos.
+**La IA que escribe (`GameWriter`, en Retro.Ai):** el sistema lleva el contrato común
+`GameDesignGuide` (`DISENO-JUEGOS.md` incrustado), la guía técnica de la máquina y la
+plantilla de arranque. El brief conserva el pedido, una sola semilla y hasta cinco
+resúmenes de juegos previos de la misma máquina, sin sus programas. Cada intento es
+un turno con ese mismo brief, el programa actual y el informe (más la imagen si se
+adjunta). Un fallo de formato no sortea otro juego. Termina cuando pasa la prueba o
+a los 5 intentos; eso no certifica originalidad ni diversión.
+
+`StudioDesigner` comparte ese contrato y agrega el método de unión mecánica, la API y
+los datos reales de los perfiles. Los esquemas piden metadatos breves, con el diseño
+detallado separado. Las carpetas para agentes incluyen el mismo contrato y dejan de
+entregar un juego completo como molde. Las correcciones manuales conservan el pedido
+inicial y la última versión; `StudioWorkspace.Read` también importa su diseño.
 
 **Juegos creados (`CreatedGames`, en Retro.Ai):** cada juego es una carpeta en
 "Juegos creados" (junto al programa o más arriba; si no hay, en Documentos/RetroEmu) con
@@ -547,7 +554,7 @@ después de una edición; `ExportExamples` copia los ejemplos una vez. La ventan
 `CreatorWindow` (menú Crear) usa todo esto y abre el programa con `OpenFile`, igual que
 cualquier juego. Sin API: copiar y pegar (`GameWriter.ManualPrompt` y `ManualFixPrompt`; la
 respuesta es un JSON con los textos y el programa en un bloque de código) y la carpeta para
-agentes (`GameWorkspace`: TAREA.md, GUIA.md, plantilla.s, juego.s, juego.json; la ventana
+agentes (`GameWorkspace`: TAREA.md, DISENO-JUEGOS.md, GUIA.md, plantilla.s, juego.s, juego.json; la ventana
 prueba juego.s cada vez que cambia y escribe informe.md y captura.png).
 
 Lo que falta: citar rutinas de juegos originales (juego, hash de la edición, dirección) sin

@@ -17,15 +17,14 @@ public static class StudioWorkspace
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "RetroEmu", "agente-juegos");
 
     /// <summary>Creates the folder for a new game (from a concept or the player's idea) or a new version of one.</summary>
-    public static string Create(StudioGame game, string task, Func<string, GameProfile?> find, string? cliHint)
+    public static string Create(StudioGame game, string task, Func<string, GameProfile?> find, string? cliHint, string? folder = null)
     {
-        string dir = Path.Combine(Root, string.IsNullOrWhiteSpace(game.Id) ? "juego" : game.Id);
+        string dir = folder ?? Path.Combine(Root, string.IsNullOrWhiteSpace(game.Id) ? "juego" : game.Id);
         Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, Retro.Ai.GameDesignGuide.FileName), Retro.Ai.GameDesignGuide.Text);
         File.WriteAllText(Path.Combine(dir, "GUIA-FUSION.md"), StudioDesigner.Method);
         File.WriteAllText(Path.Combine(dir, "API.md"), StudioDesigner.ApiDoc);
         File.WriteAllText(Path.Combine(dir, "JUEGOS.md"), "# Los juegos de esta fusión\n\n" + StudioDesigner.GamesText(game.Games, find));
-        File.WriteAllText(Path.Combine(dir, "ejemplo.js"), StudioDesigner.ExampleScript);
-        File.WriteAllText(Path.Combine(dir, "ejemplo-diseño.md"), "# Diseño de Manic Invaders\n\n" + StudioDesigner.ExampleDesign + "\n");
         File.WriteAllText(Path.Combine(dir, GameFile), game.ToJson());
         File.WriteAllText(Path.Combine(dir, ScriptFile), game.Script);
         File.Delete(Path.Combine(dir, ReportFile));
@@ -36,7 +35,8 @@ public static class StudioWorkspace
             # Tarea: {(game.Script.Length == 0 ? "crear" : "mejorar")} un juego fusionado de RetroEmu
 
             RetroEmu corre juegos de 8 bits emulados de verdad y los FUSIONA con un guion de
-            JavaScript que arma UN juego nuevo, en una sola pantalla, con historia y niveles.
+            JavaScript que dibuja una escena propia y conecta sus reglas. El género, la
+            presentación y la progresión dependen de este diseño, sin una plantilla fija.
 
             ## Qué hay que hacer
 
@@ -44,22 +44,24 @@ public static class StudioWorkspace
 
             ## Cómo trabajar (en este orden)
 
-            1. Leé `GUIA-FUSION.md` (el método: juego base, héroe, aportes, lo que se descarta,
-               reglas, mundo, niveles e historia, legibilidad, estructura, pruebas), `API.md` (lo que
-               puede hacer el guion) y `JUEGOS.md` (variables, controles, sprites y ayudas de cada
-               juego; si un juego ofrece sus niveles originales, usalos).
-            2. Mirá el ejemplo completo: `ejemplo-diseño.md` y `ejemplo.js`.
-            3. Escribí el documento de diseño en el campo "design" de `{GameFile}` (una línea por
-               parte: juego base, héroe, aportes, se descarta, objetivo, derrota, historia, niveles,
-               controles, legibilidad) y completá "title", "approach", "pitch" y "howToPlay". No
-               toques "games".
+            1. Leé `{Retro.Ai.GameDesignGuide.FileName}` (diseño y calidad), `GUIA-FUSION.md`
+               (unión mecánica), `API.md` (capacidades del guion) y `JUEGOS.md` (datos de los originales).
+            2. Diseñá una regla inseparable: quitar cualquier original debe cambiar una decisión
+               central. Compará las variantes anteriores incluidas en la tarea. No partas de un
+               guion de ejemplo para recolorearlo ni inventes datos ausentes de los perfiles.
+            3. Escribí en "design" de `{GameFile}` la unión mecánica, regla única, diferencia,
+               aportes, descartes, objetivo, final, progresión, controles, presentación y legibilidad.
+               Completá "title" (hasta 60 caracteres), "approach" (hasta 180), "pitch" (una oración,
+               hasta 240), "howToPlay" (objetivo y teclas, hasta 320) y "changes" (hasta 400).
+               El diseño detallado no va en la ayuda del jugador. No toques "games".
             4. Escribí el guion completo en `{ScriptFile}`.
             5. Probalo: {test}
-            6. Corregí hasta que el informe diga LISTO y las capturas se entiendan. Revisá la lista
-               de control de la guía y buscá estrategias que rompan el juego.
+            6. Corregí los fallos conservando el pedido y lo que funciona. Revisá la lista de
+               control y las capturas; probá también inicio, progreso, final, reinicio y estrategias
+               que anulen el reto. Un informe LISTO no demuestra originalidad ni diversión.
 
             Cada vez que guardes `{ScriptFile}`, RetroEmu también lo prueba con tres jugadores robot y
-            escribe `{ReportFile}`. Cuando diga "Listo", el jugador ya lo puede jugar.
+            escribe `{ReportFile}`. Distinguí qué comprobó el robot y qué falta jugar u observar.
             Textos para el jugador en castellano.
             """;
         File.WriteAllText(Path.Combine(dir, "TAREA.md"), tarea);
@@ -87,6 +89,7 @@ public static class StudioWorkspace
                 game.Approach = fromFile.Approach;
                 game.Pitch = fromFile.Pitch;
                 game.HowToPlay = fromFile.HowToPlay;
+                game.Design = fromFile.Design;
                 game.Changes = fromFile.Changes;
             }
         }
@@ -101,7 +104,7 @@ public static class StudioWorkspace
     public static void WriteReport(string dir, ValidationReport report)
     {
         string text = report.Ok
-            ? "# Listo\n\nEl juego pasó la prueba automática de jugabilidad. El jugador ya lo puede probar en RetroEmu.\n\n" + report.Summary
+            ? "# Listo\n\nPasó la prueba automática. Falta comprobar manualmente la originalidad, las decisiones, el equilibrio y la calidad visual.\n\n" + report.Summary
             : "# Hay que corregir\n\n" + report.Summary + "\nCorregí juego.js y guardalo de nuevo.\n";
         File.WriteAllText(Path.Combine(dir, ReportFile), text);
     }

@@ -17,6 +17,11 @@ El estudio limita la lista de selección a una zona con desplazamiento y búsque
 Las ayudas para jugar están en **Ayuda > Abrir y jugar**, **Controles de la partida**
 y **Atajos**. Los controles corresponden al sistema o a la fusión activos. El README
 del paquete es una guía breve; los contratos para agentes se entregan por separado.
+
+El contrato común para las IAs está en `src/Retro.Ai/Docs/DISENO-JUEGOS.md` y se
+incrusta con `GameDesignGuide`. Creador y estudio lo envían por todos los modos de
+trabajo. Las carpetas para agentes lo incluyen como `DISENO-JUEGOS.md`; la guía de
+fusión y la documentación técnica conservan sus archivos propios.
 Muestra los juegos elegidos y separa **Proponer ideas** de **Mi idea**; las carpetas y
 las fusiones anteriores se despliegan cuando se necesitan.
 Si el CLI elegido está encontrado, su ruta y configuración se repliegan bajo

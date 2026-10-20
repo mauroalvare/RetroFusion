@@ -53,10 +53,12 @@ public class GameWriterTests
         Assert.That(outcome.Game!.Title, Is.EqualTo("Arreglado"));
         Assert.That(outcome.Report!.File, Is.Not.Null.And.Not.Empty, "queda el .prg listo para cargar");
         Assert.That(ai.Requests[0].System, Does.Contain("Commodore 64").And.Contain("$DC00").And.Contain("ORIGINAL"), "la guía de la máquina va en el sistema");
+        Assert.That(ai.Requests.All(r => r.System.Contains(GameDesignGuide.Text)), Is.True, "el contrato de diseño acompaña también cada corrección");
         Assert.That(ai.Requests[0].Schema, Is.Not.Null);
         Assert.That(ai.Requests[0].Turns.Single().Text, Does.Contain("un juego de un faro"));
         string fix = ai.Requests[1].Turns.Single().Text;
         Assert.That(fix, Does.Contain("inx $D020").And.Contain("línea").And.Contain("[FALLA] ensambla"));
+        Assert.That(fix, Does.Contain("Pedido del jugador: un juego de un faro"), "el pedido no se pierde al reducir la conversación a un turno");
         Assert.That(ai.Requests[1].Turns, Has.Count.EqualTo(1), "cada pedido es un solo turno: la conversación no crece");
     }
 
@@ -101,6 +103,7 @@ public class GameWriterTests
         var t = Templates.For("c64")!;
         string prompt = GameWriter.ManualPrompt(t, "un faro", new Random(1));
         Assert.That(prompt, Does.Contain("$DC00").And.Contain("Pedido del jugador: un faro").And.Contain("```asm"));
+        Assert.That(prompt, Does.Contain(GameDesignGuide.Text), "el chat recibe el mismo contrato que el proveedor directo");
         var d = GameWriter.ParseDraft("{\"title\": \"Faro\", \"pitch\": \"luz\"}\n```asm\n; {llaves} en un comentario\n nop\n```", out var error);
         Assert.That(error, Is.Null);
         Assert.That(d!.Title, Is.EqualTo("Faro"));
@@ -116,6 +119,8 @@ public class GameWriterTests
             GameWorkspace.Create("zx48", "una carrera de caracoles", new Random(2), "retro-cli probar juego.s", dir);
             Assert.That(File.ReadAllText(Path.Combine(dir, "TAREA.md")), Does.Contain("una carrera de caracoles").And.Contain("retro-cli probar juego.s"));
             Assert.That(File.ReadAllText(Path.Combine(dir, "GUIA.md")), Does.Contain("Kempston"));
+            Assert.That(File.ReadAllText(Path.Combine(dir, GameDesignGuide.FileName)), Is.EqualTo(GameDesignGuide.Text));
+            Assert.That(File.ReadAllText(Path.Combine(dir, "TAREA.md")), Does.Contain(GameDesignGuide.FileName).And.Contain("no va en la ayuda"));
             Assert.That(File.ReadAllText(Path.Combine(dir, "CLAUDE.md")), Does.Contain("TAREA.md"));
             var read = GameWorkspace.Read(dir)!.Value;
             Assert.That(read.draft.Source, Is.EqualTo(Templates.For("zx48")!.Source), "juego.s arranca como la plantilla");
@@ -142,5 +147,45 @@ public class GameWriterTests
         Assert.That(prompts[0], Does.Contain("género:").And.Contain("ZX Spectrum 48K"));
         Assert.That(GameWriter.FirstPrompt(t, "una carrera de caracoles", new Random(1)), Does.StartWith("Pedido del jugador: una carrera de caracoles"));
         Assert.That(GameWriter.Guide(t), Does.Contain("no cambies IY").And.Contain("org $8000"));
+    }
+
+    private sealed class CountingRandom(int seed) : Random(seed)
+    {
+        public int Draws;
+        public override int Next(int maxValue) { Draws++; return base.Next(maxValue); }
+    }
+
+    [Test]
+    public async Task InvalidAnswers_RetainTheOriginalBriefWithoutDrawingAnotherGame()
+    {
+        var ai = new ScriptedAi("respuesta sin programa", Answer("Reintento", C64));
+        var rng = new CountingRandom(7);
+        var outcome = await new GameWriter().WriteAsync(ai, "c64", "conservar una regla sin disparos", _firmware, CancellationToken.None, rng: rng);
+        Assert.That(outcome.Ok, Is.True, outcome.Problem);
+        Assert.That(rng.Draws, Is.EqualTo(5), "un error de formato no debe sortear otra semilla");
+        Assert.That(ai.Requests[1].Turns.Single().Text, Does.Contain(ai.Requests[0].Turns.Single().Text), "se reenvía el mismo brief completo");
+    }
+
+    [Test]
+    public void ManualCorrections_ContainTheGuideRequestAndLatestSourceWithoutChatMemory()
+    {
+        var report = Retro.Compat.HomebrewTrial.Run("instruccion_inexistente", "c64", _firmware);
+        var draft = new GameDraft("Prueba", "Regla distintiva", "Acción y objetivo", "", "; ultimo codigo\ninstruccion_inexistente");
+        string prompt = GameWriter.ManualFixPrompt(draft, report, "conservar el objetivo pedido");
+        Assert.That(prompt, Does.Contain(GameDesignGuide.Text).And.Contain("$DC00").And.Contain("conservar el objetivo pedido"));
+        Assert.That(prompt, Does.Contain(draft.Source).And.Contain("[FALLA] ensambla"));
+    }
+
+    [Test]
+    public void DesignHistory_IsLimitedToFiveGamesOfTheSameMachineAndDoesNotReadSources()
+    {
+        var games = Enumerable.Range(0, 8).Select(i => new CreatedGame
+        {
+            Machine = "c64", Title = "Previo " + i, Pitch = "Decisión anterior " + i,
+            Created = new DateTime(2026, 1, 1).AddDays(i), Folder = "archivo que no debe abrirse"
+        }).Append(new CreatedGame { Machine = "zx48", Title = "Otra máquina", Created = DateTime.MaxValue });
+        string prompt = GameWriter.Brief(Templates.For("c64")!, "pedido vigente", new Random(1), games);
+        Assert.That(prompt, Does.Contain("Previo 7").And.Contain("Previo 3").And.Contain("pedido vigente"));
+        Assert.That(prompt, Does.Not.Contain("Previo 2").And.Not.Contain("Otra máquina").And.Not.Contain("archivo que no debe abrirse"));
     }
 }
