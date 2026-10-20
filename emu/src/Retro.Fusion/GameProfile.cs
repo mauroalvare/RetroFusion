@@ -204,8 +204,8 @@ public sealed class GameProfile
     /// <summary>True when one of the files belongs to this game.</summary>
     public bool Matches(IReadOnlyList<MediaFile> files)
     {
-        if (Match.MatchesHash(files))
-            return true;
+        if (Match.Sha256.Count > 0)
+            return Match.MatchesHash(files);
         if (Match.Files.Count > 0 && Match.Files.All(n => files.Any(f => f.Name.Equals(n, StringComparison.OrdinalIgnoreCase))))
             return true;
         if (Match.NamePattern != null)

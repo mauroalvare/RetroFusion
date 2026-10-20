@@ -133,3 +133,19 @@ direccionamiento, sin conteo de ciclos, prelectura ni máquina. No implementa a�
 Los contratos de máquinas actuales no cambian. El CLI agrega `cpu8088 <bin|demo>` para
 probar programas crudos con un límite de pasos, sin simular servicios BIOS/DOS ni
 declarar disponible PC/XT. Los opcodes pendientes producen errores con CS:IP.
+
+## D-018 Experimentos de RAM reversibles y propuestas declarativas (2026-10-20)
+
+`GameModifications` trabaja sobre una máquina y su perfil: valida nombres, permisos,
+rangos, formato y dirección antes de escribir; una prueba es un conjunto de
+`VariableEdit(variable, value, freeze)`. Si una escritura no se puede comprobar, restaura
+el estado anterior de la prueba completa. El primer cambio exitoso guarda un punto de
+regreso de toda la máquina; volver también libera los congelados. No escribe medios ni
+perfiles. Los congelados se reponen antes del cuadro emulado.
+
+`GameModificationAdvisor` devuelve análisis e ideas declarativas, sin código ni direcciones.
+Valida también respuestas que no respeten el esquema del proveedor. Recibir ideas no las
+aplica: el jugador elige una prueba. Los perfiles con hashes de ediciones concretas solo
+coinciden por esos hashes; un nombre igual ya no permite aplicarlos a otra copia.
+Las propuestas dependen de variables conocidas; no implican descubrir toda la RAM ni
+demostrar el efecto sugerido. La UI debe invalidarlas al cambiar/restaurar la partida.
