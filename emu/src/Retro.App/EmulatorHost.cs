@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Retro.Core;
+using Retro.Fusion;
 using Retro.Machines;
 using Retro.Systems.Arcade;
 using Retro.Systems.C64;
@@ -32,6 +33,8 @@ public sealed class EmulatorHost
 
     public void StartFusion(Retro.Fusion.IFusionRun session)
     {
+        MediaRevision++;
+        _quickState = null;
         Fusion = session;
         foreach (var slot in session.Slots)
             slot.Machine.ExecutedMap ??= new bool[0x10000];   // the code view sees what each game ran
@@ -43,6 +46,8 @@ public sealed class EmulatorHost
 
     public void StopFusion()
     {
+        MediaRevision++;
+        _quickState = null;
         Fusion = null;
         _audio.Clear();
         Status = "Fusión detenida.";
@@ -59,6 +64,10 @@ public sealed class EmulatorHost
     public string Status { get; set; } = "Arrastrá un juego a la ventana o usá Archivo > Abrir.";
     public string? LastStopReason { get; private set; }
     public string? LoadedMedia { get; private set; }
+    public GameProfile? LoadedProfile { get; private set; }
+    /// <summary>Changes on load, restart or state restoration, even when the file name is unchanged.</summary>
+    public long MediaRevision { get; private set; }
+    public event Action<IMachine>? BeforeFrame;
     public double EffectiveSpeed { get; private set; } = 1;
 
     private readonly AudioQueue _audio = new(44100 / 2);
@@ -106,6 +115,7 @@ public sealed class EmulatorHost
         var cart = Retro.Systems.Nes.NesCartridge.Load(file.Data);
         SetMachine(new Retro.Systems.Nes.Nes(cart), info);
         LoadedMedia = file.Name;
+        LoadedProfile = ProfileLibrary.ForFiles([file]);
         Status = $"{file.Name}: {cart.Describe()}. Mando: flechas, Z = B, X = A, Enter = Start, Shift derecho = Select.";
     }
 
@@ -122,6 +132,7 @@ public sealed class EmulatorHost
             description += " Sonidos: sintetizados (aproximan los circuitos analógicos).";
         SetMachine(m, info);
         LoadedMedia = "invaders";
+        LoadedProfile = ProfileLibrary.ForFiles(files);
         Status = description + " Moneda: 5 o C, empezar: 1.";
     }
 
@@ -151,22 +162,29 @@ public sealed class EmulatorHost
 
     private void SetMachine(IMachine m, MachineInfo info)
     {
+        MediaRevision++;
+        _quickState = null;
         Fusion = null;
         m.ExecutedMap = new bool[0x10000];   // the code view sees everything the game ran
         Machine = m;
         Info = info;
         Paused = false;
         LoadedMedia = null;
+        LoadedProfile = null;
         Debug.Clear();
         _audio.Clear();
     }
 
     public void Load(MediaFile file, bool autoType)
     {
+        var profile = ProfileLibrary.ForFiles([file]);
         if (C64 is { } c64)
         {
             var r = C64Media.Load(c64, file);
             LoadedMedia = file.Name;
+            LoadedProfile = profile;
+            MediaRevision++;
+            _quickState = null;
             Status = $"{file.Name}: {r.Description}" + (r.Warnings.Count > 0 ? " (" + string.Join("; ", r.Warnings) + ")" : "");
             Paused = false;
             return;
@@ -174,6 +192,9 @@ public sealed class EmulatorHost
         var zx = Zx ?? throw new InvalidOperationException("No hay un ZX Spectrum encendido.");
         var result = SpectrumMedia.Load(zx, file);
         LoadedMedia = file.Name;
+        LoadedProfile = profile;
+        MediaRevision++;
+        _quickState = null;
         Status = $"{file.Name}: {result.Description}" + (result.Warnings.Count > 0 ? " (" + string.Join("; ", result.Warnings) + ")" : "");
         if (result.Kind == SpectrumMediaKind.Tape && autoType)
         {
@@ -199,6 +220,7 @@ public sealed class EmulatorHost
             while (_fusionClock >= 1.0 / 60 && ticks++ < 4)
             {
                 _fusionClock -= 1.0 / 60;
+                foreach (var slot in fusion.Slots) BeforeFrame?.Invoke(slot.Machine);
                 fusion.Update(1.0 / 60);
             }
             int n = fusion.DrainAudio(_frameAudio);
@@ -258,6 +280,7 @@ public sealed class EmulatorHost
 
     private bool RunOneFrame(IMachine m)
     {
+        BeforeFrame?.Invoke(m);
         Debug.Temporary = _runToAddress;
         var reason = m.RunFrame(Debug.Enabled ? Debug : null);
         if (_runToAddress is ushort target && reason == RunStopReason.Breakpoint && m.Cpu.ProgramCounter == target)
@@ -303,6 +326,7 @@ public sealed class EmulatorHost
         if (Machine == null)
             return;
         Paused = true;
+        BeforeFrame?.Invoke(Machine);
         Machine.StepInstruction();
     }
 
@@ -343,6 +367,7 @@ public sealed class EmulatorHost
             return;
         Paused = true;
         Machine.ResumeFromBreakpoint();
+        BeforeFrame?.Invoke(Machine);
         Machine.RunFrame(Debug);
         Machine.DrainAudio(_frameAudio);
     }
@@ -350,6 +375,7 @@ public sealed class EmulatorHost
     public void Reset(bool hard)
     {
         Machine?.Reset(hard);
+        StateRestored();
         Status = hard ? "Reinicio total (memoria borrada)." : "Reinicio.";
     }
 
@@ -367,6 +393,7 @@ public sealed class EmulatorHost
         if (Machine == null || _quickState == null)
             return;
         Machine.LoadState(_quickState);
+        StateRestored();
         Status = "Estado restaurado.";
     }
 
@@ -383,7 +410,18 @@ public sealed class EmulatorHost
         if (Machine == null)
             return;
         Machine.LoadState(File.ReadAllBytes(path));
+        StateRestored();
         Status = "Estado cargado: " + Path.GetFileName(path);
+    }
+
+    /// <summary>Invalidates game-bound work and clears sound/pacing after a state change.</summary>
+    public void StateRestored()
+    {
+        MediaRevision++;
+        _accumulator = 0;
+        _audio.Clear();
+        _runToAddress = null;
+        Debug.Temporary = null;
     }
 
     /// <summary>Loads raw bytes at an address and points PC there (test programs).</summary>

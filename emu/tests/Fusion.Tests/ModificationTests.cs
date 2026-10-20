@@ -23,6 +23,8 @@ public sealed class ModificationTests
     {
         var machine = new Spectrum48(new byte[0x4000]); var profile = Profile();
         machine.Memory.Poke(0x8000, 3); machine.Memory.Poke(0x8001, 60);
+        machine.Video.Pixels[0] = unchecked((int)0xFF123456);
+        int[] picture = (int[])machine.Video.Pixels.Clone();
         byte[] before = machine.SaveState(); string profileBefore = profile.ToJson();
         var changes = new GameModifications(machine, profile);
         changes.Apply([new("lives", 8, true)]);
@@ -32,6 +34,7 @@ public sealed class ModificationTests
         Assert.That(machine.Memory.Peek(0x8000), Is.EqualTo(8));
         Assert.That(changes.Restore(), Is.True);
         Assert.That(machine.SaveState(), Is.EqualTo(before));
+        Assert.That(machine.Video.Pixels, Is.EqualTo(picture), "A paused restoration must redraw the saved picture too.");
         Assert.That(changes.Frozen, Is.Empty); Assert.That(changes.CanRestore, Is.False);
         Assert.That(changes.Restore(), Is.False); Assert.That(profile.ToJson(), Is.EqualTo(profileBefore));
     }

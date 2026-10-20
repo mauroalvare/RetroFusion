@@ -116,6 +116,8 @@ public sealed class RetroApp
                 OpenFusionStudio();
             else if (args[i] == "--code")
                 _code.Open();
+            else if (args[i] == "--mods-window")
+                _code.OpenModifications();
             else if (args[i] == "--mute")
                 _muted = true;
             else if (args[i] != "--hidden" && File.Exists(args[i]))
@@ -124,7 +126,7 @@ public sealed class RetroApp
                 openedFile = true;
             }
         }
-        if (!openedFile && !args.Any(a => a is "--studio" or "--preparar" or "--crear-window" or "--studio-window" or "--code" or "--debug"))
+        if (!openedFile && !args.Any(a => a is "--studio" or "--preparar" or "--crear-window" or "--studio-window" or "--code" or "--mods-window" or "--debug"))
             _gamesWindow.Open();
     }
 
@@ -188,6 +190,7 @@ public sealed class RetroApp
 
     public void Shutdown()
     {
+        _code.Dispose();
         if (_texW != 0)
             Raylib.UnloadTexture(_screenTex);
         Raylib.UnloadAudioStream(_stream);
@@ -200,6 +203,7 @@ public sealed class RetroApp
         _library.Poll();
         bool imguiKeyboard = ImGui.GetIO().WantTextInput || _gamesWindow.IsOpen;
         HandleHotkeys(ImGui.GetIO().WantTextInput);
+        _code.Update();
         var m = _host.Machine;
         if (m != null)
         {
@@ -332,7 +336,9 @@ public sealed class RetroApp
     {
         float top = 22, bottom = 24;
         // the AI studio panel sits on the right while you play: the game uses the rest
-        float w = Raylib.GetScreenWidth() - Math.Max(_studio.RightReserve(Raylib.GetScreenWidth()), _creator.RightReserve(Raylib.GetScreenWidth())), h = Raylib.GetScreenHeight() - top - bottom;
+        float reserved = Math.Max(_code.RightReserve(Raylib.GetScreenWidth()),
+            Math.Max(_studio.RightReserve(Raylib.GetScreenWidth()), _creator.RightReserve(Raylib.GetScreenWidth())));
+        float w = Math.Max(1, Raylib.GetScreenWidth() - reserved), h = Raylib.GetScreenHeight() - top - bottom;
         float s = MathF.Min(w / _texW, h / _texH);
         if (_scale > 0)
             s = MathF.Min(s, MathF.Max(1, MathF.Floor(s)));
@@ -434,6 +440,7 @@ public sealed class RetroApp
     private void OpenFusionStudio() { _gamesWindow.Close(); _studio.Open(); }
     private void OpenCreator() { _gamesWindow.Close(); _creator.Open(); }
     private void PlayFusion(string id) { _gamesWindow.Close(); _studio.PlayById(id); }
+    private void OpenModifications() { _gamesWindow.Close(); _code.OpenModifications(); }
 
     private void Launch(MachineCatalog.Candidate c)
     {
@@ -488,6 +495,7 @@ public sealed class RetroApp
         if (ctrl && Raylib.IsKeyPressed(KeyboardKey.K) && _host.Machine != null)
             _code.Open();
         if (ctrl && Raylib.IsKeyPressed(KeyboardKey.L)) _gamesWindow.Open();
+        if (ctrl && Raylib.IsKeyPressed(KeyboardKey.M) && _host.Machine != null) OpenModifications();
         if (_gamesWindow.IsOpen) return;
         if (_host.Machine == null)
             return;
@@ -527,6 +535,13 @@ public sealed class RetroApp
         if (!ImGui.BeginMainMenuBar())
             return;
         if (ImGui.MenuItem("Jugar")) _gamesWindow.Open();
+        if (ImGui.BeginMenu("Modificar", _host.Machine != null))
+        {
+            if (ImGui.MenuItem("Variables y cambios divertidos...", "Ctrl+M")) OpenModifications();
+            if (ImGui.MenuItem("Buscar una variable...")) { _gamesWindow.Close(); _code.OpenFinder(); }
+            if (ImGui.MenuItem("Analizar el código y las rutinas...")) { _gamesWindow.Close(); _code.Open(); }
+            ImGui.EndMenu();
+        }
         if (ImGui.BeginMenu("Archivo"))
         {
             if (ImGui.MenuItem("Abrir juego o programa...", "Ctrl+O")) _browser.Open();

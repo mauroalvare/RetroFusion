@@ -9,6 +9,7 @@ public sealed record VariableEdit(string Variable, int Value, bool Freeze);
 public sealed class GameModifications(IMachine machine, GameProfile profile)
 {
     private byte[]? _returnPoint;
+    private int[]? _returnPicture;
     private readonly Dictionary<string, int> _frozen = new(StringComparer.Ordinal);
     public bool CanRestore => _returnPoint != null;
     public IReadOnlyDictionary<string, int> Frozen => _frozen;
@@ -51,6 +52,7 @@ public sealed class GameModifications(IMachine machine, GameProfile profile)
     {
         Validate(profile, changes, machine.Memory.AddressBits);
         byte[] before = machine.SaveState();
+        int[] picture = (int[])machine.Video.Pixels.Clone();
         try
         {
             foreach (var change in changes) profile.Variables[change.Variable].Write(machine.Memory, change.Value);
@@ -61,9 +63,11 @@ public sealed class GameModifications(IMachine machine, GameProfile profile)
         catch
         {
             machine.LoadState(before);
+            picture.CopyTo(machine.Video.Pixels, 0);
             throw;
         }
         _returnPoint ??= before;
+        _returnPicture ??= picture;
         foreach (var change in changes)
             if (change.Freeze) _frozen[change.Variable] = change.Value;
             else _frozen.Remove(change.Variable);
@@ -82,7 +86,9 @@ public sealed class GameModifications(IMachine machine, GameProfile profile)
     {
         if (_returnPoint == null) return false;
         machine.LoadState(_returnPoint);
+        _returnPicture!.CopyTo(machine.Video.Pixels, 0);
         _returnPoint = null;
+        _returnPicture = null;
         _frozen.Clear();
         return true;
     }

@@ -6,7 +6,7 @@ using Retro.Ai;
 namespace Retro.App;
 
 /// <summary>Shows observed activity; elapsed time is not an estimate of remaining work.</summary>
-internal sealed class AiBuildWindow(string id)
+internal sealed class AiBuildWindow(string id, string title = "Construcción del juego", string openLabel = "Abrir construcción")
 {
     private readonly Stopwatch _elapsed = new();
     private CliAgentProvider? _cli;
@@ -20,16 +20,17 @@ internal sealed class AiBuildWindow(string id)
     }
 
     public void Stop() => _elapsed.Stop();
+    public void Reset() { _elapsed.Reset(); _cli = null; _started = _open = false; }
 
     public void Draw(bool busy, string stage, CancellationTokenSource? cancellation)
     {
         if (!_started) return;
         if (!busy) _elapsed.Stop();
         ImGui.TextDisabled($"Transcurrido: {Duration(_elapsed.Elapsed)}");
-        if (ImGui.SmallButton($"Abrir construcción##{id}")) _open = true;
+        if (ImGui.SmallButton($"{openLabel}##{id}")) _open = true;
         if (!_open) return;
         ImGui.SetNextWindowSize(new Vector2(640, 420), ImGuiCond.FirstUseEver);
-        if (ImGui.Begin($"Construcción del juego##{id}", ref _open))
+        if (ImGui.Begin($"{title}##{id}", ref _open))
         {
             ImGui.TextWrapped(stage);
             ImGui.TextUnformatted($"Tiempo transcurrido: {Duration(_elapsed.Elapsed)}");

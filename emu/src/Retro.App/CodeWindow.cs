@@ -15,7 +15,7 @@ namespace Retro.App;
 /// pseudocode (yours or written by an AI), code changes, the game's variables (edit or
 /// freeze them) and a variable finder that creates the profile a game needs for fusions.
 /// </summary>
-public sealed class CodeWindow
+public sealed partial class CodeWindow : IDisposable
 {
     private static readonly Vector4 LabelColor = new(0.5f, 0.8f, 1f, 1);
     private static readonly Vector4 CommentColor = new(0.55f, 0.85f, 0.55f, 1);
@@ -57,7 +57,6 @@ public sealed class CodeWindow
     private string _pasted = "";
 
     // variables and finder
-    private readonly Dictionary<string, int> _frozen = new();
     private MemorySearch? _search;
     private int _searchValue;
     private string _newVarName = "";
@@ -69,31 +68,62 @@ public sealed class CodeWindow
         _host = host;
         _ai = ai;
         _showInDebugger = showInDebugger;
+        _host.BeforeFrame += ApplyFrozen;
     }
 
     public void Open()
     {
         _open = true;
+        _modificationsMode = false;
+        _finderOnOpen = _variablesOnOpen = false;
         if (_host.Machine is { } m)
             m.ExecutedMap ??= new bool[0x10000];
     }
 
-    public void Draw()
+    public void Update()
     {
         var m = _host.Machine;
-        if (m == null)
-            return;
-        if (!ReferenceEquals(m, _machine) || _media != _host.LoadedMedia)
+        if (m == null) return;
+        if (!ReferenceEquals(m, _machine) || _media != _host.LoadedMedia || _mediaRevision != _host.MediaRevision)
             SwitchGame(m);
-        ApplyFrozen(m);
         PollExplain(m);
-        if (!_open)
-            return;
-        var vp = ImGui.GetMainViewport();
-        ImGui.SetNextWindowPos(new Vector2(vp.Pos.X + 10, vp.Pos.Y + 30), ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(Math.Min(940, vp.Size.X - 20), Math.Min(720, vp.Size.Y - 70)), ImGuiCond.FirstUseEver);
-        if (!ImGui.Begin("Código del juego", ref _open))
+        PollModificationAdvice();
+    }
+
+    public void Draw()
+    {
+        Update();
+        var m = _host.Machine;
+        if (m == null || !_open)
         {
+            _modificationPanelLeft = null;
+            return;
+        }
+        var vp = ImGui.GetMainViewport();
+        ImGui.SetNextWindowPos(new Vector2(vp.Pos.X + (_modificationsMode ? Math.Max(10, vp.Size.X - 550) : 10), vp.Pos.Y + 30), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowSize(new Vector2(Math.Min(_modificationsMode ? 540 : 940, vp.Size.X - 20), Math.Min(760, vp.Size.Y - 70)), ImGuiCond.FirstUseEver);
+        if (!ImGui.Begin(_modificationsMode ? "Modificar el juego" : "Código del juego", ref _open))
+        {
+            _modificationPanelLeft = null;
+            ImGui.End();
+            return;
+        }
+        _modificationPanelLeft = _modificationsMode ? ImGui.GetWindowPos().X - vp.Pos.X : null;
+        if (_modificationsMode)
+        {
+            DrawModifications(m);
+            ImGui.End();
+            return;
+        }
+        if (_finderOnOpen || _variablesOnOpen)
+        {
+            bool finder = _finderOnOpen;
+            ImGui.TextUnformatted(_gameName);
+            if (ImGui.Button("Volver a modificaciones")) OpenModifications();
+            ImGui.SameLine();
+            if (ImGui.Button("Ver todas las herramientas de código")) Open();
+            if (finder) DrawFinder(m); else DrawVariables(m);
+            if (_status.Length > 0) ImGui.TextWrapped(_status);
             ImGui.End();
             return;
         }
@@ -146,15 +176,25 @@ public sealed class CodeWindow
     // ------------------------------------------------------------------ game identity
     private void SwitchGame(IMachine m)
     {
+        _cts?.Cancel();
+        _modificationCts?.Cancel();
+        _modificationActivity.Reset();
+        _routineActivity.Reset();
+        _mediaRevision = _host.MediaRevision;
+        _advice = null;
+        _manualModification = false;
+        _modificationPasted = "";
+        _variableInputs.Clear();
+        _explainStatus = "";
         _machine = m;
         _media = _host.LoadedMedia;
         _map = null;
         _selected = null;
         _line = null;
         _back.Clear();
-        _frozen.Clear();
         _search = null;
         (_gameId, _gameName, _profile) = Identify(m);
+        _modifications = _profile == null ? null : new GameModifications(m, _profile);
         _notes = CodeAnnotations.Load(_gameId);
         _bootText = string.Join("\n", _profile?.Boot ?? DefaultBoot(m));
         _status = "";
@@ -168,17 +208,17 @@ public sealed class CodeWindow
             return (slot.Profile.Id, slot.Profile.Name, slot.Profile);
         if (m.Id == "invaders")
         {
-            var p = ProfileLibrary.Find("invaders");
-            return ("invaders", p?.Name ?? "Space Invaders", p);
+            var p = _host.LoadedProfile ?? ProfileLibrary.Find("invaders");
+            return (p?.Id ?? "invaders", p?.Name ?? "Space Invaders", p);
         }
         if (_host.LoadedMedia is { } media)
         {
-            var p = ProfileLibrary.ForFiles(new[] { new MediaFile(media, Array.Empty<byte>(), media) });
+            var p = _host.LoadedProfile;
             if (p != null)
                 return (p.Id, p.Name, p);
             string name = Path.GetFileNameWithoutExtension(media);
             string id = Slug(name);
-            return (id, name, ProfileLibrary.Find(id));
+            return (id, name, null);
         }
         return (m.Id, m.DisplayName + " (sin juego)", null);
     }
@@ -563,9 +603,12 @@ public sealed class CodeWindow
                 var ai = _ai.CreateProvider()!;
                 string prompt = CodeExplainer.Prompt(m, r, _notes, _profile, _map!);
                 _explainFor = r.Start;
+                _explainRevision = _mediaRevision;
+                _explainMachine = m;
                 _cts = new CancellationTokenSource();
                 var token = _cts.Token;
                 _explainStatus = "Pidiendo la explicación...";
+                _routineActivity.Start(ai);
                 _explainTask = Task.Run(() => CodeExplainer.ExplainAsync(ai, prompt, token));
             }
             if (busy)
@@ -582,9 +625,10 @@ public sealed class CodeWindow
             _explainStatus = "Consigna copiada: pegala en ChatGPT, Gemini, Claude.ai o tu agente y pegá abajo su respuesta.";
         }
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("La IA para elegir y la clave se configuran en Fusión de juegos.");
+            ImGui.SetTooltip("Elegí la IA y su conexión en Modificar > Variables y cambios divertidos.");
         if (_explainStatus.Length > 0)
             ImGui.TextColored(new Vector4(0.6f, 0.8f, 1, 1), _explainStatus);
+        _routineActivity.Draw(_explainTask != null, _explainStatus, _cts);
         if (_explainStatus.StartsWith("Consigna copiada"))
         {
             ImGui.InputTextMultiline("##respuestaia", ref _pasted, 20000, new Vector2(-1, 60));
@@ -611,6 +655,12 @@ public sealed class CodeWindow
         if (_explainTask is not { IsCompleted: true } t)
             return;
         _explainTask = null;
+        _routineActivity.Stop();
+        if (_explainRevision != _mediaRevision || !ReferenceEquals(m, _explainMachine))
+        {
+            _ = t.Exception;
+            return;
+        }
         if (t.IsCanceled || t.Exception?.GetBaseException() is OperationCanceledException)
         {
             _explainStatus = "Cancelado.";
@@ -633,11 +683,8 @@ public sealed class CodeWindow
     // ------------------------------------------------------------------ variables
     private void ApplyFrozen(IMachine m)
     {
-        if (_profile == null || _frozen.Count == 0)
-            return;
-        foreach (var (name, value) in _frozen)
-            if (_profile.Variables.TryGetValue(name, out var v))
-                v.Write(m.Memory, value);
+        if (ReferenceEquals(m, _machine) && _mediaRevision == _host.MediaRevision)
+            _modifications?.Tick();
     }
 
     private void DrawVariables(IMachine m)
@@ -650,41 +697,7 @@ public sealed class CodeWindow
         }
         ImGui.TextWrapped(_profile.Description);
         ImGui.TextDisabled("Cambiá un valor y apretá Enter. \"Congelar\" lo mantiene fijo (vidas infinitas, aire infinito...).");
-        if (ImGui.BeginTable("vars", 5, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingFixedFit))
-        {
-            ImGui.TableSetupColumn("Variable");
-            ImGui.TableSetupColumn("Dirección");
-            ImGui.TableSetupColumn("Valor");
-            ImGui.TableSetupColumn("Congelar");
-            ImGui.TableSetupColumn("Qué es", ImGuiTableColumnFlags.WidthStretch);
-            ImGui.TableHeadersRow();
-            foreach (var (name, v) in _profile.Variables)
-            {
-                ImGui.TableNextRow();
-                ImGui.TableNextColumn(); ImGui.TextUnformatted(name);
-                ImGui.TableNextColumn(); ImGui.TextUnformatted("$" + v.Address);
-                ImGui.TableNextColumn();
-                int value = v.Read(m.Memory);
-                ImGui.SetNextItemWidth(90);
-                ImGui.BeginDisabled(v.ReadOnly);
-                if (ImGui.InputInt("##v" + name, ref value, 0, 0, ImGuiInputTextFlags.EnterReturnsTrue))
-                {
-                    v.Write(m.Memory, value);
-                    if (_frozen.ContainsKey(name))
-                        _frozen[name] = value;
-                }
-                ImGui.TableNextColumn();
-                bool frozen = _frozen.ContainsKey(name);
-                if (ImGui.Checkbox("##f" + name, ref frozen))
-                {
-                    if (frozen) _frozen[name] = v.Read(m.Memory);
-                    else _frozen.Remove(name);
-                }
-                ImGui.EndDisabled();
-                ImGui.TableNextColumn(); ImGui.TextWrapped(v.Description + (v.ReadOnly ? " (solo lectura)" : ""));
-            }
-            ImGui.EndTable();
-        }
+        DrawVariableValues(m, true);
 
         ImGui.Separator();
         ImGui.TextUnformatted("Controles para las fusiones (qué tecla del juego es cada acción):");
@@ -708,9 +721,64 @@ public sealed class CodeWindow
             _profile.Boot = _bootText.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
             changed = true;
         }
-        if (changed)
-            ProfileLibrary.Save(_profile);
+        if (changed) ProfileLibrary.Save(_profile);
         ImGui.TextDisabled("Se guarda solo en tus perfiles. \"press ENTER 40\" = mantener ENTER 40 cuadros; \"wait 100\" = esperar 100 cuadros.");
+    }
+
+    private void DrawVariableValues(IMachine m, bool addresses)
+    {
+        if (_profile == null) return;
+        var flags = ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingFixedFit;
+        if (!addresses) flags |= ImGuiTableFlags.ScrollY;
+        var size = addresses ? Vector2.Zero : new Vector2(0, Math.Clamp(ImGui.GetWindowHeight() * 0.3f, 120, 235));
+        if (ImGui.BeginTable("vars", addresses ? 5 : 4, flags, size))
+        {
+            if (!addresses) ImGui.TableSetupScrollFreeze(0, 1);
+            ImGui.TableSetupColumn("Variable");
+            if (addresses) ImGui.TableSetupColumn("Dirección");
+            ImGui.TableSetupColumn("Valor");
+            ImGui.TableSetupColumn("Congelar");
+            ImGui.TableSetupColumn("Qué es", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableHeadersRow();
+            foreach (var (name, v) in _profile.Variables)
+            {
+                int value = 0; bool readable = true;
+                try { value = v.Read(m.Memory); }
+                catch (Exception error) when (error is FormatException or OverflowException or IndexOutOfRangeException or ArgumentException)
+                { readable = false; }
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn(); ImGui.TextUnformatted(addresses ? name : VariableLabel(name));
+                if (addresses) { ImGui.TableNextColumn(); ImGui.TextUnformatted("$" + v.Address); }
+                ImGui.TableNextColumn();
+                ImGui.SetNextItemWidth(90);
+                ImGui.BeginDisabled(v.ReadOnly || !readable);
+                string input = _variableInputs.GetValueOrDefault(name, value.ToString(CultureInfo.InvariantCulture));
+                // InputScalar/InputInt rejects EnterReturnsTrue in this ImGui version.
+                // Keep an explicit text draft so a partial number never writes RAM.
+                bool enter = ImGui.InputText("##v" + name, ref input, 16, ImGuiInputTextFlags.CharsDecimal | ImGuiInputTextFlags.EnterReturnsTrue);
+                if (ImGui.IsItemActive()) _variableInputs[name] = input;
+                else _variableInputs.Remove(name);
+                if (enter)
+                {
+                    if (int.TryParse(input, NumberStyles.Integer, CultureInfo.InvariantCulture, out int requested))
+                        ApplyModifications([new(name, requested, _modifications?.Frozen.ContainsKey(name) == true)]);
+                    else _status = "Escribí un número entero válido.";
+                }
+                if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled)) ImGui.SetTooltip($"Rango: {v.Min} a {v.Max}");
+                ImGui.EndDisabled();
+                ImGui.TableNextColumn();
+                ImGui.BeginDisabled(v.ReadOnly || !readable);
+                bool frozen = _modifications?.Frozen.ContainsKey(name) == true;
+                if (ImGui.Checkbox("##f" + name, ref frozen))
+                {
+                    ApplyModifications([new(name, v.Read(m.Memory), frozen)]);
+                }
+                ImGui.EndDisabled();
+                ImGui.TableNextColumn(); ImGui.TextWrapped(readable ? v.Description + (v.ReadOnly ? " (solo lectura)" : "") : "Este dato tiene un formato o dirección inválidos en el perfil.");
+            }
+            ImGui.EndTable();
+        }
+
     }
 
     private void DrawFinder(IMachine m)
@@ -790,6 +858,7 @@ public sealed class CodeWindow
             Description = _newVarDescription.Trim().Length > 0 ? _newVarDescription.Trim() : $"Encontrada con el buscador (valía {value}).",
         };
         ProfileLibrary.Save(_profile);
+        _modifications ??= new GameModifications(m, _profile);
         _status = $"\"{name}\" (${address:X4}) agregada al perfil de {_profile.Name}. Configurá sus controles en \"Variables y controles\" y ya se puede fusionar.";
         _newVarName = "";
         _newVarDescription = "";
