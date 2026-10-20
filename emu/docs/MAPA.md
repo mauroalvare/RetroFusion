@@ -20,6 +20,20 @@ Si el CLI elegido está encontrado, su ruta y configuración se repliegan bajo
 **Cambiar modelo o conexión**. Encontrarlo no comprueba el inicio de sesión ni consume
 un pedido; la prueba de conexión sigue siendo una acción explícita.
 
+## Modificar una partida
+
+**Modificar > Variables y cambios divertidos** (Ctrl+M) abre el panel de experimentos
+reversibles junto al juego. Incluye edición/congelado, punto de regreso y propuestas
+de IA sobre las variables conocidas. Las herramientas de rutinas y búsqueda siguen
+accesibles desde ese menú. Guía: [MODIFICACIONES.md](MODIFICACIONES.md).
+
+```powershell
+# Interfaz nativa con una cinta/perfil generados, sin juegos del usuario ni pedidos de IA
+pwsh tools/test-modifications.ps1
+# Abrir el panel al cargar una copia propia; captura relativa al directorio actual
+dotnet run --project src/Retro.App -c Release -- --hidden --mute --mods-window --autotest 5 out/modificar.png <juego>
+```
+
 ## Raíz
 
 | Ruta | Qué es |

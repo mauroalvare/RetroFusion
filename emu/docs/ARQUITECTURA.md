@@ -449,6 +449,22 @@ que llama con los nombres ya conocidos y las variables del perfil, y guarda la r
 
 ## Análisis de código
 
+`CodeWindow` comparte el editor avanzado con la vista **Modificar**. `GameModifications`
+valida y aplica lotes de variables, mantiene congelados y conserva un único punto de
+regreso anterior al primer cambio; copia también los píxeles para restaurar una partida
+pausada sin mostrar la imagen del experimento. No toca medios ni perfiles. El host emite
+`BeforeFrame` por cuadro original (también turbo/paso), y una vez por tick de fusión.
+El guardado de regreso completo de esta vista se ofrece para originales.
+
+`EmulatorHost.LoadedProfile` se obtiene con los bytes reales del medio. `MediaRevision`
+cambia al cargar, recargar, reiniciar o restaurar; las tareas, borradores, congelados y
+propuestas se vinculan a revisión y máquina. Se cancelan o descartan respuestas viejas,
+incluidas las explicaciones de rutinas. Se conservan los guardados rápidos solo mientras
+no cambie el medio. `GameModificationAdvisor` usa el proveedor común, valida respuestas
+declarativas y no aplica sus ideas automáticamente. El panel de actividad sirve también
+para este análisis y para las rutinas. Detalle del recorrido en
+[MODIFICACIONES.md](MODIFICACIONES.md); decisión D-018.
+
 Cada máquina expone `Flow` (un `IFlowAnalyzer` por CPU que clasifica cada instrucción:
 normal, CALL, salto, retorno, salto indirecto), sus `CodeEntryPoints` (reset e
 interrupciones) y un `ExecutedMap` opcional donde marca cada instrucción ejecutada.

@@ -50,6 +50,13 @@ elegir y marca la más limpia como recomendada.
 Con una cinta, el emulador escribe `LOAD ""` y la carga arranca sola: se ven las
 franjas en el borde y se escucha la cinta. Mientras carga, el emulador corre acelerado.
 
+### Modificar mientras jugás
+
+**Modificar > Variables y cambios divertidos** (Ctrl+M) abre variables, congelados y
+propuestas de tu IA junto a la partida. Cada propuesta se aplica cuando la elegís; el
+primer cambio guarda un punto para volver atrás. También podés buscar variables y
+analizar rutinas. [Guía de modificaciones](docs/MODIFICACIONES.md).
+
 ### Teclas
 
 | PC | Spectrum |

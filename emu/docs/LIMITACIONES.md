@@ -4,6 +4,17 @@ Registro de lo que no funciona o funciona a medias. Cada entrada dice si es **ob
 (se vio en una prueba) o **probable** (se deduce del código, falta comprobarlo). Al
 arreglar algo, se borra la entrada y se menciona en el commit.
 
+## Modificaciones de la partida
+
+- Las ideas de cambios se basan en variables ya conocidas; no equivalen a descubrir
+  automáticamente cualquier juego. Los efectos propuestos por IA requieren probarse.
+  La integración nueva se verificó con IA simulada, sin comprobar una sesión real de CLI.
+- El punto de regreso completo se ofrece para originales. Los cambios avanzados sobre
+  una máquina de una fusión no restauran el guion JavaScript completo.
+- Un perfil genérico por nombre puede corresponder a otra edición; se prioriza el hash
+  cuando existe. Un perfil que enumera hashes ya no se reutiliza por nombre si no coincide.
+- El congelado se repone por cuadro; no intercepta cada instrucción que escribe la variable.
+
 ## Máquinas
 
 ### IBM PC/XT (T-038)

@@ -55,6 +55,12 @@ Estos dos vienen incluidos como ejemplo (originales, escritos solo con las guía
 
 ## La app por dentro
 
+**Modificar mientras jugás:** cambiá o congelá variables conocidas, pedí ideas a tu IA
+y probalas con un punto de regreso. **Modificar > Variables y cambios divertidos**
+(Ctrl+M). [Cómo usarlo](emu/docs/MODIFICACIONES.md).
+
+![Modificar una partida y revisar propuestas de ejemplo](emu/docs/img/interfaz/modificaciones.png)
+
 ![Biblioteca con búsqueda y juegos originales, fusionados y creados](emu/docs/img/interfaz/biblioteca.png)
 
 Al abrirla aparece **Tus juegos**: buscá por nombre y elegí **Jugar**. Los originales
