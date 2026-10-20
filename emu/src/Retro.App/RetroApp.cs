@@ -19,6 +19,9 @@ public sealed class RetroApp
     private readonly StudioWindow _studio;
     private readonly CreatorWindow _creator;
     private readonly GameLibrary _library = new();
+    private readonly GamesWindow _gamesWindow;
+    private bool _pausedBeforeLibrary;
+    private bool _advancedTools;
     private string _originalSearch = "";
     private string? _autoStudio;
     private readonly CodeWindow _code;
@@ -68,6 +71,12 @@ public sealed class RetroApp
         _studio = new StudioWindow(_host, _romDir, games, _ai);
         _code = new CodeWindow(_host, _ai, ShowInDebugger);
         _creator = new CreatorWindow(_romDir, _ai, OpenFile);
+        _gamesWindow = new GamesWindow(_library, OpenFile, _studio.PlayById, _browser.Open, _studio.Open, _creator.Open,
+            visible =>
+            {
+                if (visible) { _pausedBeforeLibrary = _host.Paused; _host.Paused = true; }
+                else _host.Paused = _pausedBeforeLibrary;
+            });
         Raylib.SetTargetFPS(Math.Max(60, Raylib.GetMonitorRefreshRate(Raylib.GetCurrentMonitor())));
         // The audio device pulls samples through a callback on its own thread, so the
         // emulator can pace itself on the real consumption rate.
@@ -111,6 +120,8 @@ public sealed class RetroApp
             else if (args[i] != "--hidden" && File.Exists(args[i]))
                 OpenFile(args[i]);
         }
+        if (!args.Any(File.Exists) && !args.Any(a => a is "--studio" or "--preparar" or "--crear-window" or "--studio-window" or "--code" or "--debug"))
+            _gamesWindow.Open();
     }
 
     /// <summary>The user's game folder ("ROMs", exact case: "roms" holds the firmware).</summary>
@@ -183,7 +194,7 @@ public sealed class RetroApp
     {
         HandleDroppedFiles();
         _library.Poll();
-        bool imguiKeyboard = ImGui.GetIO().WantTextInput;
+        bool imguiKeyboard = ImGui.GetIO().WantTextInput || _gamesWindow.IsOpen;
         HandleHotkeys(imguiKeyboard);
         var m = _host.Machine;
         if (m != null)
@@ -224,6 +235,7 @@ public sealed class RetroApp
         if (_debugMode)
             DrawDebugger();
         DrawStatusBar();
+        _gamesWindow.Draw();
         _browser.Draw(OpenFile);
         _studio.Draw();
         _creator.Draw();
@@ -338,6 +350,7 @@ public sealed class RetroApp
 
     private void OpenFile(string path)
     {
+        _gamesWindow.Close();
         string fileName = Path.GetFileName(path);
         try
         {
@@ -464,6 +477,7 @@ public sealed class RetroApp
         bool ctrl = Raylib.IsKeyDown(KeyboardKey.LeftControl) || Raylib.IsKeyDown(KeyboardKey.RightControl);
         if (ctrl && Raylib.IsKeyPressed(KeyboardKey.K) && _host.Machine != null)
             _code.Open();
+        if (ctrl && Raylib.IsKeyPressed(KeyboardKey.L)) _gamesWindow.Open();
         if (_host.Machine == null)
             return;
         // the C64 has its own F1 F3 F5 F7 keys (games say "press F1"): there quick load is
@@ -501,6 +515,7 @@ public sealed class RetroApp
     {
         if (!ImGui.BeginMainMenuBar())
             return;
+        if (ImGui.MenuItem("Jugar")) _gamesWindow.Open();
         if (ImGui.BeginMenu("Archivo"))
         {
             if (ImGui.MenuItem("Abrir juego o programa...", "Ctrl+O")) _browser.Open();
@@ -617,14 +632,14 @@ public sealed class RetroApp
             ImGui.TextDisabled("lo prueba con un robot y lo corrige hasta que anda.");
             ImGui.EndMenu();
         }
-        if (ImGui.BeginMenu("Código"))
+        if ((_advancedTools || _debugMode) && ImGui.BeginMenu("Código"))
         {
             if (ImGui.MenuItem("Ver el código del juego (rutinas, IA, cambios)...", "Ctrl+K", false, _host.Machine != null)) _code.Open();
             ImGui.TextDisabled("Desensamblado por rutinas, con nombres, comentarios,");
             ImGui.TextDisabled("pseudocódigo con IA, trucos y buscador de variables.");
             ImGui.EndMenu();
         }
-        if (ImGui.BeginMenu("Depurar"))
+        if ((_advancedTools || _debugMode) && ImGui.BeginMenu("Depurar"))
         {
             if (ImGui.MenuItem("Modo depurador", "F12", _debugMode)) _debugMode = !_debugMode;
             if (ImGui.MenuItem("Paso (una instrucción)", "F10")) { _host.StepInto(); _debugMode = true; }
@@ -635,6 +650,7 @@ public sealed class RetroApp
         }
         if (ImGui.BeginMenu("Ver"))
         {
+            ImGui.MenuItem("Herramientas avanzadas (código y depurador)", "", ref _advancedTools);
             if (ImGui.MenuItem("Pantalla completa", "F11")) Raylib.ToggleFullscreen();
             bool integer = _scale > 0;
             if (ImGui.MenuItem("Escala entera (píxeles nítidos)", "", ref integer)) _scale = integer ? 2 : 0;

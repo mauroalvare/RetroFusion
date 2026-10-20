@@ -3,6 +3,16 @@
 Fuente única de rutas y comandos de desarrollo. El diseño interno está en
 [ARQUITECTURA.md](ARQUITECTURA.md).
 
+## Entrada para jugar
+
+Al iniciar sin un archivo se abre **Tus juegos**, también accesible desde **Jugar** o
+Ctrl+L. Las pestañas **Originales**, **Fusionados** y **Creados** comparten búsqueda y
+botones para jugar. Se puede abrir un archivo, fusionar o crear sin elegir antes una CPU.
+La biblioteca pausa la partida y restaura su pausa previa al cerrar; abrir un juego
+comienza la partida elegida. Las fusiones y los juegos creados se actualizan al abrirla
+o pulsar Actualizar. **Ver > Herramientas avanzadas** muestra Código y Depurar; sus
+atajos siguen funcionando.
+
 ## Raíz
 
 | Ruta | Qué es |
