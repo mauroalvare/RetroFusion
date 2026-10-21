@@ -37,8 +37,8 @@ public sealed record ValidationReport(
 /// </summary>
 public static class StudioValidator
 {
-    public const string OwnSceneMessage = "screen.game se retiró: dibujá tu propia escena con sprites y tiles " +
-        "(screen.sprite, screen.rect), como Manic Invaders; no muestres la pantalla de un juego entero.";
+    public const string OwnSceneMessage = "screen.game se retiró: usá screen.base únicamente para el original declarado como base, " +
+        "o dibujá una escena con sprites y tiles (screen.sprite, screen.rect); no pegues pantallas completas independientes.";
     public const int DefaultSecondsPerRobot = 30;
     private const int Tps = StudioSession.TicksPerSecond;
 

@@ -45,7 +45,9 @@ la partida actual se conserva.
 
 ## Fusionar o crear
 
-- **Fusionar juegos:** elegí 2 o 3 originales y proponé una idea, o pedí propuestas a la IA.
+- **Fusionar juegos:** elegí 2 o 3 originales y cuál es la base. Conserva sus mapas,
+  aspecto y reglas, con personajes o mecánicas de los otros dentro de ese mundo.
+  **Reinterpretación libre** permite una escena nueva si preferís esa opción.
 - **Crear un juego:** elegí la máquina y describí lo que querés. Podés dejar la idea a elección de la IA.
 - **Cambiar una fusión:** pedí otra versión desde el estudio. Las anteriores quedan guardadas.
 

@@ -119,4 +119,16 @@ public static class CreativeSeeds
                       "diseñá presentación, avisos y ritmo para esta idea. Dibujá una escena propia con sprites y tiles, sin copiar la del ejemplo.");
         return sb.ToString();
     }
+
+    public static string BaseBrief(IEnumerable<string> existing)
+    {
+        var sb = new StringBuilder("La creatividad está en cómo incorporás las reglas de los aportantes dentro del juego base. " +
+            "Proponé tres transferencias o interacciones diferentes conservando sus mapas, paleta, escala, interfaz y ritmo. " +
+            "No sorteés otro género, estética, menú ni sistema de progresión. No hace falta inventar un tercer juego.\n");
+        var previous = existing.Where(e => !string.IsNullOrWhiteSpace(e)).Distinct().ToList();
+        if (previous.Count > 0) sb.AppendLine("Variantes anteriores para comparar las interacciones: " + string.Join("; ", previous) + ".");
+        sb.AppendLine("Compartir el aspecto y los mapas del mismo original base es correcto. Evitá repetir un injerto anterior sin nuevas posibilidades de juego. " +
+            "El aporte debe tener comportamiento y consecuencias; cambiar solo colores o nombres no alcanza.");
+        return sb.ToString();
+    }
 }

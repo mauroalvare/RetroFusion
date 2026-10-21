@@ -35,8 +35,10 @@ public static class StudioWorkspace
             # Tarea: {(game.Script.Length == 0 ? "crear" : "mejorar")} un juego fusionado de RetroEmu
 
             RetroEmu corre juegos de 8 bits emulados de verdad y los FUSIONA con un guion de
-            JavaScript que dibuja una escena propia y conecta sus reglas. El género, la
-            presentación y la progresión dependen de este diseño, sin una plantilla fija.
+            JavaScript que conecta sus reglas en una partida compartida. Conservá el mundo
+            y la presentación del original base salvo que se haya elegido reinterpretación libre.
+
+            {StudioDesigner.DirectionText(game.Games, find, FusionDirection.From(game))}
 
             ## Qué hay que hacer
 
@@ -53,7 +55,7 @@ public static class StudioWorkspace
                aportes, descartes, objetivo, final, progresión, controles, presentación y legibilidad.
                Completá "title" (hasta 60 caracteres), "approach" (hasta 180), "pitch" (una oración,
                hasta 240), "howToPlay" (objetivo y teclas, hasta 320) y "changes" (hasta 400).
-               El diseño detallado no va en la ayuda del jugador. No toques "games".
+               El diseño detallado no va en la ayuda del jugador. No toques "games" ni "baseSlot".
             4. Escribí el guion completo en `{ScriptFile}`.
             5. Probalo: {test}
             6. Corregí los fallos conservando el pedido y lo que funciona. Revisá la lista de

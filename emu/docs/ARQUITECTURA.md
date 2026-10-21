@@ -378,8 +378,10 @@ Lo que se agrega por comodidad no altera la ejecución:
 
 ## Perfiles y máquinas para el estudio (Retro.Fusion)
 
-Los originales corren en máquinas independientes. El estudio toma sprites, tiles, mapas y
-variables para construir un juego nuevo con escena propia. Manic Invaders es la referencia.
+Los originales corren en máquinas independientes. Por defecto el estudio conserva un
+original base y transfiere mecánicas de los aportantes a su mundo; la reinterpretación
+libre puede construir una escena nueva. Se usan imágenes nativas autorizadas por la
+selección, sprites, tiles, mapas y variables. D-022 describe el cambio de dirección.
 
 - **Perfil** (`GameProfile`, JSON): máquina, edición, variables, controles, arranque,
   gráficos y ayudas para interpretar la memoria.
@@ -396,7 +398,7 @@ dirige a `studio`.
 
 ## Juegos fusionados con guion (Retro.Studio)
 
-Un juego fusionado es un juego nuevo en una sola escena dibujada por su guion:
+Un juego fusionado conecta los originales en una sola escena mediante su guion:
 
 - **`StudioSession`** corre las máquinas (cada una a su frecuencia, con pausa, velocidad y
   volumen propios) y, en cada tick, llama al guion: `tick(input)` y después `draw()`. El
@@ -413,20 +415,25 @@ Un juego fusionado es un juego nuevo en una sola escena dibujada por su guion:
   la memoria del juego a posiciones en pantalla, verificadas con capturas). La IA usa las
   ayudas en vez de adivinar direcciones.
 - **`Canvas`** dibuja sprites de 1 bit, rectángulos, líneas y texto con la letra de la ROM
-  del Spectrum. No copia cuadros de las máquinas. `screen.game` solo devuelve un error
-  que exige escena propia; el validador registra el intento aunque el guion capture el error.
+  del Spectrum. `screen.base` conserva únicamente la imagen nativa declarada, a escala
+  y paleta originales, sin el borde de la máquina. `screen.game` sigue rechazado y también
+  se registra el intento de dibujar otra base aunque el guion capture el error.
 - **Arranque instantáneo:** la primera vez cada juego arranca con su guion de arranque (la
-  cinta carga por la ROM); el estado queda en memoria y reiniciar o probar otra versión
-  carga ese estado.
+  cinta carga por la ROM); estado e imagen quedan en memoria. Reiniciar o probar otra
+  versión restaura ambos sin avanzar la CPU; así una base pausada no aparece negra.
+  Los handles de sprites se liberan al crear la siguiente instancia del guion.
 - **`StudioValidator`** es la prueba de jugabilidad: tres robots (quieto, explorador al azar,
-  tirador) empiezan desde el título, juegan y, si llegan al fin, prueban la revancha. Con
+  tirador) prueban inicio, partida y revancha. El modo base admite comenzar jugando,
+  incluye exploración vertical y no exige puntaje artificial. Con
   lo que el guion informa (`game.state`, `game.score`, `game.death`, `game.level`) mide la
   estructura (título, juego, fin, revancha), si se pueden sumar puntos, cuándo y de qué se
   muere, y si la imagen está viva. Los problemas hacen fallar la prueba; las notas son
   consejos. Su informe, con capturas, es lo que se le devuelve a la IA o al agente.
 - **El método** (`Docs/GUIA-FUSION.md`) y la API piden unión mecánica, regla única,
-  diferencia frente a otras propuestas e identidad propia. No se impone un juego base,
-  un número de niveles ni un menú. Los estados de la prueba son instrumentación.
+  transferencia de comportamientos y conservación de la base elegida. FusionDirection
+  acompaña propuestas, guiones y correcciones; baseSlot queda fuera de lo que puede
+  cambiar la respuesta de IA. La reinterpretación libre es explícita. No se impone un
+  número de niveles ni un menú; se conservan los originales en modo base.
   Manic Invaders es una referencia técnica; su guion completo no viaja como molde.
   Las propuestas y la escritura directa reciben un resumen acotado de diseños anteriores
   de la misma combinación para evitar repetir su mecánica y presentación.

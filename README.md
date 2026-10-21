@@ -1,8 +1,9 @@
 # RetroFusion
 
 Emulador de computadoras y consolas de 8 bits (**RetroEmu**) que corre los juegos
-originales con emulación real de CPU y hardware, y los **fusiona** con IA en juegos
-nuevos: el estudio propone ideas, escribe el juego, lo prueba con jugadores robot y saca
+originales con emulación real de CPU y hardware, y los **fusiona** con IA: elegís una
+base y sumás mecánicas de otros juegos dentro de su mundo. El estudio propone aportes,
+escribe el guion, lo prueba con jugadores robot y saca
 versiones nuevas con lo que le pidas. También **crea juegos de 8 bits desde cero**: la IA
 los escribe en ensamblador para un Commodore 64 o un ZX Spectrum emulados, un jugador robot
 los prueba y quedan como un `.prg` o un `.tap` que corre en cualquier emulador.
@@ -14,13 +15,15 @@ los prueba y quedan como un `.prg` o un `.tap` que corre en cualquier emulador.
 
 ## Fusiones incluidas
 
-Cada fusión dibuja una **escena propia** con sprites, tiles y variables de los originales,
-que corren en sus máquinas emuladas. El resultado tiene sus reglas, objetivos y controles.
+Los originales corren en sus máquinas emuladas. Podés conservar los mapas, gráficos,
+interfaz y reglas de un **juego base** e incorporar personajes o mecánicas de los demás.
+Invertir la base cambia la dirección de la fusión. **Reinterpretación libre** permite
+una escena y un diseño nuevos si preferís esa opción.
 Se juegan desde **Inicio > Fusionados** si los juegos están en tu carpeta `ROMs`.
-Con **Fusionar juegos** podés crear otro juego con las piezas de los que el emulador corra.
-El estudio rechaza el uso de `screen.game` para mostrar las pantallas de los originales.
-Las instrucciones piden una unión entre las mecánicas y una regla propia para cada pareja;
-el género, los menús, el HUD y la progresión se diseñan para ese juego.
+Con **Fusionar juegos** elegís los originales, la base y los aportes. El guion puede
+conservar la imagen nativa de esa base; no se admiten pantallas independientes pegadas.
+Las instrucciones priorizan que los aportes tengan comportamiento y consecuencias en
+el mundo conservado, sin añadir el mismo menú, HUD o estética a todas las combinaciones.
 
 ### Manic Invaders — creado con IA
 

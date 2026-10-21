@@ -43,10 +43,14 @@ public sealed class StudioDesigner
         Sos un diseñador y programador de videojuegos retro, creativo y muy cuidadoso con la
         jugabilidad. Trabajás en RetroEmu, un emulador que corre juegos de 8 bits de verdad y
         permite FUSIONARLOS: un guion de JavaScript conecta los juegos emulados y arma con
-        ellos UN juego nuevo, jugable y divertido, con reglas inseparables e identidad propia.
-        Dibujá una escena propia con sprites, tiles y variables de los originales.
-        screen.game se retiró y hace fallar la prueba: no uses pantallas enteras,
-        superpuestas, lado a lado ni miniaturas de los juegos originales.
+        ellos UNA partida compartida. Por defecto se conserva un original como base:
+        sus mapas, estética, interfaz y reglas siguen siendo reconocibles, y el otro aporta
+        personajes, comportamientos o mecánicas dentro de ese mundo. También existe una
+        reinterpretación libre cuando el jugador la elige expresamente.
+        Respetá la dirección elegida en el pedido. screen.base puede conservar la imagen
+        nativa de la base declarada; también podés usar sus tiles y mapas verificados.
+        screen.game sigue retirado: no pegues pantallas independientes, ni lado a lado
+        ni miniaturas. No conviertas cada fusión en la creación de un tercer juego genérico.
 
         Escribí en castellano rioplatense (vos) los textos que ve el jugador. La letra del
         Spectrum no tiene tildes ni eñes: en pantalla escribí sin ellas (los mensajes de
@@ -114,15 +118,15 @@ public sealed class StudioDesigner
         ("hero", "Héroe"),
         ("contributions", "Aportes de cada original y decisiones que cambian"),
         ("mechanicLink", "Unión mecánica inseparable (qué cambia al quitar cualquiera de los juegos)"),
-        ("uniqueRule", "Regla única y ejemplo de diez segundos de partida"),
+        ("uniqueRule", "Interacción incorporada y diez segundos concretos de partida"),
         ("difference", "Diferencia mecánica frente a las otras ideas y fusiones previas"),
         ("discarded", "Se descarta"),
         ("goal", "Objetivo"),
         ("lose", "Derrota"),
         ("story", "Historia"),
-        ("levels", "Progresión propia (fases, rondas, mundo continuo o niveles según el diseño)"),
+        ("levels", "Mapas y progresión conservados; ampliaciones compatibles si se pidieron"),
         ("controls", "Controles"),
-        ("presentation", "Presentación propia (pantalla de título, HUD, menús, transiciones y paleta)"),
+        ("presentation", "Identidad visual, interfaz y sonido conservados o transformados según el modo elegido"),
         ("readability", "Legibilidad"),
     };
 
@@ -166,34 +170,41 @@ public sealed class StudioDesigner
         return sb.ToString().TrimEnd();
     }
 
-    public static string ConceptPrompt(IReadOnlyList<RecipeGame> slots, Func<string, GameProfile?> find, string wish)
+    public static string ConceptPrompt(IReadOnlyList<RecipeGame> slots, Func<string, GameProfile?> find, string wish, FusionDirection? direction = null)
     {
+        direction ??= new FusionDirection();
+        bool keepBase = direction.Resolve(slots) != null;
         var sb = new StringBuilder();
-        sb.AppendLine("Quiero fusionar estos juegos en uno nuevo:");
+        sb.AppendLine("Quiero unir estos originales en una fusión:");
+        sb.AppendLine(DirectionText(slots, find, direction));
         sb.AppendLine();
         sb.Append(GamesText(slots, find));
         sb.AppendLine(string.IsNullOrWhiteSpace(wish)
-            ? "Proponé 3 ideas MUY distintas entre sí (enfoques, géneros y presentaciones diferentes)."
+            ? keepBase ? "Proponé 3 formas distintas de incorporar mecánicas de los aportantes dentro de la base elegida."
+                : "Proponé 3 reinterpretaciones distintas entre sí (enfoques, géneros y presentaciones diferentes)."
             : $"Lo que quiere el jugador: \"{wish.Trim()}\". Proponé 3 ideas que respeten ese pedido, con enfoques distintos.");
         var existing = StudioLibrary.For(slots.Select(s => s.Profile)).Select(g => $"\"{g.Title}\" ({g.Approach})");
-        sb.Append(CreativeSeeds.Brief(Random.Shared, 3, existing, !string.IsNullOrWhiteSpace(wish)));
+        sb.Append(keepBase ? CreativeSeeds.BaseBrief(existing)
+            : CreativeSeeds.Brief(Random.Shared, 3, existing, !string.IsNullOrWhiteSpace(wish)));
         sb.Append(PreviousDesigns(slots));
         sb.AppendLine("Seguí el método (pasos 1 a 6). Cada idea es un juego completo con: title (nombre del juego nuevo), approach " +
                       "(el enfoque de la mezcla en una frase), pitch (la premisa en una oración), howToPlay (objetivo y teclas en dos o tres líneas) y el " +
                       "documento de diseño: " + string.Join(", ", DesignFields.Select(f => $"{f.Key} ({f.Label.ToLowerInvariant()})")) + ". " +
-                      "Tienen que ser realizables con la API y las ayudas de los perfiles. No hay menú, número de niveles ni género obligatorio. " +
+                      "Tienen que ser realizables con la API y las ayudas de los perfiles. Conservá la base elegida; solo el modo libre permite reinventar la presentación. " +
                       "Antes de responder, revisá cada idea con la lista de control y con los anti-patrones, y descartá las que no la pasen.");
         return sb.ToString();
     }
 
     public async Task<List<GameConcept>> ConceptsAsync(IAiProvider ai, IReadOnlyList<RecipeGame> slots, Func<string, GameProfile?> find,
-        string wish, CancellationToken ct)
+        string wish, CancellationToken ct, FusionDirection? direction = null)
     {
-        string answer = await ai.CompleteAsync(new AiRequest(Guide, new[] { new AiTurn(true, ConceptPrompt(slots, find, wish)) }, ConceptSchema()), ct);
-        return ParseConcepts(answer);
+        direction ??= new FusionDirection();
+        direction = direction with { BaseSlot = direction.Resolve(slots) };
+        string answer = await ai.CompleteAsync(new AiRequest(Guide, new[] { new AiTurn(true, ConceptPrompt(slots, find, wish, direction)) }, ConceptSchema()), ct);
+        return ParseConcepts(answer, direction);
     }
 
-    public static List<GameConcept> ParseConcepts(string answer)
+    public static List<GameConcept> ParseConcepts(string answer, FusionDirection? direction = null)
     {
         var json = FirstJson(answer) ?? throw new AiException("La respuesta no tiene un JSON con las ideas.");
         using var doc = JsonDocument.Parse(json);
@@ -203,7 +214,7 @@ public sealed class StudioDesigner
             throw new AiException("El JSON no tiene la lista \"ideas\".");
         var list = new List<GameConcept>();
         foreach (var e in array.EnumerateArray())
-            list.Add(new GameConcept(Str(e, "title"), Str(e, "approach"), Str(e, "pitch"), Str(e, "howToPlay"), DesignText(e)));
+            list.Add(new GameConcept(Str(e, "title"), Str(e, "approach"), Str(e, "pitch"), Str(e, "howToPlay"), DesignText(e), direction));
         if (list.Count == 0)
             throw new AiException("La IA no propuso ninguna idea.");
         return list;
@@ -238,6 +249,7 @@ public sealed class StudioDesigner
     {
         var sb = new StringBuilder();
         sb.AppendLine("Escribí el juego fusionado con estos juegos:");
+        sb.AppendLine(DirectionText(slots, find, concept.Direction ?? new FusionDirection()));
         sb.AppendLine();
         sb.Append(GamesText(slots, find));
         sb.Append(PreviousDesigns(slots));
@@ -259,11 +271,29 @@ public sealed class StudioDesigner
             sb.AppendLine("Todavía no hay documento de diseño: armalo primero siguiendo el método (pasos 1 a 6) y después escribí el guion.");
         sb.AppendLine();
         sb.AppendLine("Escribí el guion completo, jugable de punta a punta, con la regla única y una progresión adecuada a su género. " +
-                      "Aplicá la prueba de quitar un original: ambos deben cambiar decisiones centrales. Presentación y avisos propios; game.state, " +
-                      "game.score, game.death y game.level. La presentación (título, HUD, menús, transiciones, paleta) es la que dice el " +
-                      "diseño, propia de este juego: no la del ejemplo ni la de otras fusiones. Antes de responder, revisá la lista de control.");
+                      "Aplicá la prueba de quitar un original: ambos deben cambiar decisiones centrales. Informá game.state y los puntos, muertes " +
+                      "o progreso reales cuando existan. En modo base heredá presentación, avisos, mapas y progresión; en modo libre seguí la " +
+                      "presentación del diseño. No impongas título, HUD ni puntaje artificial. Antes de responder, revisá la lista de control.");
         sb.AppendLine(AnswerShape);
         return sb.ToString();
+    }
+
+    public static string DirectionText(IReadOnlyList<RecipeGame> slots, Func<string, GameProfile?> find, FusionDirection direction)
+    {
+        string? selected = direction.Resolve(slots);
+        if (selected == null)
+            return "MODO ELEGIDO: reinterpretación libre. Podés diseñar una escena y presentación nuevas a partir de los originales. " +
+                "No hay una base nativa declarada y screen.base no está disponible.";
+        var slot = slots.Single(s => s.Slot == selected);
+        string name = find(slot.Profile)?.Name ?? slot.Profile;
+        return $"MODO ELEGIDO: conservar el original base. BASE ELEGIDA: games.{selected} = {name} (perfil {slot.Profile}).\n" +
+            $"Conservá sus mapas, distribución, paleta, escala, animaciones, interfaz, sonidos y reglas principales. Los demás originales son aportantes, no escenarios alternativos.\n" +
+            $"Podés dibujar su imagen nativa con screen.base(games.{selected}) al principio de draw(); después integrá los personajes o efectos transferidos en sus coordenadas. " +
+            "Usá sus controles y datos verificados; los aportes deben interactuar con el mundo, las amenazas, los objetivos o los recursos de la base. " +
+            "No reinicies su estética desde cero, no añadas un menú genérico ni cambies el género por una semilla aleatoria. " +
+            "Si se piden más mapas, respetá la estructura, las piezas, las reglas y la escala del original con formatos verificados; si faltan esos datos, explicá qué falta. " +
+            "Conservar el HUD original es correcto; no agregues tarjetas, títulos o puntaje ficticio para satisfacer al validador. " +
+            "La elección de base no puede cambiar en la respuesta ni durante las correcciones.";
     }
 
     private static string PreviousDesigns(IReadOnlyList<RecipeGame> slots)
@@ -282,6 +312,7 @@ public sealed class StudioDesigner
     {
         var sb = new StringBuilder();
         sb.AppendLine($"Este es el juego fusionado \"{current.Title}\", versión {current.Version}, con estos juegos:");
+        sb.AppendLine(DirectionText(slots, find, FusionDirection.From(current)));
         sb.AppendLine();
         sb.Append(GamesText(slots, find));
         sb.AppendLine($"Idea: {current.Pitch}");
@@ -298,8 +329,8 @@ public sealed class StudioDesigner
         sb.AppendLine("```");
         sb.AppendLine();
         sb.AppendLine($"El jugador lo probó y pide: \"{request.Trim()}\"");
-        sb.AppendLine("Hacé la versión siguiente con ese pedido. Si pide otra visión total, podés cambiar todo (título, idea, diseño y " +
-                      "guion) siguiendo el método. Si es una corrección, conservá lo que funciona. En los dos casos, el resultado tiene que " +
+        sb.AppendLine("Hacé la versión siguiente con ese pedido. Conservá la dirección y la base elegidas. Si pide otra visión total, podés cambiar título, idea, diseño y " +
+                      "guion siguiendo el método. Si es una corrección, conservá lo que funciona. En los dos casos, el resultado tiene que " +
                       "seguir pasando la lista de control.");
         sb.AppendLine(AnswerShape);
         return sb.ToString();
@@ -317,6 +348,7 @@ public sealed class StudioDesigner
             HowToPlay = concept.HowToPlay,
             Design = concept.Design,
             Games = slots.ToList(),
+            BaseSlot = (concept.Direction ?? new FusionDirection()).Resolve(slots),
             Version = 1,
             Author = ai.Name,
         };
@@ -415,8 +447,8 @@ public sealed class StudioDesigner
     }
 
     // ------------------------------------------------------------------ copy and paste
-    public static string ManualConceptPrompt(IReadOnlyList<RecipeGame> slots, Func<string, GameProfile?> find, string wish) =>
-        Guide + "\n\n" + ConceptPrompt(slots, find, wish) +
+    public static string ManualConceptPrompt(IReadOnlyList<RecipeGame> slots, Func<string, GameProfile?> find, string wish, FusionDirection? direction = null) =>
+        Guide + "\n\n" + ConceptPrompt(slots, find, wish, direction) +
         "\nRespondé SOLO con un JSON así: {\"ideas\": [{\"title\": \"...\", \"approach\": \"...\", \"pitch\": \"...\", \"howToPlay\": \"...\", " +
         string.Join(", ", DesignFields.Select(f => $"\"{f.Key}\": \"...\"")) + "}]}";
 

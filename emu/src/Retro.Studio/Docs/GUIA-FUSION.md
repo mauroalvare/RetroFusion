@@ -1,12 +1,17 @@
-# Método para inventar una fusión única y jugable
+# Método para fusionar originales conservando su identidad
 
-Fusionar significa crear una regla de juego que nace del encuentro de los originales.
-No alcanza con cambiar sprites, juntar enemigos o decorar un juego con elementos del otro.
-La misma pareja puede dar juegos completamente diferentes: no existe una receta universal.
+Por defecto, fusionar significa conservar un juego como base e incorporar comportamientos
+del otro dentro de su mundo. La orientación importa: invertir la base produce otra fusión.
+El jugador debe reconocer el original por sus mapas, gráficos, reglas, interfaz y ritmo.
+No conviertas automáticamente la combinación en un tercer juego de estética genérica.
+La reinterpretación libre existe como opción explícita y puede diseñar una escena nueva.
 
 ## 1. Entender qué hace especial a cada original
 
 Para cada juego identificá su verbo, objetivo, riesgo, recurso y una regla reconocible.
+En la base, identificá también mapas, distribución, escala, paleta, animación, tipografía,
+marcadores, menús y sonidos que se deben conservar. Separá esos invariantes de lo que
+aporta el otro original. No cambies todos los sistemas para justificar una idea nueva.
 Buscá relaciones entre esas reglas, no solo parecidos visuales. Describí una consecuencia
 compartida: lo que hacés con una regla debe cambiar cómo tomás decisiones con la otra.
 Aplicá también el contrato común de diseño incluido en el pedido.
@@ -18,8 +23,11 @@ las decisiones del otro. Escribí un ejemplo concreto de diez segundos de partid
 
 - **Prueba de quitar un original:** si quitás cualquiera de los juegos y el bucle principal
   sigue siendo el mismo, falta integración. Un aporte solo gráfico o sonoro no alcanza.
-- Puede haber un juego base, una mezcla equilibrada o un género nuevo. No impongas siempre
-  base + héroe invitado + recurso. En `baseGame` podés escribir "ninguno dominante".
+- Respetá la base declarada en el pedido. Diseñá el injerto de movimientos, enemigos,
+  acciones, recursos o reglas del aportante dentro de ella. Puede conservarse el reparto
+  original o cambiar protagonistas si lo pide el diseño; tienen que poder hacer algo del
+  otro juego y afectar situaciones reales de la base, no limitarse a decorar.
+- Solo en reinterpretación libre puede no haber un original dominante ni un género heredado.
 - Elegí un protagonista, varios, un tablero o un sistema según lo que se juega. No todos
   los diseños necesitan un héroe, vidas, disparos, plataformas o enemigos.
 - Conservá lo reconocible de cada original, transformá sus reglas y explicá qué descartás.
@@ -29,7 +37,8 @@ las decisiones del otro. Escribí un ejemplo concreto de diez segundos de partid
 
 Compará tus ideas con las fusiones anteriores incluidas en el pedido. Cambiar nombre,
 color, cartel o posición del HUD no constituye una idea distinta. Variá el bucle de
-decisiones, el objetivo, la organización del espacio o la relación entre los juegos.
+decisiones incorporado o la relación entre los juegos. Conservar el mismo mapa, paleta
+o HUD del original elegido como base es correcto y no cuenta como repetir una plantilla.
 Si el jugador pide una corrección pequeña, conservá su juego; si pide una fusión nueva,
 justificá en qué cambia realmente.
 
@@ -41,6 +50,10 @@ visual y jugable y la **diferencia** frente a las otras ideas y fusiones previas
 Definí objetivo, controles y condición de final adecuados al género. La progresión puede
 ser una sala que evoluciona, rondas, un recorrido continuo, un mapa, una campaña o una
 partida breve. No hay una cantidad obligatoria de niveles ni una plantilla de menús.
+En modo base heredá primero el recorrido, los objetivos, los controles y la progresión
+del original. Si se piden mapas adicionales, usá su estructura y piezas verificadas,
+con la misma escala y lenguaje visual. Si falta el formato de mapas, señalá ese dato
+pendiente; no sustituyas los escenarios por niveles inventados con rectángulos genéricos.
 
 El título puede integrarse en el escenario, ser jugable o aparecer de forma breve. Una
 transición puede ocurrir dentro del mundo. Los avisos pueden ser animaciones, sonidos,
@@ -49,20 +62,24 @@ El HUD puede ser lateral, mínimo, diegético o no hacer falta: mostrale al juga
 información que necesita, en el lugar y momento que le sirva.
 
 Los mensajes del emulador y los estados para la prueba automática **no son un menú de
-juego obligatorio**. Cada fusión inventa su lenguaje visual, sus pantallas y su ritmo.
+juego obligatorio**. En modo base conservá el lenguaje visual del original. No le agregues
+una pantalla de título, tarjetas ni un HUD universal que tape o reemplace los suyos.
 
-## 5. Escena propia y controles claros
+## 5. Escenario reconocible y controles claros
 
-- Dibujá una **escena propia** con sprites, tiles y datos originales.
-  `screen.game` está retirado: no uses pantallas completas, miniaturas ni reconstrucciones
-  de la imagen original con `g.pixel`; esa función sirve para observar, no para copiar cuadros.
+- En modo base podés conservar su imagen nativa con `screen.base(games.<base>)` al principio
+  de draw(), o reconstruir fielmente sus escenarios mediante tiles, mapas y ayudas verificadas.
+  Los añadidos usan sus coordenadas, escala, límites y colisiones. No son otra ventana jugable.
+- En reinterpretación libre dibujá la escena elegida con sprites, tiles y datos originales.
+- `screen.game` sigue retirado. No pegues pantallas completas de aportantes, miniaturas
+  ni mosaicos con `g.pixel`; esa función sirve para observar, no para copiar cuadros.
 - Mantené legibles el espacio, las amenazas y los elementos interactivos. No hay una
   distribución obligatoria de enemigos arriba y plataformas abajo: resolvelo según este
   diseño, sin ocultar al jugador ni las amenazas detrás del terreno.
 - Usá pocos controles y explicalos dentro de la presentación elegida. En un juego de
   disparos, Espacio/Ctrl disparan; si hay salto y disparo, diferenciá las acciones.
-- No copies título, carteles, HUD, mensajes, paleta o navegación de otra fusión como un
-  conjunto. No basta con recolorearlos.
+- No copies la presentación de una fusión anterior como un conjunto. Heredar la del
+  original base sí es parte del objetivo. Los aportes nuevos deben encajar con ella.
 
 ## 6. Instrumentación para poder probarlo
 
@@ -70,8 +87,11 @@ El guion informa `game.state('title')`, `game.state('playing')` y `game.state('g
 además de `game.score`, `game.death` y `game.level` cuando corresponde. Es el contrato de
 la prueba, no una orden de dibujar tres pantallas, tres niveles o un marcador convencional.
 
-El estado inicial permite entender objetivo y controles y empezar con start, Espacio o
-disparo; puede ser una introducción integrada en el mundo. El fin permite reiniciar con
+En modo base se puede empezar directamente con game.state('playing'), conservar el
+inicio nativo o hacer una introducción breve dentro del mundo. No agregues puntos si
+el original usa otros objetivos: informá el progreso real. En modo libre, el estado
+inicial permite entender objetivo y controles y empezar con start, Espacio o disparo.
+El fin permite reiniciar con
 start, restaurando variables y los juegos originales que se usen. El contador de nivel
 puede representar una fase o ronda; no exige tarjetas entre ellas.
 
@@ -110,8 +130,9 @@ entender la regla nueva, simplificá o enseñala mejor antes de sumar más eleme
 - [ ] Quitar cualquiera de los originales cambia una decisión central, no solo su aspecto.
 - [ ] Puedo describir la regla única y diez segundos concretos de partida.
 - [ ] La propuesta cambia el bucle o la relación entre juegos respecto de las anteriores.
-- [ ] Menús, HUD, avisos y progresión nacen de este diseño, sin una plantilla universal.
-- [ ] La escena es propia y no reconstruye pantallas originales.
+- [ ] En modo base se reconocen sus mapas, gráficos, reglas e interfaz; los aportes encajan en ese mundo.
+- [ ] Menús, HUD y progresión conservan lo pedido, sin una plantilla universal añadida.
+- [ ] Solo la base declarada puede aportar una imagen nativa completa; los otros juegos aportan elementos y comportamientos.
 - [ ] Controles, objetivo y final se entienden; se puede reiniciar.
 - [ ] Los estados e informes permiten probar el juego, sin dictar su presentación.
 - [ ] Revisé jugabilidad y capturas; pasar el validador no demuestra calidad creativa.
@@ -119,8 +140,9 @@ entender la regla nueva, simplificá o enseñala mejor antes de sumar más eleme
 ## Anti-patrones
 
 - Superponer juegos enteros o alternarlos sin una regla que los vincule.
-- Un juego intacto con el héroe, el color o los enemigos del otro como adorno.
-- Repetir base + héroe invitado + tres niveles + los mismos carteles en cada fusión.
+- Cambiar colores o protagonistas sin incorporar comportamientos del otro juego.
+- Imponer tres niveles, un HUD y los mismos carteles en cada fusión.
+- Borrar el aspecto o los mapas del original base para hacer más fácil la implementación.
 - Llamar "única" a una variante que solo cambia textos, colores o posiciones del HUD.
 - Usar el ejemplo técnico como guion inicial para cambiarle nombres.
 - Inventar datos de memoria, esconder peligros o declarar calidad creativa solo por aprobar robots.

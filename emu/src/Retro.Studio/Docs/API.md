@@ -108,8 +108,8 @@ La prueba automática y la ventana del emulador necesitan saber qué pasa en el 
 - **Una sola pantalla y un solo objetivo.** No pongas un juego al lado del otro: elegí
   un juego como mundo y traé al otro adentro (sus enemigos, sus disparos, su
   personaje, sus reglas), o armá una pantalla nueva con piezas de los dos.
-- **Que los juegos originales hagan el trabajo pesado.** La formación de Space Invaders,
-  los guardianes de Manic Miner o la física de salto ya funcionan: usalos y conectalos,
+- **Que los juegos originales hagan el trabajo pesado.** Sus enemigos, movimiento,
+  colisiones y progresión ya funcionan: usalos y conectalos,
   no los reprogrames.
 - **Convertí coordenadas** entre pantallas con una función (`toWorld(o)`) y usala igual
   para dibujar y para los choques.
@@ -122,12 +122,15 @@ La prueba automática y la ventana del emulador necesitan saber qué pasa en el 
   frecuencias o premios.
 - Textos en castellano. No uses `async`, `setTimeout` ni `import`: todo pasa en `tick`.
 
-## Escena propia obligatoria
+## Conservar la base o reinterpretar
 
-Dibujá el mundo nuevo con `screen.sprite`, `screen.rect`, `screen.line` y `screen.text`.
-Leé sprites y tiles con `g.sprite`/`g.spriteAt`, y mapas y variables con las ayudas del
-perfil o `peek`. Manic Invaders es el modelo técnico: reconstruye las cavernas y pone
-en ellas los sprites y las reglas de los dos juegos.
+Con `baseSlot` declarado, conservá su mundo con `screen.base(g)` o con una reconstrucción
+fiel mediante tiles y mapas verificados. Su imagen conserva la resolución y paleta nativas.
+Integrá el aporte en ese espacio, con interacción real y controles coherentes.
+
+En reinterpretación libre dibujá la escena con `screen.sprite`, `screen.rect`,
+`screen.line` y `screen.text`. Leé sprites y tiles con `g.sprite`/`g.spriteAt`, y mapas
+y variables con las ayudas del perfil o `peek`. No hay un diseño visual universal.
 
 `screen.game` se retiró: no dibuja nada y hace fallar la prueba automática con un mensaje
 para corregir el guion. La única imagen original completa permitida es la base declarada,

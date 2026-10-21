@@ -50,18 +50,58 @@ public class DesignerTests
     }
 
     [Test]
-    public void EveryRequest_StartsFromAnotherSeed_AndAvoidsTheExistingFusions()
+    public void FreeReinterpretation_UsesSeedsOnlyWhenExplicitlyChosen()
     {
-        var prompts = Enumerable.Range(0, 6).Select(_ => StudioDesigner.ConceptPrompt(Slots, ProfileLibrary.Find, "")).ToList();
+        var free = new FusionDirection(Reimagine: true);
+        var prompts = Enumerable.Range(0, 6).Select(_ => StudioDesigner.ConceptPrompt(Slots, ProfileLibrary.Find, "", free)).ToList();
         Assert.That(prompts[0], Does.Contain("Semilla 1:").And.Contain("Semilla 3:"));
         Assert.That(prompts.Distinct().Count(), Is.GreaterThan(1), "las semillas cambian de un pedido a otro");
         Assert.That(prompts[0], Does.Contain("\"Manic Invaders\""), "nombra la fusión que ya existe para no repetirla");
         Assert.That(prompts[0], Does.Contain("presentación"));
         Assert.That(StudioDesigner.Guide, Does.Contain("NO es un estilo a copiar"));
         Assert.That(StudioDesigner.Guide, Does.Not.Contain(StudioDesigner.ExampleDesign.Split('\n')[0]), "el diseño del ejemplo no viaja como molde");
-        string asked = StudioDesigner.ConceptPrompt(Slots, ProfileLibrary.Find, "que sea de carreras");
+        string asked = StudioDesigner.ConceptPrompt(Slots, ProfileLibrary.Find, "que sea de carreras", free);
         Assert.That(asked, Does.Contain("que sea de carreras").And.Contain("Llevá los juegos más lejos"));
         Assert.That(StudioDesigner.DesignFields.Select(f => f.Key), Does.Contain("presentation"));
+    }
+
+    [Test]
+    public void BaseFusion_DoesNotRandomizeTheGenreOrPresentation_AndCanReverseItsDirection()
+    {
+        string first = StudioDesigner.ConceptPrompt(Slots, ProfileLibrary.Find, "");
+        Assert.That(first, Does.Contain("BASE ELEGIDA: games.a = Space Invaders"));
+        Assert.That(first, Does.Contain("mapas").And.Contain("paleta").And.Contain("interfaz"));
+        Assert.That(first, Does.Not.Contain("Semilla 1:").And.Not.Contain("Llevá los juegos más lejos"));
+        string reverse = StudioDesigner.ManualConceptPrompt(Slots, ProfileLibrary.Find, "conservar el recorrido", new FusionDirection("b"));
+        Assert.That(reverse, Does.Contain("BASE ELEGIDA: games.b = Manic Miner").And.Contain("screen.base(games.b)"));
+        Assert.That(reverse, Does.Contain("conservar el recorrido"));
+    }
+
+    [Test]
+    public async Task BaseChoiceSurvivesIdeasWritingCorrectionsAndAnAnswerThatTriesToChangeIt()
+    {
+        var ai = new ScriptedAi("""{"ideas":[{"title":"Dirección","pitch":"Aporte","baseSlot":"a"}]}""",
+            Answer("Dirección", "fallo"), Answer("Dirección corregida", "// bien"));
+        var ideas = await new StudioDesigner().ConceptsAsync(ai, Slots, ProfileLibrary.Find, "Conservar mapas", CancellationToken.None, new FusionDirection("b"));
+        Assert.That(ideas.Single().Direction!.BaseSlot, Is.EqualTo("b"));
+        var outcome = await new StudioDesigner().WriteAsync(ai, Slots, ProfileLibrary.Find, ideas.Single(), Fake, CancellationToken.None);
+        Assert.That(outcome.Game!.BaseSlot, Is.EqualTo("b"));
+        Assert.That(outcome.Attempts, Is.EqualTo(2));
+        Assert.That(ai.Requests[1].Turns[0].Text, Does.Contain("BASE ELEGIDA: games.b"));
+        var parsed = StudioDesigner.ParseGame("""{"baseSlot":"a","script":"// bien"}""", outcome.Game, out _)!;
+        Assert.That(parsed.BaseSlot, Is.EqualTo("b"));
+        string revision = StudioDesigner.RevisePrompt(parsed, Slots, ProfileLibrary.Find, "más mapas");
+        Assert.That(revision, Does.Contain("BASE ELEGIDA: games.b").And.Contain("más mapas"));
+    }
+
+    [Test]
+    public async Task FreeReinterpretationDoesNotSilentlyBecomeANativeBaseGame()
+    {
+        var ai = new ScriptedAi(Answer("Libre", "// bien"));
+        var concept = new GameConcept("Libre", "", "Una escena nueva", "", Direction: new FusionDirection(Reimagine: true));
+        var outcome = await new StudioDesigner().WriteAsync(ai, Slots, ProfileLibrary.Find, concept, Fake, CancellationToken.None);
+        Assert.That(outcome.Game!.BaseSlot, Is.Null);
+        Assert.That(ai.Requests.Single().Turns[0].Text, Does.Contain("reinterpretación libre"));
     }
 
     [Test]
@@ -201,20 +241,23 @@ public class DesignerTests
     public void AgentWorkspace_UsesTheSameContractAndImportsDesignWithoutChangingOriginals()
     {
         string dir = Path.Combine(Path.GetTempPath(), "retro-design-workspace-" + Guid.NewGuid().ToString("N"));
-        var template = new StudioGame { Id = "propio", Title = "Pedido", Games = Slots.ToList(), Design = "Diseño inicial" };
+        var template = new StudioGame { Id = "propio", Title = "Pedido", Games = Slots.ToList(), Design = "Diseño inicial", BaseSlot = "b" };
         try
         {
             StudioWorkspace.Create(template, "Mantener la decisión central", ProfileLibrary.Find, null, dir);
             Assert.That(File.ReadAllText(Path.Combine(dir, GameDesignGuide.FileName)), Is.EqualTo(GameDesignGuide.Text));
             Assert.That(File.ReadAllText(Path.Combine(dir, "TAREA.md")), Does.Contain(GameDesignGuide.FileName).And.Contain("regla inseparable"));
             Assert.That(File.Exists(Path.Combine(dir, "ejemplo.js")), Is.False, "no entregar un juego completo como molde");
+            Assert.That(File.ReadAllText(Path.Combine(dir, "TAREA.md")), Does.Contain("BASE ELEGIDA: games.b").And.Contain("baseSlot"));
             var edited = template.Copy(); edited.Title = "Nueva versión"; edited.Design = "Diseño actualizado con regla propia";
+            edited.BaseSlot = "x";
             edited.Games = new() { new RecipeGame { Slot = "x", Profile = "otro-juego" } };
             File.WriteAllText(Path.Combine(dir, StudioWorkspace.GameFile), edited.ToJson());
             File.WriteAllText(Path.Combine(dir, StudioWorkspace.ScriptFile), "function draw() {}");
             var read = StudioWorkspace.Read(dir, template)!.Value.game;
             Assert.That(read.Design, Is.EqualTo(edited.Design), "el diseño escrito por el agente debe llegar a la versión importada");
             Assert.That(read.Games.Select(g => g.Profile), Is.EqualTo(Slots.Select(g => g.Profile)), "los originales seleccionados se conservan");
+            Assert.That(read.BaseSlot, Is.EqualTo("b"), "el agente no cambia la base elegida al editar el JSON");
         }
         finally { if (Directory.Exists(dir)) Directory.Delete(dir, true); }
     }

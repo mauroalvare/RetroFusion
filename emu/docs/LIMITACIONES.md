@@ -143,15 +143,20 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 - Hay perfiles de Manic Miner (Spectrum), Space Invaders (arcade) y Pac-Man de C64 (vidas
   verificadas; X e Y son valores derivados, solo lectura). Pac-Man de Spectrum y los demás
   juegos de C64 todavía no tienen perfil. T-022.
-- La fusión clásica y sus vistas superpuestas se retiraron. El estudio exige una escena
-  propia: `screen.game` no dibuja y hace fallar la prueba, incluso si el guion captura el error.
-  Esto impide copiar pantallas por esa API; no es un detector visual de similitud ni garantiza
-  creatividad o diversión. Los sprites, mapas y variables siguen disponibles.
+- La fusión clásica y sus vistas superpuestas se retiraron. El modo predeterminado
+  conserva un original base; `screen.base` solo admite su ranura declarada. La opción
+  libre conserva el dibujo por sprites/tiles. `screen.game` sigue fallando, incluso con
+  catch, y no se permite pegar otra pantalla completa. Estas restricciones no detectan
+  similitud visual ni certifican integración mecánica. Mantener o ampliar mapas necesita
+  sus formatos y datos verificados; elegir una ROM no equivale a conocerlos.
 - Pac-Man en la Mina dejó de incluirse: usaba la pantalla entera de Pac-Man. Rehacerlo exige
   extraer el laberinto y los gráficos del VIC y diseñar reglas propias; se priorizó el modelo
   ya jugable de Manic Invaders. Se conservan los archivos guardados por el usuario; una copia
   sin modificar del antiguo ejemplo no se ofrece en el menú.
-- El validador de jugabilidad comprueba estados (título, empezar, puntaje, muertes,
+- El modo base permite empezar jugando y no exige puntaje artificial. Consultar datos
+  de todos los aportantes es una comprobación técnica mínima, no evidencia de que sus
+  mecánicas estén bien integradas. Hay que comparar capturas y probar controles/objetivos.
+- El validador de jugabilidad comprueba estados (inicio, empezar, puntaje cuando corresponde, muertes,
   reinicio, pantalla congelada) con 3 robots; no detecta todavía controles sin efecto,
   reglas en bucle, audio saturado ni pantallas ilegibles. T-026. No mide diversión.
 

@@ -36,6 +36,8 @@ public sealed class StudioWindow
     private volatile string _prepareProgress = "";
     private readonly List<string> _chosen = new();   // order = slots a, b, c
     private string _gameSearch = "";
+    private string? _baseProfile;
+    private bool _reimagine;
     private string _status = "";
 
     private string _wish = "";
@@ -193,7 +195,7 @@ public sealed class StudioWindow
 
     private void DrawSetup()
     {
-        ImGui.TextWrapped("Elegí 2 o 3 juegos para crear una fusión con reglas propias.");
+        ImGui.TextWrapped("Elegí un juego base e incorporá personajes o mecánicas de otros originales.");
         if (ImGui.TreeNode("Carpetas de juegos"))
         {
             ImGui.SetNextItemWidth(-90);
@@ -226,6 +228,9 @@ public sealed class StudioWindow
                 if (on && _chosen.Count < 3) _chosen.Add(g.Profile.Id);
                 else _chosen.Remove(g.Profile.Id);
                 _concepts = null;
+                _manual = null;
+                _agentDir = null;
+                _agentTemplate = null;
                 _problem = null;
             }
             ImGui.EndDisabled();
@@ -259,7 +264,10 @@ public sealed class StudioWindow
         }
 
         ImGui.Separator();
-        ImGui.TextColored(Gold, "2. Inventá la fusión");
+        ImGui.TextColored(Gold, "2. Elegí cómo unirlos");
+        DrawDirection();
+        ImGui.Spacing();
+        ImGui.TextColored(Gold, "3. Definí los aportes");
         DrawAiChooser("La creación puede necesitar varios pedidos a la IA.");
         if (ImGui.BeginTabBar("forma-de-idea"))
         {
@@ -308,6 +316,43 @@ public sealed class StudioWindow
             ImGui.EndTabBar();
         }
         DrawProgress();
+    }
+
+    private FusionDirection SelectedDirection()
+    {
+        int selected = Math.Max(0, _chosen.IndexOf(_baseProfile ?? ""));
+        return new FusionDirection(_chosen.Count > 0 ? SlotNames[selected] : null, _reimagine);
+    }
+
+    private void DrawDirection()
+    {
+        ImGui.BeginDisabled(Busy);
+        if (ImGui.RadioButton("Conservar un original", !_reimagine) && _reimagine) Change(false);
+        ImGui.SameLine();
+        if (ImGui.RadioButton("Reinterpretación libre", _reimagine) && !_reimagine) Change(true);
+        if (!_reimagine)
+        {
+            int selected = Math.Max(0, _chosen.IndexOf(_baseProfile ?? ""));
+            var labels = _chosen.Select(id => _labels.GetValueOrDefault(id, id)).ToArray();
+            ImGui.SetNextItemWidth(-100);
+            if (ImGui.Combo("Juego base", ref selected, labels, labels.Length))
+            {
+                _baseProfile = _chosen[selected];
+                Change(false);
+            }
+            AiPicker.Hint("Conserva sus mapas, aspecto y reglas. Los demás aportan personajes o mecánicas dentro de ese mundo.");
+        }
+        else AiPicker.Hint("Permite una escena y un diseño nuevos inspirados en los originales.");
+        ImGui.EndDisabled();
+
+        void Change(bool reimagine)
+        {
+            _reimagine = reimagine;
+            _concepts = null;
+            _manual = null;
+            _agentDir = null;
+            _agentTemplate = null;
+        }
     }
 
     private void DrawGameCard(StudioGame game)
@@ -565,14 +610,15 @@ public sealed class StudioWindow
         _concepts = null;
         var slots = Slots();
         string wish = _wish;
+        var direction = SelectedDirection();
         if (_ai.Provider == "manual" || _ai.Provider == "agent")
         {
             // agents work on whole games; ideas go through copy and paste
             _manual = new ManualStep("Ideas: pegá la consigna en tu chat de IA",
-                StudioDesigner.ManualConceptPrompt(slots, ProfileLibrary.Find, wish),
+                StudioDesigner.ManualConceptPrompt(slots, ProfileLibrary.Find, wish, direction),
                 answer =>
                 {
-                    _concepts = StudioDesigner.ParseConcepts(answer);
+                    _concepts = StudioDesigner.ParseConcepts(answer, direction);
                     _manual = null;
                     _progress = "";
                 });
@@ -583,13 +629,14 @@ public sealed class StudioWindow
         var token = _cts.Token;
         _progress = $"{ai.Name} está pensando ideas...";
         _build.Start(ai);
-        _conceptTask = Task.Run(() => new StudioDesigner().ConceptsAsync(ai, slots, ProfileLibrary.Find, wish, token));
+        _conceptTask = Task.Run(() => new StudioDesigner().ConceptsAsync(ai, slots, ProfileLibrary.Find, wish, token, direction));
     }
 
     private void Write(GameConcept concept)
     {
         ClearProblem();
         var slots = Slots();
+        concept = concept with { Direction = concept.Direction ?? SelectedDirection() };
         var template = new StudioGame
         {
             Id = string.IsNullOrWhiteSpace(concept.Title) ? "" : StudioLibrary.Slug(concept.Title),
@@ -597,7 +644,9 @@ public sealed class StudioWindow
             Approach = concept.Approach,
             Pitch = concept.Pitch,
             HowToPlay = concept.HowToPlay,
+            Design = concept.Design,
             Games = slots,
+            BaseSlot = concept.Direction.Resolve(slots),
             Version = 1,
             Author = AiPicker.ShortName(_ai.Provider),
         };
@@ -608,7 +657,7 @@ public sealed class StudioWindow
                     StudioDesigner.ManualWritePrompt(slots, ProfileLibrary.Find, concept), template, first: true);
                 break;
             case "agent":
-                StartAgent(template, $"Escribí este juego fusionado desde cero.\n\nIdea: {concept.Title} ({concept.Approach})\n{concept.Pitch}\nCómo se juega: {concept.HowToPlay}", first: true);
+                StartAgent(template, $"Implementá esta unión respetando la dirección elegida.\n\nIdea: {concept.Title} ({concept.Approach})\n{concept.Pitch}\nCómo se juega: {concept.HowToPlay}\nDiseño: {concept.Design}", first: true);
                 break;
             default:
             {
