@@ -266,3 +266,22 @@ no una prueba universal de fidelidad ni una certificación de unión mecánica.
 En paralelo se corrige una inferencia de dificultad: ensayos de menos de seis segundos
 sin muertes tomaban su duración como primera muerte. Solo se juzga el promedio cuando
 los robots activos registraron realmente una primera muerte.
+
+## D-026 Contexto por operación y pedido independiente de la respuesta (2026-10-21)
+
+Las ideas reciben el contrato compacto y un resumen de capacidades; implementar recibe
+la API completa. El método extenso sigue disponible en archivos de consulta, sin imponer
+su lectura en cada corrección. No se envía un juego de ejemplo como molde. Los originales
+autónomos reciben la plantilla de arranque solo mientras no hay un programa vigente.
+
+Cada corrección automática contiene un turno: pedido estable, base elegida, último código
+y reporte local. Revisión conserva el pedido nuevo y retira el código de la versión anterior
+cuando ya hay un borrador actualizado. Manual y carpeta usan el mismo contrato. PlayerRequest
+se guarda aparte de Request (última revisión); la respuesta no puede sobrescribirlo.
+
+Los esquemas de ideas y juegos admiten missingData: un dato esencial ausente detiene la
+implementación sin inventar un sustituto. Respuestas antiguas sin ese campo siguen entrando.
+Repetir exactamente un programa ya fallido detiene el ciclo y conserva el borrador; no se
+recorta ninguna validación para ahorrar contexto. Las referencias se adjuntan al comienzo
+y ante problemas funcionales; una corrección de sintaxis no necesita reenviar esos PNG.
+Los tamaños UTF-8 medidos localmente no equivalen a consumo de tokens del proveedor.

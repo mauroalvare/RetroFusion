@@ -40,7 +40,7 @@ public class DesignerTests
         Assert.That(StudioDesigner.Guide, Does.Contain("function tick"));
         Assert.That(StudioDesigner.Guide, Does.Contain("Lista de control"), "la IA recibe el método");
         Assert.That(StudioDesigner.Guide, Does.Contain("game.state('title')"));
-        Assert.That(StudioDesigner.Guide, Does.Contain("Manic Invaders"), "y un ejemplo que lo sigue");
+        Assert.That(StudioDesigner.Guide, Does.Contain("No uses un juego previo como molde"));
         Assert.That(StudioDesigner.ExampleDesign, Does.Contain("Juego base"));
         var text = StudioDesigner.GamesText(Slots, ProfileLibrary.Find);
         Assert.That(text, Does.Contain("games.a: Space Invaders"));
@@ -58,7 +58,7 @@ public class DesignerTests
         Assert.That(prompts.Distinct().Count(), Is.GreaterThan(1), "las semillas cambian de un pedido a otro");
         Assert.That(prompts[0], Does.Contain("\"Manic Invaders\""), "nombra la fusión que ya existe para no repetirla");
         Assert.That(prompts[0], Does.Contain("presentación"));
-        Assert.That(StudioDesigner.Guide, Does.Contain("NO es un estilo a copiar"));
+        Assert.That(StudioDesigner.Guide, Does.Contain("no se impone una plantilla"));
         Assert.That(StudioDesigner.Guide, Does.Not.Contain(StudioDesigner.ExampleDesign.Split('\n')[0]), "el diseño del ejemplo no viaja como molde");
         string asked = StudioDesigner.ConceptPrompt(Slots, ProfileLibrary.Find, "que sea de carreras", free);
         Assert.That(asked, Does.Contain("que sea de carreras").And.Contain("Llevá los juegos más lejos"));
@@ -110,11 +110,12 @@ public class DesignerTests
         var ai = new ScriptedAi("""{"ideas": [{"title": "Uno", "approach": "Invasión", "pitch": "p1", "howToPlay": "h1", "baseGame": "Manic Miner", "levels": "las 20 cavernas"}, {"title": "Dos", "approach": "Poderes", "pitch": "p2", "howToPlay": "h2"}]}""");
         var ideas = await new StudioDesigner().ConceptsAsync(ai, Slots, ProfileLibrary.Find, "cooperativo", CancellationToken.None);
         Assert.That(ideas.Select(i => i.Title), Is.EqualTo(new[] { "Uno", "Dos" }));
-        Assert.That(ideas[0].Design, Does.Contain("Juego base: Manic Miner"));
+        Assert.That(ideas[0].Design, Does.Contain("Juego base: Original elegido (games.a)"));
         Assert.That(ideas[0].Design, Does.Contain("las 20 cavernas"));
         Assert.That(ai.Requests[0].Turns[0].Text, Does.Contain("cooperativo"));
         Assert.That(ai.Requests[0].Schema, Is.Not.Null);
-        Assert.That(ai.Requests[0].System, Does.Contain(GameDesignGuide.Text), "la conexión directa recibe el contrato común");
+        Assert.That(ai.Requests[0].System, Does.Contain(GameDesignGuide.Compact), "la conexión directa recibe el contrato común");
+        Assert.That(ai.Requests[0].System, Does.Not.Contain(StudioDesigner.ApiDoc), "no necesita la API completa para evaluar ideas");
     }
 
     [Test]
@@ -158,6 +159,63 @@ public class DesignerTests
         Assert.That(outcome.Game.Games.Select(g => g.Profile), Is.EqualTo(new[] { "invaders", "manicminer" }));
         var fix = ai.Requests[1].Turns.Last().Text;
         Assert.That(fix, Does.Contain("x is not defined"), "el error de la prueba vuelve a la IA");
+    }
+
+    [Test]
+    public async Task CorrectionsCarryOnlyTheLatestDraftButRetainThePlayersIntentAndBase()
+    {
+        var ai = new ScriptedAi(Answer("Primero", "obsoleteDraft1();"), Answer("Segundo", "latestDraft2();"), Answer("Final", "// bien"));
+        var concept = new GameConcept("Unión", "", "Integrar una regla", "", Direction: new("b"), PlayerRequest: "Conservar las cavernas y los saltos");
+        var result = await new StudioDesigner().WriteAsync(ai, Slots, ProfileLibrary.Find, concept, Fake, CancellationToken.None);
+        Assert.That(result.Game!.PlayerRequest, Is.EqualTo(concept.PlayerRequest));
+        Assert.That(result.Game.BaseSlot, Is.EqualTo("b"));
+        Assert.That(ai.Requests.All(r => r.Turns.Count == 1), Is.True);
+        string last = ai.Requests[2].Turns.Single().Text;
+        Assert.That(last, Does.Contain("latestDraft2();").And.Not.Contain("obsoleteDraft1();"));
+        Assert.That(last, Does.Contain(concept.PlayerRequest).And.Contain("BASE ELEGIDA: games.b").And.Contain("x is not defined"));
+        var parsed = StudioDesigner.ParseGame("""{"playerRequest":"Reemplazar el pedido","script":"bien"}""", result.Game, out _)!;
+        Assert.That(parsed.PlayerRequest, Is.EqualTo(concept.PlayerRequest));
+    }
+
+    [Test]
+    public async Task ARevisionCorrectionDoesNotSendTheOldSourceAgain()
+    {
+        var current = new StudioGame { Id = "existente", Title = "Existente", Games = Slots, BaseSlot = "b", Script = "oldRevision();",
+            PlayerRequest = "Conservar el recorrido" };
+        var ai = new ScriptedAi(Answer("Cambio", "newRevision();"), Answer("Final", "// bien"));
+        var result = await new StudioDesigner().ReviseAsync(ai, current, ProfileLibrary.Find, "Que los disparos abran un camino", Fake, CancellationToken.None);
+        string sent = ai.Requests[1].Turns.Single().Text;
+        Assert.That(sent, Does.Contain("newRevision();").And.Not.Contain("oldRevision();"));
+        Assert.That(sent, Does.Contain(current.PlayerRequest).And.Contain("Que los disparos abran un camino"));
+        Assert.That(result.Game!.Request, Is.EqualTo("Que los disparos abran un camino"));
+    }
+
+    [Test]
+    public async Task MissingEssentialDataStopsWithoutInventingAReplacementOrCallingAgain()
+    {
+        var ai = new ScriptedAi("""{"missingData":"Formato comprobado de los mapas","script":"inventedMap();"}""");
+        var concept = new GameConcept("Unión", "", "Ampliar el recorrido", "");
+        var outcome = await new StudioDesigner().WriteAsync(ai, Slots, ProfileLibrary.Find, concept,
+            _ => throw new AssertionException("No debía validar datos inventados"), CancellationToken.None);
+        Assert.That(outcome.Game, Is.Null);
+        Assert.That(outcome.Error, Is.EqualTo(StudioDesigner.MissingDataPrefix + "Formato comprobado de los mapas"));
+        Assert.That(ai.Requests, Has.Count.EqualTo(1));
+        outcome = await new StudioDesigner().WriteAsync(ai, Slots, ProfileLibrary.Find, concept with { MissingData = "Direcciones verificadas" }, Fake, CancellationToken.None);
+        Assert.That(outcome.Attempts, Is.Zero);
+        Assert.That(ai.Requests, Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public async Task RepeatingTheSameFailedCodeStopsAndKeepsTheDraft()
+    {
+        var ai = new ScriptedAi(Answer("Fallo", "bad();\r\n"), Answer("Otro título", "bad();\n"));
+        int validations = 0;
+        var outcome = await new StudioDesigner().WriteAsync(ai, Slots, ProfileLibrary.Find, new("Unión", "", "Pedido", ""),
+            g => { validations++; return Fake(g); }, CancellationToken.None);
+        Assert.That(outcome.Attempts, Is.EqualTo(2));
+        Assert.That(validations, Is.EqualTo(1));
+        Assert.That(outcome.Draft!.Script, Does.Contain("bad();"));
+        Assert.That(outcome.Error, Does.Contain("mismo guion"));
     }
 
     [Test]
@@ -218,12 +276,12 @@ public class DesignerTests
     [Test]
     public void ManualWritingAndCorrections_KeepTheContractAndLatestDesign()
     {
-        string start = StudioDesigner.ManualWritePrompt(Slots, ProfileLibrary.Find,
-            new GameConcept("Unión", "Propia", "Una regla que une decisiones", "Dos acciones"));
-        var current = new StudioGame { Title = "Actual", Design = "Diseño corregido", Script = "function draw() {}", Games = Slots };
-        string correction = start + "\n\n" + StudioDesigner.ManualFixPrompt(Fake(current), current);
-        Assert.That(correction, Does.Contain(GameDesignGuide.Text).And.Contain(current.ToJson()));
+        var current = new StudioGame { Title = "Actual", Design = "Diseño corregido", Script = "function draw() {}", Games = Slots,
+            PlayerRequest = "Una regla que une decisiones", Request = "Corregir sin cambiar el objetivo" };
+        string correction = StudioDesigner.ManualFixPrompt(Fake(current), current);
+        Assert.That(correction, Does.Contain(GameDesignGuide.Compact).And.Contain(current.Script).And.Contain(current.Design));
         Assert.That(correction, Does.Contain("Una regla que une decisiones"), "el pedido inicial acompaña a la última versión");
+        Assert.That(correction, Does.Contain(current.Request));
     }
 
     [Test]

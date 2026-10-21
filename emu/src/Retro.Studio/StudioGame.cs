@@ -24,6 +24,8 @@ public sealed class StudioGame
     public string HowToPlay { get; set; } = "";
     /// <summary>Mechanic link, distinct rule, decisions, progression and presentation; see Docs/GUIA-FUSION.md.</summary>
     public string Design { get; set; } = "";
+    /// <summary>The player's initial request, retained across proposals and revisions.</summary>
+    public string PlayerRequest { get; set; } = "";
     public List<RecipeGame> Games { get; set; } = new();
     /// <summary>Original whose world and presentation are retained; null preserves legacy free reinterpretations.</summary>
     public string? BaseSlot { get; set; }
@@ -46,6 +48,7 @@ public sealed class StudioGame
         game.Approach ??= "";
         game.HowToPlay ??= "";
         game.Design ??= "";
+        game.PlayerRequest ??= "";
         game.Author ??= "";
         game.Script ??= "";
         game.Games ??= new();
@@ -64,7 +67,8 @@ public sealed class StudioGame
 }
 
 /// <summary>An idea the AI proposes before writing any code.</summary>
-public sealed record GameConcept(string Title, string Approach, string Pitch, string HowToPlay, string Design = "", FusionDirection? Direction = null);
+public sealed record GameConcept(string Title, string Approach, string Pitch, string HowToPlay, string Design = "", FusionDirection? Direction = null,
+    string PlayerRequest = "", string MissingData = "");
 
 /// <summary>The player's direction, independent of whatever the model writes in its answer.</summary>
 public sealed record FusionDirection(string? BaseSlot = null, bool Reimagine = false)

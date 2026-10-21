@@ -53,7 +53,8 @@ public class GameWriterTests
         Assert.That(outcome.Game!.Title, Is.EqualTo("Arreglado"));
         Assert.That(outcome.Report!.File, Is.Not.Null.And.Not.Empty, "queda el .prg listo para cargar");
         Assert.That(ai.Requests[0].System, Does.Contain("Commodore 64").And.Contain("$DC00").And.Contain("ORIGINAL"), "la guía de la máquina va en el sistema");
-        Assert.That(ai.Requests.All(r => r.System.Contains(GameDesignGuide.Text)), Is.True, "el contrato de diseño acompaña también cada corrección");
+        Assert.That(ai.Requests.All(r => r.System.Contains(GameDesignGuide.Compact)), Is.True, "el contrato de diseño acompaña también cada corrección");
+        Assert.That(ai.Requests[1].System, Does.Not.Contain(C64.TrimEnd()), "el código vigente reemplaza la plantilla inicial");
         Assert.That(ai.Requests[0].Schema, Is.Not.Null);
         Assert.That(ai.Requests[0].Turns.Single().Text, Does.Contain("un juego de un faro"));
         string fix = ai.Requests[1].Turns.Single().Text;
@@ -103,7 +104,7 @@ public class GameWriterTests
         var t = Templates.For("c64")!;
         string prompt = GameWriter.ManualPrompt(t, "un faro", new Random(1));
         Assert.That(prompt, Does.Contain("$DC00").And.Contain("Pedido del jugador: un faro").And.Contain("```asm"));
-        Assert.That(prompt, Does.Contain(GameDesignGuide.Text), "el chat recibe el mismo contrato que el proveedor directo");
+        Assert.That(prompt, Does.Contain(GameDesignGuide.Compact), "el chat recibe el mismo contrato que el proveedor directo");
         var d = GameWriter.ParseDraft("{\"title\": \"Faro\", \"pitch\": \"luz\"}\n```asm\n; {llaves} en un comentario\n nop\n```", out var error);
         Assert.That(error, Is.Null);
         Assert.That(d!.Title, Is.EqualTo("Faro"));
@@ -172,7 +173,7 @@ public class GameWriterTests
         var report = Retro.Compat.HomebrewTrial.Run("instruccion_inexistente", "c64", _firmware);
         var draft = new GameDraft("Prueba", "Regla distintiva", "Acción y objetivo", "", "; ultimo codigo\ninstruccion_inexistente");
         string prompt = GameWriter.ManualFixPrompt(draft, report, "conservar el objetivo pedido");
-        Assert.That(prompt, Does.Contain(GameDesignGuide.Text).And.Contain("$DC00").And.Contain("conservar el objetivo pedido"));
+        Assert.That(prompt, Does.Contain(GameDesignGuide.Compact).And.Contain("$DC00").And.Contain("conservar el objetivo pedido"));
         Assert.That(prompt, Does.Contain(draft.Source).And.Contain("[FALLA] ensambla"));
     }
 

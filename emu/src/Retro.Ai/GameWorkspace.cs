@@ -28,6 +28,7 @@ public static class GameWorkspace
         string dir = folder ?? Path.Combine(Root, $"{t.Machine}-{DateTime.Now:yyyyMMdd-HHmmss}");
         Directory.CreateDirectory(dir);
         File.WriteAllText(Path.Combine(dir, GameDesignGuide.FileName), GameDesignGuide.Text);
+        File.WriteAllText(Path.Combine(dir, "CONTRATO.md"), GameDesignGuide.Compact);
         File.WriteAllText(Path.Combine(dir, "GUIA.md"), t.Guide);
         File.WriteAllText(Path.Combine(dir, "plantilla.s"), t.Source);
         File.WriteAllText(Path.Combine(dir, SourceFile), t.Source);
@@ -49,8 +50,9 @@ public static class GameWorkspace
 
             ## Cómo trabajar
 
-            1. Leé `{GameDesignGuide.FileName}` (diseño, originalidad y calidad) y `GUIA.md`
+            1. Leé `CONTRATO.md` y `GUIA.md`
                (memoria, pantalla, controles, sonido y sintaxis del ensamblador).
+               `{GameDesignGuide.FileName}` amplía los criterios de diseño si necesitás profundizar.
             2. Escribí una ficha breve de diseño en comentarios de `{SourceFile}` y luego el juego completo.
                `plantilla.s` aporta el arranque hasta `start` y demostraciones técnicas: no es el juego a recolorear.
                Implementá estados, reglas y recursos propios. No agregues dependencias.

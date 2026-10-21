@@ -18,6 +18,11 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 
 ## Recursos e identidad de las fusiones
 
+- Ideas y correcciones usan contexto por operación, sin acumular borradores anteriores.
+  Los tamaños de texto medidos localmente no son tokens informados por el proveedor.
+  El ahorro real y la calidad creativa dependen del modelo; la comparación actual usa IA
+  simulada y conserva las mismas validaciones. Un dato esencial ausente detiene la generación.
+
 - Los sprites de memoria documentados son máscaras de un bit. `g.capture` permite
   conservar colores de personajes o tiles observados, hasta 32x32 por recurso y 4096
   píxeles por original en toda la partida. La captura no descubre comportamiento,

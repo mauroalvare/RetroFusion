@@ -589,18 +589,23 @@ avanza 2 puntos por cuadro recorre 160 en 80 cuadros, y una sola resta de bytes 
 como -96 (por eso no veía a los jugadores rápidos).
 
 **La IA que escribe (`GameWriter`, en Retro.Ai):** el sistema lleva el contrato común
-`GameDesignGuide` (`DISENO-JUEGOS.md` incrustado), la guía técnica de la máquina y la
-plantilla de arranque. El brief conserva el pedido, una sola semilla y hasta cinco
+`GameDesignGuide.Compact` (`CONTRATO-DISENO.md` incrustado), la guía técnica de la máquina y la
+plantilla de arranque (solo hasta tener un programa vigente). El brief conserva el pedido, una sola semilla y hasta cinco
 resúmenes de juegos previos de la misma máquina, sin sus programas. Cada intento es
 un turno con ese mismo brief, el programa actual y el informe (más la imagen si se
 adjunta). Un fallo de formato no sortea otro juego. Termina cuando pasa la prueba o
-a los 5 intentos; eso no certifica originalidad ni diversión.
+a los 5 intentos, o antes si repite el código que ya falló; eso no certifica originalidad ni diversión.
 
-`StudioDesigner` comparte ese contrato y agrega el método de unión mecánica, la API y
-los datos reales de los perfiles. Los esquemas piden metadatos breves, con el diseño
+`StudioDesigner` comparte ese contrato. Ideas usa capacidades resumidas; escribir y
+corregir reciben la API y los datos reales de los perfiles. El método completo queda como
+consulta. Cada intento conserva solo el pedido, la base, el último borrador y su informe,
+sin acumular respuestas ni volver a enviar el programa anterior a la revisión. PlayerRequest
+guarda el pedido inicial; Request, el último cambio. Los esquemas piden metadatos breves, con el diseño
 detallado separado. Las carpetas para agentes incluyen el mismo contrato y dejan de
 entregar un juego completo como molde. Las correcciones manuales conservan el pedido
 inicial y la última versión; `StudioWorkspace.Read` también importa su diseño.
+Si missingData declara un dato indispensable ausente o se repite un guion fallido,
+se detiene la generación y queda su motivo. No se omiten validaciones para ahorrar contexto.
 
 **Juegos creados (`CreatedGames`, en Retro.Ai):** cada juego es una carpeta en
 "Juegos creados" (junto al programa o más arriba; si no hay, en Documentos/RetroEmu) con

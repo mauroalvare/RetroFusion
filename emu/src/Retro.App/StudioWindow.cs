@@ -298,7 +298,9 @@ public sealed class StudioWindow
                             ImGui.TextWrapped(c.Design);
                             ImGui.TreePop();
                         }
-                        ImGui.BeginDisabled(Busy);
+                        if (!string.IsNullOrWhiteSpace(c.MissingData))
+                            ImGui.TextWrapped(StudioDesigner.MissingDataPrefix + c.MissingData);
+                        ImGui.BeginDisabled(Busy || !string.IsNullOrWhiteSpace(c.MissingData));
                         if (ImGui.Button("Hacer este juego")) Write(c);
                         ImGui.EndDisabled();
                         ImGui.Spacing();
@@ -312,7 +314,7 @@ public sealed class StudioWindow
                 ImGui.TextUnformatted("Contá cómo querés unir los juegos:");
                 ImGui.InputTextMultiline("##idea", ref _ownIdea, 2000, new Vector2(-1, 60));
                 ImGui.BeginDisabled(Busy || _ownIdea.Trim().Length < 10);
-                if (ImGui.Button("Hacer mi idea")) Write(new GameConcept("", "", _ownIdea.Trim(), ""));
+                if (ImGui.Button("Hacer mi idea")) Write(new GameConcept("", "", _ownIdea.Trim(), "", PlayerRequest: _ownIdea.Trim()));
                 ImGui.EndDisabled();
                 ImGui.EndTabItem();
             }
@@ -628,7 +630,7 @@ public sealed class StudioWindow
                 StudioDesigner.ManualConceptPrompt(slots, ProfileLibrary.Find, wish, direction),
                 answer =>
                 {
-                    _concepts = StudioDesigner.ParseConcepts(answer, direction);
+                    _concepts = StudioDesigner.ParseConcepts(answer, direction, wish);
                     _manual = null;
                     _progress = "";
                 });
@@ -645,6 +647,11 @@ public sealed class StudioWindow
     private void Write(GameConcept concept)
     {
         ClearProblem();
+        if (!string.IsNullOrWhiteSpace(concept.MissingData))
+        {
+            Problem(StudioDesigner.MissingDataPrefix + concept.MissingData);
+            return;
+        }
         _manual = null;
         var slots = Slots();
         concept = concept with { Direction = concept.Direction ?? SelectedDirection() };
@@ -656,6 +663,7 @@ public sealed class StudioWindow
             Pitch = concept.Pitch,
             HowToPlay = concept.HowToPlay,
             Design = concept.Design,
+            PlayerRequest = concept.PlayerRequest,
             Games = slots,
             BaseSlot = concept.Direction.Resolve(slots),
             Version = 1,
@@ -766,7 +774,8 @@ public sealed class StudioWindow
                 {
                     Problem("El juego todavía falla: copiá la consigna de corrección y pegásela a tu IA.", report);
                     _manual = new ManualStep("Corregir: pegale esto a tu IA",
-                        prompt + "\n\n" + StudioDesigner.ManualFixPrompt(report, g), OnAnswer, referenceFolder);
+                        StudioDesigner.ManualFixPrompt(report, g) + (references != null ? "\n\n" + references.Describe(g.BaseSlot, true) +
+                            "\nAdjuntá las capturas de originales al chat; no supongas que ya las recibió." : ""), OnAnswer, referenceFolder);
                     _scrollToManual = true;
                 }
             });

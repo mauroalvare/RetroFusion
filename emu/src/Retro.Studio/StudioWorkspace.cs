@@ -22,6 +22,7 @@ public static class StudioWorkspace
         string dir = folder ?? Path.Combine(Root, string.IsNullOrWhiteSpace(game.Id) ? "juego" : game.Id);
         Directory.CreateDirectory(dir);
         File.WriteAllText(Path.Combine(dir, Retro.Ai.GameDesignGuide.FileName), Retro.Ai.GameDesignGuide.Text);
+        File.WriteAllText(Path.Combine(dir, "CONTRATO.md"), StudioDesigner.CoreGuide);
         File.WriteAllText(Path.Combine(dir, "GUIA-FUSION.md"), StudioDesigner.Method);
         File.WriteAllText(Path.Combine(dir, "API.md"), StudioDesigner.ApiDoc);
         File.WriteAllText(Path.Combine(dir, "JUEGOS.md"), "# Los juegos de esta fusión\n\n" + StudioDesigner.GamesText(game.Games, find));
@@ -51,8 +52,9 @@ public static class StudioWorkspace
 
             ## Cómo trabajar (en este orden)
 
-            1. Leé `{Retro.Ai.GameDesignGuide.FileName}` (diseño y calidad), `GUIA-FUSION.md`
-               (unión mecánica), `API.md` (capacidades del guion) y `JUEGOS.md` (datos de los originales).
+            1. Leé `CONTRATO.md`, `API.md` (capacidades del guion) y `JUEGOS.md` (datos de los originales).
+               `{Retro.Ai.GameDesignGuide.FileName}` y `GUIA-FUSION.md` amplían criterios cuando necesites profundizar;
+               no hace falta releerlos en cada corrección.
                {(references != null ? "Revisá ORIGINALES.md y las capturas original-*.png si podés ver imágenes. Compará identidad, mapas e interfaz; no deduzcas direcciones de memoria de una captura." : "")}
             2. Diseñá una regla inseparable: quitar cualquier original debe cambiar una decisión
                central. Compará las variantes anteriores incluidas en la tarea. No partas de un
@@ -61,7 +63,8 @@ public static class StudioWorkspace
                aportes, descartes, objetivo, final, progresión, controles, presentación y legibilidad.
                Completá "title" (hasta 60 caracteres), "approach" (hasta 180), "pitch" (una oración,
                hasta 240), "howToPlay" (objetivo y teclas, hasta 320) y "changes" (hasta 400).
-               El diseño detallado no va en la ayuda del jugador. No toques "games" ni "baseSlot".
+               El diseño detallado no va en la ayuda del jugador. No toques "games", "baseSlot" ni "playerRequest".
+               Si falta un dato indispensable, escribí qué falta en informe.md y detené la implementación.
             4. Escribí el guion completo en `{ScriptFile}`.
             5. Probalo: {test}
             6. Corregí los fallos conservando el pedido y lo que funciona. Revisá la lista de

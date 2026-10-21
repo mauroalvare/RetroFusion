@@ -26,11 +26,11 @@ public sealed class GameWriter
 {
     public int MaxAttempts { get; init; } = 5;
 
-    public static string Guide(GameTemplate t) => $"""
+    public static string Guide(GameTemplate t, bool includeTemplate = true) => $"""
         Escribí un juego NUEVO y ORIGINAL para {t.Name} en ensamblador {t.Cpu.ToUpperInvariant()}.
         El programa corre en la máquina emulada, sin un motor de juegos adicional.
 
-        {GameDesignGuide.Text}
+        {GameDesignGuide.Compact}
 
         ## Contrato de implementación del original
 
@@ -53,11 +53,8 @@ public sealed class GameWriter
 
         {t.Guide}
 
-        Plantilla de partida ({t.Machine}):
-        ```asm
-        {t.Source.TrimEnd()}
-        ```
-        """;
+        """ + (includeTemplate ? $"\n\nPlantilla de partida ({t.Machine}):\n```asm\n{t.Source.TrimEnd()}\n```" :
+            "\n\nEl programa vigente ya incluye el arranque; conservá sus partes correctas.");
 
     public static JsonElement Schema() => JsonSerializer.SerializeToElement(new
     {
@@ -117,7 +114,7 @@ public sealed class GameWriter
 
     /// <summary>A self-contained correction with the machine guide, request, current program and report.</summary>
     public static string ManualFixPrompt(GameDraft current, TrialReport report, string wish = "") =>
-        Guide(Templates.For(report.Machine) ?? throw new ArgumentException("No hay guía para " + report.Machine)) + "\n\n" +
+        Guide(Templates.For(report.Machine) ?? throw new ArgumentException("No hay guía para " + report.Machine), includeTemplate: false) + "\n\n" +
         (wish.Trim().Length > 0 ? $"Pedido del jugador que se debe conservar: {wish.Trim()}\n\n" : "") +
         RevisionContext(current, report) + " " + TextShape + ManualShape;
 
@@ -147,13 +144,14 @@ public sealed class GameWriter
         TrialReport? report = null;
         string? picture = null;
         string? problem = null;
+        var triedSources = new HashSet<string>(StringComparer.Ordinal);
         for (int attempt = 1; attempt <= MaxAttempts; attempt++)
         {
             progress?.Invoke(attempt == 1 ? $"{ai.Name} está escribiendo el juego..." : $"{ai.Name} está corrigiendo (intento {attempt} de {MaxAttempts})...");
             string answer;
             try
             {
-                answer = await ai.CompleteAsync(new AiRequest(Guide(t), new[] { new AiTurn(true, prompt) }, Schema(), picture != null ? new[] { picture } : null), ct);
+                answer = await ai.CompleteAsync(new AiRequest(Guide(t, includeTemplate: draft == null), new[] { new AiTurn(true, prompt) }, Schema(), picture != null ? new[] { picture } : null), ct);
             }
             finally
             {
@@ -168,6 +166,8 @@ public sealed class GameWriter
                     (draft != null ? "\n\n" + FixPrompt(draft, report!) : "");
                 continue;
             }
+            if (!triedSources.Add(next.Source.Trim()))
+                return new WriterOutcome(draft, report, attempt, "La IA repitió el programa que ya falló. Conservamos el borrador para continuar.");
             draft = next;
             progress?.Invoke($"Probando \"{draft.Title}\" en el emulador...");
             report = await Task.Run(() => HomebrewTrial.Run(draft.Source, t.Machine, firmwareDirectory), ct);

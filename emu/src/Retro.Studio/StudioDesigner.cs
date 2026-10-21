@@ -7,7 +7,7 @@ using Retro.Fusion;
 
 namespace Retro.Studio;
 
-public sealed record DesignOutcome(StudioGame? Game, ValidationReport? Report, int Attempts, string? Error);
+public sealed record DesignOutcome(StudioGame? Game, ValidationReport? Report, int Attempts, string? Error, StudioGame? Draft = null);
 
 /// <summary>
 /// The AI side of fusion games. Three steps, each one a conversation with the player's AI:
@@ -21,6 +21,7 @@ public sealed record DesignOutcome(StudioGame? Game, ValidationReport? Report, i
 public sealed class StudioDesigner
 {
     public const int MaxAttempts = 3;
+    public const string MissingDataPrefix = "Faltan datos del original: ";
 
     public static string ApiDoc { get; } = Resource("Docs.API.md");
     /// <summary>Mechanic-led design, individual presentation and playtesting; no universal game template.</summary>
@@ -39,38 +40,43 @@ public sealed class StudioDesigner
         return r.ReadToEnd();
     }
 
-    public static string Guide => $"""
-        Sos un diseñador y programador de videojuegos retro, creativo y muy cuidadoso con la
-        jugabilidad. Trabajás en RetroEmu, un emulador que corre juegos de 8 bits de verdad y
-        permite FUSIONARLOS: un guion de JavaScript conecta los juegos emulados y arma con
-        ellos UNA partida compartida. Por defecto se conserva un original como base:
-        sus mapas, estética, interfaz y reglas siguen siendo reconocibles, y el otro aporta
-        personajes, comportamientos o mecánicas dentro de ese mundo. También existe una
-        reinterpretación libre cuando el jugador la elige expresamente.
-        Respetá la dirección elegida en el pedido. En modo base el motor dibuja la imagen
-        nativa antes de draw(): agregá solo los aportes. No uses screen.clear ni cambies su
-        resolución para sustituirla por otra escena. screen.base permite reponer esa imagen.
-        screen.game sigue retirado: no pegues pantallas independientes, ni lado a lado
-        ni miniaturas. No conviertas cada fusión en la creación de un tercer juego genérico.
+    public static string CoreGuide => GameDesignGuide.Compact + "\n\n" + """
+        ## Entorno de fusión
+        JavaScript ES2020 conecta 2 o 3 máquinas emuladas, sin archivos, red, módulos ni .NET.
+        La base indicada por el jugador es inmutable. El motor dibuja su imagen antes de
+        draw(); agregá los aportes, sin screen.clear ni otra resolución. screen.base repone
+        esa imagen. screen.game está retirado; no pegues pantallas completas secundarias.
+        En modo libre, el guion dibuja una escena nueva con los recursos disponibles.
 
-        Escribí en castellano rioplatense (vos) los textos que ve el jugador. La letra del
-        Spectrum no tiene tildes ni eñes: en pantalla escribí sin ellas (los mensajes de
-        ui.message y ui.hud sí las pueden llevar).
+        Antes del código, concretá en design: acción/objetivo, regla transferida, consecuencias
+        de quitar un original, datos usados y faltantes, diferencia frente a ideas previas,
+        progreso/final, controles y presentación. No uses un juego previo como molde.
+        Si falta algo indispensable, devolvé missingData con el dato concreto y no un juego
+        genérico que lo disimule. Una captura no prueba conocer mapas, memoria ni rutinas.
 
-        {GameDesignGuide.Text}
+        Informá game.state (title/playing/gameover cuando corresponda), puntos, muertes y
+        progreso reales. La base puede empezar jugando sin título ni puntaje artificial.
+        El robot prueba quieto, movimiento y disparo; no adaptes el género para conformarlo.
+        Con la fuente de texto del Spectrum usá caracteres sin tildes ni eñes; ui sí las admite.
+        """;
 
-        {Method}
+    public static string Guide => CoreGuide + "\n\n" + ApiDoc;
 
-        {ApiDoc}
-
-        Manic Invaders es una referencia de integración técnica. NO es un estilo a copiar.
-        Su programa completo no se incluye como plantilla. Resolvé esta combinación desde cero.
+    public static string ConceptGuide => CoreGuide + "\n\n" + """
+        Capacidades para evaluar ideas: g.get/set usan variables verificadas (respetá solo
+        lectura); controles y ayudas específicas se enumeran en cada perfil. g.sprite usa
+        gráficos de un bit; g.capture guarda recursos con colores, máximo 32x32 y 4096
+        píxeles por original/partida. El guion integra choques/reglas y puede controlar,
+        pausar, reiniciar, ajustar velocidad/volumen y emitir sonidos. No hay editor universal
+        de mapas: ampliar niveles requiere su formato comprobado. La API completa se entrega
+        al implementar; no escribas código en esta etapa.
         """;
 
     /// <summary>Everything the AI must know about each game: picture, variables, controls, sprites, helpers.</summary>
     public static string GamesText(IReadOnlyList<RecipeGame> slots, Func<string, GameProfile?> find)
     {
         var sb = new StringBuilder();
+        sb.AppendLine("Alcance: solo están comprobados los datos y recursos descritos. Un perfil no equivale a conocer todos sus mapas o reglas. Si falta un dato esencial, indicá cuál; no lo sustituyas por decoración.");
         foreach (var slot in slots)
         {
             var p = find(slot.Profile);
@@ -106,8 +112,6 @@ public sealed class StudioDesigner
                 foreach (var h in p.HelpersDoc)
                     sb.AppendLine("- " + h);
             }
-            sb.AppendLine("Alcance: solo están comprobados los datos y recursos descritos. Tener un perfil no equivale a conocer sus mapas ni todas sus reglas. " +
-                "Si la interacción necesita datos ausentes, señalalos; no la sustituyas por decoración o controles compartidos.");
             sb.AppendLine();
         }
         return sb.ToString();
@@ -133,6 +137,9 @@ public sealed class StudioDesigner
         ("readability", "Legibilidad"),
     };
 
+    private static readonly (string Key, string Label)[] ConceptFields = DesignFields
+        .Where(f => f.Key is "contributions" or "mechanicLink" or "uniqueRule" or "difference" or "presentation").ToArray();
+
     public static JsonElement ConceptSchema()
     {
         var props = new Dictionary<string, object>
@@ -142,8 +149,9 @@ public sealed class StudioDesigner
             ["pitch"] = new { type = "string", maxLength = 240 },
             ["howToPlay"] = new { type = "string", maxLength = 320 },
         };
-        foreach (var (key, _) in DesignFields)
-            props[key] = new { type = "string" };
+        foreach (var (key, _) in ConceptFields)
+            props[key] = new { type = "string", maxLength = 600 };
+        props["missingData"] = new { type = "string", maxLength = 400 };
         return JsonSerializer.SerializeToElement(new
         {
             type = "object",
@@ -161,11 +169,13 @@ public sealed class StudioDesigner
     }
 
     /// <summary>The design document as text, from the fields of an idea.</summary>
-    public static string DesignText(JsonElement idea)
+    public static string DesignText(JsonElement idea, string? chosenBase = null)
     {
         var sb = new StringBuilder();
+        if (chosenBase != null) sb.AppendLine("- Juego base: " + chosenBase);
         foreach (var (key, label) in DesignFields)
         {
+            if (chosenBase != null && key == "baseGame") continue;
             string v = Str(idea, key);
             if (v.Length > 0)
                 sb.AppendLine($"- {label}: {v}");
@@ -190,9 +200,10 @@ public sealed class StudioDesigner
         sb.Append(keepBase ? CreativeSeeds.BaseBrief(existing)
             : CreativeSeeds.Brief(Random.Shared, 3, existing, !string.IsNullOrWhiteSpace(wish)));
         sb.Append(PreviousDesigns(slots));
-        sb.AppendLine("Seguí el método (pasos 1 a 6). Cada idea es un juego completo con: title (nombre del juego nuevo), approach " +
+        sb.AppendLine("Cada idea resume una partida completa con: title (nombre), approach " +
                       "(el enfoque de la mezcla en una frase), pitch (la premisa en una oración), howToPlay (objetivo y teclas en dos o tres líneas) y el " +
-                      "documento de diseño: " + string.Join(", ", DesignFields.Select(f => $"{f.Key} ({f.Label.ToLowerInvariant()})")) + ". " +
+                      "ficha breve: " + string.Join(", ", ConceptFields.Select(f => $"{f.Key} ({f.Label.ToLowerInvariant()})")) + ". " +
+                      "missingData queda vacío si es realizable; si requiere información ausente, indicá el dato concreto. Esa idea no se implementará hasta prepararlo. " +
                       "Tienen que ser realizables con la API y las ayudas de los perfiles. Conservá la base elegida; solo el modo libre permite reinventar la presentación. " +
                       "Antes de responder, revisá cada idea con la lista de control y con los anti-patrones, y descartá las que no la pasen.");
         return sb.ToString();
@@ -203,11 +214,11 @@ public sealed class StudioDesigner
     {
         direction ??= new FusionDirection();
         direction = direction with { BaseSlot = direction.Resolve(slots) };
-        string answer = await ai.CompleteAsync(new AiRequest(Guide, new[] { new AiTurn(true, ConceptPrompt(slots, find, wish, direction)) }, ConceptSchema()), ct);
-        return ParseConcepts(answer, direction);
+        string answer = await ai.CompleteAsync(new AiRequest(ConceptGuide, new[] { new AiTurn(true, ConceptPrompt(slots, find, wish, direction)) }, ConceptSchema()), ct);
+        return ParseConcepts(answer, direction, wish);
     }
 
-    public static List<GameConcept> ParseConcepts(string answer, FusionDirection? direction = null)
+    public static List<GameConcept> ParseConcepts(string answer, FusionDirection? direction = null, string playerRequest = "")
     {
         var json = FirstJson(answer) ?? throw new AiException("La respuesta no tiene un JSON con las ideas.");
         using var doc = JsonDocument.Parse(json);
@@ -217,7 +228,8 @@ public sealed class StudioDesigner
             throw new AiException("El JSON no tiene la lista \"ideas\".");
         var list = new List<GameConcept>();
         foreach (var e in array.EnumerateArray())
-            list.Add(new GameConcept(Str(e, "title"), Str(e, "approach"), Str(e, "pitch"), Str(e, "howToPlay"), DesignText(e), direction));
+            list.Add(new GameConcept(Str(e, "title"), Str(e, "approach"), Str(e, "pitch"), Str(e, "howToPlay"),
+                DesignText(e, direction?.BaseSlot is { } chosen ? $"Original elegido (games.{chosen})" : null), direction, playerRequest, Str(e, "missingData")));
         if (list.Count == 0)
             throw new AiException("La IA no propuso ninguna idea.");
         return list;
@@ -228,7 +240,7 @@ public sealed class StudioDesigner
     {
         type = "object",
         additionalProperties = false,
-        required = new[] { "title", "approach", "pitch", "howToPlay", "design", "changes", "script" },
+        required = new[] { "title", "approach", "pitch", "howToPlay", "design", "changes", "script", "missingData" },
         properties = new
         {
             title = new { type = "string", maxLength = 60 },
@@ -238,6 +250,7 @@ public sealed class StudioDesigner
             design = new { type = "string" },
             changes = new { type = "string", maxLength = 400 },
             script = new { type = "string" },
+            missingData = new { type = "string", maxLength = 400 },
         },
     });
 
@@ -246,6 +259,7 @@ public sealed class StudioDesigner
         "design (el documento de diseño completo y actualizado, una línea por " +
         "parte: unión mecánica, regla única, diferencia, aportes, se descarta, objetivo, final, progresión, controles, presentación, legibilidad), changes (qué " +
         "hiciste o cambiaste, hasta 400 caracteres) y script (el guion de JavaScript COMPLETO, no solo los cambios). " +
+        "missingData queda vacío si se puede implementar; si falta información indispensable, explicá qué dato se necesita y dejá script vacío. " +
         "El documento de diseño no debe aparecer como un tutorial extenso dentro del juego.";
 
     public static string WritePrompt(IReadOnlyList<RecipeGame> slots, Func<string, GameProfile?> find, GameConcept concept)
@@ -255,6 +269,8 @@ public sealed class StudioDesigner
         sb.AppendLine(DirectionText(slots, find, concept.Direction ?? new FusionDirection()));
         sb.AppendLine();
         sb.Append(GamesText(slots, find));
+        if (!string.IsNullOrWhiteSpace(concept.PlayerRequest))
+            sb.AppendLine("Pedido original del jugador: " + concept.PlayerRequest.Trim());
         sb.Append(PreviousDesigns(slots));
         if (string.IsNullOrWhiteSpace(concept.Title))
             sb.AppendLine("La idea del jugador (inventale un buen título y completá lo que falte): " + concept.Pitch);
@@ -271,7 +287,7 @@ public sealed class StudioDesigner
             sb.AppendLine(concept.Design);
         }
         else
-            sb.AppendLine("Todavía no hay documento de diseño: armalo primero siguiendo el método (pasos 1 a 6) y después escribí el guion.");
+            sb.AppendLine("Concretá el diseño antes de escribir el guion, siguiendo el contrato.");
         sb.AppendLine();
         sb.AppendLine("Escribí el guion completo, jugable de punta a punta, con la regla única y una progresión adecuada a su género. " +
                       "Aplicá la prueba de quitar un original: ambos deben cambiar decisiones centrales. Informá game.state y los puntos, muertes " +
@@ -290,14 +306,8 @@ public sealed class StudioDesigner
         var slot = slots.Single(s => s.Slot == selected);
         string name = find(slot.Profile)?.Name ?? slot.Profile;
         return $"MODO ELEGIDO: conservar el original base. BASE ELEGIDA: games.{selected} = {name} (perfil {slot.Profile}).\n" +
-            $"Conservá sus mapas, distribución, paleta, escala, animaciones, interfaz, sonidos y reglas principales. Los demás originales son aportantes, no escenarios alternativos.\n" +
-            $"El motor dibuja su imagen nativa antes de draw(); screen.base(games.{selected}) permite reponerla. Integrá los personajes o efectos transferidos en sus coordenadas. " +
-            "No uses screen.clear en draw() ni cambies la resolución: una escena nueva corresponde a la creación libre. " +
-            "Usá sus controles y datos verificados; los aportes deben interactuar con el mundo, las amenazas, los objetivos o los recursos de la base. " +
-            "No reinicies su estética desde cero, no añadas un menú genérico ni cambies el género por una semilla aleatoria. " +
-            "Si se piden más mapas, respetá la estructura, las piezas, las reglas y la escala del original con formatos verificados; si faltan esos datos, explicá qué falta. " +
-            "Conservar el HUD original es correcto; no agregues tarjetas, títulos o puntaje ficticio para satisfacer al validador. " +
-            "La elección de base no puede cambiar en la respuesta ni durante las correcciones.";
+            "Heredá mapas, paleta, escala, animaciones, interfaz, sonidos y reglas principales. Los aportantes interactúan dentro de ese mundo. " +
+            $"screen.base(games.{selected}) repone la imagen nativa cuando haga falta. La respuesta no puede cambiar esta elección.";
     }
 
     private static string PreviousDesigns(IReadOnlyList<RecipeGame> slots)
@@ -312,13 +322,15 @@ public sealed class StudioDesigner
         return sb.ToString();
     }
 
-    public static string RevisePrompt(StudioGame current, IReadOnlyList<RecipeGame> slots, Func<string, GameProfile?> find, string request)
+    public static string RevisePrompt(StudioGame current, IReadOnlyList<RecipeGame> slots, Func<string, GameProfile?> find, string request, bool includeScript = true)
     {
         var sb = new StringBuilder();
         sb.AppendLine($"Este es el juego fusionado \"{current.Title}\", versión {current.Version}, con estos juegos:");
         sb.AppendLine(DirectionText(slots, find, FusionDirection.From(current)));
         sb.AppendLine();
         sb.Append(GamesText(slots, find));
+        if (!string.IsNullOrWhiteSpace(current.PlayerRequest))
+            sb.AppendLine("Pedido original del jugador: " + current.PlayerRequest);
         sb.AppendLine($"Idea: {current.Pitch}");
         sb.AppendLine($"Cómo se juega: {current.HowToPlay}");
         if (current.Design.Length > 0)
@@ -327,10 +339,13 @@ public sealed class StudioDesigner
             sb.AppendLine(current.Design);
         }
         sb.AppendLine();
-        sb.AppendLine("Guion actual:");
-        sb.AppendLine("```javascript");
-        sb.AppendLine(current.Script);
-        sb.AppendLine("```");
+        if (includeScript)
+        {
+            sb.AppendLine("Guion actual:");
+            sb.AppendLine("```javascript");
+            sb.AppendLine(current.Script);
+            sb.AppendLine("```");
+        }
         sb.AppendLine();
         sb.AppendLine($"El jugador lo probó y pide: \"{request.Trim()}\"");
         sb.AppendLine("Hacé la versión siguiente con ese pedido. Conservá la dirección y la base elegidas. Si pide otra visión total, podés cambiar título, idea, diseño y " +
@@ -343,6 +358,8 @@ public sealed class StudioDesigner
     public Task<DesignOutcome> WriteAsync(IAiProvider ai, IReadOnlyList<RecipeGame> slots, Func<string, GameProfile?> find, GameConcept concept,
         Func<StudioGame, ValidationReport> validate, CancellationToken ct, Action<string>? progress = null, OriginalReferences? references = null)
     {
+        if (!string.IsNullOrWhiteSpace(concept.MissingData))
+            return Task.FromResult(new DesignOutcome(null, null, 0, MissingDataPrefix + concept.MissingData));
         var template = new StudioGame
         {
             Id = string.IsNullOrWhiteSpace(concept.Title) ? "" : StudioLibrary.Slug(concept.Title),
@@ -351,12 +368,14 @@ public sealed class StudioDesigner
             Pitch = concept.Pitch,
             HowToPlay = concept.HowToPlay,
             Design = concept.Design,
+            PlayerRequest = concept.PlayerRequest,
             Games = slots.ToList(),
             BaseSlot = (concept.Direction ?? new FusionDirection()).Resolve(slots),
             Version = 1,
             Author = ai.Name,
         };
-        return LoopAsync(ai, WritePrompt(slots, find, concept), template, validate, ct, progress, references);
+        string brief = WritePrompt(slots, find, concept);
+        return LoopAsync(ai, brief, brief, template, validate, ct, progress, references);
     }
 
     public Task<DesignOutcome> ReviseAsync(IAiProvider ai, StudioGame current, Func<string, GameProfile?> find, string request,
@@ -367,37 +386,50 @@ public sealed class StudioDesigner
         template.Request = request.Trim();
         template.Author = ai.Name;
         template.Created = DateTime.Now;
-        return LoopAsync(ai, RevisePrompt(current, current.Games, find, request), template, validate, ct, progress, references);
+        return LoopAsync(ai, RevisePrompt(current, current.Games, find, request),
+            RevisePrompt(current, current.Games, find, request, includeScript: false), template, validate, ct, progress, references);
     }
 
-    private async Task<DesignOutcome> LoopAsync(IAiProvider ai, string prompt, StudioGame template,
+    private async Task<DesignOutcome> LoopAsync(IAiProvider ai, string prompt, string brief, StudioGame template,
         Func<StudioGame, ValidationReport> validate, CancellationToken ct, Action<string>? progress, OriginalReferences? references)
     {
         using var pictures = ai.SupportsImages ? references?.ExportTemporary() : null;
-        if (references != null) prompt += "\n\n" + references.Describe(template.BaseSlot, pictures != null);
-        var turns = new List<AiTurn> { new(true, prompt) };
         ValidationReport? report = null;
+        StudioGame? draft = null;
         string? error = null;
+        var triedScripts = new HashSet<string>(StringComparer.Ordinal);
         for (int attempt = 1; attempt <= MaxAttempts; attempt++)
         {
+            ct.ThrowIfCancellationRequested();
             progress?.Invoke(attempt == 1 ? $"{ai.Name} está escribiendo el juego..." : $"{ai.Name} está corrigiendo (intento {attempt} de {MaxAttempts})...");
-            string answer = await ai.CompleteAsync(new AiRequest(Guide, turns.ToList(), GameSchema(), pictures?.Paths), ct);
-            turns.Add(new AiTurn(false, answer));
+            // Syntax failures need the current source and error, not the same pictures again.
+            bool attach = pictures != null && (attempt == 1 || report is { Error: null });
+            string context = prompt + (references != null ? "\n\n" + references.Describe(template.BaseSlot, attach) : "");
+            string answer = await ai.CompleteAsync(new AiRequest(Guide, [new(true, context)], GameSchema(), attach ? pictures!.Paths : null), ct);
             var game = ParseGame(answer, template, out error);
             if (game == null)
             {
-                turns.Add(new AiTurn(true, $"No pude leer tu respuesta: {error}. {AnswerShape}"));
+                if (error?.StartsWith(MissingDataPrefix, StringComparison.Ordinal) == true)
+                    return new(null, report, attempt, error, draft);
+                prompt = brief + "\n\n" + (draft != null ? CurrentDraft(draft) : "") + $"\nNo pude leer tu respuesta: {error}. {AnswerShape}";
                 continue;
             }
+            if (!triedScripts.Add(game.Script.Replace("\r\n", "\n").Trim()))
+                return new(null, report, attempt, "La IA devolvió el mismo guion que ya falló. Conservamos el borrador para continuar con otro cambio.", draft);
+            draft = game;
             progress?.Invoke("Probando el juego con tres jugadores robot...");
             report = await Task.Run(() => validate(game), ct);
             if (report.Ok)
                 return new DesignOutcome(game, report, attempt, null);
             error = report.Error ?? string.Join(" ", report.Problems);
-            turns.Add(new AiTurn(true, FixRequest(report)));
+            prompt = brief + "\n\n" + CurrentDraft(draft) + "\n\n" + FixRequest(report);
         }
-        return new DesignOutcome(null, report, MaxAttempts, error);
+        return new DesignOutcome(null, report, MaxAttempts, error, draft);
     }
+
+    private static string CurrentDraft(StudioGame game) =>
+        "Último borrador (reemplaza los anteriores; conservá lo que funciona):\n" +
+        $"Nombre: {game.Title}\nIdea: {game.Pitch}\nCómo se juega: {game.HowToPlay}\nDiseño: {game.Design}\n```javascript\n{game.Script}\n```";
 
     public static string FixRequest(ValidationReport report) =>
         "Probé el guion en el emulador y falló:\n" + report.Summary +
@@ -423,6 +455,11 @@ public sealed class StudioDesigner
             {
                 using var doc = JsonDocument.Parse(json);
                 var e = doc.RootElement;
+                if (Str(e, "missingData").Trim() is { Length: > 0 } missing)
+                {
+                    error = MissingDataPrefix + missing;
+                    return null;
+                }
                 game.Title = Str(e, "title", game.Title);
                 game.Approach = Str(e, "approach", game.Approach);
                 game.Pitch = Str(e, "pitch", game.Pitch);
@@ -454,12 +491,12 @@ public sealed class StudioDesigner
 
     // ------------------------------------------------------------------ copy and paste
     public static string ManualConceptPrompt(IReadOnlyList<RecipeGame> slots, Func<string, GameProfile?> find, string wish, FusionDirection? direction = null) =>
-        Guide + "\n\n" + ConceptPrompt(slots, find, wish, direction) +
+        ConceptGuide + "\n\n" + ConceptPrompt(slots, find, wish, direction) +
         "\nRespondé SOLO con un JSON así: {\"ideas\": [{\"title\": \"...\", \"approach\": \"...\", \"pitch\": \"...\", \"howToPlay\": \"...\", " +
-        string.Join(", ", DesignFields.Select(f => $"\"{f.Key}\": \"...\"")) + "}]}";
+        string.Join(", ", ConceptFields.Select(f => $"\"{f.Key}\": \"...\"")) + ", \"missingData\": \"\"}]}";
 
     private const string ManualShape =
-        "\nRespondé con DOS bloques: primero un bloque ```json con {\"title\", \"approach\", \"pitch\", \"howToPlay\", \"design\", \"changes\"} " +
+        "\nRespondé con DOS bloques: primero un bloque ```json con {\"title\", \"approach\", \"pitch\", \"howToPlay\", \"design\", \"changes\", \"missingData\"} " +
         "y después un bloque ```javascript con el guion completo.";
 
     public static string ManualWritePrompt(IReadOnlyList<RecipeGame> slots, Func<string, GameProfile?> find, GameConcept concept) =>
@@ -469,7 +506,9 @@ public sealed class StudioDesigner
         Guide + "\n\n" + RevisePrompt(current, current.Games, find, request) + ManualShape;
 
     public static string ManualFixPrompt(ValidationReport report, StudioGame? current = null) =>
-        (current != null ? "Esta es la última versión que se debe corregir; conserva su diseño:\n" + current.ToJson() + "\n\n" : "") +
+        Guide + "\n\n" + (current != null ?
+            DirectionText(current.Games, ProfileLibrary.Find, FusionDirection.From(current)) + "\n" + GamesText(current.Games, ProfileLibrary.Find) +
+            "\nPedido original del jugador: " + current.PlayerRequest + "\nCambio solicitado: " + current.Request + "\n" + CurrentDraft(current) + "\n\n" : "") +
         FixRequest(report) + ManualShape;
 
     // ------------------------------------------------------------------ helpers
