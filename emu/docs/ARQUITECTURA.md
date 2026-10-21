@@ -298,7 +298,9 @@ Cada hallazgo guarda hipótesis, evidencia, confianza, estado, el experimento qu
 verificó, edición (SHA-256), efecto esperado y cómo comprobarlo y revertirlo
 (`emu/lab/<guion>.json`). Probado a ciegas con Manic Miner
 (encontró posición $806C, vidas $8457 y aire $80BC, las del perfil verificado) y con
-Pac-Man de C64 (vidas $001A, X $003C, Y $003F, a verificar en T-022).
+Pac-Man de C64 (vidas $001A). La hipótesis histórica de posición $003C/$003F no
+describía correctamente su sprite: el perfil actual lee el sprite 4 del VIC, con los
+9 bits de X, y ofrece pacman() para convertir su caja a la imagen activa. D-033.
 
 ## Preparar cualquier juego para las fusiones (GamePreparer)
 

@@ -200,7 +200,8 @@ arreglar algo, se borra la entrada y se menciona en el commit.
   vidas. Ghostbusters y Cheman quedaron sin puntaje (jugando al azar no suman puntos); el
   "score" de Spy vs Spy ($B15C) subió una sola vez y puede no ser el puntaje.
 - Hay perfiles de Manic Miner (Spectrum), Space Invaders (arcade) y Pac-Man de C64 (vidas
-  verificadas; X e Y son valores derivados, solo lectura). Pac-Man de Spectrum y los demás
+  verificadas; X/Y de solo lectura desde el sprite 4 del VIC, y pacman() devuelve su caja
+  completa con transparencia, no la caja de impacto). Pac-Man de Spectrum y los demás
   juegos de C64 todavía no tienen perfil. T-022.
 - La fusión clásica y sus vistas superpuestas se retiraron. El modo predeterminado
   conserva un original base; `screen.base` solo admite su ranura declarada. La opción

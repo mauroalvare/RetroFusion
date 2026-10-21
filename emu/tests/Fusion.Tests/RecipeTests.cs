@@ -40,6 +40,21 @@ public class RecipeTests
         Assert.That(col.Read(ram), Is.EqualTo(4));
         col.Write(ram, 9);
         Assert.That(ram.Data[0x806C], Is.EqualTo(0xA4), "solo lectura");
+        Assert.That(System.Text.Json.JsonSerializer.Serialize(col,GameProfile.Json), Does.Not.Contain("highBit"), "no cambia las huellas de perfiles que no usan el nuevo formato");
+
+        var split = new GameVariable { Address="D008",Encoding="uint9",HighBitAddress="D010",HighBitMask=16,Max=511 };
+        ram.Data[0xD010]=0xA5;
+        split.Write(ram,300);
+        Assert.That(ram.Data[0xD008], Is.EqualTo(44));
+        Assert.That(ram.Data[0xD010], Is.EqualTo(0xB5), "conserva los bits de los otros sprites");
+        Assert.That(split.Read(ram), Is.EqualTo(300));
+        split.Write(ram,47);
+        Assert.That(ram.Data[0xD010], Is.EqualTo(0xA5));
+        Assert.That(split.Read(ram), Is.EqualTo(47));
+        split.ReadOnly=true; split.Write(ram,300);
+        Assert.That(split.Read(ram), Is.EqualTo(47));
+        split.HighBitMask=3;
+        Assert.Throws<InvalidDataException>(()=>split.Read(ram));
     }
 
 }

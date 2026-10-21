@@ -425,3 +425,19 @@ Al cerrar la app normalmente se cancelan los trabajos de estudio, creador y aná
 brevemente su salida: CliAgentProvider detiene el proceso que inició. El checkpoint
 permanece para continuar. Un cierre forzado del proceso por el sistema no ejecuta esa
 limpieza; no se promete detener un CLI huérfano en ese caso.
+
+## D-033 Posición de Pac-Man y variables con un bit alto separado (2026-10-21)
+
+El diagnóstico real de PAC-MAN1.T64 (SHA-256 1f743c4874a521d116d9d45f8401b36655339b8244d61ac1948059cd4561eee6)
+mostró que $003C cambiaba al caminar pero no era la X del personaje. Se reemplazó por
+la posición del sprite 4 del VIC: $D008 más el bit 4 de $D010; Y se lee de $D009.
+Ambas quedan de solo lectura. El helper pacman() devuelve la caja gráfica en el área
+activa, con expansión y visibilidad; incluye transparencia, no se presenta como hitbox.
+Se contrastó con controles, registros e imagen en cuatro direcciones. No basta que un
+byte cambie con una tecla para certificar que es la coordenada del personaje.
+
+GameVariable admite uint9 con highBitAddress y highBitMask (una máscara de un bit).
+Al escribir conserva los otros bits de ese registro; respeta rango y solo lectura.
+Los campos nuevos se omiten cuando no se usan, conservando las huellas de otros perfiles.
+No se modifican los bytes de ROM ni el informe histórico del laboratorio; el perfil y
+la documentación aclaran que aquella hipótesis no era una posición fiable.

@@ -10,10 +10,12 @@ namespace Retro.Fusion;
 public sealed class GameVariable
 {
     public string Address { get; set; } = "0000";
-    /// <summary>uint8, uint16 (little endian), bcd (n bytes, little endian), ascii (n digits), digits (n bytes of 0-9, most significant first).</summary>
+    /// <summary>uint8, uint9 (split high bit), uint16 (little endian), bcd, ascii or digits.</summary>
     public string Encoding { get; set; } = "uint8";
     public int Bytes { get; set; } = 1;
     public int Mask { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public string? HighBitAddress { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int HighBitMask { get; set; }
     public int Min { get; set; }
     public int Max { get; set; } = 255;
     public bool ReadOnly { get; set; }
@@ -21,6 +23,12 @@ public sealed class GameVariable
 
     [JsonIgnore]
     public uint AddressValue => Convert.ToUInt32(Address, 16);
+    private uint HighAddress()
+    {
+        if (string.IsNullOrWhiteSpace(HighBitAddress) || HighBitMask is < 1 or > 128 || (HighBitMask & (HighBitMask - 1)) != 0)
+            throw new InvalidDataException("uint9 necesita una dirección y una máscara de un bit para el bit alto.");
+        return Convert.ToUInt32(HighBitAddress, 16);
+    }
 
     public int Read(IMemoryView mem)
     {
@@ -28,6 +36,9 @@ public sealed class GameVariable
         int v;
         switch (Encoding)
         {
+            case "uint9":
+                v = mem.Peek(a) | ((mem.Peek(HighAddress()) & HighBitMask) != 0 ? 256 : 0);
+                break;
             case "uint16":
                 v = mem.Peek(a) | (mem.Peek(a + 1) << 8);
                 break;
@@ -63,6 +74,11 @@ public sealed class GameVariable
         uint a = AddressValue;
         switch (Encoding)
         {
+            case "uint9":
+                uint high = HighAddress();
+                mem.Poke(a, (byte)value);
+                mem.Poke(high, (byte)((mem.Peek(high) & ~HighBitMask) | ((value & 256) != 0 ? HighBitMask : 0)));
+                break;
             case "uint16":
                 mem.Poke(a, (byte)value);
                 mem.Poke(a + 1, (byte)(value >> 8));

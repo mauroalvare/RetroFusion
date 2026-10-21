@@ -15,16 +15,19 @@
       "description": "Vidas de reserva (2 al empezar la partida). Baja de a uno al morir. Verificada: con 5 escrito, al morir el juego la bajó a 4. El dibujo de las vidas en pantalla se actualiza recién al morir y muestra como mucho unas pocas."
     },
     "x": {
-      "address": "003C",
-      "encoding": "uint8",
+      "address": "D008",
+      "encoding": "uint9",
+      "highBitAddress": "D010",
+      "highBitMask": 16,
+      "max": 511,
       "readOnly": true,
-      "description": "Posición horizontal de Pac-Man (valor derivado: el juego la recalcula; escribirla no lo mueve). Se puede leer para reglas."
+      "description": "X del sprite 4 (Pac-Man) en coordenadas del VIC, incluidos sus 9 bits. Solo lectura. Para la caja dentro de la imagen activa usá pacman(). La antigua dirección $003C no era una X fiable."
     },
     "y": {
-      "address": "003F",
+      "address": "D009",
       "encoding": "uint8",
       "readOnly": true,
-      "description": "Posición vertical de Pac-Man (164 al empezar; baja al subir). Valor derivado, solo lectura."
+      "description": "Y del sprite 4 (Pac-Man) en coordenadas del VIC. Solo lectura; pacman() convierte a coordenadas de la imagen activa."
     }
   },
   "controls": {
@@ -47,8 +50,12 @@
     "wait 444", "press F1 6",
     "wait 394"
   ],
-  "verified": "Direcciones halladas a ciegas por el laboratorio (retro-cli lab, emu/lab/c64-pac-man-c64.json) y comprobadas escribiendo valores con retro-cli run --poke: las vidas sí (el juego usa el valor escrito); X e Y son derivadas (escribirlas no mueve a Pac-Man). Edición: PAC-MAN1.T64, SHA-256 1f743c4874a521d116d9d45f8401b36655339b8244d61ac1948059cd4561eee6",
+  "verified": "Vidas $001A comprobadas escribiendo valores y observando la siguiente muerte. Posición corregida: el sprite 4 del VIC sigue a Pac-Man; X usa $D008 y el bit 4 de $D010, Y usa $D009. Se contrastaron cuatro direcciones con registros e imagen de la edición SHA-256 1f743c4874a521d116d9d45f8401b36655339b8244d61ac1948059cd4561eee6. La antigua $003C cambiaba al caminar pero no representaba X; el informe histórico del laboratorio no constituye esa verificación.",
   "sprites": {},
-  "helpers": [],
-  "helpersDoc": []
+  "helpers": [
+    "g.pacman = function () { var sx = g.get('x'), sy = g.get('y'); return { x: sx - 24, y: sy - 50, w: (g.peek(0xD01D) & 16) ? 48 : 24, h: (g.peek(0xD017) & 16) ? 42 : 21, visible: (g.peek(0xD015) & 16) !== 0 }; };"
+  ],
+  "helpersDoc": [
+    "pacman(): caja completa del sprite de Pac-Man en la imagen activa del C64 (sin borde), con expansión X/Y y visibilidad. Incluye píxeles transparentes: no es una caja de impacto. Se comprobó siguiendo controles e imagen de esta edición. No escribir estas coordenadas para moverlo: usar los controles."
+  ]
 }
