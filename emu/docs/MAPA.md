@@ -5,13 +5,18 @@ Fuente única de rutas y comandos de desarrollo. El diseño interno está en
 
 ## Entrada para jugar
 
-Al iniciar sin un archivo se abre **Tus juegos**, también accesible desde **Jugar** o
-Ctrl+L. Las pestañas **Originales**, **Fusionados** y **Creados** comparten búsqueda y
-botones para jugar. Se puede abrir un archivo, fusionar o crear sin elegir antes una CPU.
-La biblioteca pausa la partida y restaura su pausa previa al cerrar; abrir un juego
-comienza la partida elegida. Las fusiones y los juegos creados se actualizan al abrirla
+Al iniciar sin un archivo aparece **Inicio**, integrado en el área principal. Ofrece las
+máquinas disponibles, sus juegos y **Todos los juegos**, con búsqueda por nombre.
+**Todos los juegos** reúne originales, creados y fusiones; cada máquina lista originales
+y creaciones para ese sistema. **Fusionados** y **Creados** tienen también secciones
+propias. No aparece una ventana flotante.
+**Inicio** o Ctrl+L pausa la partida; **Volver a la partida** restaura la pausa previa.
+Elegir una máquina filtra la biblioteca sin reiniciar la partida; abrir un juego
+comienza la partida elegida. Las fusiones y los juegos creados se actualizan al entrar
 o pulsar Actualizar. **Ver > Herramientas avanzadas** muestra Código y Depurar; sus
-atajos siguen funcionando.
+atajos siguen funcionando. `HomeScreen` ocupa el espacio entre menú y barra de estado;
+el video y las herramientas quedan ocultos mientras se muestra. La disposición se adapta
+al tamaño de ventana; no se guarda como posición de una ventana flotante en imgui.ini.
 
 El estudio limita la lista de selección a una zona con desplazamiento y búsqueda.
 Las ayudas para jugar están en **Ayuda > Abrir y jugar**, **Controles de la partida**

@@ -5,13 +5,13 @@ Jugá tus juegos originales, combiná sus reglas o creá un juego de 8 bits.
 ## Empezar
 
 1. Abrí **RetroEmu.exe** en Windows o **RetroEmu** en Linux.
-2. En **Tus juegos**, elegí un título y pulsá **Jugar**.
+2. Elegí una máquina o **Todos los juegos**, buscá un título y pulsá **Jugar**.
 3. Para agregar uno, usá **Abrir archivo** o arrastralo a la ventana.
 
 También podés crear una carpeta **ROMs** junto al programa para reunir tus archivos.
 Los juegos se consiguen por separado. Los originales siguen disponibles después de crear una fusión.
 
-![Tus juegos](docs/img/interfaz/biblioteca.png)
+![Inicio con selector de máquinas](docs/img/interfaz/biblioteca.png)
 
 ## Durante la partida
 
@@ -20,7 +20,7 @@ muestra las teclas del juego o sistema activo. También se puede usar un mando.
 
 | Atajo | Acción |
 |---|---|
-| Ctrl+L | Abrir Tus juegos |
+| Ctrl+L | Volver a Inicio |
 | Ctrl+O | Abrir un archivo |
 | Ctrl+M | Modificar la partida |
 | F2 | Guardar estado rápido |

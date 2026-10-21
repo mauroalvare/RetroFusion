@@ -19,7 +19,7 @@ public sealed class RetroApp
     private readonly StudioWindow _studio;
     private readonly CreatorWindow _creator;
     private readonly GameLibrary _library = new();
-    private readonly GamesWindow _gamesWindow;
+    private readonly HomeScreen _home;
     private bool _pausedBeforeLibrary;
     private bool _advancedTools;
     private string _originalSearch = "";
@@ -71,12 +71,12 @@ public sealed class RetroApp
         _studio = new StudioWindow(_host, _romDir, games, _ai);
         _code = new CodeWindow(_host, _ai, ShowInDebugger, OpenFusionStudio);
         _creator = new CreatorWindow(_romDir, _ai, OpenFile);
-        _gamesWindow = new GamesWindow(_library, OpenFile, PlayFusion, _browser.Open, OpenFusionStudio, OpenCreator,
+        _home = new HomeScreen(_library, OpenFile, PlayFusion, _browser.Open, OpenFusionStudio, OpenCreator,
             visible =>
             {
                 if (visible) { _pausedBeforeLibrary = _host.Paused; _host.Paused = true; }
                 else _host.Paused = _pausedBeforeLibrary;
-            });
+            }, () => _host.LoadedMedia != null || _host.Fusion != null);
         Raylib.SetTargetFPS(Math.Max(60, Raylib.GetMonitorRefreshRate(Raylib.GetCurrentMonitor())));
         // The audio device pulls samples through a callback on its own thread, so the
         // emulator can pace itself on the real consumption rate.
@@ -127,7 +127,7 @@ public sealed class RetroApp
             }
         }
         if (!openedFile && !args.Any(a => a is "--studio" or "--preparar" or "--crear-window" or "--studio-window" or "--code" or "--mods-window" or "--debug"))
-            _gamesWindow.Open();
+            _home.Open();
     }
 
     /// <summary>The user's game folder ("ROMs", exact case: "roms" holds the firmware).</summary>
@@ -201,7 +201,7 @@ public sealed class RetroApp
     {
         HandleDroppedFiles();
         _library.Poll();
-        bool imguiKeyboard = ImGui.GetIO().WantTextInput || _gamesWindow.IsOpen;
+        bool imguiKeyboard = ImGui.GetIO().WantTextInput || _home.IsOpen;
         HandleHotkeys(ImGui.GetIO().WantTextInput);
         _code.Update();
         var m = _host.Machine;
@@ -236,18 +236,21 @@ public sealed class RetroApp
 
         Raylib.BeginDrawing();
         Raylib.ClearBackground(new Color(18, 18, 22, 255));
-        if (!_debugMode && _texW != 0)
+        if (!_home.IsOpen && !_debugMode && _texW != 0)
             DrawPlayScreen();
         rlImGui.Begin(dt);
         DrawMenu();
-        if (_debugMode)
+        if (_debugMode && !_home.IsOpen)
             DrawDebugger();
         DrawStatusBar();
-        _gamesWindow.Draw();
+        _home.Draw();
         _browser.Draw(OpenFile);
-        _studio.Draw();
-        _creator.Draw();
-        _code.Draw();
+        if (!_home.IsOpen)
+        {
+            _studio.Draw();
+            _creator.Draw();
+            _code.Draw();
+        }
         DrawPopups();
         rlImGui.End();
         Raylib.EndDrawing();
@@ -360,7 +363,7 @@ public sealed class RetroApp
 
     private void OpenFile(string path)
     {
-        _gamesWindow.Close();
+        _home.Close();
         string fileName = Path.GetFileName(path);
         try
         {
@@ -437,14 +440,14 @@ public sealed class RetroApp
         ".tzx" => 0, ".tap" => 1, ".z80" => 2, ".sna" => 3, _ => 9,
     };
 
-    private void OpenFusionStudio() { _gamesWindow.Close(); _studio.Open(); }
-    private void OpenCreator() { _gamesWindow.Close(); _creator.Open(); }
-    private void PlayFusion(string id) { _gamesWindow.Close(); _studio.PlayById(id); }
-    private void OpenModifications() { _gamesWindow.Close(); _code.OpenModifications(); }
+    private void OpenFusionStudio() { _home.Close(); _studio.Open(); }
+    private void OpenCreator() { _home.Close(); _creator.Open(); }
+    private void PlayFusion(string id) { _home.Close(); _studio.PlayById(id); }
+    private void OpenModifications() { _home.Close(); _code.OpenModifications(); }
 
     private void Launch(MachineCatalog.Candidate c)
     {
-        _gamesWindow.Close();
+        _home.Close();
         try
         {
             if (_host.Machine != null)
@@ -469,7 +472,7 @@ public sealed class RetroApp
 
     private void LaunchArcade(MachineInfo info, IReadOnlyList<MediaFile> files, string? folder)
     {
-        _gamesWindow.Close();
+        _home.Close();
         try
         {
             if (_host.Machine != null)
@@ -488,16 +491,22 @@ public sealed class RetroApp
         if (textInput)
             return;
         if (Raylib.IsKeyPressed(KeyboardKey.F12))
+        {
+            _home.Close();
             _debugMode = !_debugMode;
+        }
         if (Raylib.IsKeyPressed(KeyboardKey.F11))
             Raylib.ToggleFullscreen();
         bool ctrl = Raylib.IsKeyDown(KeyboardKey.LeftControl) || Raylib.IsKeyDown(KeyboardKey.RightControl);
         if (ctrl && Raylib.IsKeyPressed(KeyboardKey.O)) _browser.Open();
         if (ctrl && Raylib.IsKeyPressed(KeyboardKey.K) && _host.Machine != null)
+        {
+            _home.Close();
             _code.Open();
-        if (ctrl && Raylib.IsKeyPressed(KeyboardKey.L)) _gamesWindow.Open();
+        }
+        if (ctrl && Raylib.IsKeyPressed(KeyboardKey.L)) _home.Open();
         if (ctrl && Raylib.IsKeyPressed(KeyboardKey.M) && _host.Machine != null) OpenModifications();
-        if (_gamesWindow.IsOpen) return;
+        if (_home.IsOpen) return;
         if (_host.Machine == null)
             return;
         // the C64 has its own F1 F3 F5 F7 keys (games say "press F1"): there quick load is
@@ -535,12 +544,12 @@ public sealed class RetroApp
     {
         if (!ImGui.BeginMainMenuBar())
             return;
-        if (ImGui.MenuItem("Jugar")) _gamesWindow.Open();
+        if (ImGui.MenuItem("Inicio")) _home.Open();
         if (ImGui.BeginMenu("Modificar", _host.Machine != null))
         {
             if (ImGui.MenuItem("Variables y cambios divertidos...", "Ctrl+M")) OpenModifications();
-            if (ImGui.MenuItem("Buscar una variable...")) { _gamesWindow.Close(); _code.OpenFinder(); }
-            if (ImGui.MenuItem("Analizar el código y las rutinas...")) { _gamesWindow.Close(); _code.Open(); }
+            if (ImGui.MenuItem("Buscar una variable...")) { _home.Close(); _code.OpenFinder(); }
+            if (ImGui.MenuItem("Analizar el código y las rutinas...")) { _home.Close(); _code.Open(); }
             ImGui.EndMenu();
         }
         if (ImGui.BeginMenu("Archivo"))
@@ -579,7 +588,7 @@ public sealed class RetroApp
             ImGui.Separator();
             if (ImGui.MenuItem("Reiniciar", "F5")) _host.Reset(false);
             if (ImGui.MenuItem("Reinicio total (borra RAM)", "Shift+F5")) _host.Reset(true);
-            if (ImGui.MenuItem(_host.Paused ? "Continuar" : "Pausa", "F9", false, !_gamesWindow.IsOpen))
+            if (ImGui.MenuItem(_host.Paused ? "Continuar" : "Pausa", "F9", false, !_home.IsOpen))
             {
                 if (_host.Paused) _host.Continue(); else _host.Pause("Pausa");
             }
@@ -680,7 +689,7 @@ public sealed class RetroApp
         {
             if (ImGui.BeginMenu("Abrir y jugar"))
             {
-                ImGui.TextUnformatted("Abrí Tus juegos con Jugar o Ctrl+L y elegí Jugar.");
+                ImGui.TextUnformatted("En Inicio elegí una máquina o Todos los juegos y pulsá Jugar.");
                 ImGui.TextUnformatted("También podés arrastrar un archivo a la ventana.");
                 ImGui.TextUnformatted("Hacé clic en la pantalla para usar el teclado.");
                 ImGui.EndMenu();
@@ -692,7 +701,7 @@ public sealed class RetroApp
             }
             if (ImGui.BeginMenu("Atajos"))
             {
-                ImGui.TextUnformatted("Ctrl+L: tus juegos    Ctrl+M: modificar");
+                ImGui.TextUnformatted("Ctrl+L: inicio    Ctrl+M: modificar");
                 ImGui.TextUnformatted(_host.Fusion != null ? "Los estados guardados están disponibles en originales."
                     : _host.C64 != null ? "F2: guardar estado    F4: cargar estado" : "F2: guardar estado    F3: cargar estado");
                 ImGui.TextUnformatted("F8: turbo    F9: pausa    F11: pantalla completa");
@@ -773,7 +782,7 @@ public sealed class RetroApp
             {
                 if (mi.Id is "zx48" or "c64" && ImGui.MenuItem("Encender sin juego"))
                 {
-                    try { _gamesWindow.Close(); _host.Start(mi, _romDir); }
+                    try { _home.Close(); _host.Start(mi, _romDir); }
                     catch (Exception e) { _errorPopup = e.Message; }
                 }
                 if (games.Count == 0)
@@ -906,6 +915,12 @@ public sealed class RetroApp
         ImGui.SetNextWindowPos(new Vector2(vp.Pos.X, vp.Pos.Y + vp.Size.Y - 24));
         ImGui.SetNextWindowSize(new Vector2(vp.Size.X, 24));
         ImGui.Begin("##status", ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoFocusOnAppearing);
+        if (_home.IsOpen)
+        {
+            ImGui.TextUnformatted(_library.Scanning ? "Buscando juegos..." : $"{_home.GameCount} juegos en la biblioteca");
+            ImGui.End();
+            return;
+        }
         var m = _host.Machine;
         string speed = m == null ? "" : _host.Paused ? "PAUSA" : _host.IsFastForwarding ? $"rápido x{_host.EffectiveSpeed:F0}" : $"{_host.EffectiveSpeed * 100:F0}%";
         string extra = "";

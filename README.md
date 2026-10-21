@@ -16,7 +16,7 @@ los prueba y quedan como un `.prg` o un `.tap` que corre en cualquier emulador.
 
 Cada fusión dibuja una **escena propia** con sprites, tiles y variables de los originales,
 que corren en sus máquinas emuladas. El resultado tiene sus reglas, objetivos y controles.
-Se juegan desde **Jugar > Fusionados** si los juegos están en tu carpeta `ROMs`.
+Se juegan desde **Inicio > Fusionados** si los juegos están en tu carpeta `ROMs`.
 Con **Fusionar juegos** podés crear otro juego con las piezas de los que el emulador corra.
 El estudio rechaza el uso de `screen.game` para mostrar las pantallas de los originales.
 Las instrucciones piden una unión entre las mecánicas y una regla propia para cada pareja;
@@ -61,11 +61,14 @@ y probalas con un punto de regreso. **Modificar > Variables y cambios divertidos
 
 ![Modificar una partida y revisar propuestas de ejemplo](emu/docs/img/interfaz/modificaciones.png)
 
-![Biblioteca con búsqueda y juegos originales, fusionados y creados](emu/docs/img/interfaz/biblioteca.png)
+| Elegir una máquina | Juegos de la máquina elegida |
+|---|---|
+| ![Inicio con selector de máquinas](emu/docs/img/interfaz/biblioteca.png) | ![Juegos de Commodore 64](emu/docs/img/interfaz/por-maquina.png) |
 
-Al abrirla aparece **Tus juegos**: buscá por nombre y elegí **Jugar**. Los originales
-siguen en su pestaña aunque hayas creado una fusión. Desde ahí también podés fusionar
-o crear; el código y el depurador se activan desde **Ver > Herramientas avanzadas**.
+Al abrirla elegís una máquina o **Todos los juegos**, buscás por nombre y pulsás **Jugar**.
+**Fusionados** y **Creados** tienen sus propias secciones; los originales siguen disponibles.
+**Inicio** o **Ctrl+L** vuelve al selector y conserva la partida. El código y el depurador
+se activan desde **Ver > Herramientas avanzadas**.
 
 | Estudio de fusiones | Creador de juegos de 8 bits |
 |---|---|
@@ -85,7 +88,7 @@ o crear; el código y el depurador se activan desde **Ver > Herramientas avanzad
    copias que tengas derecho a usar.
 3. Los juegos nuevos se guardan en `Documentos/RetroEmu`, o en las carpetas
    `Juegos fusionados` y `Juegos creados` si ya existen junto al programa o en una carpeta superior.
-4. Abrí `RetroEmu`, buscá un juego en **Tus juegos** y pulsá **Jugar**. También podés
+4. Abrí `RetroEmu`, elegí una máquina y pulsá **Jugar** en el título que quieras. También podés
    arrastrar un archivo o usar **Abrir archivo...**.
 
 Para actualizar, descomprimí la entrega en una carpeta nueva y conservá tus carpetas de juegos.

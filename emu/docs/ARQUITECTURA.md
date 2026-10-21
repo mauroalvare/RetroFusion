@@ -35,7 +35,7 @@ src/
                            diseñador con IA (ideas, guion, correcciones, versiones).
   Retro.App                Aplicación de escritorio (raylib + Dear ImGui): pantalla,
                            sonido, teclado/joystick, depurador, selector de archivos,
-                           ventanas del estudio, del creador y de código.
+                           inicio por máquinas, estudio, creador y vista de código.
   Retro.Asm                Ensambladores 6502 y Z80, plantillas de juego por máquina y la
                            cinta .tap del Spectrum (cargador BASIC que arranca solo).
   Retro.Cli                Ejecutor sin ventana: carga, corre N cuadros, aprieta teclas,

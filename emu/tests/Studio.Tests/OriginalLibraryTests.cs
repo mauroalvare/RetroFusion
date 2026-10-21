@@ -10,6 +10,37 @@ namespace Studio.Tests;
 public class OriginalLibraryTests
 {
     [Test]
+    public async Task MachineSelectionAndSearch_KeepTheCompleteLibraryAvailable()
+    {
+        string dir = Path.Combine(Path.GetTempPath(), "retro-machines-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            string c64 = Path.Combine(dir, "Demo_C64.prg");
+            string zx = Path.Combine(dir, "Demo_ZX.tap");
+            string nes = Path.Combine(dir, "Demo_NES.nes");
+            File.WriteAllBytes(c64, new byte[] { 1, 8, 0x60 });
+            File.WriteAllBytes(zx, new byte[] { 3, 0, 255, 0, 255 });
+            var cartridge = new byte[16 + 16384 + 8192];
+            new byte[] { 0x4E, 0x45, 0x53, 0x1A, 1, 1 }.CopyTo(cartridge, 0);
+            File.WriteAllBytes(nes, cartridge);
+            var library = new GameLibrary();
+            library.Rescan(dir);
+            for (int i = 0; i < 200 && library.Scanning; i++) await Task.Delay(10);
+            Assert.That(library.Scanning, Is.False);
+            library.Poll();
+            Assert.That(library.Originals(machineId: "c64").Single().Path, Is.EqualTo(c64));
+            Assert.That(library.Originals(" dEmO ", "zx48").Single().Path, Is.EqualTo(zx));
+            Assert.That(library.Originals(machineId: "nes").Single().Path, Is.EqualTo(nes));
+            Assert.That(library.Originals("NES", "c64"), Is.Empty);
+            Assert.That(library.Originals(machineId: "pcxt"), Is.Empty);
+            Assert.That(library.Originals().Select(g => g.Path), Is.EquivalentTo(new[] { c64, zx, nes }),
+                "volver a Todos conserva los tres originales");
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Test]
     public async Task SavingAFusion_KeepsBothOriginalsSearchableAndTheirFilesIntact()
     {
         string dir = Path.Combine(Path.GetTempPath(), "retro-originals-" + Guid.NewGuid().ToString("N"));
@@ -41,6 +72,7 @@ public class OriginalLibraryTests
             Assert.That(library.Originals().Count(), Is.EqualTo(2));
             Assert.That(library.Originals("sPy").Single().Path, Is.EqualTo(first));
             Assert.That(library.Originals("Otro").Single().Path, Is.EqualTo(second));
+            Assert.That(library.Originals(machineId: "c64").Count(), Is.EqualTo(2));
             Assert.That(StudioLibrary.Versions("mezcla"), Has.Count.EqualTo(1));
             Assert.That(File.ReadAllBytes(first), Is.EqualTo(bytes));
         }
