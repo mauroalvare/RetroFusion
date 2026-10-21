@@ -39,6 +39,8 @@ public sealed class CreatorWindow
     private IReadOnlyList<CreatedGame>? _games;
     private Task<int>? _exportTask;
     private bool _exported;
+    private GameWork? _activeWork;
+    private IReadOnlyList<GameWork> _pendingWork = [];
 
     // copy and paste: the prompt the player takes to a chat, and the answer they bring back
     private string? _manualPrompt;
@@ -64,6 +66,7 @@ public sealed class CreatorWindow
     public void Open()
     {
         _open = true;
+        RefreshWork();
         _games = null;
         if (!_exported)
         {
@@ -74,6 +77,11 @@ public sealed class CreatorWindow
     }
 
     private bool Busy => _writeTask != null || _templateTask != null || _retryTask != null || _manualTask != null || _agentTask != null;
+    public Task CancelWork()
+    {
+        _cts?.Cancel();
+        return Task.WhenAll(new Task?[] { _writeTask, _templateTask, _retryTask, _manualTask, _agentTask, _exportTask }.OfType<Task>());
+    }
 
     private float? _panelLeft;
 
@@ -99,6 +107,7 @@ public sealed class CreatorWindow
             return;
         }
         _panelLeft = ImGui.GetWindowPos().X - vp.Pos.X;
+        DrawPendingWork();
         DrawNew();
         ImGui.Separator();
         DrawGames();
@@ -352,7 +361,42 @@ public sealed class CreatorWindow
         }
     }
 
-    private void Write()
+    private void Write() => StartWriting(new GameWork(), resume: false);
+
+    private void RefreshWork()
+    {
+        try { _pendingWork = GameWorkStore.Pending(); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { _pendingWork = []; }
+    }
+
+    private void DrawPendingWork()
+    {
+        if (Busy || _pendingWork.Count == 0) return;
+        if (!ImGui.CollapsingHeader($"Trabajos pendientes ({_pendingWork.Count})", _pendingWork.Count == 1 ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.None)) return;
+        foreach (var work in _pendingWork.Take(3))
+        {
+            ImGui.PushID(work.Id);
+            ImGui.TextColored(Gold, work.State.Draft?.Title ?? "Juego en preparación");
+            if (work.State.Wish.Length > 0) AiPicker.Hint(work.State.Wish.Length > 160 ? work.State.Wish[..160] + "..." : work.State.Wish);
+            AiPicker.Hint(work.State.Draft != null ? "Se probará el código guardado antes de pedir otra respuesta." : "Se conservó la idea elegida. Todavía no hubo código nuevo.");
+            ImGui.BeginDisabled(!AiPicker.IsApi(_ai.Provider) || _manualPrompt != null || _agentDir != null);
+            if (ImGui.Button("Continuar")) StartWriting(work, resume: true);
+            ImGui.EndDisabled();
+            if (work.State.Draft is { } draft)
+            { ImGui.SameLine(); if (ImGui.SmallButton("Copiar código")) ImGui.SetClipboardText(draft.Source); }
+            ImGui.SameLine();
+            if (ImGui.SmallButton("Descartar pendiente"))
+            {
+                try { GameWorkStore.Remove(work.Id); RefreshWork(); }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException) { Problem("No se pudo descartar el pendiente: " + e.Message); }
+            }
+            if (!AiPicker.IsApi(_ai.Provider)) AiPicker.Hint("Elegí una herramienta conectada para continuar.");
+            ImGui.PopID();
+        }
+        ImGui.Separator();
+    }
+
+    private void StartWriting(GameWork work, bool resume)
     {
         var provider = _ai.CreateProvider();
         if (provider == null)
@@ -360,19 +404,33 @@ public sealed class CreatorWindow
             Problem("Esa IA no se puede llamar desde acá.");
             return;
         }
-        provider = _ai.Operation(provider);
+        if (resume && work.State.Draft is { } draft && CreatedGames.All().FirstOrDefault(g=>g.WorkId==work.Id&&g.Machine==work.State.Machine) is { } saved && File.Exists(saved.SourcePath))
+        {
+            try
+            {
+                string source = File.ReadAllText(saved.SourcePath);
+                if (string.IsNullOrWhiteSpace(source)) { Problem("El archivo de código está vacío. El borrador pendiente se conserva; terminá de editarlo antes de continuar."); return; }
+                if (source != draft.Source) { work.State.Draft = draft with { Source = source }; work.State.Author = "edición manual"; }
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { Problem("No se pudo leer el borrador editado: " + e.Message); return; }
+        }
+        provider = _ai.Operation(provider, previous: resume ? work.State.Usage : null);
         _problem = _problemDetail = null;
         _manualPrompt = null;
         _agentDir = null;
         _cts = new CancellationTokenSource();
-        _writeMachine = Templates.All[_machine].Machine;
-        _writeWish = _wish;
+        _writeMachine = resume ? work.State.Machine : Templates.All[_machine].Machine;
+        _writeWish = resume ? work.State.Wish : _wish;
+        if (resume) { _wish = _writeWish; _machine = Enumerable.Range(0, Templates.All.Count).First(i=>Templates.All[i].Machine==_writeMachine); }
         _writeAuthor = provider.Name;
+        _activeWork = work;
         _progress = $"{provider.Name} está escribiendo el juego...";
         _build.Start(provider);
         var token = _cts.Token;
         string machine = _writeMachine, wish = _writeWish;
-        _writeTask = Task.Run(() => new GameWriter { MaxAttempts = _ai.DesignAttempts }.WriteAsync(provider, machine, wish, _romDir, token, p => _progress = p), token);
+        var writer = new GameWriter { MaxAttempts = _ai.DesignAttempts, Checkpoint = state => { work.State = state; GameWorkStore.Save(work); } };
+        _writeTask = Task.Run(() => resume ? writer.ResumeAsync(provider, work.State, _romDir, token, p=>_progress=p)
+            : writer.WriteAsync(provider, machine, wish, _romDir, token, p=>_progress=p), token);
     }
 
     private void FromTemplate()
@@ -449,15 +507,24 @@ public sealed class CreatorWindow
             _build.Stop();
             _writeTask = null;
             _cts = null;
+            var work = _activeWork; _activeWork = null;
+            RefreshWork();
             if (!wt.IsCompletedSuccessfully)
                 Problem(Failure(wt.Exception));
             else if (wt.Result.Game is { } draft)
             {
-                var g = CreatedGames.Save(draft, wt.Result.Report, _writeMachine, _writeWish, _writeAuthor, _build.Usage);
+                CreatedGame g;
+                try { g = CreatedGames.Save(draft, wt.Result.Report, _writeMachine, _writeWish,
+                    string.IsNullOrEmpty(work?.State.Author) ? _writeAuthor : work.State.Author, _build.Usage, work?.Id); }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+                { Problem("No se pudo guardar el juego: " + e.Message + ". Podés continuar desde el trabajo pendiente."); return; }
                 _games = null;
                 if (wt.Result.Ok)
                 {
-                    _progress = $"\"{g.Title}\" listo en {wt.Result.Attempts} intento{(wt.Result.Attempts > 1 ? "s" : "")}.";
+                    if (work != null)
+                        try { GameWorkStore.Remove(work.Id); RefreshWork(); }
+                        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+                    _progress = wt.Result.Attempts == 0 ? "Borrador recuperado y probado." : $"\"{g.Title}\" listo en {wt.Result.Attempts} intento{(wt.Result.Attempts > 1 ? "s" : "")}.";
                     _play(g.ProgramPath);
                 }
                 else
@@ -465,7 +532,7 @@ public sealed class CreatorWindow
                             "Quedó guardado: podés editarlo y probarlo de nuevo.", wt.Result.Report?.Summary);
             }
             else
-                Problem("La IA no devolvió un juego: " + wt.Result.Problem);
+                Problem("El trabajo quedó pendiente: " + wt.Result.Problem);
         }
         if (_templateTask is { IsCompleted: true } tt)
         {

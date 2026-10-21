@@ -200,4 +200,10 @@ public sealed partial class CodeWindow
         _cts?.Cancel(); _modificationCts?.Cancel();
         _cts?.Dispose(); _modificationCts?.Dispose();
     }
+
+    public Task CancelWork()
+    {
+        _cts?.Cancel(); _modificationCts?.Cancel();
+        return Task.WhenAll(new Task?[] { _explainTask, _modificationTask }.OfType<Task>());
+    }
 }

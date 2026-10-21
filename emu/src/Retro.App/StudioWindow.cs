@@ -146,6 +146,11 @@ public sealed class StudioWindow
         _chosen.Select((id, i) => new RecipeGame { Slot = SlotNames[i], Profile = id }).ToList();
 
     private bool Busy => _prepareTask != null || _conceptTask != null || _designTask != null || _referenceTask != null || _validateTask != null || _startTask != null;
+    public Task CancelWork()
+    {
+        _cts?.Cancel(); _prepareCts?.Cancel();
+        return Task.WhenAll(new Task?[] { _prepareTask, _conceptTask, _designTask, _referenceTask, _validateTask, _startTask }.OfType<Task>());
+    }
 
     // ------------------------------------------------------------------ drawing
     private float? _panelLeft;

@@ -404,3 +404,24 @@ conserva su categoría y escena. No se mueven ni reclasifican carpetas del usuar
 La separación y la autoridad de modalidad/base se probaron con IA simulada y en la app.
 La navegación Spy/Pac en ambos sentidos y el prototipo vacío de biblioteca no demuestran
 una fusión nueva jugable ni creatividad. Esa evaluación mecánica sigue pendiente.
+
+## D-032 Recuperación del creador desde cero (2026-10-21)
+
+GameWriter publica WriterCheckpoint antes de llamar, al recibir código completo y al
+probarlo. GameWorkStore lo guarda atómicamente en Juegos creados/.trabajos, con máquina,
+pedido, idea/semilla ya elegida, último código, autor de esa respuesta, huellas de intentos
+y consumo opcional. No almacena conversación, guías, imágenes ni programas ensamblados.
+ResumeAsync vuelve a probar el código con el hardware actual antes de otra respuesta;
+sin código conserva el mismo plan, y las respuestas fallidas repetidas también se frenan.
+
+CreatorWindow muestra pendientes y permite continuar, copiar código o descartarlos. Un
+límite o una cancelación conserva el trabajo. Si se editó el código guardado de ese trabajo,
+se prueba esa edición. WorkId en CreatedGame mantiene una carpeta por construcción al
+continuar, incluso si se interrumpió la limpieza del pendiente. Descartarlo no borra juegos.
+Código, programa y metadatos se reemplazan mediante temporales y renombre; una miniatura
+bloqueada no impide guardar el juego. Así un corte no presenta un archivo parcial como
+una edición manual. Manual/carpeta de agentes conservan su flujo de archivos independiente.
+Al cerrar la app normalmente se cancelan los trabajos de estudio, creador y análisis y se espera
+brevemente su salida: CliAgentProvider detiene el proceso que inició. El checkpoint
+permanece para continuar. Un cierre forzado del proceso por el sistema no ejecuta esa
+limpieza; no se promete detener un CLI huérfano en ese caso.

@@ -43,6 +43,50 @@ public class GameWriterTests
 
     private static string C64 => Templates.For("c64")!.Source;
 
+    private sealed class NoAnswer : IAiProvider
+    {
+        public string Name => "Límite simulado";
+        public int Calls;
+        public Task<string> CompleteAsync(AiRequest request, CancellationToken ct) { Calls++; throw new AiException("Cupo simulado agotado"); }
+    }
+
+    [Test]
+    public async Task AnInterruptedCompleteAnswerIsRevalidatedWithoutCallingAgain_AndKeepsTheChosenSeed()
+    {
+        WriterCheckpoint? saved = null;
+        var first = new ScriptedAi(Answer("Borrador", C64));
+        var writer = new GameWriter { Checkpoint = state => { saved = state; if (state.Draft != null) throw new OperationCanceledException(); } };
+        Assert.ThrowsAsync<OperationCanceledException>(() => writer.WriteAsync(first,"c64","Conservar la idea",_firmware,CancellationToken.None,rng:new Random(17)));
+        Assert.That(saved!.Draft, Is.Not.Null);
+        Assert.That(saved.Brief, Is.EqualTo(first.Requests.Single().Turns.Single().Text));
+        var noAnswer = new NoAnswer();
+        var result = await new GameWriter().ResumeAsync(noAnswer,saved,_firmware,CancellationToken.None);
+        Assert.That(result.Ok, Is.True, result.Problem);
+        Assert.That(result.Attempts, Is.Zero);
+        Assert.That(noAnswer.Calls, Is.Zero);
+        Assert.That(saved.Author, Is.EqualTo(first.Name));
+    }
+
+    [Test]
+    public async Task AProviderLimitBeforeAnyAnswerKeepsTheOriginalBrief_AndFailedSourceHashesSurviveResumption()
+    {
+        WriterCheckpoint? saved = null;
+        var writer = new GameWriter { Checkpoint = state=>saved=state };
+        await writer.WriteAsync(new NoAnswer(),"c64","",_firmware,CancellationToken.None,rng:new Random(91));
+        Assert.That(saved!.Draft, Is.Null);
+        string brief = saved.Brief;
+        string broken = C64.Replace("inc $D020","inx $D020");
+        var ai = new ScriptedAi(Answer("Roto",broken),Answer("Roto",broken));
+        var result = await writer.ResumeAsync(ai,saved,_firmware,CancellationToken.None);
+        Assert.That(result.Ok, Is.False);
+        Assert.That(ai.Requests[0].Turns[0].Text, Is.EqualTo(brief), "no sortea otra idea al continuar");
+        Assert.That(saved.TriedSources.Single(), Has.Length.EqualTo(64), "guarda una huella, no todos los borradores");
+        var repeated = new ScriptedAi(Answer("Roto",broken));
+        result = await writer.ResumeAsync(repeated,saved,_firmware,CancellationToken.None);
+        Assert.That(repeated.Requests, Has.Count.EqualTo(1));
+        Assert.That(result.Problem, Does.Contain("repitió"));
+    }
+
     [Test]
     public async Task ARequestBudgetPreservesTheLastCompleteDraft_AndDoesNotCallForAnotherAnswer()
     {

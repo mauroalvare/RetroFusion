@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Retro.Asm;
@@ -16,6 +17,7 @@ public sealed class CreatedGame
 {
     public string Title { get; set; } = "";
     public AiOperationStats? Usage { get; set; }
+    public string? WorkId { get; set; }
     public string Machine { get; set; } = "c64";
     public string Pitch { get; set; } = "";
     public string HowToPlay { get; set; } = "";
@@ -82,8 +84,15 @@ public static class CreatedGames
     }
 
     /// <summary>Saves what an AI wrote (and how its trial went) in a new folder.</summary>
-    public static CreatedGame Save(GameDraft draft, TrialReport? report, string machine, string request, string author, AiOperationStats? usage = null)
+    public static CreatedGame Save(GameDraft draft, TrialReport? report, string machine, string request, string author, AiOperationStats? usage = null, string? workId = null)
     {
+        if (workId != null && All().FirstOrDefault(g=>g.WorkId==workId&&g.Machine==machine) is { } previous)
+        {
+            previous.Title=draft.Title; previous.Pitch=draft.Pitch; previous.HowToPlay=draft.HowToPlay;
+            previous.Request=request.Trim(); previous.Author=author; previous.Usage=usage;
+            WriteAtomic(previous.SourcePath,Encoding.UTF8.GetBytes(draft.Source)); Store(previous,report);
+            return previous;
+        }
         var g = new CreatedGame
         {
             Title = draft.Title,
@@ -93,9 +102,10 @@ public static class CreatedGames
             Request = request.Trim(),
             Author = author,
             Usage = usage,
+            WorkId = workId,
             Folder = NewFolder(draft.Title, machine),
         };
-        File.WriteAllText(g.SourcePath, draft.Source);
+        WriteAtomic(g.SourcePath, Encoding.UTF8.GetBytes(draft.Source));
         Store(g, report);
         return g;
     }
@@ -113,7 +123,7 @@ public static class CreatedGames
             Author = "plantilla",
             Folder = NewFolder("mi juego", t.Machine),
         };
-        File.WriteAllText(g.SourcePath, t.Source);
+        WriteAtomic(g.SourcePath, Encoding.UTF8.GetBytes(t.Source));
         Store(g, HomebrewTrial.Run(t.Source, t.Machine, firmwareDirectory));
         return g;
     }
@@ -143,7 +153,7 @@ public static class CreatedGames
                 Author = ExampleAuthor,
                 Folder = dir,
             };
-            File.WriteAllText(g.SourcePath, e.Source);
+            WriteAtomic(g.SourcePath, Encoding.UTF8.GetBytes(e.Source));
             Store(g, HomebrewTrial.Run(e.Source, e.Machine, firmwareDirectory));
             added++;
         }
@@ -177,11 +187,24 @@ public static class CreatedGames
             g.Passed = report.Ok;
             g.Trial = report.Summary;
             if (report.File != null)
-                File.WriteAllBytes(g.ProgramPath, report.File);
+                WriteAtomic(g.ProgramPath, report.File);
             if (report.LastPicture != null)
-                PngWriter.Write(g.PicturePath, report.LastPicture, 2);
+                try { PngWriter.Write(g.PicturePath, report.LastPicture, 2); }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         }
-        File.WriteAllText(Path.Combine(g.Folder, "juego.json"), JsonSerializer.Serialize(g, Json));
+        WriteAtomic(Path.Combine(g.Folder, "juego.json"), JsonSerializer.SerializeToUtf8Bytes(g, Json));
+    }
+
+    private static void WriteAtomic(string path, byte[] data)
+    {
+        string temp = Path.Combine(Path.GetDirectoryName(path)!, Guid.NewGuid().ToString("N") + ".tmp");
+        try
+        {
+            using(var stream = new FileStream(temp,FileMode.CreateNew,FileAccess.Write,FileShare.None))
+            { stream.Write(data); stream.Flush(flushToDisk:true); }
+            File.Move(temp,path,overwrite:true);
+        }
+        finally { if(File.Exists(temp))File.Delete(temp); }
     }
 
     private static string Slug(string title)

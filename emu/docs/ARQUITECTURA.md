@@ -479,6 +479,11 @@ historial. `StudioWorkStore` lo persiste atómicamente en `Juegos fusionados/.tr
 `ResumeAsync` restaura la elección del jugador y vuelve a validar el borrador antes de
 usar el proveedor. `StudioGame.WorkId` permite reconocer una versión ya guardada si se
 interrumpió la limpieza del pendiente. Ver D-029 y las limitaciones de cada modalidad.
+El creador desde cero sigue el mismo criterio con `WriterCheckpoint`, `GameWorkStore`
+y `GameWriter.ResumeAsync`, en `Juegos creados/.trabajos`. Conserva también la semilla del
+plan, el código editado y las huellas de intentos; no vuelve a sortear otra idea. WorkId
+mantiene una carpeta por trabajo; los archivos de código/programa/metadatos son atómicos.
+Ver D-032.
 
 `GameLibrary` observa cambios de la carpeta ROMs, espera estabilidad y ejecuta organización
 y escaneo en una sola tarea. `RomOrganizer` solo mueve archivos sueltos con un sistema

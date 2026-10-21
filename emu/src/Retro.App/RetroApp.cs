@@ -183,9 +183,12 @@ public sealed class RetroApp
 
     public void Shutdown()
     {
+        var pending = Task.WhenAll(_studio.CancelWork(), _creator.CancelWork(), _code.CancelWork());
+        try { pending.Wait(TimeSpan.FromSeconds(2)); }
+        catch (AggregateException) { /* Cancellation and provider errors are already retained by the jobs. */ }
+        _code.Dispose();
         _library.Dispose();
         _home.Dispose();
-        _code.Dispose();
         if (_texW != 0)
             Raylib.UnloadTexture(_screenTex);
         Raylib.UnloadAudioStream(_stream);
