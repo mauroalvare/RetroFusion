@@ -22,11 +22,11 @@ public static class CliTools
 {
     public static readonly CliTool Claude = new("sub-claude", "Claude Code", "Claude Pro o Max",
         new[] { "claude" },
-        "Instalá Claude Code (claude.com/claude-code, o en una terminal: npm install -g @anthropic-ai/claude-code), escribí claude en una terminal y entrá con tu cuenta de Claude.");
+        "Seguí https://code.claude.com/docs/en/quickstart para instalar Claude Code; después ejecutá claude e iniciá sesión con tu cuenta.");
 
     public static readonly CliTool Codex = new("sub-codex", "Codex CLI", "ChatGPT Plus o Pro",
         new[] { "codex" },
-        "Instalá Codex CLI (en una terminal: npm install -g @openai/codex), escribí codex login y elegí entrar con tu cuenta de ChatGPT.");
+        "Seguí https://developers.openai.com/codex/cli/ para instalar Codex CLI; después ejecutá codex login y elegí iniciar sesión con ChatGPT.");
 
     public static readonly CliTool Google = new("sub-google", "Antigravity CLI", "una cuenta de Google (gratis con límites, o Google AI Pro/Ultra)",
         new[] { "agy", "gemini" },
@@ -42,6 +42,9 @@ public static class CliTools
         if (!string.IsNullOrWhiteSpace(overridePath))
             return File.Exists(overridePath) ? overridePath : null;
         var dirs = (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries).ToList();
+        if (OperatingSystem.IsWindows())
+            foreach (var scope in new[] { EnvironmentVariableTarget.User, EnvironmentVariableTarget.Machine })
+                dirs.AddRange((Environment.GetEnvironmentVariable("PATH", scope) ?? "").Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries));
         string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         dirs.Add(Path.Combine(home, ".local", "bin"));
         dirs.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "npm"));
@@ -49,6 +52,7 @@ public static class CliTools
         // the official installers of Antigravity CLI leave agy.exe here, without touching PATH
         string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         dirs.Add(Path.Combine(local, "agy", "bin"));
+        dirs.Add(Path.Combine(local, "Programs", "OpenAI", "Codex", "bin"));
         dirs.Add(Path.Combine(local, "Antigravity"));
         dirs.Add("/usr/local/bin");
         dirs.Add("/opt/homebrew/bin");
@@ -78,17 +82,19 @@ public sealed class CliAgentProvider : IAiProvider
     private readonly string? _override;
     private readonly TimeSpan _timeout;
     private readonly string? _model;
+    private readonly string? _effort;
     private CliActivity? _activity;
 
     public CliActivity? Activity => Volatile.Read(ref _activity);
 
     /// <param name="model">The model the tool uses (its --model / -m); null or empty = the tool's own default.</param>
-    public CliAgentProvider(CliTool tool, string? overridePath, TimeSpan? timeout = null, string? model = null)
+    public CliAgentProvider(CliTool tool, string? overridePath, TimeSpan? timeout = null, string? model = null, string? effort = null)
     {
         _tool = tool;
         _override = overridePath;
         _timeout = timeout ?? TimeSpan.FromMinutes(15);
         _model = string.IsNullOrWhiteSpace(model) ? null : model.Trim();
+        _effort = string.IsNullOrWhiteSpace(effort) ? null : effort.Trim();
     }
 
     public string Name => _model != null ? $"{_tool.Name} ({_model}, suscripción)" : $"{_tool.Name} (suscripción)";
@@ -98,6 +104,15 @@ public sealed class CliAgentProvider : IAiProvider
         string.IsNullOrWhiteSpace(model) ? Array.Empty<string>()
         : toolId == "sub-codex" ? new[] { "-m", model.Trim() }
         : new[] { "--model", model.Trim() };
+
+    public static IEnumerable<string> EffortArgs(string toolId, string? effort)
+    {
+        if (string.IsNullOrWhiteSpace(effort)) return Array.Empty<string>();
+        if (!System.Text.RegularExpressions.Regex.IsMatch(effort, "^[a-z][a-z0-9_-]{0,39}$"))
+            throw new AiException("El esfuerzo guardado no es válido. Volvé a elegirlo en la lista.");
+        return toolId == "sub-codex" ? new[] { "-c", $"model_reasoning_effort='{effort}'" }
+            : new[] { "--effort", effort };
+    }
 
     /// <summary>The whole conversation as one text, since these tools take a single prompt.</summary>
     public static string Flatten(AiRequest request)
@@ -154,6 +169,7 @@ public sealed class CliAgentProvider : IAiProvider
             };
             // the model goes before codex's "-" (stdin) and anywhere for the others
             args.InsertRange(_tool.Id == "sub-codex" ? 1 : 0, ModelArgs(_tool.Id, _model));
+            args.InsertRange(_tool.Id == "sub-codex" ? 1 : 0, EffortArgs(_tool.Id, _effort));
             // agy takes the prompt as an argument and does not read standard input
             string previousOutput = Activity?.Output is { Length: > 0 } previous ? previous + "\n\n" : "";
             var (code, stdout, stderr) = await RunAsync(exe, args, work, agy ? "" : Flatten(request), _timeout, ct,
@@ -294,34 +310,7 @@ public sealed class CliAgentProvider : IAiProvider
     internal static async Task<(int code, string stdout, string stderr)> RunAsync(string exe, IReadOnlyList<string> args, string workDir,
         string stdin, TimeSpan timeout, CancellationToken ct, Action<CliActivity>? activity = null)
     {
-        var psi = new ProcessStartInfo
-        {
-            WorkingDirectory = workDir,
-            RedirectStandardInput = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8,
-            // the prompt goes in UTF-8 without BOM: on Windows the default is the console code
-            // page, and the tools reject (Codex) or garble the accents of a Spanish prompt
-            StandardInputEncoding = new UTF8Encoding(false),
-        };
-        string ext = Path.GetExtension(exe).ToLowerInvariant();
-        if (ext is ".cmd" or ".bat")
-        {
-            // npm installs these tools as .cmd shims, which only cmd.exe can run
-            psi.FileName = "cmd.exe";
-            psi.Arguments = "/d /s /c \"" + Quote(exe) + " " + string.Join(" ", args.Select(Quote)) + "\"";
-        }
-        else
-        {
-            psi.FileName = exe;
-            foreach (var a in args)
-                psi.ArgumentList.Add(a);
-        }
-        psi.Environment["NO_COLOR"] = "1";
+        var psi = StartInfo(exe, args, workDir);
         using var p = new Process { StartInfo = psi };
         try
         {
@@ -373,10 +362,7 @@ public sealed class CliAgentProvider : IAiProvider
                     await p.StandardInput.WriteAsync(stdin.AsMemory(), timeoutCts.Token);
                 p.StandardInput.Close();
             }
-            catch (IOException)
-            {
-                // The tool closed stdin; its answer or error is still in the output.
-            }
+            catch (IOException) { }
             await p.WaitForExitAsync(timeoutCts.Token);
             string stdout = await outTask, stderr = await errTask;
             status = p.ExitCode == 0 ? "CLI finalizado" : "CLI terminó con error";
@@ -385,17 +371,45 @@ public sealed class CliAgentProvider : IAiProvider
         catch (OperationCanceledException)
         {
             try { p.Kill(entireProcessTree: true); } catch (InvalidOperationException) { }
-            // Observe both readers after killing the process, including cancellation while writing stdin.
             try { await Task.WhenAll(outTask, errTask); } catch (OperationCanceledException) { }
             status = ct.IsCancellationRequested ? "CLI cancelado" : "CLI detenido por tiempo máximo";
-            if (ct.IsCancellationRequested)
-                throw;
+            if (ct.IsCancellationRequested) throw;
             throw new AiException($"{Path.GetFileName(exe)} tardó más de {timeout.TotalMinutes:F0} minutos y lo detuve.");
         }
-        finally
+        finally { Report(false); }
+    }
+
+    internal static ProcessStartInfo StartInfo(string exe, IReadOnlyList<string> args, string workDir)
+    {
+        var psi = new ProcessStartInfo
         {
-            Report(false);
+            WorkingDirectory = workDir,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8,
+            // the prompt goes in UTF-8 without BOM: on Windows the default is the console code
+            // page, and the tools reject (Codex) or garble the accents of a Spanish prompt
+            StandardInputEncoding = new UTF8Encoding(false),
+        };
+        string ext = Path.GetExtension(exe).ToLowerInvariant();
+        if (ext is ".cmd" or ".bat")
+        {
+            // npm installs these tools as .cmd shims, which only cmd.exe can run
+            psi.FileName = "cmd.exe";
+            psi.Arguments = "/d /s /c \"" + Quote(exe) + " " + string.Join(" ", args.Select(Quote)) + "\"";
         }
+        else
+        {
+            psi.FileName = exe;
+            foreach (var a in args)
+                psi.ArgumentList.Add(a);
+        }
+        psi.Environment["NO_COLOR"] = "1";
+        return psi;
     }
 
     private static string Quote(string a) => a.Length > 0 && a.IndexOfAny(new[] { ' ', '"', '&', '|', '<', '>', '^' }) < 0 ? a : "\"" + a.Replace("\"", "\\\"") + "\"";

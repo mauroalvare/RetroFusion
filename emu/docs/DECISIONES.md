@@ -181,3 +181,18 @@ solo ayuda, incluyendo bibliotecas previas en Documentos para creados/fusionados
 Sin datos previos elige la carpeta portátil más cercana. No migra archivos ni cambia
 los formatos de juegos. El actualizador local solo añade LEEME si no existe; conserva
 todos los archivos del jugador. ACTUALIZAR.txt explica la combinación de carpetas.
+
+## D-021 Catálogos de modelos sin generación (2026-10-20)
+
+AiModelCatalog consulta metadatos de las herramientas instaladas: model/list paginado
+del app-server de Codex tras initialize/initialized; initialize de control stream-json
+de Claude Code sin mensajes de usuario; agy models; GET /api/tags de Ollama. No inicia
+conversaciones ni lee archivos de credenciales. Los modelos y niveles vienen de esas
+respuestas, sin catálogo fijo de respaldo. Las variantes de Antigravity conservan su ID
+exacto al elegir esfuerzo. Si falta información se ofrece el predeterminado del CLI.
+
+AiSettings añade CliEfforts, compatible con configuraciones anteriores; cada cambio
+de modelo en la UI limpia el esfuerzo anterior. CliAgentProvider pasa --effort o la
+opción model_reasoning_effort a Codex. SessionModel no hereda un esfuerzo de otro modelo.
+Los catálogos se refrescan al volver a abrir la configuración y por pedido explícito;
+consultarlos no equivale a comprobar una generación ni garantiza cuota disponible.

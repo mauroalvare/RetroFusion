@@ -150,7 +150,7 @@ public class CliProviderTests
     {
         var ai = new CliAgentProvider(CliTools.Codex, Path.Combine(_dir, "no-existe.cmd"));
         var e = Assert.ThrowsAsync<AiException>(() => ai.CompleteAsync(Request(), CancellationToken.None));
-        Assert.That(e!.Message, Does.Contain("npm install -g @openai/codex"));
+        Assert.That(e!.Message, Does.Contain("https://developers.openai.com/codex/cli/").And.Contain("codex login"));
     }
 
     private static async Task WaitForOutput(CliAgentProvider ai)

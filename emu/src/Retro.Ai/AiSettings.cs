@@ -25,6 +25,8 @@ public sealed class AiSettings
     public Dictionary<string, string> CliPaths { get; set; } = new();
     /// <summary>The model each subscription tool uses (tool id -> model); missing or empty = the tool's own default.</summary>
     public Dictionary<string, string> CliModels { get; set; } = new();
+    /// <summary>Per-tool reasoning effort, selected from that model's published capabilities.</summary>
+    public Dictionary<string, string> CliEfforts { get; set; } = new();
     /// <summary>A model for this run only (retro-cli --modelo), over <see cref="CliModels"/>; not saved.</summary>
     [System.Text.Json.Serialization.JsonIgnore] public string? SessionModel { get; set; }
     public string OllamaUrl { get; set; } = "http://localhost:11434";
@@ -62,7 +64,8 @@ public sealed class AiSettings
         "gemini" => new GeminiProvider(KeyOrEnv(GeminiApiKey, "GEMINI_API_KEY"), GeminiModel),
         "ollama" => new OllamaProvider(OllamaUrl, OllamaModel),
         "sub-claude" or "sub-codex" or "sub-google" => new CliAgentProvider(CliTools.ById(Provider)!, CliPaths.GetValueOrDefault(Provider),
-            model: string.IsNullOrWhiteSpace(SessionModel) ? CliModels.GetValueOrDefault(Provider) : SessionModel),
+            model: string.IsNullOrWhiteSpace(SessionModel) ? CliModels.GetValueOrDefault(Provider) : SessionModel,
+            effort: string.IsNullOrWhiteSpace(SessionModel) ? CliEfforts.GetValueOrDefault(Provider) : null),
         _ => null,   // manual and agent modes are driven by the UI
     };
 
