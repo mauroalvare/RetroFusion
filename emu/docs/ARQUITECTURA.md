@@ -415,10 +415,13 @@ Un juego fusionado conecta los originales en una sola escena mediante su guion:
   arcade) y `helpers` (funciones en JavaScript como `g.aliens()` o `g.willy()` que traducen
   la memoria del juego a posiciones en pantalla, verificadas con capturas). La IA usa las
   ayudas en vez de adivinar direcciones.
-- **`Canvas`** dibuja sprites de 1 bit, rectángulos, líneas y texto con la letra de la ROM
-  del Spectrum. `screen.base` conserva únicamente la imagen nativa declarada, a escala
+- **`Canvas`** dibuja máscaras de 1 bit, recursos pequeños con colores nativos, rectángulos,
+  líneas y texto con la letra de la ROM del Spectrum. `screen.base` conserva únicamente la imagen nativa declarada, a escala
   y paleta originales, sin el borde de la máquina. `screen.game` sigue rechazado y también
   se registra el intento de dibujar otra base aunque el guion capture el error.
+  Con base declarada, la sesión compone esa imagen antes de cada draw; el guion agrega
+  aportes. Se impide borrar ese fondo durante draw o cambiar su resolución. La sesión
+  conserva una copia de sus metadatos para que la elección no cambie desde el llamador.
 - **Arranque instantáneo:** la primera vez cada juego arranca con su guion de arranque (la
   cinta carga por la ROM); estado e imagen quedan en memoria. Reiniciar o probar otra
   versión restaura ambos sin avanzar la CPU; así una base pausada no aparece negra.
@@ -435,6 +438,10 @@ Un juego fusionado conecta los originales en una sola escena mediante su guion:
   estructura (título, juego, fin, revancha), si se pueden sumar puntos, cuándo y de qué se
   muere, y si la imagen está viva. Los problemas hacen fallar la prueba; las notas son
   consejos. Su informe, con capturas, es lo que se le devuelve a la IA o al agente.
+  En modo base hay un control visual acotado: detecta borrado general o copia casi exacta
+  de otra pantalla durante tres observaciones sucesivas. Compara píxeles y máscaras de
+  fondo, sin exigir la misma paleta; no demuestra creatividad, identidad completa ni
+  integración mecánica. Una prueba breve sin muertes ya no se considera demasiado difícil.
 - **El método** (`Docs/GUIA-FUSION.md`) y la API piden unión mecánica, regla única,
   transferencia de comportamientos y conservación de la base elegida. FusionDirection
   acompaña propuestas, guiones y correcciones; baseSlot queda fuera de lo que puede
@@ -448,6 +455,15 @@ Un juego fusionado conecta los originales en una sola escena mediante su guion:
   respuestas usan salidas estructuradas por API, o JSON + bloque de código desde un chat.
   `StudioWorkspace` arma la carpeta para agentes y `retro-cli studio` deja que el agente
   pruebe su `juego.js`.
+- **`OriginalReferences`** obtiene una captura del área activa y la paleta dominante de
+  cada edición tras su arranque, sin ejecutar el guion generado. El estudio las prepara
+  en segundo plano y puede cancelar la carga por cuadros, sin guardar estados parciales.
+  Los proveedores declaran `SupportsImages` (false por defecto); las CLI reciben PNGs
+  temporales durante la escritura/correcciones, liberados también si falla la conexión.
+  Las API directas actuales reciben tamaño/paleta y una aclaración de que no hay imágenes.
+  El chat manual puede adjuntarlas desde su carpeta y los agentes reciben ORIGINALES.md
+  y original-*.png junto a la tarea. Esto aporta referencia visual, no análisis de rutinas
+  ni una certificación de fidelidad; la capacidad visual depende de la herramienta/modelo.
 
 ## IA
 

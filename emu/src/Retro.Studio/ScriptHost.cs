@@ -183,10 +183,36 @@ public sealed class ScriptHost
     public int SpriteH(double handle) => SpriteImage(handle).Height;
 
     // ------------------------------------------------------------------ screen
-    public void Size(double w, double h) => _session.Canvas.Resize(Num(w), Num(h));
+    public void Size(double w, double h)
+    {
+        if (_session.Game.BaseSlot is { } id)
+        {
+            var area = StudioSession.PictureArea(S(id).Slot.Machine);
+            if (Num(w) != area.w || Num(h) != area.h)
+            {
+                RejectScene($"El modo base conserva su resolución ({area.w}x{area.h}). Integrá los aportes dentro de ese mundo; la creación libre permite otra escena.");
+                return;
+            }
+        }
+        _session.Canvas.Resize(Num(w), Num(h));
+    }
     public int CanvasW() => _session.Canvas.Width;
     public int CanvasH() => _session.Canvas.Height;
-    public void Clear(double color) => _session.Canvas.Clear(Num(color));
+    public void Clear(double color)
+    {
+        if (_session.Game.BaseSlot != null && _session.IsDrawing)
+        {
+            RejectScene("En modo base, el motor ya dibuja la imagen original antes de draw(). No uses screen.clear para reemplazarla: integrá personajes y mecánicas sobre ese mundo.");
+            return;
+        }
+        _session.Canvas.Clear(Num(color));
+    }
+
+    private void RejectScene(string problem)
+    {
+        _session.SceneViolation = true; _session.SceneProblem = problem;
+        throw new InvalidOperationException(problem);
+    }
     public void Rect(double x, double y, double w, double h, double color, double alpha) => _session.Canvas.Rect(x, y, w, h, Num(color), alpha);
     public void Box(double x, double y, double w, double h, double color) => _session.Canvas.Box(x, y, w, h, Num(color));
     public void Line(double x0, double y0, double x1, double y1, double color) => _session.Canvas.Line(x0, y0, x1, y1, Num(color));

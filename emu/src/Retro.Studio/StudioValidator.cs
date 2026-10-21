@@ -82,6 +82,7 @@ public static class StudioValidator
             var rng = new Random(strategy switch { Strategy.Still => 1, Strategy.Wanderer => 2, _ => 3 });
             string name = strategy switch { Strategy.Still => "quieto", Strategy.Wanderer => "explorador", _ => "tirador" };
             int ticks = 0;
+            int hiddenBaseObservations = 0;
             bool Step(int n)
             {
                 for (int i = 0; i < n; i++)
@@ -97,6 +98,16 @@ public static class StudioValidator
                     }
                     if (s.Error != null)
                         return false;
+                    if (s.Game.BaseSlot != null && ticks % Tps == 1)
+                    {
+                        string? erased = s.State == "playing" ? BaseSceneCheck.Problem(s) : null;
+                        hiddenBaseObservations = erased != null ? hiddenBaseObservations + 1 : 0;
+                        if (erased != null && hiddenBaseObservations >= 3)
+                        {
+                            if (!problems.Contains(erased)) problems.Add(erased);
+                            return false;
+                        }
+                    }
                 }
                 return true;
             }
@@ -237,9 +248,9 @@ public static class StudioValidator
                     notes.Add("No se observó puntaje en esta prueba. Comprobá los objetivos y el progreso del juego base; no agregues puntos ni un menú artificial para conformar al robot.");
                 notes.Add("La prueba técnica no certifica que se hayan conservado los mapas, la estética ni una interacción mecánica real: hay que comparar capturas y jugar la fusión.");
             }
-            if (active.Count > 0)
+            if (active.Count > 0 && active.All(r => r.FirstDeathSeconds.HasValue))
             {
-                double avg = active.Average(r => r.FirstDeathSeconds ?? r.PlayedSeconds);
+                double avg = active.Average(r => r.FirstDeathSeconds!.Value);
                 if (avg < 6)
                     problems.Add($"Demasiado difícil: los robots activos pierden la primera vida a los {avg:F1} segundos en promedio. Empezá con menos enemigos, más lentos, más huecos o cobertura, y medio segundo de invulnerabilidad al aparecer.");
                 else if (avg < 10)

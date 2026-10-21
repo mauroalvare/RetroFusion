@@ -24,6 +24,7 @@ public sealed class AiException : Exception
 public interface IAiProvider
 {
     string Name { get; }
+    bool SupportsImages => false;
     Task<string> CompleteAsync(AiRequest request, CancellationToken ct);
 }
 

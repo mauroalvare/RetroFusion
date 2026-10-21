@@ -80,4 +80,18 @@ public sealed class BootCacheTests
         var oldest = new List<string>(); Start(oldest);
         Assert.That(oldest, Has.Count.EqualTo(1), "el arranque antiguo no se conserva sin límite");
     }
+
+    [Test]
+    public void CancellingABootDoesNotCacheAPartialState()
+    {
+        _profile.Boot = ["wait 1", "wait 2"];
+        var source = new GameSource(_profile, [new MediaFile("same-name.z80", _snapshot, "own-test")], null);
+        using var cts = new CancellationTokenSource();
+        int steps = 0;
+        Assert.Throws<OperationCanceledException>(() => StudioSession.Start(_game,
+            new Dictionary<string, GameSource> { [_profile.Id] = source }, _folder, _ => { steps++; cts.Cancel(); }, cts.Token));
+        Assert.That(steps, Is.EqualTo(1), "se detiene antes del siguiente paso");
+        var log = new List<string>(); Start(log);
+        Assert.That(log, Has.Count.EqualTo(2), "la sesión siguiente arranca completa, sin reutilizar la partida incompleta");
+    }
 }

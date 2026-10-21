@@ -181,7 +181,7 @@ public class DesignerTests
         var ai = new ScriptedAi(Answer("Superpuesto", "function draw() { screen.game(games.b); }"),
             Answer("Escena propia", manic.Script));
         var outcome = await new StudioDesigner().WriteAsync(ai, Slots, ProfileLibrary.Find,
-            new GameConcept("Mi juego", "Escena propia", "p", "h"),
+            new GameConcept("Mi juego", "Escena propia", "p", "h", Direction: new FusionDirection(Reimagine: true)),
             game => StudioValidator.Run(game, found.sources, found.romDir), CancellationToken.None);
         Assert.That(outcome.Attempts, Is.EqualTo(2));
         Assert.That(outcome.Game, Is.Not.Null, outcome.Error);

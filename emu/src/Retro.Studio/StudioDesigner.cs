@@ -47,8 +47,9 @@ public sealed class StudioDesigner
         sus mapas, estética, interfaz y reglas siguen siendo reconocibles, y el otro aporta
         personajes, comportamientos o mecánicas dentro de ese mundo. También existe una
         reinterpretación libre cuando el jugador la elige expresamente.
-        Respetá la dirección elegida en el pedido. screen.base puede conservar la imagen
-        nativa de la base declarada; también podés usar sus tiles y mapas verificados.
+        Respetá la dirección elegida en el pedido. En modo base el motor dibuja la imagen
+        nativa antes de draw(): agregá solo los aportes. No uses screen.clear ni cambies su
+        resolución para sustituirla por otra escena. screen.base permite reponer esa imagen.
         screen.game sigue retirado: no pegues pantallas independientes, ni lado a lado
         ni miniaturas. No conviertas cada fusión en la creación de un tercer juego genérico.
 
@@ -290,7 +291,8 @@ public sealed class StudioDesigner
         string name = find(slot.Profile)?.Name ?? slot.Profile;
         return $"MODO ELEGIDO: conservar el original base. BASE ELEGIDA: games.{selected} = {name} (perfil {slot.Profile}).\n" +
             $"Conservá sus mapas, distribución, paleta, escala, animaciones, interfaz, sonidos y reglas principales. Los demás originales son aportantes, no escenarios alternativos.\n" +
-            $"Podés dibujar su imagen nativa con screen.base(games.{selected}) al principio de draw(); después integrá los personajes o efectos transferidos en sus coordenadas. " +
+            $"El motor dibuja su imagen nativa antes de draw(); screen.base(games.{selected}) permite reponerla. Integrá los personajes o efectos transferidos en sus coordenadas. " +
+            "No uses screen.clear en draw() ni cambies la resolución: una escena nueva corresponde a la creación libre. " +
             "Usá sus controles y datos verificados; los aportes deben interactuar con el mundo, las amenazas, los objetivos o los recursos de la base. " +
             "No reinicies su estética desde cero, no añadas un menú genérico ni cambies el género por una semilla aleatoria. " +
             "Si se piden más mapas, respetá la estructura, las piezas, las reglas y la escala del original con formatos verificados; si faltan esos datos, explicá qué falta. " +
@@ -339,7 +341,7 @@ public sealed class StudioDesigner
     }
 
     public Task<DesignOutcome> WriteAsync(IAiProvider ai, IReadOnlyList<RecipeGame> slots, Func<string, GameProfile?> find, GameConcept concept,
-        Func<StudioGame, ValidationReport> validate, CancellationToken ct, Action<string>? progress = null)
+        Func<StudioGame, ValidationReport> validate, CancellationToken ct, Action<string>? progress = null, OriginalReferences? references = null)
     {
         var template = new StudioGame
         {
@@ -354,30 +356,32 @@ public sealed class StudioDesigner
             Version = 1,
             Author = ai.Name,
         };
-        return LoopAsync(ai, WritePrompt(slots, find, concept), template, validate, ct, progress);
+        return LoopAsync(ai, WritePrompt(slots, find, concept), template, validate, ct, progress, references);
     }
 
     public Task<DesignOutcome> ReviseAsync(IAiProvider ai, StudioGame current, Func<string, GameProfile?> find, string request,
-        Func<StudioGame, ValidationReport> validate, CancellationToken ct, Action<string>? progress = null)
+        Func<StudioGame, ValidationReport> validate, CancellationToken ct, Action<string>? progress = null, OriginalReferences? references = null)
     {
         var template = current.Copy();
         template.Version = current.Version + 1;
         template.Request = request.Trim();
         template.Author = ai.Name;
         template.Created = DateTime.Now;
-        return LoopAsync(ai, RevisePrompt(current, current.Games, find, request), template, validate, ct, progress);
+        return LoopAsync(ai, RevisePrompt(current, current.Games, find, request), template, validate, ct, progress, references);
     }
 
     private async Task<DesignOutcome> LoopAsync(IAiProvider ai, string prompt, StudioGame template,
-        Func<StudioGame, ValidationReport> validate, CancellationToken ct, Action<string>? progress)
+        Func<StudioGame, ValidationReport> validate, CancellationToken ct, Action<string>? progress, OriginalReferences? references)
     {
+        using var pictures = ai.SupportsImages ? references?.ExportTemporary() : null;
+        if (references != null) prompt += "\n\n" + references.Describe(template.BaseSlot, pictures != null);
         var turns = new List<AiTurn> { new(true, prompt) };
         ValidationReport? report = null;
         string? error = null;
         for (int attempt = 1; attempt <= MaxAttempts; attempt++)
         {
             progress?.Invoke(attempt == 1 ? $"{ai.Name} está escribiendo el juego..." : $"{ai.Name} está corrigiendo (intento {attempt} de {MaxAttempts})...");
-            string answer = await ai.CompleteAsync(new AiRequest(Guide, turns.ToList(), GameSchema()), ct);
+            string answer = await ai.CompleteAsync(new AiRequest(Guide, turns.ToList(), GameSchema(), pictures?.Paths), ct);
             turns.Add(new AiTurn(false, answer));
             var game = ParseGame(answer, template, out error);
             if (game == null)

@@ -125,6 +125,7 @@ public sealed class StudioSession : IFusionRun
     public bool ReportsState { get; private set; }
     internal bool SceneViolation { get; set; }
     internal string? SceneProblem { get; set; }
+    internal bool IsDrawing { get; private set; }
     internal HashSet<string> ReferencedSlots { get; } = new();
     public bool ReportsScore { get; private set; }
     public long Score { get; private set; }
@@ -155,23 +156,33 @@ public sealed class StudioSession : IFusionRun
 
     private StudioSession(StudioGame game, List<SlotState> slots, byte[]? font)
     {
-        Game = game;
+        Game = game.Copy();
         _slots = slots;
         Slots = slots.Select(s => s.Slot).ToList();
         _canvas = new Canvas(256, 192, font);
         _host = new ScriptHost(this);
+        DrawNativeBase();
         StartScript();
+    }
+
+    private void DrawNativeBase()
+    {
+        if (Game.BaseSlot == null) return;
+        var machine = SlotFor(Game.BaseSlot).Slot.Machine;
+        var area = PictureArea(machine);
+        _canvas.BaseFrame(machine.Video, area.x, area.y, area.w, area.h);
     }
 
     /// <summary>
     /// Creates the machines and boots each game to playing. The booted state is kept in
     /// memory, so restarting the game or trying a new version of the script is instant.
     /// </summary>
-    public static StudioSession Start(StudioGame game, IReadOnlyDictionary<string, GameSource> sources, string romDirectory, Action<string>? log = null)
+    public static StudioSession Start(StudioGame game, IReadOnlyDictionary<string, GameSource> sources, string romDirectory, Action<string>? log = null, CancellationToken ct = default)
     {
         var slots = new List<SlotState>();
         foreach (var g in game.Games)
         {
+            ct.ThrowIfCancellationRequested();
             if (!sources.TryGetValue(g.Profile, out var src))
                 throw new InvalidOperationException($"Falta el juego \"{g.Profile}\" en la carpeta de juegos.");
             var m = MachineFactory.Create(src, romDirectory);
@@ -183,7 +194,7 @@ public sealed class StudioSession : IFusionRun
             }
             else
             {
-                MachineFactory.Boot(m, src.Profile, log);
+                MachineFactory.Boot(m, src.Profile, log, ct);
                 var picture = new VideoFrame(m.Video.Width, m.Video.Height);
                 m.Video.Pixels.CopyTo(picture.Pixels, 0);
                 snapshot = new BootSnapshot(m.SaveState(), picture);
@@ -193,6 +204,7 @@ public sealed class StudioSession : IFusionRun
             slots.Add(new SlotState { Slot = new FusionSlot { Id = g.Slot, Profile = src.Profile, Machine = m },
                 BootState = snapshot.State, BootPicture = snapshot.Picture });
         }
+        ct.ThrowIfCancellationRequested();
         return new StudioSession(game, slots, Canvas.LoadFont(romDirectory));
     }
 
@@ -345,7 +357,10 @@ public sealed class StudioSession : IFusionRun
             try
             {
                 Call("__tick", _inputMask);
-                Call("__draw");
+                DrawNativeBase();
+                IsDrawing = true;
+                try { Call("__draw"); }
+                finally { IsDrawing = false; }
             }
             catch (Exception e)
             {

@@ -21,6 +21,11 @@ function tick(input) { }     // 60 veces por segundo, después de que los juegos
 function draw() { }          // después de cada tick: dibujá toda la pantalla
 ```
 
+En modo base, el motor ya dibuja el original antes de `draw()` y conserva su resolución.
+El guion agrega los aportes; no necesita copiar la imagen ni crear otro menú. `screen.clear`
+dentro de `draw()` se rechaza para impedir que una tercera escena sustituya a la base.
+En creación libre, el guion dibuja la escena completa.
+
 `input` trae lo que aprieta el jugador: `input.left`, `right`, `up`, `down`, `fire`,
 `jump`, `start`, `coin` (true mientras está apretado) y `input.pressed.fire`, etc. (true
 solo en el tick en que se apretó). `input.tick` cuenta los ticks desde el arranque.
@@ -60,10 +65,10 @@ Todo se dibuja de nuevo en cada `draw()`. Colores 0xRRGGBB.
 
 | Función | Qué hace |
 |---|---|
-| `screen.size(ancho, alto)` | Tamaño de la pantalla del juego fusionado (en `init`; por defecto 256x192, máximo 640x480). |
+| `screen.size(ancho, alto)` | En creación libre: por defecto 256x192, máximo 640x480. En modo base solo admite la resolución nativa del original. |
 | `screen.width`, `screen.height` | Tamaño actual. |
-| `screen.base(g)` | Dibuja la imagen nativa del único original elegido en `baseSlot`, sin borde ni cambio de paleta o resolución. Llamalo primero en `draw()` e integrá después los elementos del otro juego. No admite un segundo original ni funciona en reinterpretaciones libres. Las coordenadas quedan relativas al área activa del base. |
-| `screen.clear(color)` | Pinta todo. |
+| `screen.base(g)` | Repone la imagen nativa del único original elegido en `baseSlot`, sin borde ni cambio de paleta o resolución. El motor ya la dibuja antes de cada `draw()`. No admite un segundo original ni funciona en reinterpretaciones libres. Las coordenadas quedan relativas al área activa de la base. |
+| `screen.clear(color)` | Pinta todo en creación libre. Se rechaza durante `draw()` de un juego con base. |
 | `screen.sprite(s, x, y, color, {scale, flip, alpha})` | Dibuja el recurso. Sin `color`, conserva los colores de una captura; los sprites de memoria de un bit se dibujan blancos. Con `color` se tiñe la máscara. `flip` lo espeja. |
 | `screen.spriteSize(s)` | `{w, h}` del sprite. |
 | `screen.rect(x, y, w, h, color, alpha)` | Rectángulo lleno. |
@@ -125,8 +130,9 @@ La prueba automática y la ventana del emulador necesitan saber qué pasa en el 
 
 ## Conservar la base o reinterpretar
 
-Con `baseSlot` declarado, conservá su mundo con `screen.base(g)` o con una reconstrucción
-fiel mediante tiles y mapas verificados. Su imagen conserva la resolución y paleta nativas.
+Con `baseSlot` declarado, el motor conserva su imagen antes de `draw()`, a resolución y
+paleta nativas. `screen.base(g)` permite reponerla. Ampliar sus mapas necesita un formato
+y cambios de memoria verificados; una reconstrucción con otra escena es creación libre.
 Integrá el aporte en ese espacio, con interacción real y controles coherentes.
 
 En reinterpretación libre dibujá la escena con `screen.sprite`, `screen.rect`,

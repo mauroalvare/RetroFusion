@@ -35,15 +35,16 @@ public static class MachineFactory
     /// Runs the profile's boot script as fast as possible: tapes load through the ROM
     /// (real signal), keys are pressed for the given number of frames.
     /// </summary>
-    public static void Boot(IMachine m, GameProfile profile, Action<string>? log = null)
+    public static void Boot(IMachine m, GameProfile profile, Action<string>? log = null, CancellationToken ct = default)
     {
         foreach (var step in profile.Boot)
         {
+            ct.ThrowIfCancellationRequested();
             var parts = step.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             switch (parts[0])
             {
                 case "wait":
-                    RunFrames(m, int.Parse(parts[1]));
+                    RunFrames(m, int.Parse(parts[1]), ct);
                     break;
                 case "press":
                 {
@@ -51,13 +52,13 @@ public static class MachineFactory
                     int frames = int.Parse(parts[^1]);
                     var keys = string.Join(' ', parts[1..^1]).Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                     foreach (var key in keys) m.SetKey(key, true);
-                    RunFrames(m, frames);
-                    foreach (var key in keys) m.SetKey(key, false);
+                    try { RunFrames(m, frames, ct); }
+                    finally { foreach (var key in keys) m.SetKey(key, false); }
                     break;
                 }
                 case "load-tape":
                     if (m is Spectrum48 zx && zx.Tape.IsLoaded)
-                        Retro.Machines.MachineLauncher.LoadTape(zx);
+                        Retro.Machines.MachineLauncher.LoadTape(zx, ct: ct);
                     break;
             }
             log?.Invoke($"{profile.Name}: {step}");
@@ -65,11 +66,12 @@ public static class MachineFactory
         m.DrainAudio(new short[8192]);
     }
 
-    private static void RunFrames(IMachine m, int n)
+    private static void RunFrames(IMachine m, int n, CancellationToken ct)
     {
         var sink = new short[4096];
         for (int i = 0; i < n; i++)
         {
+            ct.ThrowIfCancellationRequested();
             m.RunFrame(null);
             m.DrainAudio(sink);
         }

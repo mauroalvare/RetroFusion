@@ -78,6 +78,7 @@ public static class CliTools
 /// <summary>Asks one of the subscription tools in non-interactive mode (prompt through stdin, answer from stdout).</summary>
 public sealed class CliAgentProvider : IAiProvider
 {
+    public bool SupportsImages => true;
     private readonly CliTool _tool;
     private readonly string? _override;
     private readonly TimeSpan _timeout;

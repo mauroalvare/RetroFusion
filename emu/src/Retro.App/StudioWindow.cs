@@ -20,7 +20,7 @@ public sealed class StudioWindow
     private static readonly Vector4 Red = new(1, 0.5f, 0.4f, 1);
     private static readonly string[] SlotNames = { "a", "b", "c" };
 
-    private sealed record ManualStep(string Title, string Prompt, Action<string> OnAnswer);
+    private sealed record ManualStep(string Title, string Prompt, Action<string> OnAnswer, string? ReferenceFolder = null);
 
     private readonly EmulatorHost _host;
     private readonly string _romDir;
@@ -52,11 +52,14 @@ public sealed class StudioWindow
     private CancellationTokenSource? _cts;
     private Task<List<GameConcept>>? _conceptTask;
     private Task<DesignOutcome>? _designTask;
+    private Task<OriginalReferences>? _referenceTask;
+    private Action<OriginalReferences>? _afterReferences;
     private Task<(StudioGame game, ValidationReport report)>? _validateTask;
     private Action<StudioGame, ValidationReport>? _afterValidate;
     private Task<StudioSession>? _startTask;
     private StudioGame? _starting;
     private ManualStep? _manual;
+    private bool _scrollToManual;
     private string _pasted = "";
     private string? _agentDir;
     private StudioGame? _agentTemplate;
@@ -124,7 +127,7 @@ public sealed class StudioWindow
     private List<RecipeGame> Slots() =>
         _chosen.Select((id, i) => new RecipeGame { Slot = SlotNames[i], Profile = id }).ToList();
 
-    private bool Busy => _prepareTask != null || _conceptTask != null || _designTask != null || _validateTask != null || _startTask != null;
+    private bool Busy => _prepareTask != null || _conceptTask != null || _designTask != null || _referenceTask != null || _validateTask != null || _startTask != null;
 
     // ------------------------------------------------------------------ drawing
     private float? _panelLeft;
@@ -505,7 +508,7 @@ public sealed class StudioWindow
             ImGui.TextWrapped(_progress);
             ImGui.PopStyleColor();
         }
-        if (_cts != null && (_conceptTask != null || _designTask != null))
+        if (_cts != null && (_conceptTask != null || _designTask != null || _referenceTask != null))
         {
             if (ImGui.SmallButton("Cancelar"))
                 _cts.Cancel();
@@ -526,6 +529,13 @@ public sealed class StudioWindow
         {
             ImGui.Separator();
             ImGui.TextColored(Gold, m.Title);
+            if (_scrollToManual) { ImGui.SetScrollHereY(0.15f); _scrollToManual = false; }
+            if (m.ReferenceFolder != null)
+            {
+                if (ImGui.SmallButton("Ver capturas originales"))
+                    Process.Start(new ProcessStartInfo { FileName = m.ReferenceFolder, UseShellExecute = true });
+                AiPicker.Hint("Adjuntalas a tu chat si admite imágenes.");
+            }
             if (ImGui.Button("1. Copiar la consigna"))
             {
                 ImGui.SetClipboardText(m.Prompt);
@@ -635,6 +645,7 @@ public sealed class StudioWindow
     private void Write(GameConcept concept)
     {
         ClearProblem();
+        _manual = null;
         var slots = Slots();
         concept = concept with { Direction = concept.Direction ?? SelectedDirection() };
         var template = new StudioGame
@@ -650,25 +661,32 @@ public sealed class StudioWindow
             Version = 1,
             Author = AiPicker.ShortName(_ai.Provider),
         };
-        switch (_ai.Provider)
+        string provider = _ai.Provider;
+        var ai = provider is "manual" or "agent" ? null : _ai.CreateProvider();
+        PrepareReferences(template, references => WriteReady(concept, template, provider, ai, references));
+    }
+
+    private void WriteReady(GameConcept concept, StudioGame template, string provider, IAiProvider? ai, OriginalReferences references)
+    {
+        var slots = template.Games;
+        switch (provider)
         {
             case "manual":
                 StartManual("Escribir el juego: pegá la consigna en tu chat de IA",
-                    StudioDesigner.ManualWritePrompt(slots, ProfileLibrary.Find, concept), template, first: true);
+                    StudioDesigner.ManualWritePrompt(slots, ProfileLibrary.Find, concept), template, first: true, references);
                 break;
             case "agent":
-                StartAgent(template, $"Implementá esta unión respetando la dirección elegida.\n\nIdea: {concept.Title} ({concept.Approach})\n{concept.Pitch}\nCómo se juega: {concept.HowToPlay}\nDiseño: {concept.Design}", first: true);
+                StartAgent(template, $"Implementá esta unión respetando la dirección elegida.\n\nIdea: {concept.Title} ({concept.Approach})\n{concept.Pitch}\nCómo se juega: {concept.HowToPlay}\nDiseño: {concept.Design}", first: true, references);
                 break;
             default:
             {
-                var ai = _ai.CreateProvider()!;
                 _cts = new CancellationTokenSource();
                 var token = _cts.Token;
                 var sources = Sources();
-                _progress = $"{ai.Name} está escribiendo el juego...";
+                _progress = $"{ai!.Name} está escribiendo el juego...";
                 _build.Start(ai);
                 _designTask = Task.Run(() => new StudioDesigner().WriteAsync(ai, slots, ProfileLibrary.Find, concept,
-                    game => StudioValidator.Run(game, sources, _romDir), token, p => _progress = p));
+                    game => StudioValidator.Run(game, sources, _romDir), token, p => _progress = p, references));
                 break;
             }
         }
@@ -682,33 +700,57 @@ public sealed class StudioWindow
         template.Request = request;
         template.Author = AiPicker.ShortName(_ai.Provider);
         template.Created = DateTime.Now;
-        switch (_ai.Provider)
+        string provider = _ai.Provider;
+        var ai = provider is "manual" or "agent" ? null : _ai.CreateProvider();
+        PrepareReferences(template, references => ReviseReady(current, request, template, provider, ai, references));
+    }
+
+    private void ReviseReady(StudioGame current, string request, StudioGame template, string provider, IAiProvider? ai, OriginalReferences references)
+    {
+        switch (provider)
         {
             case "manual":
                 StartManual("Versión nueva: pegá la consigna en tu chat de IA",
-                    StudioDesigner.ManualRevisePrompt(current, ProfileLibrary.Find, request), template, first: false);
+                    StudioDesigner.ManualRevisePrompt(current, ProfileLibrary.Find, request), template, first: false, references);
                 break;
             case "agent":
-                StartAgent(template, $"El jugador probó la versión {current.Version} (está en juego.js) y pide:\n\n\"{request}\"\n\nHacé la versión siguiente.", first: false);
+                StartAgent(template, $"El jugador probó la versión {current.Version} (está en juego.js) y pide:\n\n\"{request}\"\n\nHacé la versión siguiente.", first: false, references);
                 break;
             default:
             {
-                var ai = _ai.CreateProvider()!;
                 _cts = new CancellationTokenSource();
                 var token = _cts.Token;
                 var sources = Sources();
-                _progress = $"{ai.Name} está preparando la corrección...";
+                _progress = $"{ai!.Name} está preparando la corrección...";
                 _build.Start(ai);
                 _designTask = Task.Run(() => new StudioDesigner().ReviseAsync(ai, current, ProfileLibrary.Find, request,
-                    game => StudioValidator.Run(game, sources, _romDir), token, p => _progress = p));
+                    game => StudioValidator.Run(game, sources, _romDir), token, p => _progress = p, references));
                 break;
             }
         }
         _request = "";
     }
 
-    private void StartManual(string title, string prompt, StudioGame template, bool first)
+    private void PrepareReferences(StudioGame game, Action<OriginalReferences> ready)
     {
+        var sources = Sources();
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+        _progress = "Preparando referencias de los originales...";
+        _afterReferences = ready;
+        _referenceTask = Task.Run(() => OriginalReferences.Build(game, sources, _romDir, token), token);
+    }
+
+    private void StartManual(string title, string prompt, StudioGame template, bool first, OriginalReferences? references = null)
+    {
+        string? referenceFolder = null;
+        if (references != null)
+        {
+            referenceFolder = Path.Combine(StudioWorkspace.Root, "manual", Guid.NewGuid().ToString("N"));
+            references.WriteTo(referenceFolder);
+            prompt += "\n\n" + references.Describe(template.BaseSlot, true) +
+                "\nLas capturas deben adjuntarse al chat; que figure su nombre no significa que se hayan adjuntado. Si faltan, no afirmes haberlas visto.";
+        }
         var current = template;
         void OnAnswer(string answer)
         {
@@ -724,21 +766,23 @@ public sealed class StudioWindow
                 {
                     Problem("El juego todavía falla: copiá la consigna de corrección y pegásela a tu IA.", report);
                     _manual = new ManualStep("Corregir: pegale esto a tu IA",
-                        prompt + "\n\n" + StudioDesigner.ManualFixPrompt(report, g), OnAnswer);
+                        prompt + "\n\n" + StudioDesigner.ManualFixPrompt(report, g), OnAnswer, referenceFolder);
+                    _scrollToManual = true;
                 }
             });
         }
-        _manual = new ManualStep(title, prompt, OnAnswer);
+        _manual = new ManualStep(title, prompt, OnAnswer, referenceFolder);
+        _scrollToManual = true;
         _progress = "";
     }
 
-    private void StartAgent(StudioGame template, string task, bool first)
+    private void StartAgent(StudioGame template, string task, bool first, OriginalReferences? references = null)
     {
         if (first)
             template.Id = StudioLibrary.UniqueId(string.IsNullOrWhiteSpace(template.Id) ? "juego-nuevo" : template.Id);
         string? cli = FindCli();
         string? hint = cli != null ? $"\"{cli}\" studio juego.js --games \"{_folder}\" --shots prueba" : null;
-        _agentDir = StudioWorkspace.Create(template, task, ProfileLibrary.Find, hint);
+        _agentDir = StudioWorkspace.Create(template, task, ProfileLibrary.Find, hint, references: references);
         _agentTemplate = template;
         _agentSeen = File.GetLastWriteTimeUtc(Path.Combine(_agentDir, StudioWorkspace.ScriptFile));
         _progress = "Esperando que tu agente escriba juego.js...";
@@ -788,6 +832,14 @@ public sealed class StudioWindow
     // ------------------------------------------------------------------ background work
     private void Poll()
     {
+        if (_referenceTask is { IsCompleted: true } rt)
+        {
+            _referenceTask = null;
+            var ready = _afterReferences; _afterReferences = null;
+            if (rt.IsCanceled || _cts?.IsCancellationRequested == true) _progress = "Preparación cancelada.";
+            else if (rt.IsFaulted) Problem(Failure(rt.Exception));
+            else ready?.Invoke(rt.Result);
+        }
         if (_prepareTask is { IsCompleted: true } pt)
         {
             _prepareTask = null;

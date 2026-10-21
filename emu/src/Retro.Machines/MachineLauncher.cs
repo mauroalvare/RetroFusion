@@ -84,12 +84,13 @@ public static class MachineLauncher
     /// block stops it (multiload games keep their next levels after it; the ROM starts the
     /// tape again when the game asks for them). Returns the frames it took.
     /// </summary>
-    public static int LoadTape(Spectrum48 zx, int maxFrames = 30000)
+    public static int LoadTape(Spectrum48 zx, int maxFrames = 30000, CancellationToken ct = default)
     {
         var sink = new short[8192];
         int frames = 0;
         for (; frames < 150; frames++)
         {
+            ct.ThrowIfCancellationRequested();
             zx.RunFrame(null);
             zx.DrainAudio(sink);
         }
@@ -98,6 +99,7 @@ public static class MachineLauncher
         int stoppedFor = 0;
         while (frames < maxFrames && !zx.Tape.AtEnd)
         {
+            ct.ThrowIfCancellationRequested();
             zx.RunFrame(null);
             zx.DrainAudio(sink);
             frames++;

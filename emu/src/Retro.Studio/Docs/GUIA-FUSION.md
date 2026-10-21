@@ -67,13 +67,19 @@ una pantalla de título, tarjetas ni un HUD universal que tape o reemplace los s
 
 ## 5. Escenario reconocible y controles claros
 
-- En modo base podés conservar su imagen nativa con `screen.base(games.<base>)` al principio
-  de draw(), o reconstruir fielmente sus escenarios mediante tiles, mapas y ayudas verificadas.
+- En modo base el motor conserva la imagen original; `screen.base(games.<base>)` permite
+  reponerla dentro de draw(). Para ampliar mapas necesitás el formato y los cambios de
+  memoria verificados del original, manteniendo su motor. Una reconstrucción con otra
+  escena corresponde al modo libre; no la uses para evadir datos que faltan.
   Los añadidos usan sus coordenadas, escala, límites y colisiones. No son otra ventana jugable.
 - En reinterpretación libre dibujá la escena elegida con sprites, tiles y datos originales.
 - Para personajes o tiles con varios colores, `g.capture` conserva un recorte pequeño
   verificado de la imagen nativa. Guardalo y reutilizalo; los límites impiden capturar
   una pantalla entera. No reemplaza analizar posiciones, movimiento ni colisiones.
+- En modo base el motor compone la imagen original antes de `draw()`. Agregá los aportes
+  sobre ella, sin borrarla con `screen.clear` ni cambiar su resolución. La creación libre
+  permite una escena distinta. Los datos ausentes de mapas o personajes no autorizan a
+  sustituir el original por una versión genérica más fácil de programar.
 - `screen.game` sigue retirado. No pegues pantallas completas de aportantes, miniaturas
   ni mosaicos con `g.pixel`; esa función sirve para observar, no para copiar cuadros.
 - Mantené legibles el espacio, las amenazas y los elementos interactivos. No hay una

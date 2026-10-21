@@ -17,7 +17,7 @@ public static class StudioWorkspace
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "RetroEmu", "agente-juegos");
 
     /// <summary>Creates the folder for a new game (from a concept or the player's idea) or a new version of one.</summary>
-    public static string Create(StudioGame game, string task, Func<string, GameProfile?> find, string? cliHint, string? folder = null)
+    public static string Create(StudioGame game, string task, Func<string, GameProfile?> find, string? cliHint, string? folder = null, OriginalReferences? references = null)
     {
         string dir = folder ?? Path.Combine(Root, string.IsNullOrWhiteSpace(game.Id) ? "juego" : game.Id);
         Directory.CreateDirectory(dir);
@@ -27,6 +27,11 @@ public static class StudioWorkspace
         File.WriteAllText(Path.Combine(dir, "JUEGOS.md"), "# Los juegos de esta fusión\n\n" + StudioDesigner.GamesText(game.Games, find));
         File.WriteAllText(Path.Combine(dir, GameFile), game.ToJson());
         File.WriteAllText(Path.Combine(dir, ScriptFile), game.Script);
+        if (references != null)
+        {
+            references.WriteTo(dir);
+            File.WriteAllText(Path.Combine(dir, "ORIGINALES.md"), references.Describe(game.BaseSlot, true));
+        }
         File.Delete(Path.Combine(dir, ReportFile));
         string test = cliHint != null
             ? $"Probalo vos mismo cuando quieras con:\n\n    {cliHint}\n\n  Imprime el informe de los robots y guarda capturas (prueba_titulo.png, prueba_jugando_8s.png, ...). Miralas."
@@ -48,6 +53,7 @@ public static class StudioWorkspace
 
             1. Leé `{Retro.Ai.GameDesignGuide.FileName}` (diseño y calidad), `GUIA-FUSION.md`
                (unión mecánica), `API.md` (capacidades del guion) y `JUEGOS.md` (datos de los originales).
+               {(references != null ? "Revisá ORIGINALES.md y las capturas original-*.png si podés ver imágenes. Compará identidad, mapas e interfaz; no deduzcas direcciones de memoria de una captura." : "")}
             2. Diseñá una regla inseparable: quitar cualquier original debe cambiar una decisión
                central. Compará las variantes anteriores incluidas en la tarea. No partas de un
                guion de ejemplo para recolorearlo ni inventes datos ausentes de los perfiles.

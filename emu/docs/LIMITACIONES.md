@@ -25,6 +25,11 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 - Preparar puede identificar variables; no certifica que se puedan reemplazar personajes,
   editar mapas o transferir cualquier regla. Una lectura de un sprite o el envío de
   controles al segundo original tampoco demuestra una integración mecánica.
+- Las referencias muestran el resultado del arranque configurado, que puede incluir una
+  intro si el perfil está incompleto. No deducen automáticamente los mapas ni las reglas.
+  Las CLI que admiten imágenes pueden leer los PNG; las API directas actuales solo reciben
+  tamaño/paleta. En copia manual hay que adjuntar las imágenes al chat. La visión depende
+  también del modelo elegido; el nombre de un archivo no prueba que la IA lo haya visto.
 
 ## Máquinas
 
@@ -157,7 +162,9 @@ arreglar algo, se borra la entrada y se menciona en el commit.
   conserva un original base; `screen.base` solo admite su ranura declarada. La opción
   libre conserva el dibujo por sprites/tiles. `screen.game` sigue fallando, incluso con
   catch, y no se permite pegar otra pantalla completa. Estas restricciones no detectan
-  similitud visual ni certifican integración mecánica. Mantener o ampliar mapas necesita
+  identidad completa ni certifican integración mecánica. Algunas comparaciones de imagen
+  detectan borrado general o una copia casi exacta de otro original; son un filtro técnico.
+  Mantener o ampliar mapas necesita
   sus formatos y datos verificados; elegir una ROM no equivale a conocerlos.
 - Pac-Man en la Mina dejó de incluirse: usaba la pantalla entera de Pac-Man. Rehacerlo exige
   extraer el laberinto y los gráficos del VIC y diseñar reglas propias; se priorizó el modelo

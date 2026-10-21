@@ -231,3 +231,38 @@ Los límites se verifican en el host, también si el guion captura la excepción
 habilita otra pantalla completa. Capturar un personaje no demuestra conocer sus reglas;
 el perfil básico deja de prometer fusiones por controles compartidos y vistas. La prueba
 de calidad sigue requiriendo observar consecuencias mecánicas y jugar, además del robot.
+
+## D-024 Referencias de las ediciones y arranque cancelable (2026-10-21)
+
+OriginalReferences observa las máquinas originales después del arranque configurado,
+sin ejecutar el guion propuesto. Conserva área activa, colores y una identidad de contenido
+que incluye perfil/medios/firmware. Los datos del perfil siguen siendo la fuente de las
+direcciones y reglas verificadas; una imagen no permite inventarlas.
+
+IAiProvider añade SupportsImages con valor predeterminado false; las CLI usan las vías
+de imágenes que ya tenían. Escritura y revisión reciben referencias opcionales. Si el
+proveedor no admite imágenes, se envían observaciones de tamaño/paleta sin fingir visión.
+Los PNG temporales duran la operación y se liberan ante éxito, fallo o cancelación. Manual
+y carpeta permiten adjuntar/leer archivos portátiles con el papel de cada original.
+
+StudioSession.Start, MachineFactory.Boot y MachineLauncher.LoadTape aceptan un token de
+cancelación opcional. Se comprueba entre pasos y cuadros, se sueltan teclas y no se cachea
+un arranque incompleto. La preparación no bloquea la ventana ni inicia una IA al cancelarla.
+
+## D-025 La sesión compone el original base (2026-10-21)
+
+Declarar una base y pedirlo en el prompt no impedía que el guion dibujara un tercer juego.
+Ahora StudioSession conserva una copia de los metadatos y repone la imagen nativa antes
+de draw(). El guion agrega los aportes. Se rechazan screen.clear durante draw y tamaños
+distintos del nativo, aunque JavaScript capture la excepción. Las creaciones libres y
+los juegos guardados sin baseSlot, incluido Manic Invaders, conservan su funcionamiento.
+
+El validador revisa una vez por segundo la imagen: una copia casi exacta de otra pantalla
+o el borrado general de la base debe sostenerse tres observaciones para fallar. Se
+consideran coincidencias de color y geometría de primer plano; una variación de paleta
+que conserva el dibujo no equivale a borrarlo. Es un filtro contra sustituciones claras,
+no una prueba universal de fidelidad ni una certificación de unión mecánica.
+
+En paralelo se corrige una inferencia de dificultad: ensayos de menos de seis segundos
+sin muertes tomaban su duración como primera muerte. Solo se juzga el promedio cuando
+los robots activos registraron realmente una primera muerte.
