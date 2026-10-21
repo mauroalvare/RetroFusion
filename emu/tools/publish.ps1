@@ -5,7 +5,7 @@ param(
     [ValidatePattern('^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$')]
     [string[]]$Runtimes = @("win-x64", "linux-x64"),
     [ValidatePattern('^\d+\.\d+\.\d+$')]
-    [string]$Version = "0.1.2"
+    [string]$Version = "0.1.3"
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
