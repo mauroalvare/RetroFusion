@@ -25,6 +25,8 @@ public sealed class StudioGame
     /// <summary>Mechanic link, distinct rule, decisions, progression and presentation; see Docs/GUIA-FUSION.md.</summary>
     public string Design { get; set; } = "";
     public List<RecipeGame> Games { get; set; } = new();
+    /// <summary>Original whose world and presentation are retained; null preserves legacy free reinterpretations.</summary>
+    public string? BaseSlot { get; set; }
     public string Script { get; set; } = "";
     public int Version { get; set; } = 1;
     /// <summary>What the player asked for to get this version (null for the first one).</summary>
@@ -49,6 +51,8 @@ public sealed class StudioGame
         game.Games ??= new();
         if (game.Games.Any(g => g == null || string.IsNullOrWhiteSpace(g.Slot) || string.IsNullOrWhiteSpace(g.Profile)))
             throw new InvalidDataException("La lista de originales contiene un juego incompleto.");
+        if (game.BaseSlot != null && !game.Games.Any(g => g.Slot == game.BaseSlot))
+            throw new InvalidDataException("El juego base no pertenece a los originales de esta fusión.");
         return game;
     }
 
@@ -60,7 +64,21 @@ public sealed class StudioGame
 }
 
 /// <summary>An idea the AI proposes before writing any code.</summary>
-public sealed record GameConcept(string Title, string Approach, string Pitch, string HowToPlay, string Design = "");
+public sealed record GameConcept(string Title, string Approach, string Pitch, string HowToPlay, string Design = "", FusionDirection? Direction = null);
+
+/// <summary>The player's direction, independent of whatever the model writes in its answer.</summary>
+public sealed record FusionDirection(string? BaseSlot = null, bool Reimagine = false)
+{
+    public string? Resolve(IReadOnlyList<RecipeGame> slots)
+    {
+        if (Reimagine) return null;
+        string? selected = BaseSlot ?? slots.FirstOrDefault()?.Slot;
+        if (selected == null || !slots.Any(s => s.Slot == selected))
+            throw new ArgumentException("Elegí un juego base entre los originales seleccionados.");
+        return selected;
+    }
+    public static FusionDirection From(StudioGame game) => new(game.BaseSlot, game.BaseSlot == null);
+}
 
 /// <summary>Built-in fusion games plus the ones the player made (every version on disk).</summary>
 public static class StudioLibrary

@@ -56,6 +56,14 @@ public sealed class Canvas
 
     public void Clear(int rgb) => Array.Fill(Frame.Pixels, Opaque(rgb));
 
+    /// <summary>Native base image, cropped to its active display without resampling or recolouring.</summary>
+    internal void BaseFrame(VideoFrame source, int x, int y, int width, int height)
+    {
+        Resize(width, height);
+        for (int row = 0; row < height; row++)
+            Array.Copy(source.Pixels, (y + row) * source.Width + x, Frame.Pixels, row * width, width);
+    }
+
     public void Rect(double x, double y, double w, double h, int rgb, double alpha)
     {
         int x0 = (int)Math.Floor(x), y0 = (int)Math.Floor(y);

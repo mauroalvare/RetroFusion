@@ -91,7 +91,8 @@ public static class StudioValidator
                     // A script cannot hide the violation by catching the JavaScript error.
                     if (s.SceneViolation)
                     {
-                        if (!problems.Contains(OwnSceneMessage)) problems.Add(OwnSceneMessage);
+                        string message = s.SceneProblem ?? OwnSceneMessage;
+                        if (!problems.Contains(message)) problems.Add(message);
                         return false;
                     }
                     if (s.Error != null)
@@ -99,12 +100,12 @@ public static class StudioValidator
                 }
                 return true;
             }
-            void Inputs(bool left = false, bool right = false, bool up = false, bool fire = false, bool jump = false, bool start = false)
+            void Inputs(bool left = false, bool right = false, bool up = false, bool fire = false, bool jump = false, bool start = false, bool down = false)
             {
                 s.SetInput("left", left);
                 s.SetInput("right", right);
                 s.SetInput("up", up);
-                s.SetInput("down", false);
+                s.SetInput("down", down);
                 s.SetInput("fire", fire);
                 s.SetInput("jump", jump);
                 s.SetInput("start", start);
@@ -119,13 +120,14 @@ public static class StudioValidator
                 titleChecked = true;
                 if (!s.ReportsState)
                     problems.Add("El guion no informa en qué parte está: llamá a game.state('title') en la pantalla de título, game.state('playing') al jugar y game.state('gameover') al terminar.");
-                else if (s.State != "title")
+                else if (s.State != "title" && !(s.Game.BaseSlot != null && s.State == "playing"))
                     problems.Add($"Al arrancar no hay pantalla de título (estado \"{s.State}\"): el juego tiene que empezar mostrando el título, el objetivo y los controles, con los juegos en pausa, hasta que el jugador apriete start, Espacio o disparo.");
                 shots.Add(("titulo", Clone(s.Video)));
             }
 
             // 2. start the game
-            Inputs(fire: true, jump: true, start: true);
+            bool needsStart = s.State != "playing";
+            Inputs(fire: needsStart, jump: needsStart, start: needsStart);
             if (!Step(4)) { error = s.Error; break; }
             Inputs();
             int waited = 0;
@@ -148,7 +150,7 @@ public static class StudioValidator
             int playTicks = 0;
             int[]? lastFrame = null;
             int sameFrames = 0, frameChecks = 0;
-            int dir = 0, hold = 0, jumpHold = 0, fireHold = 0;
+            int dir = 0, vertical = 0, hold = 0, jumpHold = 0, fireHold = 0;
             while (playTicks < secondsPerRobot * Tps)
             {
                 switch (strategy)
@@ -157,10 +159,11 @@ public static class StudioValidator
                         Inputs();
                         break;
                     case Strategy.Wanderer:
-                        if (--hold <= 0) { dir = rng.Next(3) - 1; hold = 30 + rng.Next(60); }
+                        if (--hold <= 0) { dir = rng.Next(3) - 1; if (s.Game.BaseSlot != null) vertical = rng.Next(3) - 1; hold = 30 + rng.Next(60); }
                         if (jumpHold > 0) jumpHold--; else if (rng.Next(40) == 0) jumpHold = 6;
                         if (fireHold > 0) fireHold--; else if (rng.Next(25) == 0) fireHold = 3;
-                        Inputs(left: dir < 0, right: dir > 0, up: jumpHold > 0, jump: jumpHold > 0, fire: fireHold > 0);
+                        Inputs(left: dir < 0, right: dir > 0, up: s.Game.BaseSlot != null ? vertical < 0 : jumpHold > 0,
+                            down: s.Game.BaseSlot != null && vertical > 0, jump: jumpHold > 0, fire: fireHold > 0);
                         break;
                     default:
                         if (--hold <= 0) { dir = dir > 0 ? -1 : 1; hold = 50 + rng.Next(40); }
@@ -221,11 +224,19 @@ public static class StudioValidator
                 problems.Add("La pantalla quedó de un solo color mientras se jugaba: draw() no dibuja nada visible.");
             if (frozen)
                 problems.Add("La imagen no cambia mientras se juega: ¿los juegos quedaron en pausa o draw() dibuja siempre lo mismo?");
-            if (!s.ReportsScore)
+            if (!s.ReportsScore && s.Game.BaseSlot == null)
                 problems.Add("El guion nunca llamó a game.score(puntos): informá los puntos cada vez que el jugador los gana.");
             var active = robots.Where(r => r.Name != "quieto").ToList();
-            if (s.ReportsScore && active.Count > 0 && active.All(r => r.Score == 0))
+            if (s.ReportsScore && active.Count > 0 && active.All(r => r.Score == 0) && s.Game.BaseSlot == null)
                 problems.Add($"Ningún robot pudo sumar puntos en {secondsPerRobot} segundos (el tirador dispara sin parar y se mueve de lado a lado): revisá que los disparos, los choques o el objetivo funcionen y que no sea imposible.");
+            if (s.Game.BaseSlot != null)
+            {
+                foreach (var donor in s.Game.Games.Where(g => g.Slot != s.Game.BaseSlot && !s.ReferencedSlots.Contains(g.Slot)))
+                    problems.Add($"El guion no usa datos, recursos ni controles de games.{donor.Slot}: falta integrar ese original en las reglas del juego base.");
+                if (!s.ReportsScore || active.All(r => r.Score == 0))
+                    notes.Add("No se observó puntaje en esta prueba. Comprobá los objetivos y el progreso del juego base; no agregues puntos ni un menú artificial para conformar al robot.");
+                notes.Add("La prueba técnica no certifica que se hayan conservado los mapas, la estética ni una interacción mecánica real: hay que comparar capturas y jugar la fusión.");
+            }
             if (active.Count > 0)
             {
                 double avg = active.Average(r => r.FirstDeathSeconds ?? r.PlayedSeconds);

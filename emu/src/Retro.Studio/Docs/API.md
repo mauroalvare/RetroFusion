@@ -61,6 +61,7 @@ Todo se dibuja de nuevo en cada `draw()`. Colores 0xRRGGBB.
 |---|---|
 | `screen.size(ancho, alto)` | Tamaño de la pantalla del juego fusionado (en `init`; por defecto 256x192, máximo 640x480). |
 | `screen.width`, `screen.height` | Tamaño actual. |
+| `screen.base(g)` | Dibuja la imagen nativa del único original elegido en `baseSlot`, sin borde ni cambio de paleta o resolución. Llamalo primero en `draw()` e integrá después los elementos del otro juego. No admite un segundo original ni funciona en reinterpretaciones libres. Las coordenadas quedan relativas al área activa del base. |
 | `screen.clear(color)` | Pinta todo. |
 | `screen.sprite(s, x, y, color, {scale, flip, alpha})` | Dibuja un sprite (1 bit) en un color. `flip` lo espeja. |
 | `screen.spriteSize(s)` | `{w, h}` del sprite. |
@@ -74,6 +75,9 @@ Todo se dibuja de nuevo en cada `draw()`. Colores 0xRRGGBB.
 Estos estados son instrumentación: no obligan a usar el mismo menú, carteles, HUD o
 estructura de niveles en todas las fusiones. Una introducción puede estar integrada en
 el mundo; un nivel puede representar una ronda o fase sin una tarjeta de transición.
+Con `baseSlot` declarado podés empezar directamente con `game.state('playing')` y
+conservar el arranque y la interfaz del original. No agregues un título ni puntaje
+artificial para pasar la prueba. Informá los puntos y objetivos reales cuando existan.
 
 La prueba automática y la ventana del emulador necesitan saber qué pasa en el juego:
 
@@ -126,6 +130,7 @@ perfil o `peek`. Manic Invaders es el modelo técnico: reconstruye las cavernas 
 en ellas los sprites y las reglas de los dos juegos.
 
 `screen.game` se retiró: no dibuja nada y hace fallar la prueba automática con un mensaje
-para corregir el guion. No uses pantallas completas, recortes, miniaturas ni mosaicos de
+para corregir el guion. La única imagen original completa permitida es la base declarada,
+mediante `screen.base(g)`. No uses otras pantallas completas, recortes, miniaturas ni mosaicos de
 capturas para reconstruir los originales. `g.pixel` sirve para observar el estado del
 juego, no para copiar su pantalla píxel por píxel.

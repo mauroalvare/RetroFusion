@@ -196,3 +196,24 @@ de modelo en la UI limpia el esfuerzo anterior. CliAgentProvider pasa --effort o
 opción model_reasoning_effort a Codex. SessionModel no hereda un esfuerzo de otro modelo.
 Los catálogos se refrescan al volver a abrir la configuración y por pedido explícito;
 consultarlos no equivale a comprobar una generación ni garantiza cuota disponible.
+
+## D-022 Fusión dirigida por un original base (2026-10-21)
+
+El pedido nuevo del usuario prioriza conservar mapas, estética, interfaz y reglas de
+un original y transferir mecánicas del otro. Esto matiza D-016: una única imagen nativa
+es válida si corresponde a la base elegida; pegar pantallas completas secundarias sigue
+prohibido. SkyCraft es una referencia de integración entre motores y Manic Invaders de
+aprovechamiento de originales, no plantillas visuales ni código que se importe.
+
+StudioGame añade baseSlot opcional; su ausencia conserva el comportamiento de los
+juegos guardados. FusionDirection conserva la elección del jugador fuera de la respuesta
+de IA. screen.base solo dibuja el original declarado, a resolución y paleta nativas y
+sin bordes. Un intento con otro original queda registrado aunque el guion capture el error.
+screen.game sigue rechazado. El guion puede conservar escenarios mediante los datos y
+ayudas verificadas del original, sin inventar mapas ni direcciones.
+
+El validador permite inicio jugando y no exige puntaje artificial en modo base. Comprueba
+que se consulten datos/recursos/controles de los aportantes; eso no demuestra integración
+mecánica ni fidelidad visual por sí solo. Las notas exigen contrastar capturas y jugar.
+La exploración del robot contempla arriba/abajo en este modo. La reinterpretación libre
+mantiene el contrato anterior y queda como alternativa explícita.

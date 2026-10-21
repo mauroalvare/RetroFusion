@@ -30,7 +30,11 @@ public sealed class ScriptHost
     public int AreaW(string id) => StudioSession.PictureArea(S(id).Slot.Machine).w;
     public int AreaH(string id) => StudioSession.PictureArea(S(id).Slot.Machine).h;
 
-    public int Peek(string id, double address) => S(id).Slot.Machine.Memory.Peek((uint)Num(address) & 0xFFFF);
+    public int Peek(string id, double address)
+    {
+        _session.ReferencedSlots.Add(id);
+        return S(id).Slot.Machine.Memory.Peek((uint)Num(address) & 0xFFFF);
+    }
 
     public void Poke(string id, double address, double value) =>
         S(id).Slot.Machine.Memory.Poke((uint)Num(address) & 0xFFFF, (byte)Num(value));
@@ -41,12 +45,14 @@ public sealed class ScriptHost
 
     public int Get(string id, string name)
     {
+        _session.ReferencedSlots.Add(id);
         var s = S(id);
         return Variable(s, name).Read(s.Slot.Machine.Memory);
     }
 
     public void Set(string id, string name, double value)
     {
+        _session.ReferencedSlots.Add(id);
         var s = S(id);
         var v = Variable(s, name);
         if (v.ReadOnly)
@@ -66,12 +72,14 @@ public sealed class ScriptHost
 
     public void Control(string id, string name, bool down)
     {
+        _session.ReferencedSlots.Add(id);
         var s = S(id);
         s.Slot.Machine.SetKey(KeyFor(s, name), down);
     }
 
     public void Tap(string id, string name, double frames)
     {
+        _session.ReferencedSlots.Add(id);
         var s = S(id);
         s.Slot.Machine.QueueKeys(Math.Clamp(Num(frames), 1, 600), KeyFor(s, name));
     }
@@ -95,6 +103,7 @@ public sealed class ScriptHost
 
     public int Pixel(string id, double x, double y)
     {
+        _session.ReferencedSlots.Add(id);
         var v = S(id).Slot.Machine.Video;
         int px = Num(x), py = Num(y);
         return (uint)px < (uint)v.Width && (uint)py < (uint)v.Height ? v.Pixels[py * v.Width + px] & 0xFFFFFF : 0;
@@ -102,6 +111,7 @@ public sealed class ScriptHost
 
     public int Sprite(string id, string name)
     {
+        _session.ReferencedSlots.Add(id);
         var s = S(id);
         if (!s.Slot.Profile.Sprites.TryGetValue(name, out var def))
             throw new ArgumentException($"{s.Slot.Profile.Name} no tiene el sprite \"{name}\". Tiene: {string.Join(", ", s.Slot.Profile.Sprites.Keys)}.");
@@ -110,6 +120,7 @@ public sealed class ScriptHost
 
     public int SpriteAt(string id, double address, double width, double height, string layout)
     {
+        _session.ReferencedSlots.Add(id);
         var def = new SpriteDef
         {
             Address = (Num(address) & 0xFFFF).ToString("X4"),
@@ -155,6 +166,19 @@ public sealed class ScriptHost
     {
         _session.SceneViolation = true;
         throw new InvalidOperationException(StudioValidator.OwnSceneMessage);
+    }
+
+    public void DrawBase(string id)
+    {
+        if (_session.Game.BaseSlot != id)
+        {
+            _session.SceneViolation = true;
+            _session.SceneProblem = "screen.base solo admite el original elegido como base. Conservá ese mundo e integrá los otros mediante sus sprites, datos y reglas; no pegues sus pantallas completas.";
+            throw new InvalidOperationException(_session.SceneProblem);
+        }
+        var machine = S(id).Slot.Machine;
+        var area = StudioSession.PictureArea(machine);
+        _session.Canvas.BaseFrame(machine.Video, area.x, area.y, area.w, area.h);
     }
 
     // ------------------------------------------------------------------ ui and sound
@@ -217,6 +241,7 @@ public sealed class ScriptHost
             __h.DrawSprite(s, x, y, c === undefined ? 0xFFFFFF : c, o.scale || 1, !!o.flip, o.alpha === undefined ? 1 : o.alpha);
           },
           spriteSize: function (s) { return { w: __h.SpriteW(s), h: __h.SpriteH(s) }; },
+          base: function (g) { __h.DrawBase(typeof g === 'string' ? g : g.id); },
           game: function () { __h.RejectGamePicture(); }
         };
         Object.defineProperty(screen, 'width', { get: function () { return __h.CanvasW(); } });

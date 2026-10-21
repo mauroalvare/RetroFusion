@@ -62,6 +62,8 @@ public sealed class StudioSession : IFusionRun
     public string State { get; private set; } = "";
     public bool ReportsState { get; private set; }
     internal bool SceneViolation { get; set; }
+    internal string? SceneProblem { get; set; }
+    internal HashSet<string> ReferencedSlots { get; } = new();
     public bool ReportsScore { get; private set; }
     public long Score { get; private set; }
     public int Level { get; private set; }
@@ -227,6 +229,8 @@ public sealed class StudioSession : IFusionRun
         ReportsState = false;
         ReportsScore = false;
         SceneViolation = false;
+        SceneProblem = null;
+        ReferencedSlots.Clear();
         _inputMask = 0;
         Score = 0;
         Level = 0;
