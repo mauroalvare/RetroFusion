@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <Using Include="NUnit.Framework" />
+    <None Update="Fixtures\*.js" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="..\..\src\Retro.App\GameLibrary.cs" Link="App\GameLibrary.cs" />
     <Compile Include="..\..\src\Retro.App\ThumbnailFiles.cs" Link="App\ThumbnailFiles.cs" />
     <Compile Include="..\..\src\Retro.App\EmulatorHost.cs" Link="App\EmulatorHost.cs" />

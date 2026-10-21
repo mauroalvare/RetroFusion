@@ -53,9 +53,12 @@
   "verified": "Vidas $001A comprobadas escribiendo valores y observando la siguiente muerte. Posición corregida: el sprite 4 del VIC sigue a Pac-Man; X usa $D008 y el bit 4 de $D010, Y usa $D009. Se contrastaron cuatro direcciones con registros e imagen de la edición SHA-256 1f743c4874a521d116d9d45f8401b36655339b8244d61ac1948059cd4561eee6. La antigua $003C cambiaba al caminar pero no representaba X; el informe histórico del laboratorio no constituye esa verificación.",
   "sprites": {},
   "helpers": [
-    "g.pacman = function () { var sx = g.get('x'), sy = g.get('y'); return { x: sx - 24, y: sy - 50, w: (g.peek(0xD01D) & 16) ? 48 : 24, h: (g.peek(0xD017) & 16) ? 42 : 21, visible: (g.peek(0xD015) & 16) !== 0 }; };"
+    "g.actor = function (n) { if (n < 0 || n > 4 || n !== Math.floor(n)) throw new Error('actor: usar 0..3 para fantasmas o 4 para Pac-Man'); var bit = 1 << n; return { index: n, x: g.peek(0xD000 + n * 2) + ((g.peek(0xD010) & bit) ? 256 : 0) - 24, y: g.peek(0xD001 + n * 2) - 50, w: (g.peek(0xD01D) & bit) ? 48 : 24, h: (g.peek(0xD017) & bit) ? 42 : 21, color: g.peek(0xD027 + n) & 15, visible: (g.peek(0xD015) & bit) !== 0 }; };",
+    "g.pacman = function () { return g.actor(4); };",
+    "g.ghosts = function () { return [0, 1, 2, 3].map(function (n) { return g.actor(n); }); };"
   ],
   "helpersDoc": [
-    "pacman(): caja completa del sprite de Pac-Man en la imagen activa del C64 (sin borde), con expansión X/Y y visibilidad. Incluye píxeles transparentes: no es una caja de impacto. Se comprobó siguiendo controles e imagen de esta edición. No escribir estas coordenadas para moverlo: usar los controles."
+    "pacman(): caja completa del sprite de Pac-Man en la imagen activa del C64 (sin borde), con expansión X/Y y visibilidad. Incluye píxeles transparentes: no es una caja de impacto. Se comprobó siguiendo controles e imagen de esta edición. No escribir estas coordenadas para moverlo: usar los controles.",
+    "ghosts(): cuatro cajas gráficas con index 0..3, x/y/w/h, color (índice de paleta C64) y visible. actor(n) devuelve una de ellas o Pac-Man (4). Son registros VIC comprobados en esta edición; no revelan objetivos, miedo, colisiones ni reglas de movimiento de los fantasmas. Para extraer un recurso con capture, identificar primero el cuerpo visible y respetar el máximo 32x32, sin capturar cada cuadro."
   ]
 }

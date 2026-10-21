@@ -54,6 +54,10 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 - Preparar puede identificar variables; no certifica que se puedan reemplazar personajes,
   editar mapas o transferir cualquier regla. Una lectura de un sprite o el envío de
   controles al segundo original tampoco demuestra una integración mecánica.
+- Los casos manuales de [PRUEBAS-FUSION.md](PRUEBAS-FUSION.md) comprueban mecánicas,
+  memoria e imagen con ambas bases y otro aportante; no son campañas terminadas ni
+  generaciones nuevas de IA. Siguen pendientes las comparaciones creativas con varios
+  modelos y más datos de mapas/reglas para algunas fusiones de Spy vs Spy y Pac-Man.
 - Las referencias muestran el resultado del arranque configurado, que puede incluir una
   intro si el perfil está incompleto. No deducen automáticamente los mapas ni las reglas.
   Las CLI que admiten imágenes pueden leer los PNG; las API directas actuales solo reciben

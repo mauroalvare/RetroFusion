@@ -417,6 +417,9 @@ Un juego fusionado conecta los originales en una sola escena mediante su guion:
   arcade) y `helpers` (funciones en JavaScript como `g.aliens()` o `g.willy()` que traducen
   la memoria del juego a posiciones en pantalla, verificadas con capturas). La IA usa las
   ayudas en vez de adivinar direcciones.
+  Pac-Man C64 ofrece cajas VIC de personajes; Invaders, muerte nativa del cañón sin
+  simular una pérdida de reserva. Los casos mecánicos y sus límites están en
+  [PRUEBAS-FUSION.md](PRUEBAS-FUSION.md); los fixtures no se envían como plantilla a la IA.
 - **`Canvas`** dibuja máscaras de 1 bit, recursos pequeños con colores nativos, rectángulos,
   líneas y texto con la letra de la ROM del Spectrum. `screen.base` conserva únicamente la imagen nativa declarada, a escala
   y paleta originales, sin el borde de la máquina. `screen.game` sigue rechazado y también

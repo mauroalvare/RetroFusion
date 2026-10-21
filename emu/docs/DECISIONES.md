@@ -441,3 +441,20 @@ Al escribir conserva los otros bits de ese registro; respeta rango y solo lectur
 Los campos nuevos se omiten cuando no se usan, conservando las huellas de otros perfiles.
 No se modifican los bytes de ROM ni el informe histórico del laboratorio; el perfil y
 la documentación aclaran que aquella hipótesis no era una posición fiable.
+
+## D-034 Ayudas verificadas y evidencia mecánica de fusión (2026-10-21)
+
+El perfil Pac-Man C64 expone actor(0..4), pacman() y ghosts(): registros VIC,
+expansión, color y visibilidad en coordenadas activas. Se comprobaron cuatro cuerpos
+de 122 píxeles del color correspondiente en la edición identificada. Son cajas gráficas,
+no hitboxes ni estados de miedo, objetivos o navegación. No autorizan escribir posiciones.
+
+Invaders agrega hitCannon(): solo escribe el estado de muerte si el cañón está vivo.
+El original sigue encargado de explosión, reserva y reaparición. La prueba conecta el
+agotamiento de un recurso con esa muerte, y contrasta el resultado con disparos reales.
+
+Tres fixtures manuales, fuera de la app y de las instrucciones del diseñador, prueban
+ambas bases y otro aportante, memoria e imagen nativas. PRUEBAS-FUSION.md registra
+alcance y límites. No se usan como plantilla de generación ni se declara calidad de
+IA por aprobarlos. Los cambios de perfil invalidan su caché y un trabajo interrumpido
+con huella anterior exige comprobar sus datos antes de continuar.

@@ -113,15 +113,17 @@ La prueba automática y la ventana del emulador necesitan saber qué pasa en el 
 
 - **Una sola pantalla y un solo objetivo.** No pongas un juego al lado del otro: elegí
   un juego como mundo y traé al otro adentro (sus enemigos, sus disparos, su
-  personaje, sus reglas), o armá una pantalla nueva con piezas de los dos.
+  personaje, sus reglas). La pantalla nueva con piezas de ambos corresponde a creación
+  con originales, no a sustituir la base de una fusión.
 - **Que los juegos originales hagan el trabajo pesado.** Sus enemigos, movimiento,
   colisiones y progresión ya funcionan: usalos y conectalos,
   no los reprogrames.
 - **Convertí coordenadas** entre pantallas con una función (`toWorld(o)`) y usala igual
   para dibujar y para los choques.
 - **Choques justos:** cajas un poco más chicas que el sprite.
-- **Retroalimentación:** mensajes cortos (`ui.message`), sonidos al pegar y al morir, y un
-  `ui.hud` con lo importante.
+- **Retroalimentación:** conservá los indicadores y sonidos nativos que ya explican lo
+  que pasa. Agregá señales solo para información nueva necesaria; `ui.hud` y `ui.message`
+  son opcionales, no una interfaz que deban compartir todas las fusiones.
 - **Fin y revancha:** detectá el fin del juego, mostralo en pantalla y dejá empezar de nuevo
   con start (usá `g.restart()` en cada juego y reiniciá tus variables).
 - **Dificultad:** si algo resulta imposible o aburrido, ajustá velocidades (`g.speed`),
