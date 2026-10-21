@@ -31,6 +31,9 @@ fusionados, vN.png. Las imágenes de la documentación se actualizan desde captu
 inspeccionadas, sin añadir ROMs. El aviso del decodificador está en docs/TERCEROS.md.
 
 El estudio limita la lista de selección a una zona con desplazamiento y búsqueda.
+En **Máquina**, los originales, las fusiones y cada sistema abren su biblioteca con
+un clic. Las listas de juegos no se despliegan al pasar el mouse. **Encender sin juego**
+conserva el inicio de las computadoras sin un medio cargado.
 Las ayudas para jugar están en **Ayuda > Abrir y jugar**, **Controles de la partida**
 y **Atajos**. Los controles corresponden al sistema o a la fusión activos. El README
 del paquete es una guía breve; los contratos para agentes se entregan por separado.

@@ -23,7 +23,6 @@ public sealed class RetroApp
     private readonly HomeScreen _home;
     private bool _pausedBeforeLibrary;
     private bool _advancedTools;
-    private string _originalSearch = "";
     private string? _autoStudio;
     private readonly CodeWindow _code;
     private bool _wasFusion;
@@ -755,9 +754,8 @@ public sealed class RetroApp
     }
 
     /// <summary>
-    /// Machines grouped by CPU. Each one shows what it needs and the games of the user's
-    /// folder that it runs (click to play); planned machines say which of the user's games
-    /// are waiting for them.
+    /// Machine entries open the searchable library on click. Long game lists never
+    /// become cascading hover menus, which can cover their parent in narrow windows.
     /// </summary>
     private void DrawMachineList()
     {
@@ -776,87 +774,45 @@ public sealed class RetroApp
             }
             var games = _library.For(mi.Id).ToList();
             bool current = _host.Info?.Id == mi.Id && _host.Fusion == null;
-            string label = mi.Status == MachineStatus.Available
-                ? $"   {mi.Name}{(games.Count > 0 ? $"  ({games.Count} juego{(games.Count > 1 ? "s" : "")})" : "")}"
-                : $"   {mi.Name} - próximamente{(games.Count > 0 ? $"  (tenés {games.Count} juego{(games.Count > 1 ? "s" : "")} para ella)" : "")}";
+            string label = $"   {mi.Name}" + (games.Count > 0 ? $"  ({games.Count})" : "")
+                + (mi.Status == MachineStatus.Available ? "" : " - próximamente");
             if (current)
                 label += "  <- encendida";
-            if (!ImGui.BeginMenu(label + "##" + mi.Id))
-                continue;
-            if (mi.Needs.Length > 0)
-                ImGui.TextDisabled(mi.Needs);
-            if (mi.Status == MachineStatus.Available)
+            if (ImGui.MenuItem(label + "##" + mi.Id))
             {
-                if (mi.Id is "zx48" or "c64" && ImGui.MenuItem("Encender sin juego"))
+                if (mi.Status == MachineStatus.Available)
+                    _home.ShowMachine(mi.Id);
+                else
+                    _errorPopup = $"{mi.Name} todavía no está implementada. Está en el plan de trabajo.\n" + mi.Needs;
+            }
+            if (ImGui.IsItemHovered() && mi.Needs.Length > 0) ImGui.SetTooltip(mi.Needs);
+        }
+        ImGui.Spacing();
+        if (ImGui.BeginMenu("   Encender sin juego"))
+        {
+            foreach (var id in new[] { "zx48", "c64" })
+            {
+                var mi = MachineCatalog.All.Single(m => m.Id == id);
+                if (ImGui.MenuItem(mi.Name))
                 {
                     try { _home.Close(); _host.Start(mi, _romDir); }
                     catch (Exception e) { _errorPopup = e.Message; }
-                }
-                if (games.Count == 0)
-                    ImGui.TextDisabled(_library.Scanning ? "Buscando juegos en tu carpeta..." : "No encontré juegos para esta máquina en tu carpeta.");
-                else
-                {
-                    ImGui.Separator();
-                    ImGui.TextDisabled("Juegos de tu carpeta (clic para jugar):");
-                    foreach (var g in games)
-                    {
-                        if (g.NotYet != null)
-                            ImGui.TextDisabled($"{g.Name}: {g.NotYet}");
-                        else
-                        {
-                            var fusions = FusionsOf(g.ProfileId);
-                            string tag = fusions.Count > 0 ? "  · también tiene fusión" : "";
-                            if (ImGui.MenuItem(g.Name + tag + "##" + g.Path, "", false, !_library.Scanning))
-                                OpenFile(g.Path);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                ImGui.TextDisabled($"Todavía no está implementada (CPU {mi.Cpu}). Está en el plan de trabajo.");
-                if (games.Count > 0)
-                {
-                    ImGui.Separator();
-                    ImGui.TextDisabled("Estos juegos de tu carpeta la van a usar:");
-                    foreach (var g in games)
-                        ImGui.TextDisabled($"   {g.Name}  ({g.Reason})");
                 }
             }
             ImGui.EndMenu();
         }
         var others = _library.Entries.Where(e => MachineCatalog.All.All(m => m.Id != e.Machine.Id)).ToList();
-        if (others.Count > 0 && ImGui.BeginMenu("   Otras máquinas que piden tus juegos"))
-        {
-            foreach (var g in others)
-                ImGui.TextDisabled($"{g.Name}: {g.Machine.Name} ({g.Machine.Cpu}), {g.Reason}");
-            ImGui.EndMenu();
-        }
+        if (others.Count > 0 && ImGui.MenuItem("   Otros sistemas detectados...")) _home.ShowOriginals();
         ImGui.Spacing();
         if (ImGui.MenuItem(_library.Scanning ? "Buscando juegos..." : "Volver a buscar en la carpeta de juegos", "", false, !_library.Scanning))
             _library.Rescan(_library.Folder);
         ImGui.TextDisabled("Abrir cualquier archivo (Archivo > Abrir) detecta la máquina sola.");
     }
 
-    /// <summary>Original files have their own searchable entry, independent of saved fusions.</summary>
+    /// <summary>Original files open in the existing library, not an unbounded submenu.</summary>
     private void DrawOriginalGames()
     {
-        if (!ImGui.BeginMenu("   Juegos originales##originales")) return;
-        ImGui.SetNextItemWidth(300);
-        ImGui.InputTextWithHint("##buscar-original", "Buscar por nombre", ref _originalSearch, 150);
-        ImGui.Separator();
-        var games = _library.Originals(_originalSearch).ToList();
-        if (games.Count == 0)
-            ImGui.TextDisabled(_library.Scanning ? "Buscando juegos..." : "No encontré originales con ese nombre.");
-        foreach (var g in games)
-        {
-            bool playable = g.NotYet == null && g.Confidence >= 50 && !_library.Scanning;
-            if (ImGui.MenuItem($"{g.Name} ({g.Machine.Name})##original-{g.Path}", "", false, playable))
-                OpenFile(g.Path);
-            if (!playable && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-                ImGui.SetTooltip(g.NotYet ?? g.Reason);
-        }
-        ImGui.EndMenu();
+        if (ImGui.MenuItem("   Juegos originales...##originales")) _home.ShowOriginals();
     }
 
     /// <summary>The newest version of each game made in the AI studio.</summary>
@@ -878,29 +834,7 @@ public sealed class RetroApp
     /// </summary>
     private void DrawFusedGames()
     {
-        var have = _library.Entries.Where(e => e.ProfileId != null).Select(e => e.ProfileId!).ToHashSet();
-        var studio = StudioGames();
-        int ready = studio.Count(s => s.Games.All(g => have.Contains(g.Profile)));
-        if (!ImGui.BeginMenu($"   Juegos fusionados  ({ready} para jugar)##fusionados"))
-            return;
-        string Names(IEnumerable<Retro.Fusion.RecipeGame> games) =>
-            string.Join(" + ", games.Select(g => Retro.Fusion.ProfileLibrary.Find(g.Profile)?.Name ?? g.Profile));
-        string Missing(IEnumerable<Retro.Fusion.RecipeGame> games) =>
-            string.Join(", ", games.Where(g => !have.Contains(g.Profile)).Select(g => Retro.Fusion.ProfileLibrary.Find(g.Profile)?.Name ?? g.Profile));
-        if (studio.Count == 0)
-            ImGui.TextDisabled("   Ninguno todavía: Fusión > Crear juego fusionado con IA.");
-        foreach (var s in studio)
-        {
-            if (s.Games.All(g => have.Contains(g.Profile)))
-            {
-                if (ImGui.MenuItem($"{s.Title}   ({Names(s.Games)})##estudio-{s.Id}"))
-                    PlayFusion(s.Id);
-            }
-            else
-                ImGui.TextDisabled($"   {s.Title}: falta {Missing(s.Games)} en tu carpeta");
-        }
-        ImGui.Separator();
-        ImGui.EndMenu();
+        if (ImGui.MenuItem("   Juegos fusionados...##fusionados")) _home.ShowFusions();
     }
 
     private static string StatePath(string machineId, int slot)

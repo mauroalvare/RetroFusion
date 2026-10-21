@@ -41,6 +41,9 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         Open();
     }
 
+    public void ShowOriginals() { Select("originals"); Open(); }
+    public void ShowFusions() { Select("fusions"); Open(); }
+
     private void Select(string section, string machine = "")
     {
         _section = section;
@@ -98,7 +101,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         string title = _section switch
         {
             "machine" => Name(Machines.Single(m => m.Id == _machine)), "all" => "Todos los juegos",
-            "fusions" => "Fusionados", "created" => "Creados", _ => "Elegí una máquina",
+            "fusions" => "Fusionados", "created" => "Creados", "originals" => "Juegos originales", _ => "Elegí una máquina",
         };
         ImGui.SetWindowFontScale(1.4f);
         ImGui.TextUnformatted(title);
