@@ -153,6 +153,7 @@ public sealed class GameWriter
             {
                 answer = await ai.CompleteAsync(new AiRequest(Guide(t, includeTemplate: draft == null), new[] { new AiTurn(true, prompt) }, Schema(), picture != null ? new[] { picture } : null), ct);
             }
+            catch (AiException e) { return new WriterOutcome(draft, report, attempt - 1, e.Message); }
             finally
             {
                 if (picture != null)

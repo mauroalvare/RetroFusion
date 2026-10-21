@@ -113,7 +113,7 @@ if (command == "crear")
 {
     string? source = args.Length > 2 && !args[2].StartsWith("--") ? args[2] : null;
     return Opt("ia") != null
-        ? await WriteGame(mediaPath, source, Opt("ia")!, Opt("pedido") ?? "", int.Parse(Opt("intentos") ?? "5"))
+        ? await WriteGame(mediaPath, source, Opt("ia")!, Opt("pedido") ?? "", int.Parse(Opt("intentos") ?? "0"))
         : CreateGame(mediaPath, source);
 }
 
@@ -534,8 +534,12 @@ static async Task<int> RunIdeas(string profileList, string? ia, string wish, str
         return 2;
     }
     Console.WriteLine($"Pidiendo 3 ideas a {provider.Name} para {string.Join(" + ", slots.Select(s => s.Profile))}" + (wish.Length > 0 ? $", con el pedido \"{wish}\"" : ", sin pedido") + "...");
+    var operation = settings.Operation(provider, 1);
+    ShowEstimate(new(Retro.Studio.StudioDesigner.ConceptGuide,
+        [new(true, Retro.Studio.StudioDesigner.ConceptPrompt(slots, Retro.Fusion.ProfileLibrary.Find, wish))], null));
     var sw = Stopwatch.StartNew();
-    var ideas = await new Retro.Studio.StudioDesigner().ConceptsAsync(provider, slots, Retro.Fusion.ProfileLibrary.Find, wish, CancellationToken.None);
+    var ideas = await new Retro.Studio.StudioDesigner().ConceptsAsync(operation, slots, Retro.Fusion.ProfileLibrary.Find, wish, CancellationToken.None);
+    ShowUsage(operation);
     Console.WriteLine($"({sw.Elapsed.TotalSeconds:F0} s)");
     foreach (var idea in ideas)
     {
@@ -610,6 +614,21 @@ static int CreateGame(string machine, string? sourcePath)
     return 0;
 }
 
+static void ShowEstimate(Retro.Ai.AiRequest request)
+{
+    var estimate = Retro.Ai.AiEstimate.For(request);
+    Console.WriteLine($"Entrada orientativa: {estimate.Characters:N0} caracteres, {estimate.LowTokens:N0} a {estimate.HighTokens:N0} tokens de texto. No incluye imágenes, salida ni contexto propio del CLI.");
+}
+
+static void ShowUsage(Retro.Ai.AiOperation operation)
+{
+    var stats = operation.Stats;
+    Console.WriteLine($"Pedidos: {stats.Calls}; texto enviado: {stats.TextCharacters:N0} caracteres.");
+    Console.WriteLine(stats.CallsWithUsage > 0
+        ? $"Tokens informados{(stats.CallsWithUsage < stats.Calls ? " (parcial)" : "")}: {stats.InputTokens:N0} entrada, {stats.OutputTokens:N0} salida."
+        : "La herramienta no informó consumo de tokens.");
+}
+
 // An AI writes an original game for a machine, tries it in the emulator and fixes it until it passes.
 static async Task<int> WriteGame(string machine, string? sourcePath, string ia, string wish, int attempts)
 {
@@ -644,9 +663,13 @@ static async Task<int> WriteGame(string machine, string? sourcePath, string ia, 
         return 2;
     }
     Console.WriteLine($"{provider.Name} escribe un juego para {t.Name}" + (wish.Length > 0 ? $" con el pedido \"{wish}\"" : " sin pedido") + "...");
+    attempts = attempts > 0 ? attempts : settings.DesignAttempts;
+    var operation = settings.Operation(provider, attempts);
+    ShowEstimate(new(Retro.Ai.GameWriter.Guide(t), [new(true, Retro.Ai.GameWriter.FirstPrompt(t, wish, new Random(0)))], null));
     var sw = Stopwatch.StartNew();
-    var outcome = await new Retro.Ai.GameWriter { MaxAttempts = attempts }.WriteAsync(provider, t.Machine, wish,
+    var outcome = await new Retro.Ai.GameWriter { MaxAttempts = attempts }.WriteAsync(operation, t.Machine, wish,
         Path.GetDirectoryName(FindRom("48.rom"))!, CancellationToken.None, line => Console.WriteLine("  " + line));
+    ShowUsage(operation);
     Console.WriteLine($"({sw.Elapsed.TotalSeconds:F0} s, {outcome.Attempts} intento{(outcome.Attempts == 1 ? "" : "s")})");
     if (outcome.Game == null)
     {

@@ -46,6 +46,25 @@ public static class AiPicker
         }
     }
 
+    public static void Generation(AiSettings ai, Func<AiRequest> preview)
+    {
+        if (!ImGui.TreeNode("Uso de IA")) return;
+        int mode = ai.Economic ? 1 : 0;
+        ImGui.SetNextItemWidth(150);
+        if (ImGui.Combo("Modo", ref mode, new[] { "Equilibrado", "Económico" }, 2)) { ai.Economic = mode == 1; ai.Save(); }
+        Hint($"Hasta {ai.DesignAttempts} pedidos por escritura o revisión. Se mantienen las mismas pruebas del juego.");
+        int limit = ai.TextLimitThousands;
+        ImGui.SetNextItemWidth(150);
+        if (ImGui.InputInt("Tope de texto (miles de caracteres)", ref limit, 10))
+        { ai.TextLimitThousands = Math.Clamp(limit, 0, 10000); ai.Save(); }
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip("0: sin tope. Cuenta instrucciones, pedido, código y esquema en todos los intentos de ese trabajo. No recorta el contenido.");
+        var estimate = AiEstimate.For(preview());
+        ImGui.TextDisabled($"Entrada orientativa: {estimate.Characters:N0} caracteres.");
+        ImGui.TextDisabled($"Tokens de texto estimados: {estimate.LowTokens:N0} a {estimate.HighTokens:N0}.");
+        Hint("La idea elegida, las imágenes, la salida y el contexto propio del CLI pueden aumentar el consumo. No estima el cupo de tu cuenta.");
+        ImGui.TreePop();
+    }
+
     /// <summary>Key and model of the chosen API provider. <paramref name="costNote"/> says what one request is.</summary>
     private static Task<string>? s_test;
     private static string s_testResult = "";

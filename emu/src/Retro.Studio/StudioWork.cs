@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Retro.Fusion;
+using Retro.Ai;
 
 namespace Retro.Studio;
 
@@ -14,6 +15,7 @@ public sealed class DesignCheckpoint
     public string? ParseError { get; set; }
     public List<string> TriedScripts { get; set; } = new();
     public int Calls { get; set; }
+    public AiOperationStats? Usage { get; set; }
 }
 
 public sealed class StudioWork

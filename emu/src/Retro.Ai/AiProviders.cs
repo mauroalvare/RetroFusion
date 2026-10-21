@@ -25,6 +25,7 @@ public interface IAiProvider
 {
     string Name { get; }
     bool SupportsImages => false;
+    AiUsage? LastUsage => null;
     Task<string> CompleteAsync(AiRequest request, CancellationToken ct);
 }
 
@@ -35,6 +36,7 @@ public interface IAiProvider
 /// </summary>
 public sealed class ClaudeProvider : IAiProvider
 {
+    public AiUsage? LastUsage { get; private set; }
     public const string DefaultModel = "claude-opus-5-5";
     private readonly AnthropicClient _client;
     private readonly string _model;
@@ -50,6 +52,7 @@ public sealed class ClaudeProvider : IAiProvider
 
     public async Task<string> CompleteAsync(AiRequest request, CancellationToken ct)
     {
+        LastUsage = null;
         var messages = request.Turns
             .Select(t => new BetaMessageParam { Role = t.FromUser ? Role.User : Role.Assistant, Content = t.Text })
             .ToList();
@@ -98,6 +101,8 @@ public sealed class ClaudeProvider : IAiProvider
         if (response.StopReason == "max_tokens")
             throw new AiException("La respuesta de Claude se cortó por longitud.");
         var text = new StringBuilder();
+        LastUsage = new(response.Usage.InputTokens + (response.Usage.CacheReadInputTokens ?? 0) + (response.Usage.CacheCreationInputTokens ?? 0),
+            response.Usage.OutputTokens, response.Usage.CacheReadInputTokens);
         foreach (var block in response.Content)
             if (block.TryPickText(out BetaTextBlock? t))
                 text.Append(t.Text);
@@ -108,6 +113,7 @@ public sealed class ClaudeProvider : IAiProvider
 /// <summary>A model running locally with Ollama (http://localhost:11434). No cost per use.</summary>
 public sealed class OllamaProvider : IAiProvider
 {
+    public AiUsage? LastUsage { get; private set; }
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(10) };
     private readonly string _url, _model;
 
@@ -121,6 +127,7 @@ public sealed class OllamaProvider : IAiProvider
 
     public async Task<string> CompleteAsync(AiRequest request, CancellationToken ct)
     {
+        LastUsage = null;
         var messages = new List<object> { new { role = "system", content = request.System } };
         messages.AddRange(request.Turns.Select(t => new { role = t.FromUser ? "user" : "assistant", content = t.Text }));
         var body = new Dictionary<string, object?>
@@ -144,6 +151,7 @@ public sealed class OllamaProvider : IAiProvider
         if (!resp.IsSuccessStatusCode)
             throw new AiException($"Ollama respondió {(int)resp.StatusCode}: {json}");
         using var doc = JsonDocument.Parse(json);
+        LastUsage = AiUsage.Ollama(doc.RootElement);
         return doc.RootElement.GetProperty("message").GetProperty("content").GetString() ?? "";
     }
 }
@@ -156,6 +164,7 @@ public sealed class OllamaProvider : IAiProvider
 /// </summary>
 public sealed class OpenAiProvider : IAiProvider
 {
+    public AiUsage? LastUsage { get; private set; }
     public const string DefaultModel = "gpt-6.1-sol";
     public const string Endpoint = "https://api.openai.com/v1/responses";
     private readonly HttpClient _http;
@@ -172,6 +181,7 @@ public sealed class OpenAiProvider : IAiProvider
 
     public async Task<string> CompleteAsync(AiRequest request, CancellationToken ct)
     {
+        LastUsage = null;
         if (_key.Length == 0)
             throw new AiException("Falta la clave de API de OpenAI: escribila en Fusión de juegos o definí la variable OPENAI_API_KEY.");
         var input = new JsonArray();
@@ -203,6 +213,7 @@ public sealed class OpenAiProvider : IAiProvider
 
         using var doc = JsonApi.Parse(json, "OpenAI");
         var root = doc.RootElement;
+        LastUsage = AiUsage.Responses(root);
         switch (JsonApi.Str(root, "status"))
         {
             case "failed":
@@ -352,6 +363,7 @@ public sealed class OpenAiProvider : IAiProvider
 /// </summary>
 public sealed class GeminiProvider : IAiProvider
 {
+    public AiUsage? LastUsage { get; private set; }
     public const string DefaultModel = "gemini-3.8-flash";
     public const string BaseUrl = "https://generativelanguage.googleapis.com/v1beta/models/";
     private static readonly HashSet<string> SchemaKeywords = new()
@@ -375,6 +387,7 @@ public sealed class GeminiProvider : IAiProvider
 
     public async Task<string> CompleteAsync(AiRequest request, CancellationToken ct)
     {
+        LastUsage = null;
         if (_key.Length == 0)
             throw new AiException("Falta la clave de API de Gemini: escribila en Fusión de juegos o definí la variable GEMINI_API_KEY.");
         var contents = new JsonArray();
@@ -404,6 +417,7 @@ public sealed class GeminiProvider : IAiProvider
 
         using var doc = JsonApi.Parse(json, "Gemini");
         var root = doc.RootElement;
+        LastUsage = AiUsage.Gemini(root);
         if (JsonApi.Has(root, "promptFeedback", out var feedback) && JsonApi.Str(feedback, "blockReason") is { Length: > 0 } block)
             throw new AiException($"Gemini bloqueó el pedido (motivo: {block}).");
         if (!JsonApi.Has(root, "candidates", out var candidates) || candidates.ValueKind != JsonValueKind.Array || candidates.GetArrayLength() == 0)

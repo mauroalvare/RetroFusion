@@ -72,3 +72,7 @@ pedido breve de prueba; ese pedido sí usa los límites de tu cuenta.
 
 Las herramientas se instalan por separado. RetroEmu no ejecuta instaladores ni guarda
 tu acceso. Copiar y pegar desde un chat sigue disponible sin instalar ninguna CLI.
+
+**Uso de IA** permite elegir Equilibrado o Económico y fijar un tope de texto por trabajo.
+La estimación previa es orientativa. **Abrir construcción** muestra lo enviado y el consumo
+que informe la herramienta; esos datos no indican cuánto cupo queda en tu cuenta.

@@ -76,6 +76,23 @@ public sealed class WorkRecoveryTests
     }
 
     [Test]
+    public async Task AnEconomicRunKeepsItsDraftAndUsage_WhenItsTextBudgetStopsTheNextRequest()
+    {
+        DesignCheckpoint? saved = null;
+        var fake = new Fake(_ => Task.FromResult("""{"script":"stillBroken();"}"""));
+        var concept = new GameConcept("Pedido", "", "Regla", "");
+        long limit = AiEstimate.For(new(StudioDesigner.Guide, [new(true, StudioDesigner.WritePrompt(Slots, ProfileLibrary.Find, concept))], StudioDesigner.GameSchema())).Characters;
+        var operation = new AiOperation(fake, 2, limit);
+        var designer = new StudioDesigner { AttemptLimit = 2, Checkpoint = state => saved = state };
+        Assert.ThrowsAsync<AiException>(() => designer.WriteAsync(operation, Slots, ProfileLibrary.Find,
+            concept, Bad, CancellationToken.None));
+        Assert.That(saved!.Draft!.Script, Is.EqualTo("stillBroken();"));
+        Assert.That(saved.Usage!.Calls, Is.EqualTo(1));
+        Assert.That(saved.Usage.TextCharacters, Is.GreaterThan(0));
+        Assert.That(fake.Calls, Is.EqualTo(1));
+    }
+
+    [Test]
     public void StoredWorkIsAtomicPortableAndBoundToItsOriginals_WithoutPicturesOrApiDocumentation()
     {
         string before = StudioLibrary.UserFolder;

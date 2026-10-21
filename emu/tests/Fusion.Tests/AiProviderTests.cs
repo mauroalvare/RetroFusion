@@ -82,6 +82,16 @@ public class AiProviderTests
         candidates = new[] { new { content = new { role = "model", parts }, finishReason } },
     });
 
+    [Test]
+    public async Task ResponsesUsageComesFromTheFakeTransport_WithoutAnExtraRequest()
+    {
+        var response = System.Text.Json.Nodes.JsonNode.Parse(OpenAiAnswer("completed", new { type = "output_text", text = "listo" }))!;
+        response["usage"] = System.Text.Json.Nodes.JsonNode.Parse("""{"input_tokens":120,"output_tokens":30,"input_tokens_details":{"cached_tokens":90}}""");
+        var (ai, _) = OpenAi(HttpStatusCode.OK, response.ToJsonString());
+        Assert.That(await ai.CompleteAsync(RecipeRequest(), CancellationToken.None), Is.EqualTo("listo"));
+        Assert.That(ai.LastUsage, Is.EqualTo(new AiUsage(120, 30, 90)));
+    }
+
     private static IEnumerable<JsonElement> AllObjects(JsonElement e)
     {
         if (e.ValueKind == JsonValueKind.Object)

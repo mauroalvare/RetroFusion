@@ -10,17 +10,19 @@ internal sealed class AiBuildWindow(string id, string title = "Construcción del
 {
     private readonly Stopwatch _elapsed = new();
     private CliAgentProvider? _cli;
+    private AiOperation? _operation;
     private bool _started, _open;
 
     public void Start(IAiProvider provider)
     {
-        _cli = provider as CliAgentProvider;
+        _operation = provider as AiOperation;
+        _cli = (_operation?.Provider ?? provider) as CliAgentProvider;
         _elapsed.Restart();
         _started = true;
     }
 
     public void Stop() => _elapsed.Stop();
-    public void Reset() { _elapsed.Reset(); _cli = null; _started = _open = false; }
+    public void Reset() { _elapsed.Reset(); _cli = null; _operation = null; _started = _open = false; }
 
     public void Draw(bool busy, string stage, CancellationTokenSource? cancellation)
     {
@@ -34,6 +36,14 @@ internal sealed class AiBuildWindow(string id, string title = "Construcción del
         {
             ImGui.TextWrapped(stage);
             ImGui.TextUnformatted($"Tiempo transcurrido: {Duration(_elapsed.Elapsed)}");
+            if (_operation?.Stats is { } stats)
+            {
+                ImGui.TextDisabled($"Pedidos: {stats.Calls} · Texto enviado: {stats.TextCharacters:N0} caracteres");
+                if (stats.CallsWithUsage > 0)
+                    ImGui.TextWrapped($"Tokens informados{(stats.CallsWithUsage < stats.Calls ? " (parcial)" : "")}: {stats.InputTokens:N0} entrada · {stats.OutputTokens:N0} salida" +
+                        (stats.CachedInputTokens is long cached ? $" · {cached:N0} de entrada en caché" : ""));
+                else ImGui.TextDisabled("La herramienta todavía no informó consumo de tokens.");
+            }
             if (_cli?.Activity is { } activity)
             {
                 ImGui.TextUnformatted(activity.Status);

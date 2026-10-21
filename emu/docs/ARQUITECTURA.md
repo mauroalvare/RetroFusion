@@ -494,6 +494,13 @@ se copian a salida y publicación mediante el proyecto de la app. Ver D-028 y TE
 
 ## IA
 
+`AiOperation` envuelve un proveedor durante una operación, cuenta el texto, detiene
+pedidos completos que superan el tope y agrega `LastUsage` cuando existe. El estudio
+persiste estos totales en su checkpoint; la construcción muestra contadores y aclara
+cuándo son parciales. `AiEstimate` es una heurística local separada. Los modos de uso
+solo cambian la cantidad de intentos automáticos, manteniendo guía y validación. D-030
+documenta las unidades y las convenciones de caché; no representan cuota ni facturación.
+
 `IAiProvider` tiene una sola operación: mandar un sistema, los turnos y un esquema JSON, y
 recibir texto. `CliAgentProvider` usa las herramientas oficiales que vienen con las
 suscripciones, en modo no interactivo y sin clave de API: Claude Code (`claude -p`,

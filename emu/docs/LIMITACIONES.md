@@ -165,6 +165,11 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 
 ## Fusiones y estudio
 
+- El rango de tokens es orientativo y local; no incluye imágenes, salida ni el contexto
+  que agregue cada CLI. El tope de texto limita caracteres de entrada, no dinero ni cuota.
+  Los tokens informados dependen del proveedor; si faltan se indican como desconocidos o
+  parciales. El modo económico reduce reintentos automáticos, no los requisitos del juego.
+
 - Los trabajos automáticos de escritura y revisión conservan un pendiente local y pueden
   continuar sin repetir una respuesta ya completa. Si cambian ROMs, perfiles o firmware,
   se detienen; el borrador se puede copiar. La recuperación automática no cubre todavía

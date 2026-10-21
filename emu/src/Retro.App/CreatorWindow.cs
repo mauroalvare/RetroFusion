@@ -115,7 +115,11 @@ public sealed class CreatorWindow
         AiPicker.Combo(_ai, "##ia-crear");
         bool callable = AiPicker.IsApi(_ai.Provider);
         if (callable)
+        {
             AiPicker.Settings(_ai, "La creación puede necesitar varios pedidos a la IA.");
+            AiPicker.Generation(_ai, () => new(GameWriter.Guide(Templates.All[_machine]),
+                [new(true, GameWriter.FirstPrompt(Templates.All[_machine], _wish, new Random(0)))], null));
+        }
         else if (_ai.Provider == "manual")
             AiPicker.Hint("Copiá el pedido a tu chat y pegá acá la respuesta.");
         else
@@ -344,6 +348,7 @@ public sealed class CreatorWindow
             Problem("Esa IA no se puede llamar desde acá.");
             return;
         }
+        provider = _ai.Operation(provider);
         _problem = _problemDetail = null;
         _manualPrompt = null;
         _agentDir = null;
@@ -355,7 +360,7 @@ public sealed class CreatorWindow
         _build.Start(provider);
         var token = _cts.Token;
         string machine = _writeMachine, wish = _writeWish;
-        _writeTask = Task.Run(() => new GameWriter().WriteAsync(provider, machine, wish, _romDir, token, p => _progress = p), token);
+        _writeTask = Task.Run(() => new GameWriter { MaxAttempts = _ai.DesignAttempts }.WriteAsync(provider, machine, wish, _romDir, token, p => _progress = p), token);
     }
 
     private void FromTemplate()

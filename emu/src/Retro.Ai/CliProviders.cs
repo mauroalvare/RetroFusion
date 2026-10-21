@@ -78,6 +78,7 @@ public static class CliTools
 /// <summary>Asks one of the subscription tools in non-interactive mode (prompt through stdin, answer from stdout).</summary>
 public sealed class CliAgentProvider : IAiProvider
 {
+    public AiUsage? LastUsage { get; private set; }
     public bool SupportsImages => true;
     private readonly CliTool _tool;
     private readonly string? _override;
@@ -143,6 +144,7 @@ public sealed class CliAgentProvider : IAiProvider
 
     public async Task<string> CompleteAsync(AiRequest request, CancellationToken ct)
     {
+        LastUsage = null;
         string exe = CliTools.Find(_tool, _override)
                      ?? throw new AiException($"No encontré {_tool.Name}. {_tool.InstallHint}");
         string work = Path.Combine(Path.GetTempPath(), "RetroEmu-ia");
@@ -162,7 +164,7 @@ public sealed class CliAgentProvider : IAiProvider
                     : new List<string> { "-p", "--output-format", "json", "--permission-mode", "dontAsk", "--allowedTools", "Read" }
                         .Concat(images.Select(Path.GetDirectoryName).Distinct().SelectMany(d => new[] { "--add-dir", d! })).ToList(),
                 // "-" = the prompt comes from stdin; read-only sandbox by default; no git repo needed; -i attaches pictures
-                "sub-codex" => new List<string> { "exec", "--skip-git-repo-check", "-o", lastMessage }
+                "sub-codex" => new List<string> { "exec", "--json", "--skip-git-repo-check", "-o", lastMessage }
                     .Concat(images.SelectMany(i => new[] { "-i", i })).Append("-").ToList(),
                 // the -p text is appended to stdin, which carries the real prompt
                 _ => agy ? AgyArgs(request, work, out promptFile)
@@ -174,7 +176,9 @@ public sealed class CliAgentProvider : IAiProvider
             // agy takes the prompt as an argument and does not read standard input
             string previousOutput = Activity?.Output is { Length: > 0 } previous ? previous + "\n\n" : "";
             var (code, stdout, stderr) = await RunAsync(exe, args, work, agy ? "" : Flatten(request), _timeout, ct,
-                activity => Volatile.Write(ref _activity, activity with { Output = CliActivity.Tail(previousOutput + activity.Output) }));
+                activity => Volatile.Write(ref _activity, activity with { Output = CliActivity.Tail(previousOutput +
+                    (_tool.Id == "sub-codex" ? CliActivity.CodexText(activity.Output) : activity.Output)) }));
+            LastUsage = AiUsage.Cli(_tool.Id, stdout);
             if (code != 0)
                 throw new AiException(Failure(stderr.Length > 0 ? stderr : stdout));
             string answer = _tool.Id switch

@@ -31,6 +31,12 @@ public sealed class AiSettings
     [System.Text.Json.Serialization.JsonIgnore] public string? SessionModel { get; set; }
     public string OllamaUrl { get; set; } = "http://localhost:11434";
     public string OllamaModel { get; set; } = "llama3.1";
+    public bool Economic { get; set; }
+    /// <summary>Thousands of input text characters per operation; zero leaves text unlimited.</summary>
+    public int TextLimitThousands { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore] public int DesignAttempts => Economic ? 2 : 3;
+    public AiOperation Operation(IAiProvider provider, int? calls = null, AiOperationStats? previous = null) =>
+        new(provider, calls ?? DesignAttempts, Math.Clamp(TextLimitThousands, 0, 10000) * 1000L, previous);
 
     private static string FilePath =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "RetroEmu", "ia.json");

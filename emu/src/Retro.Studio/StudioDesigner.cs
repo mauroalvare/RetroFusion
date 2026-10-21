@@ -22,6 +22,7 @@ public sealed record DesignOutcome(StudioGame? Game, ValidationReport? Report, i
 public sealed class StudioDesigner
 {
     public const int MaxAttempts = 3;
+    public int AttemptLimit { get; init; } = MaxAttempts;
     public const string MissingDataPrefix = "Faltan datos del original: ";
     public Action<DesignCheckpoint>? Checkpoint { get; init; }
 
@@ -426,7 +427,7 @@ public sealed class StudioDesigner
             Checkpoint.Invoke(new DesignCheckpoint { Template = metadata, FirstPrompt = draft != null ? "" : firstPrompt, Brief = brief,
                 Draft = draft?.Copy(), Report = report is { } r ? r with { Picture = null, Shots = null, Robots = null,
                     Summary = r.Summary.Length > 16000 ? r.Summary[..16000] + "\n[Salida adicional omitida]" : r.Summary } : null,
-                ParseError = error, TriedScripts = triedScripts.TakeLast(32).ToList(), Calls = calls });
+                ParseError = error, TriedScripts = triedScripts.TakeLast(32).ToList(), Calls = calls, Usage = (ai as AiOperation)?.Stats ?? resume?.Usage });
         }
         if (draft != null)
         {
@@ -438,16 +439,19 @@ public sealed class StudioDesigner
         }
         else if (error != null)
             prompt = brief + $"\nNo pude leer la respuesta anterior: {error}. {AnswerShape}";
-        for (int attempt = 1; attempt <= MaxAttempts; attempt++)
+        int attemptLimit = Math.Clamp(AttemptLimit, 1, MaxAttempts);
+        for (int attempt = 1; attempt <= attemptLimit; attempt++)
         {
             ct.ThrowIfCancellationRequested();
-            progress?.Invoke(attempt == 1 ? $"{ai.Name} está escribiendo el juego..." : $"{ai.Name} está corrigiendo (intento {attempt} de {MaxAttempts})...");
+            progress?.Invoke(attempt == 1 ? $"{ai.Name} está escribiendo el juego..." : $"{ai.Name} está corrigiendo (intento {attempt} de {attemptLimit})...");
             // Syntax failures need the current source and error, not the same pictures again.
             bool attach = pictures != null && (attempt == 1 || report is { Error: null });
             string context = prompt + (references != null ? "\n\n" + references.Describe(template.BaseSlot, attach) : "");
             calls++;
             Save(); // Before calling the provider, so a limit or cancellation keeps the task.
-            string answer = await ai.CompleteAsync(new AiRequest(Guide, [new(true, context)], GameSchema(), attach ? pictures!.Paths : null), ct);
+            string answer;
+            try { answer = await ai.CompleteAsync(new AiRequest(Guide, [new(true, context)], GameSchema(), attach ? pictures!.Paths : null), ct); }
+            finally { Save(); }
             var game = ParseGame(answer, template, out error);
             if (game == null)
             {
@@ -473,7 +477,7 @@ public sealed class StudioDesigner
             error = report.Error ?? string.Join(" ", report.Problems);
             prompt = brief + "\n\n" + CurrentDraft(draft) + "\n\n" + FixRequest(report);
         }
-        return new DesignOutcome(null, report, MaxAttempts, error, draft);
+        return new DesignOutcome(null, report, attemptLimit, error, draft);
     }
 
     private static string CurrentDraft(StudioGame game) =>

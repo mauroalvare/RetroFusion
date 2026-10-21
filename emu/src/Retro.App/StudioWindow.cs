@@ -391,7 +391,13 @@ public sealed class StudioWindow
     {
         AiPicker.Combo(_ai);
         if (AiPicker.IsApi(_ai.Provider))
+        {
             AiPicker.Settings(_ai, costNote);
+            AiPicker.Generation(_ai, () => _host.Fusion is StudioSession current
+                ? new(StudioDesigner.Guide, [new(true, StudioDesigner.RevisePrompt(current.Game, current.Game.Games, ProfileLibrary.Find, _request))], StudioDesigner.GameSchema())
+                : new(StudioDesigner.Guide, [new(true, StudioDesigner.WritePrompt(Slots(), ProfileLibrary.Find,
+                    new("", "", _ownIdea.Length > 0 ? _ownIdea : _wish, "", Direction: SelectedDirection())))], StudioDesigner.GameSchema()));
+        }
         else if (_ai.Provider == "manual")
             AiPicker.Hint("Copiá el pedido a tu chat y pegá acá la respuesta.");
         else if (_ai.Provider == "agent")
@@ -648,7 +654,7 @@ public sealed class StudioWindow
                 });
             return;
         }
-        var ai = _ai.CreateProvider()!;
+        var ai = _ai.Operation(_ai.CreateProvider()!, 1);
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
         _progress = $"{ai.Name} está pensando ideas...";
@@ -683,7 +689,7 @@ public sealed class StudioWindow
             Author = AiPicker.ShortName(_ai.Provider),
         };
         string provider = _ai.Provider;
-        var ai = provider is "manual" or "agent" ? null : _ai.CreateProvider();
+        var ai = provider is "manual" or "agent" ? null : _ai.Operation(_ai.CreateProvider()!);
         PrepareReferences(template, references => WriteReady(concept, template, provider, ai, references));
     }
 
@@ -724,7 +730,7 @@ public sealed class StudioWindow
         template.Author = AiPicker.ShortName(_ai.Provider);
         template.Created = DateTime.Now;
         string provider = _ai.Provider;
-        var ai = provider is "manual" or "agent" ? null : _ai.CreateProvider();
+        var ai = provider is "manual" or "agent" ? null : _ai.Operation(_ai.CreateProvider()!);
         PrepareReferences(template, references => ReviseReady(current, request, template, provider, ai, references));
     }
 
@@ -760,7 +766,7 @@ public sealed class StudioWindow
         work ??= new StudioWork { Originals = references.Items.ToDictionary(r => r.Slot, r => r.Fingerprint) };
         _activeWork = work.Id;
         var saved = work;
-        return new StudioDesigner { Checkpoint = state =>
+        return new StudioDesigner { AttemptLimit = _ai.DesignAttempts, Checkpoint = state =>
         {
             saved.State = state;
             saved.Engine = typeof(StudioSession).Module.ModuleVersionId.ToString();
@@ -813,8 +819,9 @@ public sealed class StudioWindow
     private void ResumeWork(StudioWork work)
     {
         ClearProblem();
-        var ai = _ai.CreateProvider();
-        if (ai == null) return;
+        var provider = _ai.CreateProvider();
+        if (provider == null) return;
+        var ai = _ai.Operation(provider, previous: work.State.Usage);
         var template = work.State.Template;
         _chosen.Clear(); _chosen.AddRange(template.Games.Select(g => g.Profile));
         _baseProfile = template.Games.FirstOrDefault(g => g.Slot == template.BaseSlot)?.Profile;

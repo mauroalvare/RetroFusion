@@ -350,3 +350,35 @@ Este flujo cubre la escritura y revisión automáticas del estudio. Las carpetas
 y el intercambio manual conservan su mecanismo de archivos; el creador desde cero todavía
 no dispone de esta recuperación automática. Cambiar las huellas detiene la continuación
 para no ejecutar un guion sobre otra edición: el borrador sigue disponible para copiarlo.
+
+## D-030 Consumo informado y límites por operación (2026-10-21)
+
+IAiProvider.LastUsage es opcional; AiOperation reúne únicamente contadores publicados,
+indica cuántas llamadas los aportaron y no convierte datos ausentes en cero. OpenAI y
+Codex incluyen caché dentro de entrada; Claude suma entrada sin caché, lectura y escritura
+de caché. Gemini suma pensamiento a salida y los prompts de herramientas a entrada.
+Gemini CLI usa stats.models sin repetir los desgloses de roles ni sumar otra vez cached.
+Ollama aporta prompt_eval_count/eval_count. Versiones sin esos metadatos quedan desconocidas.
+Codex usa --json y conserva -o para la respuesta; la ventana extrae el texto de los eventos.
+
+La estimación local cuenta texto de sistema, turnos y esquema. El rango orientativo usa
+caracteres/5 a bytes UTF-8/2: es una heurística, no un tokenizador ni una garantía de que
+el conteo real caiga dentro. Imágenes, salida y contexto propio de una CLI quedan aparte.
+No calcula precios ni cuota restante y no hace una llamada extra para contar tokens.
+
+Equilibrado permite tres pedidos de escritura/revisión y Económico dos, con los mismos
+contratos, modelos, capacidad de salida y pruebas. El tope configurable cuenta caracteres
+de entrada acumulados: se comprueba antes de enviar, sin truncar contenido. Cero deja ese
+tope desactivado. Cada continuación permite otra tanda; los caracteres y el consumo ya
+registrados permanecen en el checkpoint y no se reinician al continuar. Las ideas usan
+un pedido separado. retro-cli respeta el modo guardado; --intentos explícito prevalece.
+Un límite de proveedor o de texto conserva el último borrador completo; el estudio lo
+reanuda y el creador desde cero guarda el último código recibido, aún pendiente de corregir.
+
+Formatos comprobados contra documentación oficial y pruebas de transporte simulado:
+[Codex](https://learn.chatgpt.com/docs/non-interactive-mode),
+[Responses](https://platform.openai.com/docs/api-reference/responses-streaming),
+[Claude](https://platform.claude.com/docs/en/build-with-claude/prompt-caching),
+[Ollama](https://docs.ollama.com/api/chat),
+[Gemini API](https://ai.google.dev/api/generate-content#UsageMetadata) y
+[telemetría de Gemini CLI](https://github.com/google-gemini/gemini-cli/blob/main/packages/core/src/telemetry/uiTelemetry.ts).

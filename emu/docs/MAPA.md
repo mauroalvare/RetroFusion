@@ -50,6 +50,9 @@ instalación, acceso y conexión por herramienta. Modelos/esfuerzos se consultan
 la configuración y por **Actualizar modelos**, sin generar respuestas. Ruta, modelo
 manual y prueba de generación quedan en **Conexión avanzada**. Detectar la instalación
 o consultar un catálogo no garantiza acceso ni cuota. Guía: `docs/CONECTAR-IA.md`.
+**Uso de IA** despliega modo, tope de texto y estimación inicial. **Abrir construcción**
+muestra texto enviado y tokens informados, con indicación si los datos son parciales.
+`AiOperation.cs` concentra medición y límites; el estudio los conserva al continuar.
 
 ## Modificar una partida
 

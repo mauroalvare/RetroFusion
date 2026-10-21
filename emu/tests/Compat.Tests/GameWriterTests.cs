@@ -44,6 +44,19 @@ public class GameWriterTests
     private static string C64 => Templates.For("c64")!.Source;
 
     [Test]
+    public async Task ARequestBudgetPreservesTheLastCompleteDraft_AndDoesNotCallForAnotherAnswer()
+    {
+        string broken = C64.Replace("inc $D020", "inx $D020");
+        var fake = new ScriptedAi(Answer("Borrador", broken), Answer("No pedir", C64));
+        var operation = new AiOperation(fake, 1);
+        var result = await new GameWriter().WriteAsync(operation, "c64", "Conservar el pedido", _firmware, CancellationToken.None);
+        Assert.That(result.Game!.Source, Is.EqualTo(broken.Replace("\r\n", "\n")));
+        Assert.That(result.Ok, Is.False);
+        Assert.That(fake.Requests, Has.Count.EqualTo(1));
+        Assert.That(result.Problem, Does.Contain("límite"));
+    }
+
+    [Test]
     public async Task AnAssemblerError_GoesBackWithItsLine_AndTheFixedGamePasses()
     {
         var ai = new ScriptedAi(Answer("Roto", C64.Replace("inc $D020", "inx $D020")), Answer("Arreglado", C64));

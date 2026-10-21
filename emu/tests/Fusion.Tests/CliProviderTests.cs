@@ -86,11 +86,12 @@ public class CliProviderTests
     [Test]
     public async Task Codex_ReadsTheLastMessageFile()
     {
-        // codex exec --skip-git-repo-check -o <file> -   (the file is the 4th argument)
-        string exe = Fake("codex", "more > nul\necho progreso 1>&2\n>\"%~4\" echo respuesta final de codex\necho respuesta final de codex");
+        // codex exec --json --skip-git-repo-check -o <file> -
+        string exe = Fake("codex", "more > nul\necho progreso 1>&2\n>\"%~5\" echo respuesta final de codex\necho {\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":120,\"cached_input_tokens\":90,\"output_tokens\":30}}");
         var ai = new CliAgentProvider(CliTools.Codex, exe);
         string answer = await ai.CompleteAsync(Request(), CancellationToken.None);
         Assert.That(answer.Trim(), Is.EqualTo("respuesta final de codex"));
+        Assert.That(ai.LastUsage, Is.EqualTo(new AiUsage(120, 30, 90)));
     }
 
     [TestCase("codex")]
@@ -126,7 +127,7 @@ public class CliProviderTests
     public async Task Cancel_RemovesThePartialLastMessage()
     {
         string capture = Path.Combine(_dir, "last-message.txt");
-        string exe = Fake("codex", $"more > nul\n>\"%~4\" echo borrador\n>\"{capture}\" echo %~4\necho trabajando\nping -n 30 127.0.0.1 > nul");
+        string exe = Fake("codex", $"more > nul\n>\"%~5\" echo borrador\n>\"{capture}\" echo %~5\necho trabajando\nping -n 30 127.0.0.1 > nul");
         var ai = new CliAgentProvider(CliTools.Codex, exe);
         using var cancellation = new CancellationTokenSource();
         var task = ai.CompleteAsync(Request(), cancellation.Token);
