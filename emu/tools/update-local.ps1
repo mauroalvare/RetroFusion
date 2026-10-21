@@ -43,7 +43,10 @@ New-Item -ItemType Directory -Path $backup -Force | Out-Null
 $plan = @($entries | Where-Object { !$_.PSIsContainer } | ForEach-Object {
     $relative = [IO.Path]::GetRelativePath($source, $_.FullName)
     $first = $relative.Split([IO.Path]::DirectorySeparatorChar)[0]
-    if ($first -in @('ROMs', 'Juegos fusionados', 'Juegos creados')) { return }
+    if ($first -in @('ROMs', 'Juegos fusionados', 'Juegos creados')) {
+        # Only add package instructions; never replace any player file.
+        if ($relative -ne (Join-Path $first 'LEEME.txt') -or (Test-Path -LiteralPath (Join-Path $target $relative))) { return }
+    }
     if ($relative -eq 'ARQUITECTURA.md') { $relative = 'docs/ARQUITECTURA.md' }
     $dest = Join-Path $target $relative
     if ($first -eq 'firmware' -and (Test-Path -LiteralPath $dest)) { return }

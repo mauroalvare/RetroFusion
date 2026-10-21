@@ -172,3 +172,12 @@ siguen aceptando juegos guardados anteriores, sin recortar sus textos.
 Pasar el robot no certifica diversión ni creatividad. Las guías explicitan ese límite
 y exigen distinguir evidencia de hipótesis. No se añade un extractor de rutinas de ROMs
 ni se finge que los perfiles sean ese análisis; la parte restante de T-060 sigue pendiente.
+
+## D-020 Bibliotecas portátiles con instrucciones (2026-10-20)
+
+Los paquetes incluyen ROMs, Juegos fusionados y Juegos creados con LEEME.txt. La
+búsqueda compartida en PlayerFolders prioriza contenido real por sobre carpetas con
+solo ayuda, incluyendo bibliotecas previas en Documentos para creados/fusionados.
+Sin datos previos elige la carpeta portátil más cercana. No migra archivos ni cambia
+los formatos de juegos. El actualizador local solo añade LEEME si no existe; conserva
+todos los archivos del jugador. ACTUALIZAR.txt explica la combinación de carpetas.

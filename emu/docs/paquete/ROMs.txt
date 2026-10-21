@@ -1,0 +1,6 @@
+Poné acá tus juegos originales, sueltos o en ZIP.
+Podés organizarlos en subcarpetas por máquina.
+Después abrí RetroEmu y elegí una máquina o Todos los juegos.
+
+Los juegos se agregan por separado. El firmware del sistema va en firmware.
+Al actualizar, conservá esta carpeta y su contenido.

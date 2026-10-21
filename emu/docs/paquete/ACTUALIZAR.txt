@@ -1,0 +1,12 @@
+Actualizar RetroEmu
+------------------
+1. Cerrá el programa y descomprimí la entrega nueva.
+2. Copiá sus archivos sobre la carpeta donde ya usás RetroEmu, reemplazando
+   los archivos del programa y combinando las carpetas.
+3. Conservá ROMs, Juegos fusionados, Juegos creados y tu firmware.
+   No borres esas carpetas ni elijas reemplazarlas completas.
+
+Si preferís otra carpeta, copiá allí tus tres carpetas de juegos completas.
+Si ya tenés una biblioteca en una carpeta superior o en Documentos/RetroEmu,
+el programa la sigue usando mientras las carpetas nuevas solo tengan ayuda.
+Los estados y ajustes se conservan en los datos de tu usuario.

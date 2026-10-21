@@ -36,7 +36,12 @@ foreach ($rid in $Runtimes) {
     Copy-Item (Join-Path $root "roms/48.rom") (Join-Path $out "firmware/48.rom")
     # free C64 firmware (Open ROMs, LGPL-3) with its license
     Copy-Item -Recurse -Force (Join-Path $root "roms/c64") (Join-Path $out "firmware/c64")
-    # Empty player-library folders would hide existing libraries in a parent folder.
+    foreach ($folder in 'ROMs', 'Juegos fusionados', 'Juegos creados') {
+        $library = Join-Path $out $folder
+        New-Item -ItemType Directory -Force $library | Out-Null
+        Copy-Item -LiteralPath (Join-Path $root "docs/paquete/$folder.txt") -Destination (Join-Path $library 'LEEME.txt')
+    }
+    Copy-Item -LiteralPath (Join-Path $root 'docs/paquete/ACTUALIZAR.txt') -Destination (Join-Path $out 'ACTUALIZAR.txt')
     Copy-Item (Join-Path $root "README.md") (Join-Path $out "README.md")
     $playerDocs = Join-Path $out "docs"
     New-Item -ItemType Directory -Force $playerDocs | Out-Null

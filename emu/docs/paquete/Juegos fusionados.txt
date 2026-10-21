@@ -1,0 +1,5 @@
+Acá se guardan las fusiones que hacés en RetroEmu.
+Para agregar una fusión compartida, copiá su carpeta completa, con los archivos
+JSON y JS de cada versión. Los originales necesarios van en ROMs.
+
+Al actualizar o cambiar de PC, conservá esta carpeta completa.

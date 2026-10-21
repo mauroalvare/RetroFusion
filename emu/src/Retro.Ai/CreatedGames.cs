@@ -44,16 +44,8 @@ public static class CreatedGames
     /// </summary>
     public static string UserFolder { get; set; } = DefaultFolder();
 
-    public static string DefaultFolder()
-    {
-        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
-        {
-            string p = Path.Combine(dir.FullName, FolderName);
-            if (Directory.Exists(p))
-                return p;
-        }
-        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "RetroEmu", FolderName);
-    }
+    public static string DefaultFolder() => PlayerFolders.Find(FolderName,
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "RetroEmu", FolderName))!;
 
     /// <summary>Every created game, newest first.</summary>
     public static IReadOnlyList<CreatedGame> All()

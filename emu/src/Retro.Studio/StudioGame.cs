@@ -118,16 +118,8 @@ public static class StudioLibrary
     public static string LegacyFolder =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "RetroEmu", "juegos");
 
-    public static string DefaultFolder()
-    {
-        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
-        {
-            string p = Path.Combine(dir.FullName, FolderName);
-            if (Directory.Exists(p))
-                return p;
-        }
-        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "RetroEmu", FolderName);
-    }
+    public static string DefaultFolder() => Retro.Core.PlayerFolders.Find(FolderName,
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "RetroEmu", FolderName))!;
 
     /// <summary>Every version of every game: the built-in ones, then the stored ones (a stored copy wins over a built-in one with the same version).</summary>
     public static IReadOnlyList<StudioGame> AllVersions()

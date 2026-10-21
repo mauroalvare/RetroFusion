@@ -1,0 +1,5 @@
+Acá se guardan los juegos que creás en RetroEmu.
+Para agregar uno compartido, copiá su carpeta completa: programa, código,
+datos del juego e imagen. Aparece en Inicio > Creados.
+
+Al actualizar o cambiar de PC, conservá esta carpeta completa.

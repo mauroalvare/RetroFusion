@@ -131,16 +131,7 @@ public sealed class RetroApp
     }
 
     /// <summary>The user's game folder ("ROMs", exact case: "roms" holds the firmware).</summary>
-    private static string? FindGamesFolder()
-    {
-        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
-        {
-            var match = dir.EnumerateDirectories().FirstOrDefault(d => d.Name == "ROMs");
-            if (match != null)
-                return match.FullName;
-        }
-        return null;
-    }
+    private static string? FindGamesFolder() => PlayerFolders.Find("ROMs");
 
     private void ShowInDebugger(uint address)
     {

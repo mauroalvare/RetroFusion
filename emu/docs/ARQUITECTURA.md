@@ -7,6 +7,11 @@ el real (puertos, memoria de video, interrupciones, señal de cinta).
 
 ## Capas y proyectos
 
+`Retro.Core.PlayerFolders` resuelve las tres bibliotecas portátiles. Prioriza la carpeta
+con contenido más cercana al ejecutable y luego la biblioteca de Documentos. Las
+carpetas que solo tienen instrucciones del paquete no ocultan datos anteriores; en
+una instalación nueva se usan las carpetas incluidas. No mueve ni modifica los juegos.
+
 ```
 src/
   Retro.Core               Interfaces comunes: CPU para el depurador, máquina, memoria,

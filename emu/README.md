@@ -8,8 +8,17 @@ Jugá tus juegos originales, combiná sus reglas o creá un juego de 8 bits.
 2. Elegí una máquina o **Todos los juegos**, buscá un título y pulsá **Jugar**.
 3. Para agregar uno, usá **Abrir archivo** o arrastralo a la ventana.
 
-También podés crear una carpeta **ROMs** junto al programa para reunir tus archivos.
+El paquete trae estas carpetas junto al programa:
+
+| Carpeta | Qué va ahí |
+|---|---|
+| **ROMs** | Tus juegos originales, sueltos o en ZIP; admite subcarpetas. |
+| **Juegos fusionados** | Las carpetas completas de tus fusiones. |
+| **Juegos creados** | Las carpetas completas de los juegos que creaste. |
+
 Los juegos se consiguen por separado. Los originales siguen disponibles después de crear una fusión.
+Para actualizar, cerrá RetroEmu, copiá la entrega nueva sobre la anterior y combiná
+las carpetas conservando tus juegos y firmware. Ver **ACTUALIZAR.txt**.
 
 ![Inicio con selector de máquinas](docs/img/interfaz/biblioteca.png)
 
@@ -45,8 +54,9 @@ desde un chat, una carpeta para tu agente o una API. Las APIs tienen sus propias
 condiciones y cargos. Las herramientas instaladas usan los límites de tu cuenta.
 
 Durante un pedido, **Abrir construcción** muestra la actividad disponible y permite cancelar.
-Los juegos nuevos se guardan en **Documentos/RetroEmu**, o en las carpetas **Juegos fusionados**
-y **Juegos creados** que ya tengas junto al programa o en una carpeta superior.
+Los juegos nuevos se guardan en las carpetas incluidas. Si ya tenés una biblioteca
+en una carpeta superior o en **Documentos/RetroEmu**, se sigue usando mientras las
+carpetas nuevas solo tengan ayuda.
 
 ## Modificar
 

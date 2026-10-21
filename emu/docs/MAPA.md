@@ -140,10 +140,11 @@ en la línea de comandos los espacios se escriben `_` (`JOY2_FIRE`).
 
 ## Ubicaciones fuera del repositorio
 
-Los paquetes no crean bibliotecas vacías: así se siguen encontrando las carpetas de juegos
-en un directorio superior al actualizar. Para una biblioteca portátil nueva, creá `ROMs`
-junto al ejecutable. Sin carpetas portátiles, los juegos creados y fusionados se guardan
-en Documentos/RetroEmu.
+Los paquetes incluyen `ROMs`, `Juegos fusionados` y `Juegos creados` con `LEEME.txt`,
+y `ACTUALIZAR.txt` junto al ejecutable. `Retro.Core.PlayerFolders` busca la biblioteca
+con contenido más cercana; una carpeta de solo ayuda no oculta otra superior ni una
+biblioteca existente en `Documentos/RetroEmu`. Sin datos anteriores usa la carpeta
+portátil incluida; sin ella, creados y fusionados usan `Documentos/RetroEmu`.
 
 La instalación local de uso diario es siempre `Programa`, con un acceso `RetroEmu`.
 Jugar, fusionar, crear y modificar se abren dentro de esa misma app. Las actualizaciones
