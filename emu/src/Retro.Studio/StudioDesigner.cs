@@ -44,12 +44,13 @@ public sealed class StudioDesigner
     }
 
     public static string CoreGuide => GameDesignGuide.Compact + "\n\n" + """
-        ## Entorno de fusión
+        ## Entorno para juegos con originales
         JavaScript ES2020 conecta 2 o 3 máquinas emuladas, sin archivos, red, módulos ni .NET.
         La base indicada por el jugador es inmutable. El motor dibuja su imagen antes de
         draw(); agregá los aportes, sin screen.clear ni otra resolución. screen.base repone
         esa imagen. screen.game está retirado; no pegues pantallas completas secundarias.
-        En modo libre, el guion dibuja una escena nueva con los recursos disponibles.
+        En creación con originales, el guion dibuja una escena nueva con los recursos
+        disponibles; no tiene que conservar una base ni repetir la presentación de una fusión.
 
         Antes del código, concretá en design: acción/objetivo, regla transferida, consecuencias
         de quitar un original, datos usados y faltantes, diferencia frente a ideas previas,
@@ -191,7 +192,7 @@ public sealed class StudioDesigner
         direction ??= new FusionDirection();
         bool keepBase = direction.Resolve(slots) != null;
         var sb = new StringBuilder();
-        sb.AppendLine("Quiero unir estos originales en una fusión:");
+        sb.AppendLine(direction.Reimagine ? "Quiero crear un juego nuevo con estos originales:" : "Quiero unir estos originales en una fusión:");
         sb.AppendLine(DirectionText(slots, find, direction));
         sb.AppendLine();
         sb.Append(GamesText(slots, find));
@@ -268,7 +269,7 @@ public sealed class StudioDesigner
     public static string WritePrompt(IReadOnlyList<RecipeGame> slots, Func<string, GameProfile?> find, GameConcept concept)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("Escribí el juego fusionado con estos juegos:");
+        sb.AppendLine(concept.Direction?.Reimagine == true ? "Escribí un juego nuevo con estos originales:" : "Escribí el juego fusionado con estos juegos:");
         sb.AppendLine(DirectionText(slots, find, concept.Direction ?? new FusionDirection()));
         sb.AppendLine();
         sb.Append(GamesText(slots, find));
@@ -304,7 +305,7 @@ public sealed class StudioDesigner
     {
         string? selected = direction.Resolve(slots);
         if (selected == null)
-            return "MODO ELEGIDO: reinterpretación libre. Podés diseñar una escena y presentación nuevas a partir de los originales. " +
+            return "MODO ELEGIDO: creación con originales. Diseñá un juego nuevo, con escena, presentación y reglas propias a partir de los recursos y mecánicas disponibles. " +
                 "No hay una base nativa declarada y screen.base no está disponible.";
         var slot = slots.Single(s => s.Slot == selected);
         string name = find(slot.Profile)?.Name ?? slot.Profile;
@@ -318,7 +319,7 @@ public sealed class StudioDesigner
         var previous = StudioLibrary.For(slots.Select(s => s.Profile)).OrderByDescending(g => g.Created).Take(5).ToList();
         if (previous.Count == 0) return "";
         static string Limit(string text, int max) => text.Length <= max ? text : text[..max];
-        var sb = new StringBuilder("\nFusiones anteriores de esta combinación, solo para compararlas y NO copiarlas:\n");
+        var sb = new StringBuilder("\nJuegos anteriores con estos originales, solo para compararlos y NO copiarlos:\n");
         foreach (var game in previous)
             sb.AppendLine($"- {game.Title}: {Limit(game.Pitch, 400)}\n  Diseño: {Limit(game.Design, 1400)}");
         sb.AppendLine("Explicá qué decisión central cambia en tu propuesta. No alcanza con otro nombre, cartel o HUD.\n");
@@ -328,7 +329,7 @@ public sealed class StudioDesigner
     public static string RevisePrompt(StudioGame current, IReadOnlyList<RecipeGame> slots, Func<string, GameProfile?> find, string request, bool includeScript = true)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"Este es el juego fusionado \"{current.Title}\", versión {current.Version}, con estos juegos:");
+        sb.AppendLine($"Este es el juego {(current.IsInspired ? "creado con originales" : "fusionado")} \"{current.Title}\", versión {current.Version}, con estos juegos:");
         sb.AppendLine(DirectionText(slots, find, FusionDirection.From(current)));
         sb.AppendLine();
         sb.Append(GamesText(slots, find));
@@ -365,6 +366,7 @@ public sealed class StudioDesigner
             return Task.FromResult(new DesignOutcome(null, null, 0, MissingDataPrefix + concept.MissingData));
         var template = new StudioGame
         {
+            Kind = concept.Direction?.Reimagine == true ? "inspired" : "fusion",
             Id = string.IsNullOrWhiteSpace(concept.Title) ? "" : StudioLibrary.Slug(concept.Title),
             Title = concept.Title,
             Approach = concept.Approach,
@@ -410,6 +412,7 @@ public sealed class StudioDesigner
         {
             if (string.IsNullOrWhiteSpace(draft.Script)) throw new AiException("El borrador guardado no tiene un guion completo.");
             draft.Games = template.Copy().Games;
+            draft.Kind = template.Kind;
             draft.BaseSlot = template.BaseSlot;
             draft.PlayerRequest = template.PlayerRequest;
             draft.Request = template.Request;

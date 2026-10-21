@@ -445,7 +445,7 @@ Un juego fusionado conecta los originales en una sola escena mediante su guion:
 - **El método** (`Docs/GUIA-FUSION.md`) y la API piden unión mecánica, regla única,
   transferencia de comportamientos y conservación de la base elegida. FusionDirection
   acompaña propuestas, guiones y correcciones; baseSlot queda fuera de lo que puede
-  cambiar la respuesta de IA. La reinterpretación libre es explícita. No se impone un
+  cambiar la respuesta de IA. La creación con originales tiene entrada y categoría propias. No se impone un
   número de niveles ni un menú; se conservan los originales en modo base.
   Manic Invaders es una referencia técnica; su guion completo no viaja como molde.
   Las propuestas y la escritura directa reciben un resumen acotado de diseños anteriores
@@ -466,6 +466,12 @@ Un juego fusionado conecta los originales en una sola escena mediante su guion:
   ni una certificación de fidelidad; la capacidad visual depende de la herramienta/modelo.
 
 ## Biblioteca y organización de ROMs
+
+`StudioGame.Kind` distingue nuevas creaciones con originales (`inspired`) de las fusiones
+(`fusion`, también por defecto para archivos viejos). Las primeras se guardan en Juegos
+creados junto a los juegos en ensamblador, con su formato de versiones del estudio.
+HomeScreen separa las categorías y las reúne en Todos los juegos. La modalidad es una
+elección del jugador, conservada en las respuestas y checkpoints. D-031.
 
 `StudioDesigner.Checkpoint` comunica el estado actual de escritura/revisión, sin acumular
 historial. `StudioWorkStore` lo persiste atómicamente en `Juegos fusionados/.trabajos`.

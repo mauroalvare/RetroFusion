@@ -38,7 +38,7 @@ public sealed class StudioWindow
     private readonly List<string> _chosen = new();   // order = slots a, b, c
     private string _gameSearch = "";
     private string? _baseProfile;
-    private bool _reimagine;
+    private bool _inspiredMode;
     private string _status = "";
 
     private string _wish = "";
@@ -81,9 +81,16 @@ public sealed class StudioWindow
         _ai = ai;
     }
 
-    public void Open()
+    public void Open(bool inspired = false)
     {
         _open = true;
+        if (inspired != _inspiredMode)
+        {
+            if (Busy || _manual != null || _agentDir != null)
+            { Problem("Hay un trabajo en curso. Terminá o cancelalo para cambiar de modalidad."); return; }
+            _inspiredMode = inspired;
+            _concepts = null; _gameSearch = "";
+        }
         RefreshWork();
         if (_games.Count == 0 || _libraryChanged)
             Scan();
@@ -97,8 +104,9 @@ public sealed class StudioWindow
     /// <summary>Command line --studio: plays a stored fusion game with the games in the folder.</summary>
     public void PlayById(string id)
     {
-        Open();
+        if (Busy || _manual != null || _agentDir != null) { _open = true; Problem("Terminá o cancelá el trabajo en curso antes de abrir otro juego."); return; }
         var game = StudioLibrary.AllVersions().Where(g => g.Id == id).OrderByDescending(g => g.Version).FirstOrDefault();
+        Open(game?.IsInspired ?? false);
         if (game == null)
         {
             _status = $"No existe el juego \"{id}\".";
@@ -159,7 +167,7 @@ public sealed class StudioWindow
         var vp = ImGui.GetMainViewport();
         ImGui.SetNextWindowPos(new Vector2(vp.Pos.X + vp.Size.X - 540, vp.Pos.Y + 30), ImGuiCond.FirstUseEver);
         ImGui.SetNextWindowSize(new Vector2(530, Math.Min(760, vp.Size.Y - 70)), ImGuiCond.FirstUseEver);
-        if (!ImGui.Begin("Fusionar juegos", ref _open))
+        if (!ImGui.Begin(_inspiredMode ? "Crear con originales" : "Fusionar juegos", ref _open))
         {
             _panelLeft = null;
             ImGui.End();
@@ -167,7 +175,7 @@ public sealed class StudioWindow
         }
         _panelLeft = ImGui.GetWindowPos().X - vp.Pos.X;
         DrawPendingWork();
-        if (_host.Fusion is StudioSession session)
+        if (_host.Fusion is StudioSession session && session.Game.IsInspired == _inspiredMode)
             DrawPlaying(session);
         else
             DrawSetup();
@@ -178,7 +186,7 @@ public sealed class StudioWindow
     private void DrawPreparation()
     {
         if (_unprepared.Count > 0 && _prepareTask == null)
-            AiPicker.Hint("Preparar identifica datos del juego para usarlos en la fusión.");
+            AiPicker.Hint("Preparar identifica datos del original para usarlos en el juego.");
         if (_prepareTask == null)
             return;
         ImGui.TextColored(new Vector4(1, 0.85f, 0.3f, 1), $"Preparando {_preparing}...");
@@ -210,19 +218,21 @@ public sealed class StudioWindow
 
     private void DrawSetup()
     {
-        ImGui.TextWrapped("Elegí un juego base e incorporá personajes o mecánicas de otros originales.");
+        ImGui.TextWrapped(_inspiredMode ? "Creá un juego nuevo a partir de personajes, recursos o reglas de tus ROMs."
+            : "Elegí un juego base e incorporá personajes o mecánicas de otros originales.");
         if (ImGui.TreeNode("Carpetas de juegos"))
         {
             ImGui.SetNextItemWidth(-90);
             ImGui.InputText("##carpeta", ref _folder, 1024);
             ImGui.SameLine();
             if (ImGui.Button("Buscar")) Scan();
-            if (ImGui.SmallButton("Abrir mis juegos fusionados"))
+            string savedFolder = _inspiredMode ? CreatedGames.UserFolder : StudioLibrary.UserFolder;
+            if (ImGui.SmallButton(_inspiredMode ? "Abrir mis juegos creados" : "Abrir mis juegos fusionados"))
             {
-                Directory.CreateDirectory(StudioLibrary.UserFolder);
-                Process.Start(new ProcessStartInfo { FileName = StudioLibrary.UserFolder, UseShellExecute = true });
+                Directory.CreateDirectory(savedFolder);
+                Process.Start(new ProcessStartInfo { FileName = savedFolder, UseShellExecute = true });
             }
-            ImGui.TextWrapped(StudioLibrary.UserFolder);
+            ImGui.TextWrapped(savedFolder);
             ImGui.TreePop();
         }
         AiPicker.Hint(_status);
@@ -270,8 +280,8 @@ public sealed class StudioWindow
             return;
         }
 
-        var existing = StudioLibrary.For(_chosen).ToList();
-        if (existing.Count > 0 && ImGui.TreeNode("Fusiones anteriores de esta combinación"))
+        var existing = StudioLibrary.For(_chosen).Where(g => g.IsInspired == _inspiredMode).ToList();
+        if (existing.Count > 0 && ImGui.TreeNode(_inspiredMode ? "Creaciones anteriores con estos originales" : "Fusiones anteriores de esta combinación"))
         {
             foreach (var game in existing)
                 DrawGameCard(game);
@@ -279,10 +289,10 @@ public sealed class StudioWindow
         }
 
         ImGui.Separator();
-        ImGui.TextColored(Gold, "2. Elegí cómo unirlos");
+        ImGui.TextColored(Gold, _inspiredMode ? "2. Definí el juego nuevo" : "2. Elegí el juego base");
         DrawDirection();
         ImGui.Spacing();
-        ImGui.TextColored(Gold, "3. Definí los aportes");
+        if (!_inspiredMode) ImGui.TextColored(Gold, "3. Definí los aportes");
         DrawAiChooser("La creación puede necesitar varios pedidos a la IA.");
         if (ImGui.BeginTabBar("forma-de-idea"))
         {
@@ -338,16 +348,13 @@ public sealed class StudioWindow
     private FusionDirection SelectedDirection()
     {
         int selected = Math.Max(0, _chosen.IndexOf(_baseProfile ?? ""));
-        return new FusionDirection(_chosen.Count > 0 ? SlotNames[selected] : null, _reimagine);
+        return new FusionDirection(_chosen.Count > 0 ? SlotNames[selected] : null, _inspiredMode);
     }
 
     private void DrawDirection()
     {
         ImGui.BeginDisabled(Busy);
-        if (ImGui.RadioButton("Conservar un original", !_reimagine) && _reimagine) Change(false);
-        ImGui.SameLine();
-        if (ImGui.RadioButton("Reinterpretación libre", _reimagine) && !_reimagine) Change(true);
-        if (!_reimagine)
+        if (!_inspiredMode)
         {
             int selected = Math.Max(0, _chosen.IndexOf(_baseProfile ?? ""));
             var labels = _chosen.Select(id => _labels.GetValueOrDefault(id, id)).ToArray();
@@ -355,16 +362,15 @@ public sealed class StudioWindow
             if (ImGui.Combo("Juego base", ref selected, labels, labels.Length))
             {
                 _baseProfile = _chosen[selected];
-                Change(false);
+                Change();
             }
             AiPicker.Hint("Conserva sus mapas, aspecto y reglas. Los demás aportan personajes o mecánicas dentro de ese mundo.");
         }
-        else AiPicker.Hint("Permite una escena y un diseño nuevos inspirados en los originales.");
+        else AiPicker.Hint("Tiene escena, presentación y progresión propias. No necesita conservar un juego base.");
         ImGui.EndDisabled();
 
-        void Change(bool reimagine)
+        void Change()
         {
-            _reimagine = reimagine;
             _concepts = null;
             _manual = null;
             _agentDir = null;
@@ -393,7 +399,7 @@ public sealed class StudioWindow
         if (AiPicker.IsApi(_ai.Provider))
         {
             AiPicker.Settings(_ai, costNote);
-            AiPicker.Generation(_ai, () => _host.Fusion is StudioSession current
+            AiPicker.Generation(_ai, () => _host.Fusion is StudioSession current && current.Game.IsInspired == _inspiredMode
                 ? new(StudioDesigner.Guide, [new(true, StudioDesigner.RevisePrompt(current.Game, current.Game.Games, ProfileLibrary.Find, _request))], StudioDesigner.GameSchema())
                 : new(StudioDesigner.Guide, [new(true, StudioDesigner.WritePrompt(Slots(), ProfileLibrary.Find,
                     new("", "", _ownIdea.Length > 0 ? _ownIdea : _wish, "", Direction: SelectedDirection())))], StudioDesigner.GameSchema()));
@@ -416,7 +422,7 @@ public sealed class StudioWindow
         ImGui.TextColored(Blue, "Cómo se juega:");
         ImGui.SameLine();
         ImGui.TextWrapped(g.HowToPlay);
-        if (g.Design.Length > 0 && ImGui.TreeNode("Diseño de la fusión"))
+        if (g.Design.Length > 0 && ImGui.TreeNode(g.IsInspired ? "Diseño del juego" : "Diseño de la fusión"))
         {
             ImGui.TextWrapped(g.Design);
             ImGui.TreePop();
@@ -673,9 +679,10 @@ public sealed class StudioWindow
         }
         _manual = null;
         var slots = Slots();
-        concept = concept with { Direction = concept.Direction ?? SelectedDirection() };
+        concept = concept with { Direction = SelectedDirection() };
         var template = new StudioGame
         {
+            Kind = _inspiredMode ? "inspired" : "fusion",
             Id = string.IsNullOrWhiteSpace(concept.Title) ? "" : StudioLibrary.Slug(concept.Title),
             Title = concept.Title,
             Approach = concept.Approach,
@@ -783,9 +790,10 @@ public sealed class StudioWindow
 
     private void DrawPendingWork()
     {
-        if (Busy || _pendingWork.Count == 0) return;
-        if (!ImGui.CollapsingHeader($"Trabajos pendientes ({_pendingWork.Count})", _pendingWork.Count == 1 ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.None)) return;
-        foreach (var work in _pendingWork.Take(3))
+        var pending = _pendingWork.Where(w => w.State.Template.IsInspired == _inspiredMode).ToList();
+        if (Busy || pending.Count == 0) return;
+        if (!ImGui.CollapsingHeader($"Trabajos pendientes ({pending.Count})", pending.Count == 1 ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.None)) return;
+        foreach (var work in pending.Take(3))
         {
             var game = work.State.Draft ?? work.State.Template;
             ImGui.PushID(work.Id);
@@ -823,9 +831,9 @@ public sealed class StudioWindow
         if (provider == null) return;
         var ai = _ai.Operation(provider, previous: work.State.Usage);
         var template = work.State.Template;
+        _inspiredMode = template.IsInspired;
         _chosen.Clear(); _chosen.AddRange(template.Games.Select(g => g.Profile));
         _baseProfile = template.Games.FirstOrDefault(g => g.Slot == template.BaseSlot)?.Profile;
-        _reimagine = template.BaseSlot == null;
         PrepareReferences(template, references =>
         {
             if (!work.Matches(references))

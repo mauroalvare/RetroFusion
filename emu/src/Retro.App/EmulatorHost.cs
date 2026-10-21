@@ -41,7 +41,7 @@ public sealed class EmulatorHost
         FusionFocus = session.Slots[0].Id;
         Paused = false;
         _audio.Clear();
-        Status = $"Fusión: {session.Title}. {session.Description}";
+        Status = $"{(session is Retro.Studio.StudioSession studio && studio.Game.IsInspired ? "Juego creado" : "Fusión")}: {session.Title}. {session.Description}";
     }
 
     public void StopFusion()
@@ -50,7 +50,7 @@ public sealed class EmulatorHost
         DiscardQuickState();
         Fusion = null;
         _audio.Clear();
-        Status = "Fusión detenida.";
+        Status = "Juego detenido.";
     }
     public MachineInfo? Info { get; private set; }
     public Spectrum48? Zx => Machine as Spectrum48;

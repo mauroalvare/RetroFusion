@@ -181,19 +181,20 @@ otra copia visible si el usuario la pide expresamente.
 | `C:\Users\mauro\Desktop\RetroEmu\ROMs` | Copia de los juegos que usa la app del Escritorio |
 | `%APPDATA%\RetroEmu` | Estados guardados, anotaciones de código y configuración de IA de la app |
 
-## Fusiones con original base o reinterpretación libre
+## Fusiones con base y creación con originales
 
 **Máquina > Juegos originales** permite buscar por nombre y abrir los juegos sin fusión,
 incluso mientras se juega una fusión. Por ejemplo, buscar `Spy` muestra Spy vs Spy de C64.
 Los juegos fusionados tienen su propia entrada; guardar o jugar una fusión no quita
 archivos originales de la biblioteca ni los reemplaza.
 
-**Fusión > Crear juego fusionado con IA** es la entrada para elegir juegos, prepararlos e
+**Fusión > Fusionar conservando un juego base** es la entrada para elegir juegos, prepararlos e
 definir la unión. El selector conserva por defecto un original y permite invertir la base.
 `FusionDirection` acompaña ideas, escritura y correcciones; `StudioGame.baseSlot` se
 guarda sin dejar que la IA o la carpeta cambien la elección. `screen.base` dibuja solo
 la imagen nativa elegida; `screen.game` y pantallas secundarias completas siguen rechazados.
-En modo libre se dibuja una escena propia. Las pruebas de `tests/Studio.Tests` usan IA simulada.
+**Crear > A partir de tus ROMs** permite diseñar una escena nueva. Esos juegos aparecen
+en Creados y se guardan en Juegos creados. Las pruebas de `tests/Studio.Tests` usan IA simulada.
 
 Mientras la IA propone, escribe o corrige un juego, **Abrir construcción** muestra la
 etapa, el tiempo transcurrido, el estado del proceso CLI y su salida conforme llega.

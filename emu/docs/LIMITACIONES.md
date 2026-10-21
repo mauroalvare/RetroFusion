@@ -165,6 +165,10 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 
 ## Fusiones y estudio
 
+- Fusión y creación con originales tienen entradas y categorías separadas. Los juegos
+  anteriores con escena propia mantienen su categoría, incluido Manic Invaders. Esta
+  separación no certifica que una generación nueva conserve la identidad o sea divertida.
+
 - El rango de tokens es orientativo y local; no incluye imágenes, salida ni el contexto
   que agregue cada CLI. El tope de texto limita caracteres de entrada, no dinero ni cuota.
   Los tokens informados dependen del proveedor; si faltan se indican como desconocidos o

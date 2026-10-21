@@ -38,11 +38,12 @@ public static class StudioWorkspace
             ? $"Probalo vos mismo cuando quieras con:\n\n    {cliHint}\n\n  Imprime el informe de los robots y guarda capturas (prueba_titulo.png, prueba_jugando_8s.png, ...). Miralas."
             : "RetroEmu lo prueba solo cada vez que guardás juego.js (ver informe.md).";
         string tarea = $"""
-            # Tarea: {(game.Script.Length == 0 ? "crear" : "mejorar")} un juego fusionado de RetroEmu
+            # Tarea: {(game.Script.Length == 0 ? "crear" : "mejorar")} un juego {(game.IsInspired ? "nuevo con originales" : "fusionado")} de RetroEmu
 
             RetroEmu corre juegos de 8 bits emulados de verdad y los FUSIONA con un guion de
             JavaScript que conecta sus reglas en una partida compartida. Conservá el mundo
-            y la presentación del original base salvo que se haya elegido reinterpretación libre.
+            y la presentación del original base en una fusión. La creación con originales
+            tiene escena y reglas propias, sin una base obligatoria.
 
             {StudioDesigner.DirectionText(game.Games, find, FusionDirection.From(game))}
 

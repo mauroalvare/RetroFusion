@@ -135,7 +135,7 @@ paleta nativas. `screen.base(g)` permite reponerla. Ampliar sus mapas necesita u
 y cambios de memoria verificados; una reconstrucción con otra escena es creación libre.
 Integrá el aporte en ese espacio, con interacción real y controles coherentes.
 
-En reinterpretación libre dibujá la escena con `screen.sprite`, `screen.rect`,
+En creación con originales dibujá la escena con `screen.sprite`, `screen.rect`,
 `screen.line` y `screen.text`. Leé sprites y tiles con `g.sprite`/`g.spriteAt`, y mapas
 y variables con las ayudas del perfil o `peek`. No hay un diseño visual universal.
 

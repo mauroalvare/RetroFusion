@@ -31,11 +31,12 @@ public sealed class WorkRecoveryTests
         Assert.That(saved!.Draft, Is.Not.Null);
         Assert.That(saved.FirstPrompt, Is.Empty, "no conserva el código anterior cuando ya tiene un borrador");
         Assert.That(saved.Calls, Is.EqualTo(1));
-        saved.Draft!.BaseSlot = "a"; saved.Draft.PlayerRequest = "Intento de cambiar el pedido";
+        saved.Draft!.BaseSlot = "a"; saved.Draft.PlayerRequest = "Intento de cambiar el pedido"; saved.Draft.Kind = "inspired";
         var noAi = new Fake(_ => throw new AssertionException("No debía llamar a la IA"));
         var outcome = await designer.ResumeAsync(noAi, saved, Ok, CancellationToken.None);
         Assert.That(outcome.Game!.BaseSlot, Is.EqualTo("b"));
         Assert.That(outcome.Game.PlayerRequest, Is.EqualTo("Conservar el recorrido"));
+        Assert.That(outcome.Game.Kind, Is.EqualTo("fusion"));
         Assert.That(noAi.Calls, Is.Zero);
         Assert.That(outcome.Attempts, Is.Zero);
     }

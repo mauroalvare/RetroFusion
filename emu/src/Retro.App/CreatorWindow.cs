@@ -23,6 +23,7 @@ public sealed class CreatorWindow
     private readonly string _romDir;
     private readonly AiSettings _ai;
     private readonly Action<string> _play;
+    private readonly Action? _fromOriginals;
     private bool _open;
     private int _machine;               // index in Templates.All
     private string _wish = "";
@@ -52,11 +53,12 @@ public sealed class CreatorWindow
     private Task<(GameDraft draft, TrialReport report)>? _agentTask;
     private string? _agentReport;
 
-    public CreatorWindow(string romDir, AiSettings ai, Action<string> play)
+    public CreatorWindow(string romDir, AiSettings ai, Action<string> play, Action? fromOriginals = null)
     {
         _romDir = romDir;
         _ai = ai;
         _play = play;
+        _fromOriginals = fromOriginals;
     }
 
     public void Open()
@@ -105,6 +107,14 @@ public sealed class CreatorWindow
 
     private void DrawNew()
     {
+        if (_fromOriginals != null)
+        {
+            ImGui.BeginDisabled(Busy);
+            if (ImGui.Button("Crear a partir de tus ROMs")) { _open = false; _fromOriginals(); }
+            ImGui.EndDisabled();
+            ImGui.Separator();
+            ImGui.TextColored(Gold, "Crear desde cero");
+        }
         ImGui.TextWrapped("Elegí una máquina y describí el juego que querés crear.");
         ImGui.TextUnformatted("Máquina:");
         for (int i = 0; i < Templates.All.Count; i++)

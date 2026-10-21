@@ -17,6 +17,9 @@ public sealed class StudioGame
     /// <summary>Same for every version of the game.</summary>
     public string Id { get; set; } = "";
     public string Title { get; set; } = "";
+    /// <summary>Fusion is the legacy default; inspired games are a separate creation experience.</summary>
+    public string Kind { get; set; } = "fusion";
+    [System.Text.Json.Serialization.JsonIgnore] public bool IsInspired => Kind == "inspired";
     /// <summary>The idea in one paragraph.</summary>
     public string Pitch { get; set; } = "";
     /// <summary>How the games are mixed (invasion, crossed powers, alternating worlds, remix...).</summary>
@@ -45,6 +48,8 @@ public sealed class StudioGame
         var game = JsonSerializer.Deserialize<StudioGame>(json, GameProfile.Json)
                    ?? throw new InvalidDataException("Juego vacío.");
         game.Id ??= "";
+        game.Kind ??= "fusion";
+        if (game.Kind is not ("fusion" or "inspired")) throw new InvalidDataException("Modalidad de juego desconocida.");
         game.Title = string.IsNullOrWhiteSpace(game.Title) ? game.Id : game.Title;
         game.Pitch ??= "";
         game.Approach ??= "";
@@ -151,7 +156,7 @@ public static class StudioLibrary
         var byKey = new Dictionary<(string, int), StudioGame>();
         foreach (var g in BuiltIn)
             byKey[(g.Id, g.Version)] = g;
-        foreach (var folder in new[] { LegacyFolder, UserFolder })
+        foreach (var folder in new[] { LegacyFolder, UserFolder, Retro.Ai.CreatedGames.UserFolder }.Distinct())
         {
             if (!Directory.Exists(folder))
                 continue;
@@ -241,14 +246,14 @@ public static class StudioLibrary
         {
             game.Id = saved.Id;
             game.Version = saved.Version;
-            return Path.Combine(UserFolder, game.Id, $"v{game.Version}.json");
+            return Path.Combine(FolderFor(saved), game.Id, $"v{game.Version}.json");
         }
         if (string.IsNullOrWhiteSpace(game.Id))
             game.Id = Slug(game.Title);
         int highest = Versions(game.Id).Select(v => v.Version).DefaultIfEmpty(0).Max();
         if (game.Version <= highest)
             game.Version = highest + 1;
-        string path = Write(game, Path.Combine(UserFolder, game.Id));
+        string path = Write(game, Path.Combine(FolderFor(game), game.Id));
         if (picture != null)
             try { Retro.Core.PngWriter.Write(Path.ChangeExtension(path, ".png"), picture, 1); }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* A thumbnail must not prevent playing a saved game. */ }
@@ -259,7 +264,7 @@ public static class StudioLibrary
     {
         if (string.IsNullOrWhiteSpace(game.Id) || game.Id is "." or ".." || game.Id != Path.GetFileName(game.Id) ||
             game.Id.Contains('\\') || game.Id.Contains('/') || game.Id.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) return null;
-        foreach (string folder in new[] { UserFolder, LegacyFolder })
+        foreach (string folder in new[] { FolderFor(game), UserFolder, LegacyFolder })
         {
             string path = Path.Combine(folder, game.Id, $"v{game.Version}.png");
             if (File.Exists(path)) return path;
@@ -267,6 +272,8 @@ public static class StudioLibrary
         string included = Path.Combine(AppContext.BaseDirectory, "docs", "img", "fusiones", game.Id + ".png");
         return File.Exists(included) ? included : null;
     }
+
+    public static string FolderFor(StudioGame game) => game.IsInspired ? Retro.Ai.CreatedGames.UserFolder : UserFolder;
 
     /// <summary>An id no stored game uses yet (for the first version of a new game).</summary>
     public static string UniqueId(string id)

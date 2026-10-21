@@ -1,5 +1,7 @@
 Acá se guardan los juegos que creás en RetroEmu.
 Para agregar uno compartido, copiá su carpeta completa: programa, código,
 datos del juego e imagen. Aparece en Inicio > Creados.
+Los hechos con originales guardan versiones vN.json y vN.js; para jugarlos
+también hacen falta tus propias copias de las ROMs indicadas.
 
 Al actualizar o cambiar de PC, conservá esta carpeta completa.

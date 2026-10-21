@@ -72,7 +72,7 @@ public sealed class RetroApp
         _browser = new FileBrowser(games);
         _studio = new StudioWindow(_host, _romDir, games, _ai);
         _code = new CodeWindow(_host, _ai, ShowInDebugger, OpenFusionStudio);
-        _creator = new CreatorWindow(_romDir, _ai, OpenFile);
+        _creator = new CreatorWindow(_romDir, _ai, OpenFile, OpenInspiredCreator);
         _home = new HomeScreen(_library, OpenFile, PlayFusion, _browser.Open, OpenFusionStudio, OpenCreator,
             visible =>
             {
@@ -443,6 +443,7 @@ public sealed class RetroApp
 
     private void OpenFusionStudio() { _home.Close(); _studio.Open(); }
     private void OpenCreator() { _home.Close(); _creator.Open(); }
+    private void OpenInspiredCreator() { _home.Close(); _studio.Open(inspired: true); }
     private void PlayFusion(string id) { _home.Close(); _studio.PlayById(id); }
     private void OpenModifications() { _home.Close(); _code.OpenModifications(); }
 
@@ -655,13 +656,14 @@ public sealed class RetroApp
         }
         if (ImGui.BeginMenu("Fusión"))
         {
-            if (ImGui.MenuItem("Crear juego fusionado con IA...")) OpenFusionStudio();
-            if (ImGui.MenuItem("Detener la fusión", "", false, _host.Fusion != null)) _host.StopFusion();
+            if (ImGui.MenuItem("Fusionar conservando un juego base...")) OpenFusionStudio();
+            if (ImGui.MenuItem("Detener el juego actual", "", false, _host.Fusion != null)) _host.StopFusion();
             ImGui.EndMenu();
         }
         if (ImGui.BeginMenu("Crear"))
         {
-            if (ImGui.MenuItem("Juego de 8 bits nuevo (C64 o Spectrum)...")) OpenCreator();
+            if (ImGui.MenuItem("Desde cero (C64 o Spectrum)...")) OpenCreator();
+            if (ImGui.MenuItem("A partir de tus ROMs...")) OpenInspiredCreator();
             ImGui.EndMenu();
         }
         if ((_advancedTools || _debugMode) && ImGui.BeginMenu("Código"))
@@ -930,7 +932,7 @@ public sealed class RetroApp
             extra = !zx.Tape.IsLoaded ? "  |  sin cinta" : zx.Tape.IsPlaying ? $"  |  cinta en marcha, bloque {zx.Tape.CurrentBlock} ({zx.Tape.Progress * 100:F0}%)" : zx.Tape.AtEnd ? "  |  cinta al final" : "  |  cinta detenida";
         if (_host.C64 is { OpenRoms: true } c64 && c64.UnhandledKernalCalls.Count > 0)
             extra = $"  |  usa rutinas internas del KERNAL original ({c64.UnhandledKernalCalls.Count}): si falla, poné las ROMs originales en firmware/c64";
-        string title = _host.Fusion is { } f ? $"Fusión: {f.Title} (depurador en {_host.Machine?.DisplayName})" : _host.Info?.Name ?? "Sin máquina";
+        string title = _host.Fusion is { } f ? $"{(f is Retro.Studio.StudioSession { Game.IsInspired: true } ? "Juego creado" : "Fusión")}: {f.Title} (depurador en {_host.Machine?.DisplayName})" : _host.Info?.Name ?? "Sin máquina";
         if (_host.Fusion != null)
             extra = "";
         ImGui.TextUnformatted($"{title}  |  {speed}{extra}  |  {_host.Status}");

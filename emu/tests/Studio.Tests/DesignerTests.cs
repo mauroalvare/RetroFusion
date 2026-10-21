@@ -101,7 +101,8 @@ public class DesignerTests
         var concept = new GameConcept("Libre", "", "Una escena nueva", "", Direction: new FusionDirection(Reimagine: true));
         var outcome = await new StudioDesigner().WriteAsync(ai, Slots, ProfileLibrary.Find, concept, Fake, CancellationToken.None);
         Assert.That(outcome.Game!.BaseSlot, Is.Null);
-        Assert.That(ai.Requests.Single().Turns[0].Text, Does.Contain("reinterpretación libre"));
+        Assert.That(outcome.Game.IsInspired, Is.True);
+        Assert.That(ai.Requests.Single().Turns[0].Text, Does.Contain("creación con originales"));
     }
 
     [Test]

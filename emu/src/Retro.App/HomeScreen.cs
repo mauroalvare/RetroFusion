@@ -16,11 +16,12 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
     private bool _open;
     private string _section = "home", _machine = "", _search = "", _problem = "";
     private List<StudioGame> _fusions = new();
+    private List<StudioGame> _inspired = new();
     private IReadOnlyList<CreatedGame> _created = Array.Empty<CreatedGame>();
     private static readonly MachineInfo[] Machines = MachineCatalog.All.Where(m => m.Status == MachineStatus.Available)
         .OrderBy(m => m.Id switch { "zx48" => 0, "c64" => 1, "nes" => 2, _ => 3 }).ToArray();
     public bool IsOpen => _open;
-    public int GameCount => library.Originals().Count() + _created.Count + _fusions.Count;
+    public int GameCount => library.Originals().Count() + _created.Count + _fusions.Count + _inspired.Count;
 
     public void Open()
     {
@@ -52,8 +53,10 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         _thumbnails.Clear();
         try
         {
-            _fusions = StudioLibrary.AllVersions().GroupBy(g => g.Id)
+            var games = StudioLibrary.AllVersions().GroupBy(g => g.Id)
                 .Select(g => g.OrderByDescending(v => v.Version).First()).OrderBy(g => g.Title).ToList();
+            _fusions = games.Where(g => !g.IsInspired).ToList();
+            _inspired = games.Where(g => g.IsInspired).ToList();
             _created = CreatedGames.All();
             _problem = "";
         }
@@ -185,7 +188,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
     {
         var games = library.Originals(_search, _section == "machine" ? _machine : null).ToList();
         var created = _created.Where(g => Matches(g.Title) && (_section == "all" || g.Machine == _machine)).ToList();
-        var fusions = _section == "all" ? _fusions.Where(g => Matches(g.Title)).ToList() : new List<StudioGame>();
+        var fusions = _section == "all" ? _fusions.Concat(_inspired).Where(g => Matches(g.Title)).ToList() : new List<StudioGame>();
         if (BeginList())
         {
             foreach (var game in games)
@@ -219,7 +222,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         var have = library.Entries.Where(e => e.ProfileId != null).Select(e => e.ProfileId!).ToHashSet();
         string missing = string.Join(", ", game.Games.Where(g => !have.Contains(g.Profile))
             .Select(g => ProfileLibrary.Find(g.Profile)?.Name ?? g.Profile));
-        Row(game.Id, game.Title, $"Fusión · v{game.Version}", missing.Length > 0 ? "Falta: " + missing : game.Pitch,
+        Row(game.Id, game.Title, $"{(game.IsInspired ? "Con originales" : "Fusión")} · v{game.Version}", missing.Length > 0 ? "Falta: " + missing : game.Pitch,
             () => playFusion(game.Id), missing.Length == 0,
             ProfileLibrary.Find(game.Games.FirstOrDefault(g => g.Slot == game.BaseSlot)?.Profile ?? game.Games.FirstOrDefault()?.Profile ?? "")?.Machine ?? "fusion",
             () => StudioLibrary.PicturePath(game));
@@ -230,14 +233,16 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         if (ImGui.Button("Crear un juego")) { Close(); create(); }
         ImGui.Spacing();
         var games = _created.Where(g => Matches(g.Title)).ToList();
+        var inspired = _inspired.Where(g => Matches(g.Title)).ToList();
         if (BeginList())
         {
             foreach (var game in games)
                 Row(game.Folder, game.Title, game.MachineName, game.Pitch,
                     () => playOriginal(game.ProgramPath), File.Exists(game.ProgramPath), game.Machine, () => game.PicturePath);
+            foreach (var game in inspired) FusionRow(game);
             ImGui.EndTable();
         }
-        if (games.Count == 0) ImGui.TextWrapped("No hay juegos creados para mostrar.");
+        if (games.Count + inspired.Count == 0) ImGui.TextWrapped("No hay juegos creados para mostrar.");
     }
 
     private bool Matches(string title) => title.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase);

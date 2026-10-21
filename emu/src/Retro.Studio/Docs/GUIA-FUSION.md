@@ -4,7 +4,8 @@ Por defecto, fusionar significa conservar un juego como base e incorporar compor
 del otro dentro de su mundo. La orientación importa: invertir la base produce otra fusión.
 El jugador debe reconocer el original por sus mapas, gráficos, reglas, interfaz y ritmo.
 No conviertas automáticamente la combinación en un tercer juego de estética genérica.
-La reinterpretación libre existe como opción explícita y puede diseñar una escena nueva.
+Crear con originales es una modalidad independiente: diseña una escena y un juego nuevos
+a partir de esos recursos. Se abre desde Crear; no es la dirección alternativa de una fusión.
 
 ## 1. Entender qué hace especial a cada original
 

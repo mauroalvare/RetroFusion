@@ -382,3 +382,22 @@ Formatos comprobados contra documentación oficial y pruebas de transporte simul
 [Ollama](https://docs.ollama.com/api/chat),
 [Gemini API](https://ai.google.dev/api/generate-content#UsageMetadata) y
 [telemetría de Gemini CLI](https://github.com/google-gemini/gemini-cli/blob/main/packages/core/src/telemetry/uiTelemetry.ts).
+
+## D-031 Fusión y creación con originales como recorridos separados (2026-10-21)
+
+Fusión conserva un original base; Crear ofrece desde cero o a partir de ROMs. Se reutiliza
+el motor del estudio para esta última modalidad, con escena propia y sin selector de base.
+La elección viaja en StudioGame.kind: fusion por defecto, inspired para nuevas creaciones
+con originales. El modelo y los metadatos de una carpeta de agentes no pueden cambiarla.
+La recuperación restaura también esta elección. Un trabajo activo impide cambiar de
+modalidad sin terminarlo o cancelarlo, conservando su consigna y borrador.
+
+Los nuevos inspired se guardan como vN.json/vN.js/vN.png en Juegos creados y se muestran
+en Creados y Todos los juegos; los juegos en ensamblador conservan su formato. StudioLibrary
+lee ambos directorios y consulta sus identificadores juntos para evitar colisiones. Los
+juegos anteriores sin kind siguen como fusiones aunque no tengan baseSlot: Manic Invaders
+conserva su categoría y escena. No se mueven ni reclasifican carpetas del usuario.
+
+La separación y la autoridad de modalidad/base se probaron con IA simulada y en la app.
+La navegación Spy/Pac en ambos sentidos y el prototipo vacío de biblioteca no demuestran
+una fusión nueva jugable ni creatividad. Esa evaluación mecánica sigue pendiente.

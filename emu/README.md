@@ -51,8 +51,8 @@ la partida actual se conserva.
 
 - **Fusionar juegos:** elegí 2 o 3 originales y cuál es la base. Conserva sus mapas,
   aspecto y reglas, con personajes o mecánicas de los otros dentro de ese mundo.
-  **Reinterpretación libre** permite una escena nueva si preferís esa opción.
-- **Crear un juego:** elegí la máquina y describí lo que querés. Podés dejar la idea a elección de la IA.
+- **Crear > A partir de tus ROMs:** diseñá un juego nuevo con esos recursos, sin una base obligatoria.
+- **Crear > Desde cero:** elegí la máquina y describí lo que querés. Podés dejar la idea a elección de la IA.
 - **Cambiar una fusión:** pedí otra versión desde el estudio. Las anteriores quedan guardadas.
 
 Elegí cómo trabajar: una herramienta instalada con tu sesión iniciada, copiar y pegar

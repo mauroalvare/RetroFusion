@@ -17,8 +17,8 @@ los prueba y quedan como un `.prg` o un `.tap` que corre en cualquier emulador.
 
 Los originales corren en sus máquinas emuladas. Podés conservar los mapas, gráficos,
 interfaz y reglas de un **juego base** e incorporar personajes o mecánicas de los demás.
-Invertir la base cambia la dirección de la fusión. **Reinterpretación libre** permite
-una escena y un diseño nuevos si preferís esa opción.
+Invertir la base cambia la dirección de la fusión. **Crear > A partir de tus ROMs** es
+un recorrido aparte para diseñar un juego nuevo con esos recursos.
 Se juegan desde **Inicio > Fusionados** si los juegos están en tu carpeta `ROMs`.
 Con **Fusionar juegos** elegís los originales, la base y los aportes. El guion puede
 conservar la imagen nativa de esa base; no se admiten pantallas independientes pegadas.
