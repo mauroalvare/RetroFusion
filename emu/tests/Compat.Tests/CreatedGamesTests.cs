@@ -98,10 +98,13 @@ public class CreatedGamesTests
     public void TwoGamesWithTheSameTitle_GetTheirOwnFolders()
     {
         var draft = new GameDraft("Ñandú veloz", "corre", "joystick", "", Templates.For("c64")!.Source);
-        var a = CreatedGames.Save(draft, null, "c64", "un ñandú", "IA de prueba");
+        var usage = new AiOperationStats(2,1,1000,120,30,90);
+        var a = CreatedGames.Save(draft, null, "c64", "un ñandú", "IA de prueba", usage);
         var b = CreatedGames.Save(draft, null, "c64", "otro ñandú", "IA de prueba");
         Assert.That(Path.GetFileName(a.Folder), Is.EqualTo("nandu-veloz-c64"));
         Assert.That(Path.GetFileName(b.Folder), Is.EqualTo("nandu-veloz-c64-2"));
         Assert.That(CreatedGames.All().Select(g => g.Request), Is.EquivalentTo(new[] { "un ñandú", "otro ñandú" }));
+        Assert.That(CreatedGames.All().Single(g=>g.Folder==a.Folder).Usage, Is.EqualTo(usage));
+        Assert.That(CreatedGames.All().Single(g=>g.Folder==b.Folder).Usage, Is.Null);
     }
 }

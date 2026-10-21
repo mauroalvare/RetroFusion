@@ -15,6 +15,7 @@ namespace Retro.Ai;
 public sealed class CreatedGame
 {
     public string Title { get; set; } = "";
+    public AiOperationStats? Usage { get; set; }
     public string Machine { get; set; } = "c64";
     public string Pitch { get; set; } = "";
     public string HowToPlay { get; set; } = "";
@@ -81,7 +82,7 @@ public static class CreatedGames
     }
 
     /// <summary>Saves what an AI wrote (and how its trial went) in a new folder.</summary>
-    public static CreatedGame Save(GameDraft draft, TrialReport? report, string machine, string request, string author)
+    public static CreatedGame Save(GameDraft draft, TrialReport? report, string machine, string request, string author, AiOperationStats? usage = null)
     {
         var g = new CreatedGame
         {
@@ -91,6 +92,7 @@ public static class CreatedGames
             HowToPlay = draft.HowToPlay,
             Request = request.Trim(),
             Author = author,
+            Usage = usage,
             Folder = NewFolder(draft.Title, machine),
         };
         File.WriteAllText(g.SourcePath, draft.Source);
@@ -155,7 +157,8 @@ public static class CreatedGames
                 "  juego.prg o .tap   listo para cargar en el C64 o el Spectrum (también en otros emuladores)\r\n" +
                 "  juego.png          cómo se veía en su última prueba\r\n" +
                 "  juego.json         título, cómo se juega y el informe de la prueba\r\n\r\n" +
-                "Después de editar juego.s, en RetroEmu: Crear > Juego de 8 bits nuevo > Probar de nuevo.\r\n");
+                "Después de editar juego.s, en RetroEmu: Crear > Desde cero > Probar de nuevo.\r\n" +
+                "Los hechos con originales usan versiones vN.json/vN.js/vN.png y necesitan tus propias ROMs.\r\n");
         return added;
     }
 

@@ -391,6 +391,7 @@ public sealed class StudioDesigner
         template.Request = request.Trim();
         template.Author = ai.Name;
         template.Created = DateTime.Now;
+        template.Usage = null;
         return LoopAsync(ai, RevisePrompt(current, current.Games, find, request),
             RevisePrompt(current, current.Games, find, request, includeScript: false), template, validate, ct, progress, references);
     }
@@ -437,7 +438,7 @@ public sealed class StudioDesigner
             progress?.Invoke("Volviendo a probar el borrador guardado, sin llamar a la IA...");
             report = await Task.Run(() => validate(draft), ct);
             Save();
-            if (report.Ok) return new(draft, report, 0, null);
+            if (report.Ok) { draft.Usage = (ai as AiOperation)?.Stats ?? resume?.Usage; return new(draft, report, 0, null); }
             prompt = brief + "\n\n" + CurrentDraft(draft) + "\n\n" + FixRequest(report);
         }
         else if (error != null)
@@ -476,7 +477,10 @@ public sealed class StudioDesigner
             report = await Task.Run(() => validate(game), ct);
             Save();
             if (report.Ok)
+            {
+                game.Usage = (ai as AiOperation)?.Stats;
                 return new DesignOutcome(game, report, attempt, null);
+            }
             error = report.Error ?? string.Join(" ", report.Problems);
             prompt = brief + "\n\n" + CurrentDraft(draft) + "\n\n" + FixRequest(report);
         }

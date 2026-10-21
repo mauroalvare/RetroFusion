@@ -329,6 +329,8 @@ public sealed class CreatorWindow
                 ImGui.TextWrapped(g.Pitch);
             if (g.HowToPlay.Length > 0)
                 AiPicker.Hint("Cómo se juega: " + g.HowToPlay);
+            if (g.Usage is { } usage && ImGui.TreeNode("Uso de IA"))
+            { AiBuildWindow.UsageDetails(usage); ImGui.TreePop(); }
             ImGui.BeginDisabled(Busy || !File.Exists(g.ProgramPath));
             if (ImGui.Button("Jugar"))
                 _play(g.ProgramPath);
@@ -451,7 +453,7 @@ public sealed class CreatorWindow
                 Problem(Failure(wt.Exception));
             else if (wt.Result.Game is { } draft)
             {
-                var g = CreatedGames.Save(draft, wt.Result.Report, _writeMachine, _writeWish, _writeAuthor);
+                var g = CreatedGames.Save(draft, wt.Result.Report, _writeMachine, _writeWish, _writeAuthor, _build.Usage);
                 _games = null;
                 if (wt.Result.Ok)
                 {

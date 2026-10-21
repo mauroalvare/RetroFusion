@@ -422,6 +422,8 @@ public sealed class StudioWindow
         ImGui.TextColored(Blue, "Cómo se juega:");
         ImGui.SameLine();
         ImGui.TextWrapped(g.HowToPlay);
+        if (g.Usage is { } usage && ImGui.TreeNode("Uso de IA de esta versión"))
+        { AiBuildWindow.UsageDetails(usage); ImGui.TreePop(); }
         if (g.Design.Length > 0 && ImGui.TreeNode(g.IsInspired ? "Diseño del juego" : "Diseño de la fusión"))
         {
             ImGui.TextWrapped(g.Design);
@@ -736,6 +738,7 @@ public sealed class StudioWindow
         template.Request = request;
         template.Author = AiPicker.ShortName(_ai.Provider);
         template.Created = DateTime.Now;
+        template.Usage = null;
         string provider = _ai.Provider;
         var ai = provider is "manual" or "agent" ? null : _ai.Operation(_ai.CreateProvider()!);
         PrepareReferences(template, references => ReviseReady(current, request, template, provider, ai, references));
@@ -931,6 +934,7 @@ public sealed class StudioWindow
         if (first || game.Version <= 1)
             game.Id = StudioLibrary.UniqueId(string.IsNullOrWhiteSpace(game.Id) ? StudioLibrary.Slug(game.Title) : game.Id);
         game.WorkId = _activeWork;
+        game.Usage = _activeWork != null ? _build.Usage : null;
         try { StudioLibrary.Save(game, picture); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {

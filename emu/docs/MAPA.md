@@ -52,6 +52,7 @@ manual y prueba de generación quedan en **Conexión avanzada**. Detectar la ins
 o consultar un catálogo no garantiza acceso ni cuota. Guía: `docs/CONECTAR-IA.md`.
 **Uso de IA** despliega modo, tope de texto y estimación inicial. **Abrir construcción**
 muestra texto enviado y tokens informados, con indicación si los datos son parciales.
+Los detalles del juego conservan ese registro cuando vuelve a abrirse.
 `AiOperation.cs` concentra medición y límites; el estudio los conserva al continuar.
 
 ## Modificar una partida

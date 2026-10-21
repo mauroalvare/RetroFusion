@@ -36,6 +36,7 @@ public sealed class StudioGame
     public int Version { get; set; } = 1;
     /// <summary>Local operation that saved this version; prevents duplicate saves after interrupted cleanup.</summary>
     public string? WorkId { get; set; }
+    public Retro.Ai.AiOperationStats? Usage { get; set; }
     /// <summary>What the player asked for to get this version (null for the first one).</summary>
     public string? Request { get; set; }
     /// <summary>What changed compared to the previous version.</summary>

@@ -374,6 +374,9 @@ registrados permanecen en el checkpoint y no se reinician al continuar. Las idea
 un pedido separado. retro-cli respeta el modo guardado; --intentos explícito prevalece.
 Un límite de proveedor o de texto conserva el último borrador completo; el estudio lo
 reanuda y el creador desde cero guarda el último código recibido, aún pendiente de corregir.
+Los metadatos de una versión terminada conservan Usage opcional con esos mismos totales
+y su cobertura. La interfaz permite consultarlos después de volver a abrir el programa.
+Los juegos antiguos y los cambios manuales sin medición no reciben contadores inventados.
 
 Formatos comprobados contra documentación oficial y pruebas de transporte simulado:
 [Codex](https://learn.chatgpt.com/docs/non-interactive-mode),

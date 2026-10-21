@@ -12,6 +12,7 @@ internal sealed class AiBuildWindow(string id, string title = "Construcción del
     private CliAgentProvider? _cli;
     private AiOperation? _operation;
     private bool _started, _open;
+    public AiOperationStats? Usage => _operation?.Stats;
 
     public void Start(IAiProvider provider)
     {
@@ -37,13 +38,7 @@ internal sealed class AiBuildWindow(string id, string title = "Construcción del
             ImGui.TextWrapped(stage);
             ImGui.TextUnformatted($"Tiempo transcurrido: {Duration(_elapsed.Elapsed)}");
             if (_operation?.Stats is { } stats)
-            {
-                ImGui.TextDisabled($"Pedidos: {stats.Calls} · Texto enviado: {stats.TextCharacters:N0} caracteres");
-                if (stats.CallsWithUsage > 0)
-                    ImGui.TextWrapped($"Tokens informados{(stats.CallsWithUsage < stats.Calls ? " (parcial)" : "")}: {stats.InputTokens:N0} entrada · {stats.OutputTokens:N0} salida" +
-                        (stats.CachedInputTokens is long cached ? $" · {cached:N0} de entrada en caché" : ""));
-                else ImGui.TextDisabled("La herramienta todavía no informó consumo de tokens.");
-            }
+                UsageDetails(stats);
             if (_cli?.Activity is { } activity)
             {
                 ImGui.TextUnformatted(activity.Status);
@@ -65,4 +60,12 @@ internal sealed class AiBuildWindow(string id, string title = "Construcción del
     }
 
     private static string Duration(TimeSpan elapsed) => $"{(int)elapsed.TotalMinutes}:{elapsed.Seconds:00}";
+    public static void UsageDetails(AiOperationStats stats)
+    {
+        ImGui.TextDisabled($"Pedidos: {stats.Calls} · Texto enviado: {stats.TextCharacters:N0} caracteres");
+        if (stats.CallsWithUsage > 0)
+            ImGui.TextWrapped($"Tokens informados{(stats.CallsWithUsage < stats.Calls ? " (parcial)" : "")}: {stats.InputTokens:N0} entrada · {stats.OutputTokens:N0} salida" +
+                (stats.CachedInputTokens is long cached ? $" · {cached:N0} de entrada en caché" : ""));
+        else ImGui.TextDisabled("La herramienta no informó consumo de tokens.");
+    }
 }
