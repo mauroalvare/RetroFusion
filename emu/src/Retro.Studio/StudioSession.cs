@@ -23,6 +23,7 @@ public sealed class StudioSession : IFusionRun
     {
         public required FusionSlot Slot;
         public required byte[] BootState;
+        public required VideoFrame BootPicture;
         public double Accumulator;
         public bool Paused;
         public double Speed = 1;
@@ -30,7 +31,8 @@ public sealed class StudioSession : IFusionRun
         public readonly Queue<short> Audio = new();
     }
 
-    private static readonly ConcurrentDictionary<string, byte[]> BootCache = new();
+    private sealed record BootSnapshot(byte[] State, VideoFrame Picture);
+    private static readonly ConcurrentDictionary<string, BootSnapshot> BootCache = new();
 
     private readonly List<SlotState> _slots;
     private readonly Canvas _canvas;
@@ -114,16 +116,22 @@ public sealed class StudioSession : IFusionRun
                 throw new InvalidOperationException($"Falta el juego \"{g.Profile}\" en la carpeta de juegos.");
             var m = MachineFactory.Create(src, romDirectory);
             string key = g.Profile + "|" + string.Join(",", src.Files.Select(f => f.Name + ":" + f.Data.Length));
-            if (BootCache.TryGetValue(key, out var state))
-                m.LoadState(state);
+            if (BootCache.TryGetValue(key, out var snapshot))
+            {
+                m.LoadState(snapshot.State);
+                snapshot.Picture.Pixels.CopyTo(m.Video.Pixels, 0);
+            }
             else
             {
                 MachineFactory.Boot(m, src.Profile, log);
-                state = m.SaveState();
-                BootCache[key] = state;
+                var picture = new VideoFrame(m.Video.Width, m.Video.Height);
+                m.Video.Pixels.CopyTo(picture.Pixels, 0);
+                snapshot = new BootSnapshot(m.SaveState(), picture);
+                BootCache[key] = snapshot;
             }
             m.ExecutedMap ??= new bool[0x10000];
-            slots.Add(new SlotState { Slot = new FusionSlot { Id = g.Slot, Profile = src.Profile, Machine = m }, BootState = state });
+            slots.Add(new SlotState { Slot = new FusionSlot { Id = g.Slot, Profile = src.Profile, Machine = m },
+                BootState = snapshot.State, BootPicture = snapshot.Picture });
         }
         return new StudioSession(game, slots, Canvas.LoadFont(romDirectory));
     }
@@ -148,6 +156,7 @@ public sealed class StudioSession : IFusionRun
     private void StartScript()
     {
         Error = null;
+        _host.ResetSprites();
         _engine = new Engine(o =>
         {
             o.LimitMemory(64_000_000);
@@ -215,6 +224,7 @@ public sealed class StudioSession : IFusionRun
         foreach (var s in _slots)
         {
             s.Slot.Machine.LoadState(s.BootState);
+            s.BootPicture.Pixels.CopyTo(s.Slot.Machine.Video.Pixels, 0);
             s.Slot.Machine.ReleaseAllKeys();
             s.Paused = false;
             s.Speed = 1;

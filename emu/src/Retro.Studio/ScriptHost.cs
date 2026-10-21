@@ -13,6 +13,7 @@ public sealed class ScriptHost
     private readonly List<SpriteImage> _sprites = new();
 
     internal ScriptHost(StudioSession session) => _session = session;
+    internal void ResetSprites() => _sprites.Clear();
 
     private StudioSession.SlotState S(string id) => _session.SlotFor(id);
 
@@ -96,6 +97,7 @@ public sealed class ScriptHost
     {
         var s = S(id);
         s.Slot.Machine.LoadState(s.BootState);
+        s.BootPicture.Pixels.CopyTo(s.Slot.Machine.Video.Pixels, 0);
         s.Slot.Machine.ReleaseAllKeys();
         s.Accumulator = 0;
         s.Audio.Clear();
