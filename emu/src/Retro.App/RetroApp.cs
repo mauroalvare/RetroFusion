@@ -184,6 +184,7 @@ public sealed class RetroApp
     public void Shutdown()
     {
         _library.Dispose();
+        _home.Dispose();
         _code.Dispose();
         if (_texW != 0)
             Raylib.UnloadTexture(_screenTex);

@@ -18,6 +18,7 @@
   <ItemGroup>
     <PackageReference Include="Raylib-cs" Version="8.1.0" />
     <PackageReference Include="rlImgui-cs" Version="3.2.0" />
+    <PackageReference Include="StbImageSharp" Version="2.30.16" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -29,5 +30,10 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\docs\img\fusiones\manic-invaders.png" Link="docs\img\fusiones\manic-invaders.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\docs\TERCEROS.md" Link="docs\TERCEROS.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
 
 </Project>

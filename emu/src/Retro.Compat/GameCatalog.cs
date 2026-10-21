@@ -19,7 +19,7 @@ public sealed record CatalogGame(string Path, GameSource Source, bool Prepared)
 /// </summary>
 public static class GameCatalog
 {
-    private static readonly HashSet<string> Skip = new(StringComparer.OrdinalIgnoreCase) { ".txt", ".md", ".json", ".png", ".py", ".url", ".nfo", ".pdf", ".jpg" };
+    private static readonly HashSet<string> Skip = new(StringComparer.OrdinalIgnoreCase) { ".txt", ".md", ".json", ".png", ".py", ".url", ".nfo", ".pdf", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".ico", ".svg" };
 
     public static List<CatalogGame> Scan(string folder)
     {

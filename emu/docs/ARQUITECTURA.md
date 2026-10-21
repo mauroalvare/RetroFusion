@@ -476,6 +476,15 @@ con ruta relativa, sistema y hash; GameCatalog y Preparar la conservan para no r
 fusiones existentes. El estudio actualiza sus rutas al terminar el escaneo. Los metadatos
 no cuentan como juegos ni ocultan una biblioteca poblada superior. Ver D-027.
 
+`HomeScreen` conserva las tarjetas y muestra ilustraciones vectoriales propias de
+`HardwareArt`. Las filas visibles piden PNG/JPEG locales a `ThumbnailCache`: un trabajador
+decodifica con StbImageSharp, comprueba límites y reduce a 256x192; el hilo gráfico crea
+y libera las texturas. La LRU tiene 32 entradas y la cola ocho. No se abren imágenes de
+filas invisibles ni se arrancan ROMs para crear miniaturas. Sin imagen válida se dibuja
+el hardware. Creados usan juego.png; las fusiones nuevas guardan vN.png desde la validación
+con StudioLibrary.Save. La captura incluida de Manic Invaders y el aviso de StbImageSharp
+se copian a salida y publicación mediante el proyecto de la app. Ver D-028 y TERCEROS.md.
+
 ## IA
 
 `IAiProvider` tiene una sola operación: mandar un sistema, los turnos y un esquema JSON, y

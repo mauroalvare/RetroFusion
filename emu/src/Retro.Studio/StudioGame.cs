@@ -233,14 +233,31 @@ public static class StudioLibrary
         AllVersions().Where(g => g.Id == id).OrderBy(g => g.Version).ToList();
 
     /// <summary>Saves the game as a new version (the number after the highest one stored).</summary>
-    public static string Save(StudioGame game)
+    public static string Save(StudioGame game, Retro.Core.VideoFrame? picture = null)
     {
         if (string.IsNullOrWhiteSpace(game.Id))
             game.Id = Slug(game.Title);
         int highest = Versions(game.Id).Select(v => v.Version).DefaultIfEmpty(0).Max();
         if (game.Version <= highest)
             game.Version = highest + 1;
-        return Write(game, Path.Combine(UserFolder, game.Id));
+        string path = Write(game, Path.Combine(UserFolder, game.Id));
+        if (picture != null)
+            try { Retro.Core.PngWriter.Write(Path.ChangeExtension(path, ".png"), picture, 1); }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* A thumbnail must not prevent playing a saved game. */ }
+        return path;
+    }
+
+    public static string? PicturePath(StudioGame game)
+    {
+        if (string.IsNullOrWhiteSpace(game.Id) || game.Id is "." or ".." || game.Id != Path.GetFileName(game.Id) ||
+            game.Id.Contains('\\') || game.Id.Contains('/') || game.Id.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) return null;
+        foreach (string folder in new[] { UserFolder, LegacyFolder })
+        {
+            string path = Path.Combine(folder, game.Id, $"v{game.Version}.png");
+            if (File.Exists(path)) return path;
+        }
+        string included = Path.Combine(AppContext.BaseDirectory, "docs", "img", "fusiones", game.Id + ".png");
+        return File.Exists(included) ? included : null;
     }
 
     /// <summary>An id no stored game uses yet (for the first version of a new game).</summary>

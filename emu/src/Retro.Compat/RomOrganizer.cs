@@ -12,7 +12,7 @@ public static class RomOrganizer
 {
     private const long MaxFileBytes = 256L * 1024 * 1024;
     private static readonly HashSet<string> Skip = new(StringComparer.OrdinalIgnoreCase)
-        { ".txt", ".md", ".json", ".png", ".jpg", ".jpeg", ".gif", ".pdf", ".nfo", ".url", ".ini", ".tmp", ".part", ".crdownload" };
+        { ".txt", ".md", ".json", ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".ico", ".svg", ".pdf", ".nfo", ".url", ".ini", ".tmp", ".part", ".crdownload" };
 
     public static OrganizationResult Organize(string folder, TimeSpan? settleTime = null, Func<string, bool>? inUse = null)
     {

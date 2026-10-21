@@ -493,7 +493,7 @@ public sealed class StudioWindow
                 mine.Created = DateTime.Now;
                 ValidateThen(mine, (game, report) =>
                 {
-                    if (report.Ok) SaveAndStart(game);
+                    if (report.Ok) SaveAndStart(game, picture: report.Picture);
                     else Problem("Tus cambios no funcionan todavía.", report);
                 });
             }
@@ -777,7 +777,7 @@ public sealed class StudioWindow
             ValidateThen(game, (g, report) =>
             {
                 if (report.Ok)
-                    SaveAndStart(g, first);
+                    SaveAndStart(g, first, report.Picture);
                 else
                 {
                     Problem("El juego todavía falla: copiá la consigna de corrección y pegásela a tu IA.", report);
@@ -824,11 +824,11 @@ public sealed class StudioWindow
         _validateTask = Task.Run(() => (game, StudioValidator.Run(game, sources, _romDir)));
     }
 
-    private void SaveAndStart(StudioGame game, bool first = false)
+    private void SaveAndStart(StudioGame game, bool first = false, VideoFrame? picture = null)
     {
         if (first || game.Version <= 1)
             game.Id = StudioLibrary.UniqueId(string.IsNullOrWhiteSpace(game.Id) ? StudioLibrary.Slug(game.Title) : game.Id);
-        StudioLibrary.Save(game);
+        StudioLibrary.Save(game, picture);
         StartGame(game);
     }
 
@@ -899,7 +899,7 @@ public sealed class StudioWindow
             {
                 _progress = $"Listo en {dt.Result.Attempts} intento{(dt.Result.Attempts > 1 ? "s" : "")}.";
                 _lastTest = dt.Result.Report?.Summary;
-                SaveAndStart(game, first: game.Version <= 1);
+                SaveAndStart(game, first: game.Version <= 1, picture: dt.Result.Report?.Picture);
             }
             else
                 Problem($"La IA no logró un juego que funcione en {StudioDesigner.MaxAttempts} intentos: {dt.Result.Error}", dt.Result.Report);
@@ -952,7 +952,7 @@ public sealed class StudioWindow
             if (report.Ok)
             {
                 _agentDir = null;
-                SaveAndStart(game, first: game.Version <= 1);
+                SaveAndStart(game, first: game.Version <= 1, picture: report.Picture);
             }
             else
                 Problem("El agente tiene que corregir el juego (le dejé informe.md).", report);

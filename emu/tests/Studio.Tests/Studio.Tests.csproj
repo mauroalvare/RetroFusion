@@ -19,6 +19,7 @@
   <ItemGroup>
     <Using Include="NUnit.Framework" />
     <Compile Include="..\..\src\Retro.App\GameLibrary.cs" Link="App\GameLibrary.cs" />
+    <Compile Include="..\..\src\Retro.App\ThumbnailFiles.cs" Link="App\ThumbnailFiles.cs" />
     <Compile Include="..\..\src\Retro.App\EmulatorHost.cs" Link="App\EmulatorHost.cs" />
   </ItemGroup>
 

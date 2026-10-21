@@ -19,6 +19,8 @@ El paquete trae estas carpetas junto al programa:
 Los juegos se consiguen por separado. Los originales siguen disponibles después de crear una fusión.
 Los archivos sueltos de **ROMs** se ordenan automáticamente por sistema. Los dudosos
 quedan donde están; se respetan tus subcarpetas y los archivos con nombres repetidos.
+Para mostrar una carátula o captura, poné una imagen PNG o JPG con el mismo nombre
+junto al juego. Si no hay imagen, se muestra el sistema al que pertenece.
 Para actualizar, cerrá RetroEmu, copiá la entrega nueva sobre la anterior y combiná
 las carpetas conservando tus juegos y firmware. Ver **ACTUALIZAR.txt**.
 

@@ -120,7 +120,7 @@ public sealed class GameLibrary : IDisposable
         {
             string rel = System.IO.Path.GetRelativePath(folder, path).Replace('\\', '/');
             if (rel.StartsWith("revision/", StringComparison.OrdinalIgnoreCase) || rel.StartsWith(".retroemu/", StringComparison.OrdinalIgnoreCase) || Retro.Compat.CompatDiscovery.IsExcluded(rel)
-                || System.IO.Path.GetExtension(path).ToLowerInvariant() is ".txt" or ".md" or ".json" or ".png" or ".jpg" or ".jpeg" or ".pdf" or ".nfo")
+                || System.IO.Path.GetExtension(path).ToLowerInvariant() is ".txt" or ".md" or ".json" or ".png" or ".jpg" or ".jpeg" or ".gif" or ".bmp" or ".webp" or ".ico" or ".svg" or ".pdf" or ".nfo")
                 continue;
             List<MediaFile> files;
             try { files = MediaArchive.Open(path); }

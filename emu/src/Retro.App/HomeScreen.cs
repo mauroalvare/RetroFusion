@@ -9,8 +9,10 @@ namespace Retro.App;
 
 /// <summary>The main browser replaces the play area; it is never a floating window.</summary>
 public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal, Action<string> playFusion,
-    Action browse, Action fuse, Action create, Action<bool> visibility, Func<bool> canReturn)
+    Action browse, Action fuse, Action create, Action<bool> visibility, Func<bool> canReturn) : IDisposable
 {
+    private readonly ThumbnailCache _thumbnails = new();
+    private int _thumbnailRevision = -1;
     private bool _open;
     private string _section = "home", _machine = "", _search = "", _problem = "";
     private List<StudioGame> _fusions = new();
@@ -47,6 +49,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
 
     private void Refresh()
     {
+        _thumbnails.Clear();
         try
         {
             _fusions = StudioLibrary.AllVersions().GroupBy(g => g.Id)
@@ -62,7 +65,9 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
 
     public void Draw()
     {
+        _thumbnails.Poll();
         if (!_open) return;
+        if (_thumbnailRevision != library.Revision) { _thumbnailRevision = library.Revision; _thumbnails.Clear(); }
         var viewport = ImGui.GetMainViewport();
         ImGui.SetNextWindowPos(viewport.WorkPos);
         ImGui.SetNextWindowSize(new Vector2(viewport.WorkSize.X, Math.Max(1, viewport.WorkSize.Y - 24)));
@@ -160,9 +165,11 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
                 };
                 draw.AddRectFilled(min, max, ImGui.GetColorU32(hovered ? ImGuiCol.HeaderHovered : ImGuiCol.FrameBg), 5);
                 draw.AddRectFilled(min, new Vector2(min.X + 4, max.Y), accent, 3);
-                draw.AddText(min + new Vector2(18, 18), ImGui.GetColorU32(ImGuiCol.Text), Name(machine));
+                HardwareArt.Draw(draw, machine.Id, min + new Vector2(14, 6), new Vector2(112, 76));
+                draw.AddText(min + new Vector2(136, 18), ImGui.GetColorU32(ImGuiCol.Text), Name(machine));
+                draw.AddText(min + new Vector2(136, 40), ImGui.GetColorU32(ImGuiCol.TextDisabled), machine.Cpu);
                 int count = library.Originals(machineId: machine.Id).Count() + _created.Count(g => g.Machine == machine.Id);
-                draw.AddText(min + new Vector2(18, 44), ImGui.GetColorU32(ImGuiCol.TextDisabled),
+                draw.AddText(min + new Vector2(136, 62), ImGui.GetColorU32(ImGuiCol.TextDisabled),
                     library.Scanning ? "Buscando juegos..." : count == 0 ? "Sin juegos agregados" : $"{count} juego{(count == 1 ? "" : "s")}");
                 draw.AddText(min + new Vector2(18, 82), accent, "Ver juegos >");
                 if (selected) Select("machine", machine.Id);
@@ -183,10 +190,10 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         {
             foreach (var game in games)
                 Row(game.Path, game.Name, Name(game.Machine), game.NotYet,
-                    () => playOriginal(game.Path), game.NotYet == null && game.Confidence >= 50);
+                    () => playOriginal(game.Path), game.NotYet == null && game.Confidence >= 50, game.Machine.Id, () => ThumbnailFiles.Beside(game.Path));
             foreach (var game in created)
                 Row(game.Folder, game.Title, game.MachineName, game.Pitch,
-                    () => playOriginal(game.ProgramPath), File.Exists(game.ProgramPath));
+                    () => playOriginal(game.ProgramPath), File.Exists(game.ProgramPath), game.Machine, () => game.PicturePath);
             foreach (var game in fusions) FusionRow(game);
             ImGui.EndTable();
         }
@@ -213,7 +220,9 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         string missing = string.Join(", ", game.Games.Where(g => !have.Contains(g.Profile))
             .Select(g => ProfileLibrary.Find(g.Profile)?.Name ?? g.Profile));
         Row(game.Id, game.Title, $"Fusión · v{game.Version}", missing.Length > 0 ? "Falta: " + missing : game.Pitch,
-            () => playFusion(game.Id), missing.Length == 0);
+            () => playFusion(game.Id), missing.Length == 0,
+            ProfileLibrary.Find(game.Games.FirstOrDefault(g => g.Slot == game.BaseSlot)?.Profile ?? game.Games.FirstOrDefault()?.Profile ?? "")?.Machine ?? "fusion",
+            () => StudioLibrary.PicturePath(game));
     }
 
     private void DrawCreated()
@@ -225,7 +234,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         {
             foreach (var game in games)
                 Row(game.Folder, game.Title, game.MachineName, game.Pitch,
-                    () => playOriginal(game.ProgramPath), File.Exists(game.ProgramPath));
+                    () => playOriginal(game.ProgramPath), File.Exists(game.ProgramPath), game.Machine, () => game.PicturePath);
             ImGui.EndTable();
         }
         if (games.Count == 0) ImGui.TextWrapped("No hay juegos creados para mostrar.");
@@ -244,11 +253,28 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         return true;
     }
 
-    private void Row(string id, string title, string detail, string? hint, Action play, bool playable)
+    private void Row(string id, string title, string detail, string? hint, Action play, bool playable, string machine, Func<string?> picture)
     {
         ImGui.PushID(id);
         ImGui.TableNextRow();
-        ImGui.TableNextColumn(); ImGui.AlignTextToFramePadding(); ImGui.TextUnformatted(title);
+        ImGui.TableNextColumn();
+        var position = ImGui.GetCursorScreenPos();
+        var size = new Vector2(58, 42);
+        ImGui.Dummy(size);
+        if (ImGui.IsItemVisible())
+        {
+            var draw = ImGui.GetWindowDrawList();
+            draw.AddRectFilled(position, position + size, ImGui.GetColorU32(ImGuiCol.FrameBg), 3);
+            if (_thumbnails.TryGet(id, picture, out var texture))
+            {
+                float scale = Math.Min(size.X / texture.Width, size.Y / texture.Height);
+                var fitted = new Vector2(texture.Width, texture.Height) * scale;
+                var at = position + (size - fitted) / 2;
+                draw.AddImage((nint)texture.Id, at, at + fitted);
+            }
+            else HardwareArt.Draw(draw, machine, position + new Vector2(2, 1), size - new Vector2(4, 2));
+        }
+        ImGui.SameLine(); ImGui.AlignTextToFramePadding(); ImGui.TextUnformatted(title);
         if (ImGui.IsItemHovered()) ImGui.SetTooltip(string.IsNullOrWhiteSpace(hint) ? title : hint);
         ImGui.TableNextColumn(); ImGui.TextUnformatted(detail);
         ImGui.TableNextColumn();
@@ -259,4 +285,6 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
             ImGui.SetTooltip(hint ?? "Este formato todavía no se puede abrir.");
         ImGui.PopID();
     }
+
+    public void Dispose() => _thumbnails.Dispose();
 }

@@ -4,6 +4,16 @@ Registro de lo que no funciona o funciona a medias. Cada entrada dice si es **ob
 (se vio en una prueba) o **probable** (se deduce del código, falta comprobarlo). Al
 arreglar algo, se borra la entrada y se menciona en el commit.
 
+## Imágenes del selector
+
+- Se admiten PNG y JPEG locales, hasta 8 MiB, 4096 píxeles por lado y 16 megapíxeles.
+  No se buscan carátulas en Internet ni se arranca cada ROM para obtener su imagen.
+  Sin una imagen válida se muestra una ilustración del sistema. Una captura de validación
+  no equivale a una carátula elegida ni demuestra la calidad del juego.
+- La caché guarda hasta 32 entradas; al recorrer bibliotecas grandes algunas imágenes
+  vuelven a cargarse. Las capturas anteriores a esta función se conservan tal como estaban;
+  los juegos sin vN.png siguen siendo compatibles.
+
 ## Organización de ROMs
 
 - Solo se mueven archivos sueltos de la biblioteca ROMs con un sistema identificable por

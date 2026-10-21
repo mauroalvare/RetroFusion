@@ -309,3 +309,23 @@ usada como alternativa. El estudio renueva sus rutas cuando termina el escaneo. 
 `.retroemu` no cuenta como contenido para elegir una biblioteca ni aparece como juego.
 MediaSources/UsesMedia permiten posponer los originales activos aunque ya estén en RAM;
 reintentar un archivo bloqueado no obliga a releer todas las ROMs que no cambiaron.
+
+## D-028 Miniaturas locales con recursos acotados (2026-10-21)
+
+Inicio conserva navegación, tarjetas y acciones. HardwareArt dibuja ilustraciones propias
+de las máquinas y el chip de la placa, sin archivos externos ni texturas. Las filas solicitan
+imágenes solo cuando son visibles. ThumbnailCache mantiene LRU de 32 entradas, cola máxima
+de ocho y una decodificación en curso. La CPU trabaja fuera del hilo gráfico; crear y liberar
+texturas ocurre en ese hilo. Se reduce a 256x192 conservando proporción y se libera al cerrar.
+Archivos ausentes o dañados muestran la ilustración del sistema, sin interrumpir la biblioteca.
+
+Se leen PNG/JPG locales homónimos y las imágenes de los creados. StudioLibrary.Save acepta
+una captura opcional y guarda vN.png sin cambiar metadatos ni guiones; una miniatura fallida
+no impide jugar. Las versiones anteriores y juegos sin imagen siguen funcionando. La captura
+de Manic Invaders ya existente se incluye en compilaciones y paquetes. No se descargan portadas.
+
+La prueba nativa mostró que Raylib incluido no decodifica JPEG. El usuario autorizó agregar
+StbImageSharp 2.30.16 (C# portable, sin binarios nativos adicionales) para PNG/JPEG. Su aviso va
+en docs/TERCEROS.md. Se verifican tamaño de archivo (8 MiB), dimensiones (4096 por lado y
+16 megapíxeles) antes de decodificar, y se comprueban las dimensiones devueltas. El límite de
+texturas RGBA es 6 MiB; la imagen de trabajo tiene un presupuesto aparte y se procesa de a una.

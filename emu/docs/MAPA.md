@@ -25,6 +25,11 @@ perfiles cuando cambia un nombre: se lleva junto con la biblioteca al actualizar
 `RomOrganizer` y `RomIdentities` viven en Retro.Compat; el observador está en GameLibrary.
 Para pruebas nativas sobre bibliotecas propias se puede usar `--no-organize`.
 
+`HardwareArt`, `ThumbnailFiles` y `ThumbnailCache` (Retro.App) dibujan el hardware y cargan
+PNG/JPEG locales solo para filas visibles, con caché de 32 entradas. Creados usan juego.png;
+fusionados, vN.png. Las imágenes de la documentación se actualizan desde capturas reales
+inspeccionadas, sin añadir ROMs. El aviso del decodificador está en docs/TERCEROS.md.
+
 El estudio limita la lista de selección a una zona con desplazamiento y búsqueda.
 Las ayudas para jugar están en **Ayuda > Abrir y jugar**, **Controles de la partida**
 y **Atajos**. Los controles corresponden al sistema o a la fusión activos. El README
