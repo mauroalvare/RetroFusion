@@ -458,3 +458,22 @@ ambas bases y otro aportante, memoria e imagen nativas. PRUEBAS-FUSION.md regist
 alcance y límites. No se usan como plantilla de generación ni se declara calidad de
 IA por aprobarlos. Los cambios de perfil invalidan su caché y un trabajo interrumpido
 con huella anterior exige comprobar sus datos antes de continuar.
+
+## D-035 Protocolo del actualizador integrado (2026-10-21)
+
+Retro.Update es una biblioteca del programa, no otra aplicación para el usuario.
+Consulta exclusivamente el release estable público de mauroalvare/RetroFusion; elige
+una versión de tres componentes superior a la instalada y el paquete de su plataforma.
+Se exige URL oficial exacta, tamaño publicado y digest SHA-256 del asset. No se usan
+credenciales, herramientas de IA, instaladores externos ni servicios de pago.
+
+Cada paquete nuevo incluye actualizacion.json, formato 1: version, runtime y files
+(ruta relativa a SHA-256, sin incluir al propio registro). La extracción se hace en
+una carpeta temporal nueva; rechaza rutas externas, nombres ambiguos, duplicados,
+enlaces, archivos especiales y límites excedidos. Se comprueban todos los archivos.
+La carpeta instalada puede tener datos propios y firmware distinto: esos datos no se
+confunden con binarios del paquete. La primera versión con updater se instala manualmente.
+
+La instalación y su interfaz quedan en un segundo paso, con cierre de procesos propios,
+diario reversible, conservación de bibliotecas/ajustes y carpeta versionada. El usuario
+retuvo la publicación de 0.2.1; no se publica por completar este primer paso.

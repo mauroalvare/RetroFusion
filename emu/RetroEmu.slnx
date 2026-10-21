@@ -13,6 +13,7 @@
     <Project Path="src/Retro.Fusion/Retro.Fusion.csproj" />
     <Project Path="src/Retro.Machines/Retro.Machines.csproj" />
     <Project Path="src/Retro.Studio/Retro.Studio.csproj" />
+    <Project Path="src/Retro.Update/Retro.Update.csproj" />
     <Project Path="src/Retro.Systems.Arcade/Retro.Systems.Arcade.csproj" />
     <Project Path="src/Retro.Systems.C64/Retro.Systems.C64.csproj" />
     <Project Path="src/Retro.Systems.Nes/Retro.Systems.Nes.csproj" />
@@ -30,6 +31,7 @@
     <Project Path="tests/Nes.Tests/Nes.Tests.csproj" />
     <Project Path="tests/Retro.Cpu.Z80.Tests/Retro.Cpu.Z80.Tests.csproj" />
     <Project Path="tests/Studio.Tests/Studio.Tests.csproj" />
+    <Project Path="tests/Update.Tests/Update.Tests.csproj" />
     <Project Path="tests/Zx.Tests/Zx.Tests.csproj" />
   </Folder>
 </Solution>
