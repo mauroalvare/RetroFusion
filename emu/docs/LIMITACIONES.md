@@ -16,6 +16,16 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 - El congelado se repone por cuadro; no intercepta cada instrucción que escribe la variable.
   En la vista avanzada de fusiones se repone por tick compartido.
 
+## Recursos e identidad de las fusiones
+
+- Los sprites de memoria documentados son máscaras de un bit. `g.capture` permite
+  conservar colores de personajes o tiles observados, hasta 32x32 por recurso y 4096
+  píxeles por original en toda la partida. La captura no descubre comportamiento,
+  posiciones ni el formato de un mapa. Esos datos deben comprobarse por separado.
+- Preparar puede identificar variables; no certifica que se puedan reemplazar personajes,
+  editar mapas o transferir cualquier regla. Una lectura de un sprite o el envío de
+  controles al segundo original tampoco demuestra una integración mecánica.
+
 ## Máquinas
 
 ### IBM PC/XT (T-038)

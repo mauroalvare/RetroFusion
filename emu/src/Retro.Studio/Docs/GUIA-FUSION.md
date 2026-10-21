@@ -71,6 +71,9 @@ una pantalla de título, tarjetas ni un HUD universal que tape o reemplace los s
   de draw(), o reconstruir fielmente sus escenarios mediante tiles, mapas y ayudas verificadas.
   Los añadidos usan sus coordenadas, escala, límites y colisiones. No son otra ventana jugable.
 - En reinterpretación libre dibujá la escena elegida con sprites, tiles y datos originales.
+- Para personajes o tiles con varios colores, `g.capture` conserva un recorte pequeño
+  verificado de la imagen nativa. Guardalo y reutilizalo; los límites impiden capturar
+  una pantalla entera. No reemplaza analizar posiciones, movimiento ni colisiones.
 - `screen.game` sigue retirado. No pegues pantallas completas de aportantes, miniaturas
   ni mosaicos con `g.pixel`; esa función sirve para observar, no para copiar cuadros.
 - Mantené legibles el espacio, las amenazas y los elementos interactivos. No hay una

@@ -5,7 +5,7 @@ using Retro.Systems.Spectrum;
 namespace Studio.Tests;
 
 [TestFixture]
-public class BaseFusionTests
+public partial class BaseFusionTests
 {
     private static StudioGame Original() => StudioLibrary.BuiltIn.Single(g => g.Id == "manic-invaders").Copy();
     private static StudioSession Start(StudioGame game)

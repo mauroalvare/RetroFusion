@@ -14,8 +14,8 @@ public sealed record CatalogGame(string Path, GameSource Source, bool Prepared)
 /// Every game of the user's folder (subfolders too) that an implemented machine can run,
 /// for the fusions. A game with a verified profile (made by hand or by "Preparar" for
 /// that copy) uses it; the others get a basic profile on the spot: machine, controls and
-/// boot, no variables yet. They can be fused right away (shared controls, layouts) and
-/// prepared later for rules that read lives or score.
+/// boot, no verified variables yet. Preparation can discover some variables; this does
+/// not imply that maps, graphics or the hooks for a particular mechanic are available.
 /// </summary>
 public static class GameCatalog
 {
@@ -67,7 +67,8 @@ public static class GameCatalog
             Machine = machine,
             Match = new ProfileMatch { Sha256 = { sha }, Member = files.Count > 1 ? media.Name : null },
             Description = $"{name} para {machineName} (copia {System.IO.Path.GetFileName(path)}). Sin preparar: todavía no tiene variables verificadas. " +
-                          "Se juega y se fusiona con controles compartidos y cualquier vista; para reglas que lean vidas, puntaje o posición hay que prepararlo.",
+                          "Podés jugar el original. Para integrarlo en una fusión hay que comprobar los datos y recursos que requiere la mecánica; " +
+                          "Preparar puede encontrar variables, pero no verifica automáticamente mapas, gráficos ni todas sus reglas.",
         };
         if (machine == "zx48" && media.Extension is ".tap" or ".tzx")
             p.Boot.Add("load-tape");

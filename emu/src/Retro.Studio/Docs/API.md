@@ -50,6 +50,7 @@ Cada juego (por la ranura de la receta) es un objeto `g`:
 | `g.pixel(x, y)` | Color 0xRRGGBB de un píxel de su cuadro (coordenadas del cuadro completo: sumá `g.area.x`/`y`). Sirve para detectar plataformas o paredes por color. |
 | `g.sprite(nombre)` | Un sprite original del juego (ver perfil). Devuelve un número para `screen.sprite`. Pedilos en `init()` y guardalos. |
 | `g.spriteAt(dir, ancho, alto, 'rows'|'columns')` | Un sprite desde cualquier dirección de memoria. |
+| `g.capture(x, y, ancho, alto, transparente)` | Guarda un recurso pequeño con sus colores nativos desde el área activa, sin sumar el borde. Máximo 32x32 y 4096 píxeles acumulados por original durante toda la partida. El último argumento es un color transparente opcional. Guardá el resultado y reutilizalo con `screen.sprite`; no captures cada cuadro ni reconstruyas una pantalla con mosaicos. La captura no identifica sola al personaje ni sus reglas. |
 | `g.frame` | Cuadros emulados desde el arranque. |
 | Ayudas del perfil | Funciones como `g.willy()` o `g.aliens()`: cada perfil documenta las suyas. Usalas antes que adivinar direcciones. |
 
@@ -63,7 +64,7 @@ Todo se dibuja de nuevo en cada `draw()`. Colores 0xRRGGBB.
 | `screen.width`, `screen.height` | Tamaño actual. |
 | `screen.base(g)` | Dibuja la imagen nativa del único original elegido en `baseSlot`, sin borde ni cambio de paleta o resolución. Llamalo primero en `draw()` e integrá después los elementos del otro juego. No admite un segundo original ni funciona en reinterpretaciones libres. Las coordenadas quedan relativas al área activa del base. |
 | `screen.clear(color)` | Pinta todo. |
-| `screen.sprite(s, x, y, color, {scale, flip, alpha})` | Dibuja un sprite (1 bit) en un color. `flip` lo espeja. |
+| `screen.sprite(s, x, y, color, {scale, flip, alpha})` | Dibuja el recurso. Sin `color`, conserva los colores de una captura; los sprites de memoria de un bit se dibujan blancos. Con `color` se tiñe la máscara. `flip` lo espeja. |
 | `screen.spriteSize(s)` | `{w, h}` del sprite. |
 | `screen.rect(x, y, w, h, color, alpha)` | Rectángulo lleno. |
 | `screen.box(x, y, w, h, color)` | Rectángulo vacío. |
@@ -134,6 +135,7 @@ y variables con las ayudas del perfil o `peek`. No hay un diseño visual univers
 
 `screen.game` se retiró: no dibuja nada y hace fallar la prueba automática con un mensaje
 para corregir el guion. La única imagen original completa permitida es la base declarada,
-mediante `screen.base(g)`. No uses otras pantallas completas, recortes, miniaturas ni mosaicos de
+mediante `screen.base(g)`. Para transferir un personaje o tile con su paleta podés usar
+`g.capture` con sus límites. No uses otras pantallas completas, miniaturas ni mosaicos de
 capturas para reconstruir los originales. `g.pixel` sirve para observar el estado del
 juego, no para copiar su pantalla píxel por píxel.

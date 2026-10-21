@@ -2,8 +2,8 @@ using Retro.Core;
 
 namespace Retro.Studio;
 
-/// <summary>A decoded 1-bit graphic.</summary>
-public sealed record SpriteImage(int Width, int Height, bool[] Pixels);
+/// <summary>A decoded mask, optionally with the original pixel colours.</summary>
+public sealed record SpriteImage(int Width, int Height, bool[] Pixels, int[]? Colors = null);
 
 /// <summary>
 /// The picture of a fusion game. Scripts draw on it every tick: pictures of the emulated
@@ -102,11 +102,13 @@ public sealed class Canvas
         for (int sy = 0; sy < s.Height; sy++)
             for (int sx = 0; sx < s.Width; sx++)
             {
-                if (!s.Pixels[sy * s.Width + (flip ? s.Width - 1 - sx : sx)])
+                int source = sy * s.Width + (flip ? s.Width - 1 - sx : sx);
+                if (!s.Pixels[source])
                     continue;
+                int color = rgb < 0 ? s.Colors?[source] ?? 0xFFFFFF : rgb;
                 for (int dy = 0; dy < scale; dy++)
                     for (int dx = 0; dx < scale; dx++)
-                        Blend(ox + sx * scale + dx, oy + sy * scale + dy, rgb, alpha);
+                        Blend(ox + sx * scale + dx, oy + sy * scale + dy, color, alpha);
             }
     }
 

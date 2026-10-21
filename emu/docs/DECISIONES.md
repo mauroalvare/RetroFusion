@@ -217,3 +217,17 @@ que se consulten datos/recursos/controles de los aportantes; eso no demuestra in
 mecánica ni fidelidad visual por sí solo. Las notas exigen contrastar capturas y jugar.
 La exploración del robot contempla arriba/abajo en este modo. La reinterpretación libre
 mantiene el contrato anterior y queda como alternativa explícita.
+
+## D-023 Recursos con colores nativos acotados (2026-10-21)
+
+2026-10-21. La revisión de fidelidad encontró que todos los sprites extraídos se reducían
+a una máscara monocroma. Se conserva esa API y se añade `g.capture(x,y,w,h,transparent)`:
+coordenadas del área activa, hasta 32x32 por recurso y 4096 píxeles acumulados por ranura
+y partida. Se guardan máscara y colores independientes del framebuffer. Reiniciar libera
+recursos y presupuesto. `screen.sprite` sin color usa la paleta guardada; con un color
+explícito tiñe la máscara. Los sprites antiguos siguen blancos por defecto.
+
+Los límites se verifican en el host, también si el guion captura la excepción. No se
+habilita otra pantalla completa. Capturar un personaje no demuestra conocer sus reglas;
+el perfil básico deja de prometer fusiones por controles compartidos y vistas. La prueba
+de calidad sigue requiriendo observar consecuencias mecánicas y jugar, además del robot.

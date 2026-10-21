@@ -105,6 +105,8 @@ public sealed class StudioDesigner
                 foreach (var h in p.HelpersDoc)
                     sb.AppendLine("- " + h);
             }
+            sb.AppendLine("Alcance: solo están comprobados los datos y recursos descritos. Tener un perfil no equivale a conocer sus mapas ni todas sus reglas. " +
+                "Si la interacción necesita datos ausentes, señalalos; no la sustituyas por decoración o controles compartidos.");
             sb.AppendLine();
         }
         return sb.ToString();

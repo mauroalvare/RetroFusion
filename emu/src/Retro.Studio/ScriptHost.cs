@@ -11,9 +11,10 @@ public sealed class ScriptHost
 {
     private readonly StudioSession _session;
     private readonly List<SpriteImage> _sprites = new();
+    private readonly Dictionary<string, int> _capturedPixels = new();
 
     internal ScriptHost(StudioSession session) => _session = session;
-    internal void ResetSprites() => _sprites.Clear();
+    internal void ResetSprites() { _sprites.Clear(); _capturedPixels.Clear(); }
 
     private StudioSession.SlotState S(string id) => _session.SlotFor(id);
 
@@ -133,6 +134,37 @@ public sealed class ScriptHost
         return AddSprite(def, S(id));
     }
 
+    public int Capture(string id, double x, double y, double width, double height, double transparent)
+    {
+        var slot = S(id);
+        var machine = slot.Slot.Machine;
+        var area = StudioSession.PictureArea(machine);
+        int px = Num(x), py = Num(y), w = Num(width), h = Num(height);
+        if (w is < 1 or > 32 || h is < 1 or > 32 || px < 0 || py < 0 || px > area.w - w || py > area.h - h
+            || _capturedPixels.GetValueOrDefault(id) + w * h > 4096)
+        {
+            _session.SceneViolation = true;
+            _session.SceneProblem = "g.capture admite recursos de hasta 32x32 dentro del área activa y 4096 píxeles por original, " +
+                "sumados durante toda la partida. Extraé personajes o tiles una vez y reutilizalos; no reconstruyas pantallas con recortes.";
+            throw new InvalidOperationException(_session.SceneProblem);
+        }
+        if (_sprites.Count >= 512) throw new InvalidOperationException("Demasiados sprites: guardalos y reutilizalos.");
+        var colors = new int[w * h];
+        var mask = new bool[w * h];
+        int key = transparent < 0 ? -1 : Num(transparent) & 0xFFFFFF;
+        for (int row = 0; row < h; row++)
+            for (int col = 0; col < w; col++)
+            {
+                int index = row * w + col;
+                colors[index] = machine.Video.Pixels[(area.y + py + row) * machine.Video.Width + area.x + px + col] & 0xFFFFFF;
+                mask[index] = colors[index] != key;
+            }
+        _capturedPixels[id] = _capturedPixels.GetValueOrDefault(id) + w * h;
+        _session.ReferencedSlots.Add(id);
+        _sprites.Add(new SpriteImage(w, h, mask, colors));
+        return _sprites.Count - 1;
+    }
+
     private int AddSprite(SpriteDef def, StudioSession.SlotState s)
     {
         if (_sprites.Count >= 512)
@@ -221,6 +253,7 @@ public sealed class ScriptHost
               restart: function () { __h.Restart(id); },
               pixel: function (x, y) { return __h.Pixel(id, x, y); },
               sprite: function (name) { return __h.Sprite(id, name); },
+              capture: function (x, y, w, h, transparent) { return __h.Capture(id, x, y, w, h, transparent === undefined ? -1 : transparent); },
               spriteAt: function (address, w, h, layout) { return __h.SpriteAt(id, address, w, h, layout || 'rows'); }
             };
             Object.defineProperty(g, 'paused', { get: function () { return __h.IsPaused(id); } });
@@ -240,7 +273,7 @@ public sealed class ScriptHost
           text: function (s, x, y, c, o) { o = o || {}; __h.Text(String(s), x, y, c === undefined ? 0xFFFFFF : c, o.scale || 1, !!o.center); },
           sprite: function (s, x, y, c, o) {
             o = o || {};
-            __h.DrawSprite(s, x, y, c === undefined ? 0xFFFFFF : c, o.scale || 1, !!o.flip, o.alpha === undefined ? 1 : o.alpha);
+            __h.DrawSprite(s, x, y, c === undefined ? -1 : c, o.scale || 1, !!o.flip, o.alpha === undefined ? 1 : o.alpha);
           },
           spriteSize: function (s) { return { w: __h.SpriteW(s), h: __h.SpriteH(s) }; },
           base: function (g) { __h.DrawBase(typeof g === 'string' ? g : g.id); },
