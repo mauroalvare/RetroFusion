@@ -184,6 +184,13 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 
 ## App, CLI y paquetes
 
+- **Conexión de IA:** los catálogos dependen de la versión instalada y de lo que la
+  herramienta publique. Codex y Claude informan esfuerzos por modelo; Antigravity los
+  ofrece como variantes. Gemini CLI anterior no tiene catálogo integrado compatible.
+  Ollama informa modelos instalados, sin niveles de esfuerzo en ese listado. Un catálogo
+  no certifica cuota ni una generación exitosa. No se instalan herramientas ni se inicia
+  sesión automáticamente. Ver `CONECTAR-IA.md`.
+
 - **Construcción con IA:** el panel muestra actividad observada del proceso y la salida
   que el CLI emite. No revela razonamiento interno ni puede obtener texto que la herramienta
   todavía no envió. Puede mostrar JSON o código según el formato del CLI. Conserva solo

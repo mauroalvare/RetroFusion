@@ -7,6 +7,12 @@ el real (puertos, memoria de video, interrupciones, señal de cinta).
 
 ## Capas y proyectos
 
+`AiConnectionWindow` reúne la ayuda de instalación/acceso para las herramientas externas.
+`AiPicker` comparte configuración y consultas asíncronas entre las ventanas: al abrirlas
+o refrescar obtiene modelos y esfuerzos de `AiModelCatalog` (D-021). Los catálogos se
+separan por proveedor y ruta/dirección; un fallo no muestra opciones antiguas como actuales.
+La prueba de generación sigue siendo explícita y está en Conexión avanzada.
+
 `Retro.Core.PlayerFolders` resuelve las tres bibliotecas portátiles. Prioriza la carpeta
 con contenido más cercana al ejecutable y luego la biblioteca de Documentos. Las
 carpetas que solo tienen instrucciones del paquete no ocultan datos anteriores; en

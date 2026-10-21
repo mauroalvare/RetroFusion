@@ -94,6 +94,8 @@ se activan desde **Ver > Herramientas avanzadas**.
 
 Para actualizar, cerrá el programa y copiá la entrega nueva sobre la anterior, combinando
 las carpetas y conservando tus juegos y firmware. El paquete incluye `ACTUALIZAR.txt`.
+**Ayuda > Conectar IA** muestra cómo instalar e iniciar sesión en cada herramienta,
+y consulta sus modelos y esfuerzos disponibles. [Guía de conexión](emu/docs/CONECTAR-IA.md).
 Los estados guardados se ofrecen en los originales; las fusiones se reinician desde el estudio.
 
 Para compilarlo desde el código hace falta el .NET SDK 10:

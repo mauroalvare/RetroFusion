@@ -29,9 +29,11 @@ trabajo. Las carpetas para agentes lo incluyen como `DISENO-JUEGOS.md`; la guía
 fusión y la documentación técnica conservan sus archivos propios.
 Muestra los juegos elegidos y separa **Proponer ideas** de **Mi idea**; las carpetas y
 las fusiones anteriores se despliegan cuando se necesitan.
-Si el CLI elegido está encontrado, su ruta y configuración se repliegan bajo
-**Cambiar modelo o conexión**. Encontrarlo no comprueba el inicio de sesión ni consume
-un pedido; la prueba de conexión sigue siendo una acción explícita.
+**Ayuda > Conectar IA** y los enlaces en el selector abren `AiConnectionWindow` con
+instalación, acceso y conexión por herramienta. Modelos/esfuerzos se consultan al abrir
+la configuración y por **Actualizar modelos**, sin generar respuestas. Ruta, modelo
+manual y prueba de generación quedan en **Conexión avanzada**. Detectar la instalación
+o consultar un catálogo no garantiza acceso ni cuota. Guía: `docs/CONECTAR-IA.md`.
 
 ## Modificar una partida
 

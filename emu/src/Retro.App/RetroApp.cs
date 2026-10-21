@@ -243,6 +243,7 @@ public sealed class RetroApp
             _code.Draw();
         }
         DrawPopups();
+        AiConnectionWindow.Draw(_ai);
         rlImGui.End();
         Raylib.EndDrawing();
 
@@ -678,6 +679,7 @@ public sealed class RetroApp
         }
         if (ImGui.BeginMenu("Ayuda"))
         {
+            if (ImGui.MenuItem("Conectar IA...")) AiConnectionWindow.Open(_ai);
             if (ImGui.BeginMenu("Abrir y jugar"))
             {
                 ImGui.TextUnformatted("En Inicio elegí una máquina o Todos los juegos y pulsá Jugar.");
