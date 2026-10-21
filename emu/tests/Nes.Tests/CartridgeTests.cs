@@ -98,8 +98,8 @@ public class CartridgeTests
         Assert.That(() => NesCartridge.Load(cut), Throws.TypeOf<InvalidDataException>().With.Message.Contains("cortada"));
     }
 
-    private static readonly string HomebrewDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "ROMs", "descargados-autores", "NES");
+    private static readonly string HomebrewDir = Path.Combine(Retro.Core.PlayerFolders.Find("ROMs",
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "ROMs"))!, "descargados-autores", "NES");
 
     [TestCase("mojon-twins--bootee.nes", 0)]
     [TestCase("mojon-twins--cadaverion.nes", 0)]

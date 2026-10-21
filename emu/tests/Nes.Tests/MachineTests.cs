@@ -116,8 +116,8 @@ public class MachineTests
         Assert.That(nes.Ram[0], Is.EqualTo(0x0A), "el 2A03 suma en binario aunque D esté prendido");
     }
 
-    private static readonly string HomebrewDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "ROMs", "descargados-autores", "NES");
+    private static readonly string HomebrewDir = Path.Combine(Retro.Core.PlayerFolders.Find("ROMs",
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "ROMs"))!, "descargados-autores", "NES");
 
     /// <summary>
     /// The user's free homebrew games (Mojon Twins) reach a real picture: rendering turned
