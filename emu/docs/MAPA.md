@@ -123,6 +123,10 @@ $C crear c64 out/tarea --ia agent --pedido "..."             # carpeta para un a
 
 # paquetes autocontenidos (Windows y Linux) en emu/dist
 pwsh tools/publish.ps1 -Version 0.1.2
+
+# Actualizar la instalación local fija y el único acceso RetroEmu del escritorio.
+# Requiere cerrar la app; conserva juegos y firmware existente y guarda un respaldo.
+pwsh tools/update-local.ps1
 ```
 
 Teclas de `--press`: las de cada máquina (`SPACE`, `ENTER`/`RETURN`, `CAPS SHIFT`,
@@ -136,9 +140,15 @@ en un directorio superior al actualizar. Para una biblioteca portátil nueva, cr
 junto al ejecutable. Sin carpetas portátiles, los juegos creados y fusionados se guardan
 en Documentos/RetroEmu.
 
+La instalación local de uso diario es siempre `Programa`, con un acceso `RetroEmu`.
+Jugar, fusionar, crear y modificar se abren dentro de esa misma app. Las actualizaciones
+locales usan `tools/update-local.ps1`; no se dejan copias o accesos por función.
+Las pruebas automáticas quedan en `out/`, sin accesos en el escritorio. Solo se prepara
+otra copia visible si el usuario la pide expresamente.
+
 | Ruta | Qué es |
 |---|---|
-| `C:\Users\mauro\Desktop\RetroEmu\Programa` | Build autocontenido que usa el usuario (`Abrir RetroEmu.bat`); firmware en `Programa\firmware` |
+| `C:\Users\mauro\Desktop\RetroEmu\Programa` | Instalación única que usa el usuario, acceso `RetroEmu` en el escritorio; firmware en `Programa\firmware`, documentos en `Programa\docs` |
 | `C:\Users\mauro\Desktop\RetroEmu\Juegos fusionados` | Juegos fusionados del usuario (`<id>\vN.json` + `vN.js`) |
 | `C:\Users\mauro\Downloads\ROMs` | Juegos del usuario; `revision\` tiene el inventario con hashes (`inventario-roms.json`) y los informes de la auditoría de ROMs |
 | `C:\Users\mauro\Desktop\RetroEmu\ROMs` | Copia de los juegos que usa la app del Escritorio |

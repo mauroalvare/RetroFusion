@@ -46,7 +46,7 @@ foreach ($rid in $Runtimes) {
     foreach ($image in "biblioteca.png", "modificaciones.png") {
         Copy-Item (Join-Path $root "docs/img/interfaz/$image") (Join-Path $playerImages $image)
     }
-    Copy-Item (Join-Path $root "docs/ARQUITECTURA.md") (Join-Path $out "ARQUITECTURA.md")
+    Copy-Item (Join-Path $root "docs/ARQUITECTURA.md") (Join-Path $playerDocs "ARQUITECTURA.md")
     @"
 Firmware incluido
 -----------------
