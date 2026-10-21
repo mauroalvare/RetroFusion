@@ -5,6 +5,20 @@ hardware emulados. No hay recreaciones: cada instrucción del programa original 
 decodifica y ejecuta, y el programa se comunica con el hardware emulado igual que con
 el real (puertos, memoria de video, interrupciones, señal de cinta).
 
+## Actualizaciones del programa
+
+`UpdateWindow` consulta releases estables al abrir una instalación empaquetada; se puede
+omitir o desactivar desde Ayuda. `ReleaseClient` exige origen oficial, versión superior,
+tamaño y SHA-256. `SafePackage` limita la extracción y `PackageManifest` verifica cada
+archivo de la descarga. El script de publicación genera `actualizacion.json`.
+
+`UpdateRunner` usa el mismo ejecutable nuevo como ayudante, sin otro programa instalado.
+Espera el cierre, redirige el acceso propio y aplica el diario de `UpdateInstaller`.
+Las bibliotecas y el firmware se trasladan completos a la carpeta versionada, junto con
+archivos propios; AppData y las bibliotecas externas conservan su ubicación. Un primer
+cuadro confirma el arranque; un fallo o corte permite revertir los movimientos. El
+respaldo queda en `.retroemu-updates`, junto a la instalación. Contrato: D-035.
+
 ## Capas y proyectos
 
 `AiConnectionWindow` reúne la ayuda de instalación/acceso para las herramientas externas.
@@ -47,11 +61,15 @@ src/
   Retro.App                Aplicación de escritorio (raylib + Dear ImGui): pantalla,
                            sonido, teclado/joystick, depurador, selector de archivos,
                            inicio por máquinas, estudio, creador y vista de código.
+  Retro.Update             Releases oficiales, descarga verificada, extracción segura,
+                           diario reversible y reinicio desde el mismo ejecutable.
   Retro.Asm                Ensambladores 6502 y Z80, plantillas de juego por máquina y la
                            cinta .tap del Spectrum (cargador BASIC que arranca solo).
   Retro.Cli                Ejecutor sin ventana: carga, corre N cuadros, aprieta teclas,
                            guarda capturas PNG y audio WAV, traza instrucciones.
 tests/
+  Update.Tests             Paquetes propios, descarga simulada, conservación de datos,
+                           interrupciones, reversión y acceso directo temporal.
   Retro.Cpu.Z80.Tests      FUSE (1.356 casos) + ZEXDOC/ZEXALL.
   I8080.Tests              TST8080, 8080PRE, CPUTEST y 8080EXM con ciclos exactos.
   I8088.Tests              ALU, rotaciones, segmentos, pila, interrupciones y cadenas.

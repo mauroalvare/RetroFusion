@@ -21,8 +21,9 @@ Los archivos sueltos de **ROMs** se ordenan automáticamente por sistema. Los du
 quedan donde están; se respetan tus subcarpetas y los archivos con nombres repetidos.
 Para mostrar una carátula o captura, poné una imagen PNG o JPG con el mismo nombre
 junto al juego. Si no hay imagen, se muestra el sistema al que pertenece.
-Para actualizar, cerrá RetroEmu, copiá la entrega nueva sobre la anterior y combiná
-las carpetas conservando tus juegos y firmware. Ver **ACTUALIZAR.txt**.
+Desde la 0.2.1, RetroEmu busca e instala actualizaciones al abrir y conserva tus juegos,
+firmware y ajustes. **Ayuda > Actualizaciones** permite buscar, omitir o desactivar
+la instalación automática. Si venís de una versión anterior, seguí **ACTUALIZAR.txt**.
 
 ![Inicio con selector de máquinas](docs/img/interfaz/biblioteca.png)
 

@@ -21,6 +21,7 @@ public sealed class RetroApp
     private readonly GameLibrary _library;
     private int _libraryRevision;
     private readonly HomeScreen _home;
+    private readonly UpdateWindow _updates;
     private bool _pausedBeforeLibrary;
     private bool _advancedTools;
     private string? _autoStudio;
@@ -129,6 +130,7 @@ public sealed class RetroApp
         }
         if (!openedFile && !args.Any(a => a is "--studio" or "--preparar" or "--crear-window" or "--studio-window" or "--code" or "--mods-window" or "--debug"))
             _home.Open();
+        _updates = new UpdateWindow(args);
     }
 
     /// <summary>The user's game folder ("ROMs", exact case: "roms" holds the firmware).</summary>
@@ -182,6 +184,7 @@ public sealed class RetroApp
 
     public void Shutdown()
     {
+        _updates.Dispose();
         var pending = Task.WhenAll(_studio.CancelWork(), _creator.CancelWork(), _code.CancelWork());
         try { pending.Wait(TimeSpan.FromSeconds(2)); }
         catch (AggregateException) { /* Cancellation and provider errors are already retained by the jobs. */ }
@@ -196,7 +199,9 @@ public sealed class RetroApp
     // ------------------------------------------------------------------ frame
     public void Frame(float dt)
     {
-        HandleDroppedFiles();
+        _updates.Poll();
+        if (_updates.RestartRequested) QuitRequested = true;
+        if (!_updates.Blocking) HandleDroppedFiles();
         _library.Poll();
         if (_libraryRevision != _library.Revision)
         {
@@ -204,10 +209,10 @@ public sealed class RetroApp
             _studio.NotifyLibraryChanged(_library.Folder);
         }
         bool imguiKeyboard = ImGui.GetIO().WantTextInput || _home.IsOpen;
-        HandleHotkeys(ImGui.GetIO().WantTextInput);
+        if (!_updates.Blocking) HandleHotkeys(ImGui.GetIO().WantTextInput);
         _code.Update();
         var m = _host.Machine;
-        if (m != null)
+        if (m != null && !_updates.Blocking)
         {
             if (m.Id != _lastMachineId)
                 OnMachineChanged(m);
@@ -241,6 +246,7 @@ public sealed class RetroApp
         if (!_home.IsOpen && !_debugMode && _texW != 0)
             DrawPlayScreen();
         rlImGui.Begin(dt);
+        ImGui.BeginDisabled(_updates.Blocking);
         DrawMenu();
         if (_debugMode && !_home.IsOpen)
             DrawDebugger();
@@ -255,6 +261,8 @@ public sealed class RetroApp
         }
         DrawPopups();
         AiConnectionWindow.Draw(_ai);
+        ImGui.EndDisabled();
+        _updates.Draw();
         rlImGui.End();
         Raylib.EndDrawing();
 
@@ -692,6 +700,7 @@ public sealed class RetroApp
         }
         if (ImGui.BeginMenu("Ayuda"))
         {
+            if (ImGui.MenuItem("Actualizaciones...")) _updates.Open();
             if (ImGui.MenuItem("Conectar IA...")) AiConnectionWindow.Open(_ai);
             if (ImGui.BeginMenu("Abrir y jugar"))
             {

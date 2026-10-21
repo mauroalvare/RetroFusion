@@ -4,6 +4,24 @@ Registro de lo que no funciona o funciona a medias. Cada entrada dice si es **ob
 (se vio en una prueba) o **probable** (se deduce del código, falta comprobarlo). Al
 arreglar algo, se borra la entrada y se menciona en el commit.
 
+## Actualizaciones del programa
+
+- La primera 0.2.1 se instala manualmente: las versiones anteriores no incluyen el
+  actualizador. Solo los paquetes Windows x64 y Linux x64 incorporan este circuito.
+  El código ejecutado con dotnet run y las pruebas ocultas no buscan actualizaciones.
+- Se necesita red y permiso de escritura en la carpeta superior de la instalación.
+  Sin red, con otra instancia abierta o ante un paquete inválido se conserva la versión
+  instalada. Se puede buscar manualmente en Ayuda > Actualizaciones.
+- Un archivo propio que coincide con uno nuevo o una instalación con enlaces requiere
+  revisión manual: no se sobrescriben esos datos. El respaldo en .retroemu-updates se
+  conserva; no hay limpieza automática. Los accesos personalizados a rutas antiguas
+  necesitan ajuste manual; se actualiza únicamente el acceso RetroEmu del escritorio
+  que apuntaba a esa instalación en Windows.
+- Comprobado en Windows con archivos propios: cierre, cambio de carpeta, reapertura,
+  reversión al fallar el arranque y conservación de contenido/fechas. Linux tiene pruebas
+  de extracción TAR y paquete inspeccionado; falta ejecutar su interfaz y reinicio nativos.
+  Confirmar el primer cuadro no prueba la compatibilidad de todos los juegos.
+
 ## Imágenes del selector
 
 - Se admiten PNG y JPEG locales, hasta 8 MiB, 4096 píxeles por lado y 16 megapíxeles.

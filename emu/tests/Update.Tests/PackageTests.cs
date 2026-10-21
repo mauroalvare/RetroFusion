@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Formats.Tar;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -13,10 +14,10 @@ public class PackageTests
     [SetUp] public void Setup() { _folder = Path.Combine(Path.GetTempPath(), "RetroEmu-package-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(_folder); }
     [TearDown] public void Cleanup() { Directory.Delete(_folder, true); }
 
-    internal static PackageManifest OwnPackage(string root, string version = "0.2.2")
+    internal static PackageManifest OwnPackage(string root, string version = "0.2.2", string runtime = "win-x64")
     {
-        Directory.CreateDirectory(root); var manifest = new PackageManifest { Version = version, Runtime = "win-x64" };
-        foreach (string name in new[] { "RetroEmu.exe", "RetroEmu.dll", "RetroEmu.runtimeconfig.json", "RetroEmu.deps.json", "ROMs/LEEME.txt", "firmware/48.rom" })
+        Directory.CreateDirectory(root); var manifest = new PackageManifest { Version = version, Runtime = runtime };
+        foreach (string name in new[] { runtime == "win-x64" ? "RetroEmu.exe" : "RetroEmu", "RetroEmu.dll", "RetroEmu.runtimeconfig.json", "RetroEmu.deps.json", "ROMs/LEEME.txt", "firmware/48.rom" })
         {
             byte[] bytes = Encoding.UTF8.GetBytes("Archivo propio de prueba " + name + " " + version);
             string path = Path.Combine(root, name); Directory.CreateDirectory(Path.GetDirectoryName(path)!); File.WriteAllBytes(path, bytes);
@@ -74,5 +75,51 @@ public class PackageTests
         Assert.Throws<InvalidDataException>(() => manifest.Verify(_folder, exact: true));
         File.WriteAllText(Path.Combine(_folder, "RetroEmu.dll"), "Binario cambiado");
         Assert.Throws<InvalidDataException>(() => manifest.Verify(_folder, exact: false));
+    }
+
+    private (string archive, ReleaseAsset asset) Tar(TarEntryType? extra = null)
+    {
+        string root = Path.Combine(_folder, "RetroEmu-0.2.2-linux-x64"); OwnPackage(root, runtime: "linux-x64");
+        string path = Path.Combine(_folder, "own.tar.gz");
+        using (var file = File.Create(path))
+        using (var gzip = new GZipStream(file, CompressionLevel.Fastest))
+        using (var writer = new TarWriter(gzip))
+        {
+            foreach (string source in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
+            {
+                using var data = File.OpenRead(source);
+                writer.WriteEntry(new PaxTarEntry(TarEntryType.RegularFile, Path.GetFileName(root) + "/" + Path.GetRelativePath(root, source).Replace('\\', '/'))
+                { DataStream = data, Mode = (UnixFileMode)0x1ED });
+            }
+            if (extra.HasValue) writer.WriteEntry(new PaxTarEntry(extra.Value, Path.GetFileName(root) + "/link") { LinkName = "../../outside" });
+        }
+        return (path, new(new(0, 2, 2), "linux-x64", "own.tar.gz", new Uri("https://github.com/own.tar.gz"), new FileInfo(path).Length, new string('0', 64)));
+    }
+
+    [Test]
+    public void ExtractsOwnLinuxPackageWithExecutableMode()
+    {
+        var (archive, asset) = Tar();
+        string result = SafePackage.Extract(archive, Path.Combine(_folder, "linux"), asset, CancellationToken.None);
+        PackageManifest.Read(result).Verify(result, exact: true);
+        if (!OperatingSystem.IsWindows()) Assert.That(File.GetUnixFileMode(Path.Combine(result, "RetroEmu")), Is.EqualTo((UnixFileMode)0x1ED));
+    }
+
+    [TestCase(TarEntryType.SymbolicLink)]
+    [TestCase(TarEntryType.HardLink)]
+    public void RejectsLinuxLinks(TarEntryType type)
+    {
+        var (archive, asset) = Tar(type);
+        Assert.Throws<InvalidDataException>(() => SafePackage.Extract(archive, Path.Combine(_folder, "linux"), asset, CancellationToken.None));
+        Assert.That(File.Exists(Path.Combine(_folder, "outside")), Is.False);
+    }
+
+    [Test]
+    public void CancelledExtractionDoesNotWritePackageFiles()
+    {
+        var (zip, asset) = Zip(); using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
+        string stage = Path.Combine(_folder, "cancelled");
+        Assert.Throws<OperationCanceledException>(() => SafePackage.Extract(zip, stage, asset, cancellation.Token));
+        Assert.That(Directory.EnumerateFiles(stage, "*", SearchOption.AllDirectories), Is.Empty);
     }
 }

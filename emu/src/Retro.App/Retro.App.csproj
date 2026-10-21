@@ -13,6 +13,7 @@
     <ProjectReference Include="..\Retro.Ai\Retro.Ai.csproj" />
     <ProjectReference Include="..\Retro.Studio\Retro.Studio.csproj" />
     <ProjectReference Include="..\Retro.Compat\Retro.Compat.csproj" />
+    <ProjectReference Include="..\Retro.Update\Retro.Update.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -24,7 +25,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <AssemblyName>RetroEmu</AssemblyName>
-    <Version>0.2.0</Version>
+    <Version>0.2.1</Version>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>

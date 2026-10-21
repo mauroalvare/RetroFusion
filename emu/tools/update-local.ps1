@@ -1,4 +1,5 @@
 # Updates the same local installation; never creates a separate app for a feature.
+[CmdletBinding(SupportsShouldProcess)]
 param(
     [string]$PackageFolder = '',
     [string]$Destination = '',
@@ -13,8 +14,30 @@ if (!$PackageFolder) {
     $version = @($project.Project.PropertyGroup.Version | Where-Object { $_ })[0]
     $PackageFolder = Join-Path $emuRoot "dist/RetroEmu-$version-win-x64"
 }
-if (!$Destination) { $Destination = Join-Path $workspace 'Programa' }
 if (!$ShortcutPath) { $ShortcutPath = Join-Path ([Environment]::GetFolderPath('Desktop')) 'RetroEmu.lnk' }
+if (!$Destination) {
+    $Destination = Join-Path $workspace 'Programa'
+    # Follow the one existing installation after the integrated updater versions its folder.
+    if (Test-Path -LiteralPath $ShortcutPath -PathType Leaf) {
+        $shell = New-Object -ComObject WScript.Shell
+        $existing = $null
+        try {
+            $existing = $shell.CreateShortcut([IO.Path]::GetFullPath($ShortcutPath))
+            if ($existing.TargetPath -and (Test-Path -LiteralPath $existing.TargetPath -PathType Leaf)) {
+                $installed = [IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($existing.TargetPath))
+                if ([IO.Path]::GetFileName($existing.TargetPath) -eq 'RetroEmu.exe' -and
+                    [IO.Path]::GetDirectoryName($installed) -eq $workspace -and
+                    [IO.Path]::GetFileName($installed) -match '^(Programa|RetroEmu-\d+\.\d+\.\d+-win-x64)$') {
+                    $Destination = $installed
+                }
+            }
+        }
+        finally {
+            if ($existing) { [Runtime.InteropServices.Marshal]::FinalReleaseComObject($existing) | Out-Null }
+            [Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell) | Out-Null
+        }
+    }
+}
 $source = [IO.Path]::GetFullPath($PackageFolder).TrimEnd('\')
 $target = [IO.Path]::GetFullPath($Destination).TrimEnd('\')
 if ($source -eq $target -or $source.StartsWith($target + '\', [StringComparison]::OrdinalIgnoreCase) -or
@@ -32,12 +55,13 @@ foreach ($file in 'RetroEmu.exe', 'RetroEmu.dll', 'retro-cli.exe') {
 $running = Get-Process -Name RetroEmu,retro-cli -ErrorAction SilentlyContinue | Where-Object {
     $_.Path -and $_.Path.StartsWith($target + '\', [StringComparison]::OrdinalIgnoreCase)
 }
-if ($running) { throw 'Cerrá RetroEmu antes de actualizar Programa.' }
+if ($running) { throw 'Cerrá RetroEmu antes de actualizar la instalación.' }
 $entries = @(Get-ChildItem -LiteralPath $source -Recurse -Force)
 if ($entries | Where-Object { $_.Attributes -band [IO.FileAttributes]::ReparsePoint }) { throw 'El paquete contiene enlaces.' }
 if ((Test-Path -LiteralPath $target) -and (Get-ChildItem -LiteralPath $target -Recurse -Force | Where-Object { $_.Attributes -band [IO.FileAttributes]::ReparsePoint })) {
     throw 'La instalación contiene enlaces. No se modificó.'
 }
+if (!$PSCmdlet.ShouldProcess($target, 'Actualizar RetroEmu y su acceso directo, conservando los datos')) { return }
 $backup = Join-Path (Split-Path -Parent $target) ('Respaldo/actualizacion-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [Guid]::NewGuid().ToString('N').Substring(0,6))
 New-Item -ItemType Directory -Path $backup -Force | Out-Null
 $plan = @($entries | Where-Object { !$_.PSIsContainer } | ForEach-Object {

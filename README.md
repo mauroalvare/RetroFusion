@@ -105,8 +105,10 @@ desde los pendientes del estudio o del creador con su último código y sus edic
 4. Abrí `RetroEmu`, elegí una máquina y pulsá **Jugar** en el título que quieras. También podés
    arrastrar un archivo o usar **Abrir archivo...**.
 
-Para actualizar, cerrá el programa y copiá la entrega nueva sobre la anterior, combinando
-las carpetas y conservando tus juegos y firmware. El paquete incluye `ACTUALIZAR.txt`.
+Desde la 0.2.1, el programa busca e instala actualizaciones al abrir. Conserva tus juegos,
+firmware y ajustes, y vuelve a abrirse en una carpeta con la versión nueva.
+Podés omitir la actualización o cambiar esa opción en **Ayuda > Actualizaciones**.
+Para pasar desde una versión anterior, seguí `ACTUALIZAR.txt` del paquete.
 **Ayuda > Conectar IA** muestra cómo instalar e iniciar sesión en cada herramienta,
 y consulta sus modelos y esfuerzos disponibles. [Guía de conexión](emu/docs/CONECTAR-IA.md).
 Los estados guardados se ofrecen en los originales; las fusiones se reinician desde el estudio.

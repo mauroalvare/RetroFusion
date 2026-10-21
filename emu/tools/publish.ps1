@@ -5,7 +5,7 @@ param(
     [ValidatePattern('^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$')]
     [string[]]$Runtimes = @("win-x64", "linux-x64"),
     [ValidatePattern('^\d+\.\d+\.\d+$')]
-    [string]$Version = "0.2.0"
+    [string]$Version = "0.2.1"
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
@@ -27,7 +27,7 @@ foreach ($rid in $Runtimes) {
     }
     Write-Host "== $name"
     foreach ($proj in "src/Retro.App", "src/Retro.Cli") {
-        dotnet publish (Join-Path $root $proj) -c Release -r $rid --self-contained true -o $out `
+        dotnet publish (Join-Path $root $proj) -c Release -r $rid --self-contained true -o $out -m:1 `
             -p:DebugType=None -p:DebugSymbols=false -p:Version=$Version
         if ($LASTEXITCODE -ne 0) { throw "dotnet publish falló para $proj ($rid)" }
     }
@@ -67,6 +67,8 @@ basic.rom, chargen.rom), ponelas en esa carpeta y el emulador las prefiere.
 Los juegos no se incluyen.
 "@ | Set-Content (Join-Path $out "firmware/LEEME.txt") -Encoding utf8
 
+    python -I (Join-Path $PSScriptRoot 'make_update_manifest.py') $out $Version $rid
+    if ($LASTEXITCODE -ne 0) { throw 'No se pudo generar el registro de actualización.' }
     if ($rid.StartsWith("win")) {
         $zip = Join-Path $dist "$name.zip"
         if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip }

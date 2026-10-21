@@ -474,6 +474,22 @@ enlaces, archivos especiales y límites excedidos. Se comprueban todos los archi
 La carpeta instalada puede tener datos propios y firmware distinto: esos datos no se
 confunden con binarios del paquete. La primera versión con updater se instala manualmente.
 
-La instalación y su interfaz quedan en un segundo paso, con cierre de procesos propios,
-diario reversible, conservación de bibliotecas/ajustes y carpeta versionada. El usuario
-retuvo la publicación de 0.2.1; no se publica por completar este primer paso.
+UpdateWindow consulta al abrir, permite omitir/desactivar la actualización y ofrece
+búsqueda manual en Ayuda. Sin red se puede seguir usando la versión instalada. Las
+ejecuciones de prueba y --no-update no consultan releases. Preferencias del updater
+en actualizaciones.json, separadas de la configuración de IA y sin modificarla.
+
+El mismo ejecutable nuevo actúa como ayudante con --apply-update, antes de abrir video
+o audio. Espera el cierre de la instancia original y rechaza otras instancias de esa
+instalación. UpdateInstaller guarda cada intención antes de moverla; conserva un cursor
+de recuperación para que un segundo corte durante la reversión tampoco pierda datos.
+Se aparta el programa anterior, se trasladan las cuatro carpetas protegidas completas y
+los archivos del usuario desconocidos por el manifiesto. No se sobreescriben colisiones.
+Los ajustes de AppData y las bibliotecas externas permanecen en sus ubicaciones.
+
+La carpeta final es RetroEmu-VERSION-RUNTIME. Solo el acceso RetroEmu del escritorio
+que apuntaba a la instalación anterior se redirige; se conserva su copia para revertir.
+El programa nuevo confirma su primer cuadro con --update-ready. Si no abre, se detiene
+esa instancia propia y se recuperan carpeta, datos y acceso anteriores. Tras una
+interrupción se revisa el diario antes de iniciar. .retroemu-updates conserva respaldos;
+no se limpia automáticamente. El usuario retuvo la publicación de 0.2.1.

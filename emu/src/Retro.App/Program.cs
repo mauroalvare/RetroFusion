@@ -1,6 +1,17 @@
 using Raylib_cs;
 using rlImGui_cs;
 using Retro.App;
+using Retro.Update;
+
+if (args.Length == 2 && args[0] == "--apply-update")
+{
+    Environment.ExitCode = await UpdateRunner.RunHelperAsync(args[1]);
+    return;
+}
+string? ready = null;
+int readyIndex = Array.IndexOf(args, "--update-ready");
+if (readyIndex >= 0 && readyIndex + 1 < args.Length) ready = args[readyIndex + 1];
+if (ready == null && UpdateRunner.RecoverBeforeStart()) return;
 
 // RetroEmu: multi-system emulator with a CPU debugger.
 // Raylib provides the window, audio and input on Windows, Linux and macOS;
@@ -17,10 +28,13 @@ Raylib.SetExitKey(KeyboardKey.Null);
 Raylib.InitAudioDevice();
 rlImGui.Setup(true, true);
 
-var app = new RetroApp(args);
+var appArgs = args.ToList();
+if (readyIndex >= 0 && readyIndex + 1 < args.Length) appArgs.RemoveRange(readyIndex, 2);
+var app = new RetroApp(appArgs.ToArray());
 while (!Raylib.WindowShouldClose() && !app.QuitRequested)
 {
     app.Frame(Raylib.GetFrameTime());
+    if (ready != null) { UpdateRunner.Acknowledge(ready); ready = null; }
 }
 app.Shutdown();
 rlImGui.Shutdown();
