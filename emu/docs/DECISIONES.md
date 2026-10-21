@@ -329,3 +329,24 @@ StbImageSharp 2.30.16 (C# portable, sin binarios nativos adicionales) para PNG/J
 en docs/TERCEROS.md. Se verifican tamaño de archivo (8 MiB), dimensiones (4096 por lado y
 16 megapíxeles) antes de decodificar, y se comprueban las dimensiones devueltas. El límite de
 texturas RGBA es 6 MiB; la imagen de trabajo tiene un presupuesto aparte y se procesa de a una.
+
+## D-029 Recuperación local de la construcción (2026-10-21)
+
+StudioDesigner publica DesignCheckpoint antes de cada llamada y al recibir y validar un
+borrador. Guarda pedido, dirección/base, metadatos, último código e informe acotado; los
+intentos anteriores se identifican por SHA-256 para frenar respuestas repetidas. No guarda
+la conversación, la documentación, las imágenes, bytes de ROM ni datos del proveedor.
+StudioWorkStore escribe un JSON atómico por operación en Juegos fusionados/.trabajos,
+con identificador propio, versión de formato y huellas de los originales/perfil/firmware.
+
+La ventana ofrece continuar o descartar pendientes. Al continuar comprueba los originales
+y revalida el último borrador localmente; un resultado válido no vuelve a llamar a la IA.
+Una revisión sin respuesta conserva el pedido y el código anterior como contexto, pero
+no lo aprueba como una versión nueva. Base, pedido y versión proceden del trabajo, no
+de los campos del borrador. WorkId en la versión guardada evita una copia duplicada si
+el programa se interrumpe antes de retirar el pendiente. Los juegos viejos no lo necesitan.
+
+Este flujo cubre la escritura y revisión automáticas del estudio. Las carpetas de agentes
+y el intercambio manual conservan su mecanismo de archivos; el creador desde cero todavía
+no dispone de esta recuperación automática. Cambiar las huellas detiene la continuación
+para no ejecutar un guion sobre otra edición: el borrador sigue disponible para copiarlo.

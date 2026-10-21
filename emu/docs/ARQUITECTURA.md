@@ -467,6 +467,13 @@ Un juego fusionado conecta los originales en una sola escena mediante su guion:
 
 ## Biblioteca y organización de ROMs
 
+`StudioDesigner.Checkpoint` comunica el estado actual de escritura/revisión, sin acumular
+historial. `StudioWorkStore` lo persiste atómicamente en `Juegos fusionados/.trabajos`.
+`StudioWindow` muestra pendientes y contrasta las huellas de las referencias al continuar.
+`ResumeAsync` restaura la elección del jugador y vuelve a validar el borrador antes de
+usar el proveedor. `StudioGame.WorkId` permite reconocer una versión ya guardada si se
+interrumpió la limpieza del pendiente. Ver D-029 y las limitaciones de cada modalidad.
+
 `GameLibrary` observa cambios de la carpeta ROMs, espera estabilidad y ejecuta organización
 y escaneo en una sola tarea. `RomOrganizer` solo mueve archivos sueltos con un sistema
 identificado por formato; no reordena subcarpetas ni separa un ZIP mixto. El movimiento es

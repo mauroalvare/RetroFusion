@@ -165,6 +165,11 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 
 ## Fusiones y estudio
 
+- Los trabajos automáticos de escritura y revisión conservan un pendiente local y pueden
+  continuar sin repetir una respuesta ya completa. Si cambian ROMs, perfiles o firmware,
+  se detienen; el borrador se puede copiar. La recuperación automática no cubre todavía
+  el creador desde cero ni el intercambio manual o por carpeta de agentes.
+
 - El estudio permite elegir 2 o 3 juegos; todavía falta el presupuesto de recursos para N juegos. T-023.
 - Los perfiles incluidos (`Retro.Fusion/Profiles`) se asocian por nombre de archivo; los
   que hace "Preparar" van por la huella SHA-256 de la copia (otra edición necesita su

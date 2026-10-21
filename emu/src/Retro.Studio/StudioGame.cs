@@ -31,6 +31,8 @@ public sealed class StudioGame
     public string? BaseSlot { get; set; }
     public string Script { get; set; } = "";
     public int Version { get; set; } = 1;
+    /// <summary>Local operation that saved this version; prevents duplicate saves after interrupted cleanup.</summary>
+    public string? WorkId { get; set; }
     /// <summary>What the player asked for to get this version (null for the first one).</summary>
     public string? Request { get; set; }
     /// <summary>What changed compared to the previous version.</summary>
@@ -235,6 +237,12 @@ public static class StudioLibrary
     /// <summary>Saves the game as a new version (the number after the highest one stored).</summary>
     public static string Save(StudioGame game, Retro.Core.VideoFrame? picture = null)
     {
+        if (game.WorkId != null && AllVersions().FirstOrDefault(g => g.WorkId == game.WorkId && g.Script == game.Script) is { } saved)
+        {
+            game.Id = saved.Id;
+            game.Version = saved.Version;
+            return Path.Combine(UserFolder, game.Id, $"v{game.Version}.json");
+        }
         if (string.IsNullOrWhiteSpace(game.Id))
             game.Id = Slug(game.Title);
         int highest = Versions(game.Id).Select(v => v.Version).DefaultIfEmpty(0).Max();

@@ -43,6 +43,8 @@ public sealed class StudioWindow
 
     private string _wish = "";
     private string _ownIdea = "";
+    private IReadOnlyList<StudioWork> _pendingWork = Array.Empty<StudioWork>();
+    private string? _activeWork;
     private string _request = "";
     private List<GameConcept>? _concepts;
     private volatile string _progress = "";
@@ -82,6 +84,7 @@ public sealed class StudioWindow
     public void Open()
     {
         _open = true;
+        RefreshWork();
         if (_games.Count == 0 || _libraryChanged)
             Scan();
     }
@@ -163,6 +166,7 @@ public sealed class StudioWindow
             return;
         }
         _panelLeft = ImGui.GetWindowPos().X - vp.Pos.X;
+        DrawPendingWork();
         if (_host.Fusion is StudioSession session)
             DrawPlaying(session);
         else
@@ -655,6 +659,7 @@ public sealed class StudioWindow
     private void Write(GameConcept concept)
     {
         ClearProblem();
+        _activeWork = null;
         if (!string.IsNullOrWhiteSpace(concept.MissingData))
         {
             Problem(StudioDesigner.MissingDataPrefix + concept.MissingData);
@@ -701,7 +706,8 @@ public sealed class StudioWindow
                 var sources = Sources();
                 _progress = $"{ai!.Name} está escribiendo el juego...";
                 _build.Start(ai);
-                _designTask = Task.Run(() => new StudioDesigner().WriteAsync(ai, slots, ProfileLibrary.Find, concept,
+                var designer = RecoverableDesigner(references);
+                _designTask = Task.Run(() => designer.WriteAsync(ai, slots, ProfileLibrary.Find, concept,
                     game => StudioValidator.Run(game, sources, _romDir), token, p => _progress = p, references));
                 break;
             }
@@ -711,6 +717,7 @@ public sealed class StudioWindow
     private void Revise(StudioGame current, string request)
     {
         ClearProblem();
+        _activeWork = null;
         var template = current.Copy();
         template.Version = current.Version + 1;
         template.Request = request;
@@ -739,12 +746,92 @@ public sealed class StudioWindow
                 var sources = Sources();
                 _progress = $"{ai!.Name} está preparando la corrección...";
                 _build.Start(ai);
-                _designTask = Task.Run(() => new StudioDesigner().ReviseAsync(ai, current, ProfileLibrary.Find, request,
+                var designer = RecoverableDesigner(references);
+                _designTask = Task.Run(() => designer.ReviseAsync(ai, current, ProfileLibrary.Find, request,
                     game => StudioValidator.Run(game, sources, _romDir), token, p => _progress = p, references));
                 break;
             }
         }
         _request = "";
+    }
+
+    private StudioDesigner RecoverableDesigner(OriginalReferences references, StudioWork? work = null)
+    {
+        work ??= new StudioWork { Originals = references.Items.ToDictionary(r => r.Slot, r => r.Fingerprint) };
+        _activeWork = work.Id;
+        var saved = work;
+        return new StudioDesigner { Checkpoint = state =>
+        {
+            saved.State = state;
+            saved.Engine = typeof(StudioSession).Module.ModuleVersionId.ToString();
+            StudioWorkStore.Save(saved);
+        } };
+    }
+
+    private void RefreshWork()
+    {
+        try { _pendingWork = StudioWorkStore.Pending(); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        { _pendingWork = Array.Empty<StudioWork>(); }
+    }
+
+    private void DrawPendingWork()
+    {
+        if (Busy || _pendingWork.Count == 0) return;
+        if (!ImGui.CollapsingHeader($"Trabajos pendientes ({_pendingWork.Count})", _pendingWork.Count == 1 ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.None)) return;
+        foreach (var work in _pendingWork.Take(3))
+        {
+            var game = work.State.Draft ?? work.State.Template;
+            ImGui.PushID(work.Id);
+            ImGui.TextColored(Gold, string.IsNullOrWhiteSpace(game.Title) ? "Juego en preparación" : game.Title);
+            string wish = work.State.Template.PlayerRequest.Length > 0 ? work.State.Template.PlayerRequest : work.State.Template.Pitch;
+            if (wish.Length > 0) AiPicker.Hint(wish.Length > 160 ? wish[..160] + "..." : wish);
+            AiPicker.Hint(work.State.Draft != null ? "Se conservó el borrador. Se probará antes de pedir otra corrección." : "Se conservó el pedido. Todavía no hubo un guion nuevo.");
+            bool available = work.State.Template.Games.All(g => _games.Any(s => s.Profile.Id == g.Profile));
+            ImGui.BeginDisabled(!available || !AiPicker.IsApi(_ai.Provider));
+            if (ImGui.Button("Continuar")) ResumeWork(work);
+            ImGui.EndDisabled();
+            if (work.State.Draft != null)
+            {
+                ImGui.SameLine();
+                if (ImGui.SmallButton("Copiar borrador")) ImGui.SetClipboardText(work.State.Draft.Script);
+            }
+            ImGui.SameLine();
+            if (ImGui.SmallButton("Descartar pendiente"))
+            {
+                try { StudioWorkStore.Remove(work.Id); RefreshWork(); }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+                { Problem("No se pudo descartar el pendiente: " + e.Message); }
+            }
+            if (!available) AiPicker.Hint("Faltan originales de este trabajo en la carpeta seleccionada.");
+            else if (!AiPicker.IsApi(_ai.Provider)) AiPicker.Hint("Elegí una herramienta conectada para continuar.");
+            ImGui.PopID();
+        }
+        ImGui.Separator();
+    }
+
+    private void ResumeWork(StudioWork work)
+    {
+        ClearProblem();
+        var ai = _ai.CreateProvider();
+        if (ai == null) return;
+        var template = work.State.Template;
+        _chosen.Clear(); _chosen.AddRange(template.Games.Select(g => g.Profile));
+        _baseProfile = template.Games.FirstOrDefault(g => g.Slot == template.BaseSlot)?.Profile;
+        _reimagine = template.BaseSlot == null;
+        PrepareReferences(template, references =>
+        {
+            if (!work.Matches(references))
+            {
+                Problem("Cambiaron los originales, sus perfiles o el firmware. El borrador sigue guardado; prepará un trabajo nuevo con esos datos actualizados.");
+                return;
+            }
+            var designer = RecoverableDesigner(references, work);
+            _cts = new CancellationTokenSource(); var token = _cts.Token;
+            var sources = Sources(); _build.Start(ai);
+            _designTask = Task.Run(() => designer.ResumeAsync(ai, work.State,
+                game => StudioValidator.Run(game, sources, _romDir), token, p => _progress = p, references));
+        });
     }
 
     private void PrepareReferences(StudioGame game, Action<OriginalReferences> ready)
@@ -828,7 +915,21 @@ public sealed class StudioWindow
     {
         if (first || game.Version <= 1)
             game.Id = StudioLibrary.UniqueId(string.IsNullOrWhiteSpace(game.Id) ? StudioLibrary.Slug(game.Title) : game.Id);
-        StudioLibrary.Save(game, picture);
+        game.WorkId = _activeWork;
+        try { StudioLibrary.Save(game, picture); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            RefreshWork();
+            Problem("No se pudo guardar el juego: " + e.Message + ". El trabajo pendiente sigue disponible.");
+            return;
+        }
+        if (_activeWork != null)
+        {
+            try { StudioWorkStore.Remove(_activeWork); }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* The saved game remains playable if cleanup is blocked. */ }
+            _activeWork = null;
+            RefreshWork();
+        }
         StartGame(game);
     }
 
@@ -893,16 +994,23 @@ public sealed class StudioWindow
         {
             _build.Stop();
             _designTask = null;
+            RefreshWork();
             if (!dt.IsCompletedSuccessfully)
+            {
+                _activeWork = null;
                 Problem(Failure(dt.Exception));
+            }
             else if (dt.Result.Game is { } game)
             {
-                _progress = $"Listo en {dt.Result.Attempts} intento{(dt.Result.Attempts > 1 ? "s" : "")}.";
+                _progress = dt.Result.Attempts == 0 ? "Borrador recuperado y probado." : $"Listo en {dt.Result.Attempts} intento{(dt.Result.Attempts > 1 ? "s" : "")}.";
                 _lastTest = dt.Result.Report?.Summary;
                 SaveAndStart(game, first: game.Version <= 1, picture: dt.Result.Report?.Picture);
             }
             else
-                Problem($"La IA no logró un juego que funcione en {StudioDesigner.MaxAttempts} intentos: {dt.Result.Error}", dt.Result.Report);
+            {
+                _activeWork = null;
+                Problem(dt.Result.Error ?? "El juego necesita otra corrección. El trabajo sigue guardado.", dt.Result.Report);
+            }
         }
         if (_validateTask is { IsCompleted: true } vt)
         {

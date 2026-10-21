@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -22,6 +23,7 @@ public sealed class StudioDesigner
 {
     public const int MaxAttempts = 3;
     public const string MissingDataPrefix = "Faltan datos del original: ";
+    public Action<DesignCheckpoint>? Checkpoint { get; init; }
 
     public static string ApiDoc { get; } = Resource("Docs.API.md");
     /// <summary>Mechanic-led design, individual presentation and playtesting; no universal game template.</summary>
@@ -390,14 +392,52 @@ public sealed class StudioDesigner
             RevisePrompt(current, current.Games, find, request, includeScript: false), template, validate, ct, progress, references);
     }
 
+    public Task<DesignOutcome> ResumeAsync(IAiProvider ai, DesignCheckpoint state, Func<StudioGame, ValidationReport> validate,
+        CancellationToken ct, Action<string>? progress = null, OriginalReferences? references = null) =>
+        LoopAsync(ai, state.FirstPrompt, state.Brief, state.Template.Copy(), validate, ct, progress, references, state);
+
     private async Task<DesignOutcome> LoopAsync(IAiProvider ai, string prompt, string brief, StudioGame template,
-        Func<StudioGame, ValidationReport> validate, CancellationToken ct, Action<string>? progress, OriginalReferences? references)
+        Func<StudioGame, ValidationReport> validate, CancellationToken ct, Action<string>? progress, OriginalReferences? references,
+        DesignCheckpoint? resume = null)
     {
         using var pictures = ai.SupportsImages ? references?.ExportTemporary() : null;
-        ValidationReport? report = null;
-        StudioGame? draft = null;
-        string? error = null;
-        var triedScripts = new HashSet<string>(StringComparer.Ordinal);
+        if (resume?.ParseError?.StartsWith(MissingDataPrefix, StringComparison.Ordinal) == true)
+            return new(null, resume.Report, 0, resume.ParseError, resume.Draft);
+        ValidationReport? report = resume?.Report;
+        StudioGame? draft = resume?.Draft?.Copy();
+        if (draft != null)
+        {
+            if (string.IsNullOrWhiteSpace(draft.Script)) throw new AiException("El borrador guardado no tiene un guion completo.");
+            draft.Games = template.Copy().Games;
+            draft.BaseSlot = template.BaseSlot;
+            draft.PlayerRequest = template.PlayerRequest;
+            draft.Request = template.Request;
+            draft.Version = template.Version;
+        }
+        string? error = resume?.ParseError;
+        int calls = resume?.Calls ?? 0;
+        var triedScripts = new HashSet<string>(resume?.TriedScripts ?? [], StringComparer.Ordinal);
+        string firstPrompt = prompt;
+        void Save()
+        {
+            if (Checkpoint == null) return;
+            var metadata = template.Copy();
+            metadata.Script = ""; // Initial source lives in FirstPrompt; once generated, only Draft keeps source.
+            Checkpoint.Invoke(new DesignCheckpoint { Template = metadata, FirstPrompt = draft != null ? "" : firstPrompt, Brief = brief,
+                Draft = draft?.Copy(), Report = report is { } r ? r with { Picture = null, Shots = null, Robots = null,
+                    Summary = r.Summary.Length > 16000 ? r.Summary[..16000] + "\n[Salida adicional omitida]" : r.Summary } : null,
+                ParseError = error, TriedScripts = triedScripts.TakeLast(32).ToList(), Calls = calls });
+        }
+        if (draft != null)
+        {
+            progress?.Invoke("Volviendo a probar el borrador guardado, sin llamar a la IA...");
+            report = await Task.Run(() => validate(draft), ct);
+            Save();
+            if (report.Ok) return new(draft, report, 0, null);
+            prompt = brief + "\n\n" + CurrentDraft(draft) + "\n\n" + FixRequest(report);
+        }
+        else if (error != null)
+            prompt = brief + $"\nNo pude leer la respuesta anterior: {error}. {AnswerShape}";
         for (int attempt = 1; attempt <= MaxAttempts; attempt++)
         {
             ct.ThrowIfCancellationRequested();
@@ -405,20 +445,29 @@ public sealed class StudioDesigner
             // Syntax failures need the current source and error, not the same pictures again.
             bool attach = pictures != null && (attempt == 1 || report is { Error: null });
             string context = prompt + (references != null ? "\n\n" + references.Describe(template.BaseSlot, attach) : "");
+            calls++;
+            Save(); // Before calling the provider, so a limit or cancellation keeps the task.
             string answer = await ai.CompleteAsync(new AiRequest(Guide, [new(true, context)], GameSchema(), attach ? pictures!.Paths : null), ct);
             var game = ParseGame(answer, template, out error);
             if (game == null)
             {
+                Save();
                 if (error?.StartsWith(MissingDataPrefix, StringComparison.Ordinal) == true)
                     return new(null, report, attempt, error, draft);
                 prompt = brief + "\n\n" + (draft != null ? CurrentDraft(draft) : "") + $"\nNo pude leer tu respuesta: {error}. {AnswerShape}";
                 continue;
             }
-            if (!triedScripts.Add(game.Script.Replace("\r\n", "\n").Trim()))
+            string hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(game.Script.Replace("\r\n", "\n").Trim())));
+            if (!triedScripts.Add(hash))
                 return new(null, report, attempt, "La IA devolvió el mismo guion que ya falló. Conservamos el borrador para continuar con otro cambio.", draft);
             draft = game;
+            draft.Author = ai.Name;
+            error = null;
+            report = null;
+            Save(); // A complete answer survives even when validation is interrupted.
             progress?.Invoke("Probando el juego con tres jugadores robot...");
             report = await Task.Run(() => validate(game), ct);
+            Save();
             if (report.Ok)
                 return new DesignOutcome(game, report, attempt, null);
             error = report.Error ?? string.Join(" ", report.Problems);

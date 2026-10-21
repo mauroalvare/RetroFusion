@@ -40,6 +40,9 @@ incrusta con `GameDesignGuide.Compact`; `DISENO-JUEGOS.md` queda como consulta a
 Creador y estudio lo envían por todos los modos de trabajo. Las carpetas para agentes
 incluyen `CONTRATO.md` y el documento ampliado; la guía de
 fusión y la documentación técnica conservan sus archivos propios.
+Los borradores automáticos interrumpidos aparecen como **Trabajos pendientes** en el
+estudio; se guardan en `Juegos fusionados/.trabajos`. `StudioWork.cs` contiene el formato
+y la escritura atómica, y `StudioDesigner.ResumeAsync` revalida antes de usar la IA.
 Muestra los juegos elegidos y separa **Proponer ideas** de **Mi idea**; las carpetas y
 las fusiones anteriores se despliegan cuando se necesitan.
 **Ayuda > Conectar IA** y los enlaces en el selector abren `AiConnectionWindow` con
