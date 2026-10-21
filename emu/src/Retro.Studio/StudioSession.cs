@@ -1,4 +1,5 @@
-using System.Collections.Concurrent;
+using System.Security.Cryptography;
+using System.Text;
 using Jint;
 using Jint.Runtime;
 using Retro.Core;
@@ -32,7 +33,66 @@ public sealed class StudioSession : IFusionRun
     }
 
     private sealed record BootSnapshot(byte[] State, VideoFrame Picture);
-    private static readonly ConcurrentDictionary<string, BootSnapshot> BootCache = new();
+    private static readonly object CacheLock = new();
+    private static readonly Dictionary<string, (BootSnapshot Snapshot, LinkedListNode<string> Node)> BootCache = new();
+    private static readonly LinkedList<string> RecentBoots = new();
+    private static long _cacheBytes;
+    private const long MaxCacheBytes = 16 * 1024 * 1024;
+
+    internal static string SourceKey(GameSource source, string romDirectory)
+    {
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        void Add(byte[] data)
+        {
+            Span<byte> length = stackalloc byte[4];
+            System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(length, data.Length);
+            hash.AppendData(length); hash.AppendData(data);
+        }
+        Add(Encoding.UTF8.GetBytes(source.Profile.ToJson()));
+        foreach (var file in source.Files)
+        {
+            Add(Encoding.UTF8.GetBytes(file.Name)); Add(file.Data);
+        }
+        if (source.Profile.Machine == "zx48") Add(File.ReadAllBytes(Path.Combine(romDirectory, "48.rom")));
+        else if (source.Profile.Machine == "c64")
+        {
+            var rom = Retro.Systems.C64.C64Firmware.Find(romDirectory);
+            Add(rom.Kernal); Add(rom.Basic); Add(rom.Chargen);
+        }
+        return Convert.ToHexString(hash.GetHashAndReset());
+    }
+
+    private static bool CachedBoot(string key, out BootSnapshot snapshot)
+    {
+        lock (CacheLock)
+        {
+            if (BootCache.TryGetValue(key, out var entry))
+            {
+                RecentBoots.Remove(entry.Node); RecentBoots.AddLast(entry.Node);
+                snapshot = entry.Snapshot; return true;
+            }
+        }
+        snapshot = null!; return false;
+    }
+
+    private static void CacheBoot(string key, BootSnapshot snapshot)
+    {
+        lock (CacheLock)
+        {
+            if (BootCache.ContainsKey(key)) return;
+            long bytes = snapshot.State.LongLength + snapshot.Picture.Pixels.LongLength * sizeof(int);
+            if (bytes > MaxCacheBytes) return;
+            while (BootCache.Count >= 16 || _cacheBytes + bytes > MaxCacheBytes)
+            {
+                string oldest = RecentBoots.First!.Value;
+                var removed = BootCache[oldest].Snapshot;
+                _cacheBytes -= removed.State.LongLength + removed.Picture.Pixels.LongLength * sizeof(int);
+                BootCache.Remove(oldest); RecentBoots.RemoveFirst();
+            }
+            BootCache[key] = (snapshot, RecentBoots.AddLast(key));
+            _cacheBytes += bytes;
+        }
+    }
 
     private readonly List<SlotState> _slots;
     private readonly Canvas _canvas;
@@ -115,8 +175,8 @@ public sealed class StudioSession : IFusionRun
             if (!sources.TryGetValue(g.Profile, out var src))
                 throw new InvalidOperationException($"Falta el juego \"{g.Profile}\" en la carpeta de juegos.");
             var m = MachineFactory.Create(src, romDirectory);
-            string key = g.Profile + "|" + string.Join(",", src.Files.Select(f => f.Name + ":" + f.Data.Length));
-            if (BootCache.TryGetValue(key, out var snapshot))
+            string key = SourceKey(src, romDirectory);
+            if (CachedBoot(key, out var snapshot))
             {
                 m.LoadState(snapshot.State);
                 snapshot.Picture.Pixels.CopyTo(m.Video.Pixels, 0);
@@ -127,7 +187,7 @@ public sealed class StudioSession : IFusionRun
                 var picture = new VideoFrame(m.Video.Width, m.Video.Height);
                 m.Video.Pixels.CopyTo(picture.Pixels, 0);
                 snapshot = new BootSnapshot(m.SaveState(), picture);
-                BootCache[key] = snapshot;
+                CacheBoot(key, snapshot);
             }
             m.ExecutedMap ??= new bool[0x10000];
             slots.Add(new SlotState { Slot = new FusionSlot { Id = g.Slot, Profile = src.Profile, Machine = m },

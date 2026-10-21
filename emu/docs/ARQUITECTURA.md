@@ -422,7 +422,12 @@ Un juego fusionado conecta los originales en una sola escena mediante su guion:
 - **Arranque instantáneo:** la primera vez cada juego arranca con su guion de arranque (la
   cinta carga por la ROM); estado e imagen quedan en memoria. Reiniciar o probar otra
   versión restaura ambos sin avanzar la CPU; así una base pausada no aparece negra.
-  Los handles de sprites se liberan al crear la siguiente instancia del guion.
+  La clave SHA-256 incluye los bytes reales de los medios, el perfil completo y el firmware
+  utilizado. Cambiar una copia, sus pasos o la ROM invalida el arranque anterior. La caché
+  retiene hasta 16 arranques y 16 MiB de estado e imagen, desalojando los menos usados.
+  Los handles de sprites y el presupuesto de recortes se liberan al crear la siguiente
+  instancia del guion. Las capturas pequeñas conservan máscara y colores; las máscaras
+  de memoria siguen funcionando como antes.
 - **`StudioValidator`** es la prueba de jugabilidad: tres robots (quieto, explorador al azar,
   tirador) prueban inicio, partida y revancha. El modo base admite comenzar jugando,
   incluye exploración vertical y no exige puntaje artificial. Con
