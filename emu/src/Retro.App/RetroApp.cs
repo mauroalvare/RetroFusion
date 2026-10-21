@@ -18,7 +18,8 @@ public sealed class RetroApp
     private readonly Retro.Ai.AiSettings _ai = Retro.Ai.AiSettings.Load();
     private readonly StudioWindow _studio;
     private readonly CreatorWindow _creator;
-    private readonly GameLibrary _library = new();
+    private readonly GameLibrary _library;
+    private int _libraryRevision;
     private readonly HomeScreen _home;
     private bool _pausedBeforeLibrary;
     private bool _advancedTools;
@@ -64,6 +65,7 @@ public sealed class RetroApp
         // the system firmware: a "firmware" folder (release packages) or a "roms" folder that
         // has the Spectrum ROM in it (so a games folder called "ROMs" is never mistaken for it)
         _romDir = FindFolder("firmware") ?? FindFolderWith("roms", "48.rom") ?? Path.Combine(AppContext.BaseDirectory, "firmware");
+        _library = new GameLibrary { AutoOrganize = !args.Contains("--no-organize"), InUse = _host.UsesMedia };
         string games = FindGamesFolder() ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         _library.Rescan(games);
         Retro.Studio.StudioLibrary.ExportBuiltIns();
@@ -181,6 +183,7 @@ public sealed class RetroApp
 
     public void Shutdown()
     {
+        _library.Dispose();
         _code.Dispose();
         if (_texW != 0)
             Raylib.UnloadTexture(_screenTex);
@@ -192,6 +195,11 @@ public sealed class RetroApp
     {
         HandleDroppedFiles();
         _library.Poll();
+        if (_libraryRevision != _library.Revision)
+        {
+            _libraryRevision = _library.Revision;
+            _studio.NotifyLibraryChanged(_library.Folder);
+        }
         bool imguiKeyboard = ImGui.GetIO().WantTextInput || _home.IsOpen;
         HandleHotkeys(ImGui.GetIO().WantTextInput);
         _code.Update();
@@ -792,7 +800,7 @@ public sealed class RetroApp
                         {
                             var fusions = FusionsOf(g.ProfileId);
                             string tag = fusions.Count > 0 ? "  · también tiene fusión" : "";
-                            if (ImGui.MenuItem(g.Name + tag + "##" + g.Path))
+                            if (ImGui.MenuItem(g.Name + tag + "##" + g.Path, "", false, !_library.Scanning))
                                 OpenFile(g.Path);
                         }
                     }
@@ -836,7 +844,7 @@ public sealed class RetroApp
             ImGui.TextDisabled(_library.Scanning ? "Buscando juegos..." : "No encontré originales con ese nombre.");
         foreach (var g in games)
         {
-            bool playable = g.NotYet == null && g.Confidence >= 50;
+            bool playable = g.NotYet == null && g.Confidence >= 50 && !_library.Scanning;
             if (ImGui.MenuItem($"{g.Name} ({g.Machine.Name})##original-{g.Path}", "", false, playable))
                 OpenFile(g.Path);
             if (!playable && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))

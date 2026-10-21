@@ -1,6 +1,8 @@
 Poné acá tus juegos originales, sueltos o en ZIP.
-Podés organizarlos en subcarpetas por máquina.
-Después abrí RetroEmu y elegí una máquina o Todos los juegos.
+RetroEmu ordena los archivos sueltos por sistema y actualiza la biblioteca al detectar cambios.
+Los que no se pueden identificar quedan acá. Las subcarpetas que ya organizaste se respetan.
+Si hay un nombre repetido, conserva ambos archivos. Las fechas y el contenido se mantienen.
+Después elegí una máquina o Todos los juegos para jugar.
 
 Los juegos se agregan por separado. El firmware del sistema va en firmware.
-Al actualizar, conservá esta carpeta y su contenido.
+Al actualizar, conservá esta carpeta completa, incluida .retroemu si aparece.

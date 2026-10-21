@@ -66,6 +66,8 @@ public sealed class EmulatorHost
     public string? LoadedMedia { get; private set; }
     public GameProfile? LoadedProfile { get; private set; }
     private IReadOnlyList<MediaFile> _loadedFiles = [];
+    public bool UsesMedia(string path) => (Fusion is Retro.Studio.StudioSession studio ? studio.MediaSources : _loadedFiles.Select(f => f.Source))
+        .Any(source => source.Equals(path, StringComparison.OrdinalIgnoreCase) || source.StartsWith(path + "!", StringComparison.OrdinalIgnoreCase));
     /// <summary>Changes on load, restart or state restoration, even when the file name is unchanged.</summary>
     public long MediaRevision { get; private set; }
     public bool CanUseStates => Fusion == null && _machine != null;

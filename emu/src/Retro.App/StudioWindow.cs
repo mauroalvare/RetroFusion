@@ -26,6 +26,7 @@ public sealed class StudioWindow
     private readonly string _romDir;
     private readonly AiSettings _ai;
     private bool _open;
+    private bool _libraryChanged;
     private string _folder;
     private readonly List<GameSource> _games = new();
     private readonly Dictionary<string, string> _unprepared = new();
@@ -81,8 +82,13 @@ public sealed class StudioWindow
     public void Open()
     {
         _open = true;
-        if (_games.Count == 0)
+        if (_games.Count == 0 || _libraryChanged)
             Scan();
+    }
+
+    public void NotifyLibraryChanged(string folder)
+    {
+        if (Path.GetFullPath(folder).Equals(Path.GetFullPath(_folder), StringComparison.OrdinalIgnoreCase)) _libraryChanged = true;
     }
 
     /// <summary>Command line --studio: plays a stored fusion game with the games in the folder.</summary>
@@ -102,6 +108,7 @@ public sealed class StudioWindow
 
     private void Scan()
     {
+        _libraryChanged = false;
         _games.Clear();
         _unprepared.Clear();
         _labels.Clear();
@@ -145,6 +152,7 @@ public sealed class StudioWindow
             _panelLeft = null;
             return;
         }
+        if (_libraryChanged && !Busy) Scan();
         var vp = ImGui.GetMainViewport();
         ImGui.SetNextWindowPos(new Vector2(vp.Pos.X + vp.Size.X - 540, vp.Pos.Y + 30), ImGuiCond.FirstUseEver);
         ImGui.SetNextWindowSize(new Vector2(530, Math.Min(760, vp.Size.Y - 70)), ImGuiCond.FirstUseEver);

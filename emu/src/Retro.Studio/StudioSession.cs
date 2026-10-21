@@ -18,6 +18,7 @@ namespace Retro.Studio;
 public sealed class StudioSession : IFusionRun
 {
     public const int TicksPerSecond = 60;
+    public IReadOnlyList<string> MediaSources { get; private init; } = Array.Empty<string>();
     public static readonly string[] InputNames = { "left", "right", "up", "down", "fire", "jump", "start", "coin" };
 
     internal sealed class SlotState
@@ -205,7 +206,10 @@ public sealed class StudioSession : IFusionRun
                 BootState = snapshot.State, BootPicture = snapshot.Picture });
         }
         ct.ThrowIfCancellationRequested();
-        return new StudioSession(game, slots, Canvas.LoadFont(romDirectory));
+        return new StudioSession(game, slots, Canvas.LoadFont(romDirectory))
+        {
+            MediaSources = game.Games.SelectMany(g => sources[g.Profile].Files.Select(f => f.Source)).ToArray(),
+        };
     }
 
     internal SlotState SlotFor(string id) =>

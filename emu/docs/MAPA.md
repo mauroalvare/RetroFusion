@@ -18,14 +18,22 @@ atajos siguen funcionando. `HomeScreen` ocupa el espacio entre menú y barra de 
 el video y las herramientas quedan ocultos mientras se muestra. La disposición se adapta
 al tamaño de ventana; no se guarda como posición de una ventana flotante en imgui.ini.
 
+Los archivos sueltos de ROMs se ordenan automáticamente por sistema tras unos segundos
+sin cambios; el escaneo también se actualiza. Se respetan subcarpetas, archivos en uso,
+fechas y colisiones. Los dudosos quedan sin mover. `.retroemu/identidades.json` conserva
+perfiles cuando cambia un nombre: se lleva junto con la biblioteca al actualizar.
+`RomOrganizer` y `RomIdentities` viven en Retro.Compat; el observador está en GameLibrary.
+Para pruebas nativas sobre bibliotecas propias se puede usar `--no-organize`.
+
 El estudio limita la lista de selección a una zona con desplazamiento y búsqueda.
 Las ayudas para jugar están en **Ayuda > Abrir y jugar**, **Controles de la partida**
 y **Atajos**. Los controles corresponden al sistema o a la fusión activos. El README
 del paquete es una guía breve; los contratos para agentes se entregan por separado.
 
-El contrato común para las IAs está en `src/Retro.Ai/Docs/DISENO-JUEGOS.md` y se
-incrusta con `GameDesignGuide`. Creador y estudio lo envían por todos los modos de
-trabajo. Las carpetas para agentes lo incluyen como `DISENO-JUEGOS.md`; la guía de
+El contrato común para las IAs está en `src/Retro.Ai/Docs/CONTRATO-DISENO.md` y se
+incrusta con `GameDesignGuide.Compact`; `DISENO-JUEGOS.md` queda como consulta ampliada.
+Creador y estudio lo envían por todos los modos de trabajo. Las carpetas para agentes
+incluyen `CONTRATO.md` y el documento ampliado; la guía de
 fusión y la documentación técnica conservan sus archivos propios.
 Muestra los juegos elegidos y separa **Proponer ideas** de **Mi idea**; las carpetas y
 las fusiones anteriores se despliegan cuando se necesitan.

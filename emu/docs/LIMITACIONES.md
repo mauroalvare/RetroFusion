@@ -4,6 +4,20 @@ Registro de lo que no funciona o funciona a medias. Cada entrada dice si es **ob
 (se vio en una prueba) o **probable** (se deduce del código, falta comprobarlo). Al
 arreglar algo, se borra la entrada y se menciona en el commit.
 
+## Organización de ROMs
+
+- Solo se mueven archivos sueltos de la biblioteca ROMs con un sistema identificable por
+  formato/contenido. ZIP mixtos, formatos débiles o archivos incompletos quedan en su lugar.
+  No se reordenan subcarpetas existentes ni se borran duplicados. Identificar un sistema
+  todavía no implementado permite ordenarlo; no hace que sus juegos se puedan ejecutar.
+- Los archivos recientes o en uso se posponen. La detección espera unos segundos sin
+  cambios; si falta acceso, se pueden volver a buscar desde Inicio. Si el sistema no permite
+  vigilar la carpeta, Actualizar sigue disponible. No hay descompresión de RAR/7z.
+- Si una colisión requiere cambiar un nombre, `.retroemu/identidades.json` conserva el
+  identificador del perfil básico para las fusiones. Hay que conservar esa carpeta al
+  trasladar la biblioteca. Las imágenes locales con el mismo nombre acompañan al juego
+  cuando pueden moverse; una imagen bloqueada se conserva en su lugar.
+
 ## Modificaciones de la partida
 
 - Las ideas de cambios se basan en variables ya conocidas; no equivalen a descubrir

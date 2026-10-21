@@ -107,6 +107,13 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         ImGui.EndDisabled();
         ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
         if (_problem.Length > 0) ImGui.TextWrapped(_problem);
+        if (library.OrganizationError != null) ImGui.TextWrapped(library.OrganizationError);
+        else if (library.OrganizedCount > 0 || library.UnclassifiedCount > 0)
+        {
+            ImGui.TextDisabled($"Ordenados por sistema: {library.OrganizedCount}" +
+                (library.UnclassifiedCount > 0 ? $" · Sin clasificar: {library.UnclassifiedCount}" : ""));
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Los archivos cuyo sistema no se puede identificar quedan en ROMs.");
+        }
         if (_section == "home") DrawMachines();
         else
         {
@@ -245,7 +252,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         if (ImGui.IsItemHovered()) ImGui.SetTooltip(string.IsNullOrWhiteSpace(hint) ? title : hint);
         ImGui.TableNextColumn(); ImGui.TextUnformatted(detail);
         ImGui.TableNextColumn();
-        ImGui.BeginDisabled(!playable);
+        ImGui.BeginDisabled(!playable || library.Scanning);
         if (ImGui.Button("Jugar", new Vector2(-1, 0))) { Close(); play(); }
         ImGui.EndDisabled();
         if (!playable && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))

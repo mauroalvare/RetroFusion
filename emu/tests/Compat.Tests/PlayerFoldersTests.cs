@@ -17,6 +17,8 @@ public class PlayerFoldersTests
         string start = Directory.CreateDirectory(Path.Combine(_root, "Programa")).FullName;
         string empty = Directory.CreateDirectory(Path.Combine(start, name)).FullName;
         File.WriteAllText(Path.Combine(empty, "LEEME.txt"), "Ayuda");
+        Directory.CreateDirectory(Path.Combine(empty, ".retroemu"));
+        File.WriteAllText(Path.Combine(empty, ".retroemu", "organizar.lock"), "");
         string library = Directory.CreateDirectory(Path.Combine(_root, name, "mi-juego")).FullName;
         string file = Path.Combine(library, "juego.bin");
         File.WriteAllText(file, "datos propios");

@@ -433,7 +433,7 @@ public static class GamePreparer
         }
 
         // ---------------------------------------------------------------- the profile
-        var profile = BuildProfile(r, machineName, lab, c, names);
+        var profile = BuildProfile(r, machineName, lab, c, names, sourcePath: path);
         r.Profile = profile;
         Say("Comprobando el perfil: arranco una máquina nueva con el arranque guardado...");
         var replay = MachineFactory.Create(new GameSource(profile, files, folder), o.FirmwareDirectory);
@@ -565,7 +565,7 @@ public static class GamePreparer
     /// read-only). With names from an advisor, those decide what each variable is called
     /// and which ones stay; without them, the lab's kinds do.
     /// </summary>
-    public static GameProfile BuildProfile(PrepareResult r, string machineName, LabReport lab, ControlSet c, IReadOnlyList<VariableName>? names = null)
+    public static GameProfile BuildProfile(PrepareResult r, string machineName, LabReport lab, ControlSet c, IReadOnlyList<VariableName>? names = null, string? sourcePath = null)
     {
         var p = new GameProfile
         {
@@ -652,6 +652,7 @@ public static class GamePreparer
                      $"en {r.Rounds} ronda(s), comprobado con los controles. Variables halladas por el laboratorio y verificadas escribiendo valores " +
                      $"y comparando con la misma corrida sin tocar ({p.Variables.Count(v => !v.Value.ReadOnly)} verificadas, {p.Variables.Count(v => v.Value.ReadOnly)} de solo lectura)" +
                      (named is { Count: > 0 } ? "; los nombres los puso la IA mirando la partida." : "; los nombres salen de cómo cambian (pueden no ser exactos).");
+        if (sourcePath != null) RomIdentities.ApplyForFile(sourcePath, p);
         return p;
     }
 }

@@ -285,3 +285,27 @@ Repetir exactamente un programa ya fallido detiene el ciclo y conserva el borrad
 recorta ninguna validación para ahorrar contexto. Las referencias se adjuntan al comienzo
 y ante problemas funcionales; una corrección de sintaxis no necesita reenviar esos PNG.
 Los tamaños UTF-8 medidos localmente no equivalen a consumo de tokens del proveedor.
+
+## D-027 Organización conservadora e identidad portable de ROMs (2026-10-21)
+
+RomOrganizer ordena únicamente archivos sueltos, por sistema y con confianza alta de
+MachineCatalog. No clasifica solo por CPU o nombre; todos los medios de un ZIP deben
+pertenecer al mismo sistema. Se excluyen copias recientes, archivos en uso, enlaces,
+destinos fuera de la raíz y formatos débiles. Un conjunto arcade se mueve completo.
+MZ con cabecera Windows/OS2 no se identifica como DOS. El reconocimiento no promete
+emulación de máquinas pendientes. MediaArchive comparte el límite expandido entre ZIP anidados.
+
+File.Move dentro de la biblioteca conserva bytes y fechas; nunca sobrescribe ni deduplica.
+Las colisiones usan sufijos portátiles, sin distinguir mayúsculas. Antes de un cambio de
+nombre, un perfil básico registra su identidad en `.retroemu/identidades.json`, vinculada
+a ruta relativa, sistema y SHA-256 del medio. GameCatalog la aplica solo a perfiles básicos
+del mismo contenido. Se guarda atómicamente antes de mover; fallar conserva el original.
+BuildProfile acepta sourcePath opcional; Preparar lo usa para conservar esa misma identidad.
+El bloqueo de organización evita que dos instancias actualicen esos metadatos a la vez.
+
+GameLibrary observa cambios, espera estabilidad y organiza/escanea en una sola tarea.
+La app habilita esta conducta solo para la biblioteca ROMs, nunca para la carpeta personal
+usada como alternativa. El estudio renueva sus rutas cuando termina el escaneo. La carpeta
+`.retroemu` no cuenta como contenido para elegir una biblioteca ni aparece como juego.
+MediaSources/UsesMedia permiten posponer los originales activos aunque ya estén en RAM;
+reintentar un archivo bloqueado no obliga a releer todas las ROMs que no cambiaron.

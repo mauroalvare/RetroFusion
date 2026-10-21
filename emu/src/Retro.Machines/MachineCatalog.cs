@@ -121,7 +121,7 @@ public static class MachineCatalog
             Add("atarist", 80, "disco de Atari ST (.st)");
         if (ext == ".adf" && (d.Length == 901120 || d.Length == 1802240))
             Add("amiga500", Starts("DOS") ? 95 : 85, "disco de Amiga (.adf)");
-        if (ext == ".exe" && Starts("MZ"))
+        if (ext == ".exe" && IsDosExecutable(d))
             Add("pcxt", 90, "programa de MS-DOS (.exe)");
         if (ext == ".com" && !Bytes(0xFF, 0xFF) && d.Length < 65280)
             Add("pcxt", 60, "programa de MS-DOS (.com)");
@@ -186,6 +186,26 @@ public static class MachineCatalog
         for (int i = 0; i < 67; i++)
             sum += d[i];
         return sum != 0 && (d[67] | (d[68] << 8)) == (sum & 0xFFFF);
+    }
+
+    // Windows/OS2 executables have a DOS stub too; that does not make them DOS games.
+    private static bool IsDosExecutable(byte[] data)
+    {
+        if (data.Length < 28 || data[0] != 'M' || data[1] != 'Z') return false;
+        int pages = data[4] | data[5] << 8, last = data[2] | data[3] << 8, header = (data[8] | data[9] << 8) * 16;
+        long size = (pages - 1L) * 512 + (last == 0 ? 512 : last);
+        if (pages == 0 || last > 511 || header < 28 || header > size || size > data.Length) return false;
+        if (data.Length >= 64)
+        {
+            uint offset = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(60, 4));
+            if (offset >= 64 && offset <= data.Length - 2)
+            {
+                var signature = data.AsSpan((int)offset, 2);
+                if (signature.SequenceEqual("PE"u8) || signature.SequenceEqual("NE"u8) || signature.SequenceEqual("LE"u8) ||
+                    signature.SequenceEqual("LX"u8) || signature.SequenceEqual("W3"u8) || signature.SequenceEqual("W4"u8)) return false;
+            }
+        }
+        return true;
     }
 
     /// <summary>Why a file cannot be opened at all (compressed formats the emulator does not read), or null.</summary>

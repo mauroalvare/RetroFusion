@@ -31,6 +31,7 @@ public static class PlayerFolders
             var options = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true,
                 AttributesToSkip = FileAttributes.ReparsePoint };
             return Directory.EnumerateFiles(folder, "*", options).Any(file =>
+                !Path.GetRelativePath(folder, file).Replace('\\', '/').StartsWith(".retroemu/", StringComparison.OrdinalIgnoreCase) &&
                 Path.GetFileName(file).ToLowerInvariant() is not
                     ("leeme.txt" or "readme.md" or "readme.txt" or ".gitkeep" or ".ds_store" or "desktop.ini" or "thumbs.db"));
         }

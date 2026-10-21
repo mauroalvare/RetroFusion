@@ -26,11 +26,15 @@ public static class GameCatalog
         var list = new List<CatalogGame>();
         if (!Directory.Exists(folder))
             return list;
+        RomIdentities identities;
+        try { identities = RomIdentities.Load(folder); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.Text.Json.JsonException) { identities = new(); }
         var ids = new HashSet<string>();
         foreach (var path in Directory.GetFiles(folder, "*", SearchOption.AllDirectories).OrderBy(p => p, StringComparer.OrdinalIgnoreCase))
         {
             string rel = System.IO.Path.GetRelativePath(folder, path).Replace('\\', '/');
-            if (Skip.Contains(System.IO.Path.GetExtension(path)) || rel.StartsWith("revision/", StringComparison.OrdinalIgnoreCase) || CompatDiscovery.IsExcluded(rel))
+            if (Skip.Contains(System.IO.Path.GetExtension(path)) || rel.StartsWith("revision/", StringComparison.OrdinalIgnoreCase) ||
+                rel.StartsWith(".retroemu/", StringComparison.OrdinalIgnoreCase) || CompatDiscovery.IsExcluded(rel))
                 continue;
             List<MediaFile> files;
             try { files = MediaArchive.Open(path); }
@@ -46,6 +50,7 @@ public static class GameCatalog
                 if (machine == null || media == null || (machine == "zx48" && rel.Contains("128", StringComparison.OrdinalIgnoreCase)))
                     continue;
                 profile = BasicProfile(path, files, machine, media);
+                identities.Apply(folder, path, profile);
                 ProfileLibrary.Remember(profile);
             }
             if (ids.Add(profile.Id))

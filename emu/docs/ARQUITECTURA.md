@@ -465,6 +465,17 @@ Un juego fusionado conecta los originales en una sola escena mediante su guion:
   y original-*.png junto a la tarea. Esto aporta referencia visual, no análisis de rutinas
   ni una certificación de fidelidad; la capacidad visual depende de la herramienta/modelo.
 
+## Biblioteca y organización de ROMs
+
+`GameLibrary` observa cambios de la carpeta ROMs, espera estabilidad y ejecuta organización
+y escaneo en una sola tarea. `RomOrganizer` solo mueve archivos sueltos con un sistema
+identificado por formato; no reordena subcarpetas ni separa un ZIP mixto. El movimiento es
+dentro de la raíz, sin sobrescribir y conservando fechas. Las colisiones usan sufijos.
+Antes de renombrar se guarda la identidad del perfil básico en `.retroemu/identidades.json`,
+con ruta relativa, sistema y hash; GameCatalog y Preparar la conservan para no romper las
+fusiones existentes. El estudio actualiza sus rutas al terminar el escaneo. Los metadatos
+no cuentan como juegos ni ocultan una biblioteca poblada superior. Ver D-027.
+
 ## IA
 
 `IAiProvider` tiene una sola operación: mandar un sistema, los turnos y un esquema JSON, y

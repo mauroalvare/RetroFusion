@@ -70,6 +70,8 @@ y probalas con un punto de regreso. **Modificar > Variables y cambios divertidos
 
 Al abrirla elegís una máquina o **Todos los juegos**, buscás por nombre y pulsás **Jugar**.
 **Fusionados** y **Creados** tienen sus propias secciones; los originales siguen disponibles.
+Los archivos sueltos de `ROMs` se ordenan por sistema al detectarlos. Los que no se pueden
+identificar quedan en su lugar; se conservan tus subcarpetas, fechas y nombres repetidos.
 **Inicio** o **Ctrl+L** vuelve al selector y conserva la partida. El código y el depurador
 se activan desde **Ver > Herramientas avanzadas**.
 

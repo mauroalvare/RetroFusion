@@ -13,25 +13,32 @@ public static class MediaArchive
 {
     private static readonly HashSet<string> Junk = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".txt", ".nfo", ".diz", ".url", ".htm", ".html", ".pdf", ".jpg", ".png", ".gif", ".ini",
+        ".txt", ".md", ".nfo", ".diz", ".url", ".htm", ".html", ".pdf", ".jpg", ".jpeg", ".png", ".gif", ".ini",
     };
 
     public static List<MediaFile> Open(string path)
     {
         var data = File.ReadAllBytes(path);
-        var name = Path.GetFileName(path);
+        return Open(data, Path.GetFileName(path), path);
+    }
+
+    /// <summary>Reads bytes already held under a file lock, without reopening the source.</summary>
+    public static List<MediaFile> Open(byte[] data, string name, string source)
+    {
         var result = new List<MediaFile>();
         if (name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
-            ExtractZip(data, path, result, 0);
+        {
+            long expanded = 0;
+            ExtractZip(data, source, result, 0, ref expanded);
+        }
         else
-            result.Add(new MediaFile(name, data, path));
+            result.Add(new MediaFile(name, data, source));
         return result;
     }
 
-    private static void ExtractZip(byte[] zipData, string source, List<MediaFile> output, int depth)
+    private static void ExtractZip(byte[] zipData, string source, List<MediaFile> output, int depth, ref long expanded)
     {
         using var zip = new ZipArchive(new MemoryStream(zipData), ZipArchiveMode.Read);
-        long total = 0;
         foreach (var entry in zip.Entries)
         {
             if (entry.FullName.EndsWith('/') || entry.Length == 0)
@@ -39,15 +46,15 @@ public static class MediaArchive
             string ext = Path.GetExtension(entry.Name);
             if (Junk.Contains(ext))
                 continue;
-            total += entry.Length;
-            if (total > 256L * 1024 * 1024)
+            expanded += entry.Length;
+            if (expanded > 256L * 1024 * 1024)
                 throw new InvalidDataException("El zip es demasiado grande.");
             using var s = entry.Open();
             using var ms = new MemoryStream();
             s.CopyTo(ms);
             var bytes = ms.ToArray();
             if (ext.Equals(".zip", StringComparison.OrdinalIgnoreCase) && depth < 4)
-                ExtractZip(bytes, source + "!" + entry.FullName, output, depth + 1);
+                ExtractZip(bytes, source + "!" + entry.FullName, output, depth + 1, ref expanded);
             else
                 output.Add(new MediaFile(entry.Name, bytes, source + "!" + entry.FullName));
         }
