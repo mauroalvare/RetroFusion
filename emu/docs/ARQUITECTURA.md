@@ -54,7 +54,7 @@ src/
 tests/
   Retro.Cpu.Z80.Tests      FUSE (1.356 casos) + ZEXDOC/ZEXALL.
   I8080.Tests              TST8080, 8080PRE, CPUTEST y 8080EXM con ciclos exactos.
-  I8088.Tests              Programas propios: ALU, segmentos, pila, interrupciones y cadenas.
+  I8088.Tests              ALU, rotaciones, segmentos, pila, interrupciones y cadenas.
   M6502.Tests              SingleStepTests de Tom Harte (256.000 casos, cada ciclo de
                            bus) y la suite funcional de Klaus Dormann.
   C64.Tests                CIA, VIC-II, arranque, SYS, Open ROMs, estados guardados y
@@ -137,7 +137,8 @@ una interrupción se ejecuta la instrucción que la placa pone en el bus de dato
 ## Intel 8088: primer hito funcional
 
 Existe un intérprete parcial con registros, segmentación de 20 bits, ModR/M, ALU,
-pila, saltos, interrupciones, cadenas y E/S de byte. El comando `cpu8088 demo` ejecuta
+rotaciones/desplazamientos, pila, saltos, interrupciones, cadenas y E/S de byte. CL
+conserva los ocho bits de conteo del 8088. El comando `cpu8088 demo` ejecuta
 una suma propia y llega a HLT. No hay aún prelectura ni tiempo por ciclo: no se conecta
 a periféricos ni implementa `ICpuDebugView` hasta contar con un reloj válido. No cambia
 las CPUs actuales ni habilita PC/XT en el lanzador. La cobertura exacta, pruebas y

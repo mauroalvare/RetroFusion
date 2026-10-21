@@ -2,7 +2,7 @@ using Retro.Cpu.I8088;
 
 namespace I8088.Tests;
 
-public sealed class CpuTests
+public sealed partial class CpuTests
 {
     private sealed class Bus : I8088Bus
     {
@@ -295,11 +295,11 @@ public sealed class CpuTests
         Run(cpu); Assert.That(cpu.AX, Is.EqualTo(0xD742)); Assert.That(cpu.Flags, Is.EqualTo(0xFED7));
     }
 
-    [Test]
-    public void UnsupportedInstructionFailsWithLocationInsteadOfRunningAsNop()
+    [TestCase(0xC0, 0xE0)] [TestCase(0xC1, 0xE0)] [TestCase(0xD1, 0xF0)]
+    public void UnsupportedInstructionFailsWithLocationInsteadOfRunningAsNop(int opcode, int operand)
     {
-        var (cpu, _) = Program(0xD1, 0xE0);
+        var (cpu, _) = Program((byte)opcode, (byte)operand);
         var error = Assert.Throws<NotSupportedException>(() => cpu.Step());
-        Assert.That(error!.Message, Does.Contain("D1").And.Contain("1000:0000")); Assert.That(cpu.Instructions, Is.Zero);
+        Assert.That(error!.Message, Does.Contain($"{opcode:X2}").And.Contain("1000:0000")); Assert.That(cpu.Instructions, Is.Zero);
     }
 }

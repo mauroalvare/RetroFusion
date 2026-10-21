@@ -2,7 +2,7 @@ namespace Retro.Cpu.I8088;
 
 /// <summary>
 /// First functional 8088 milestone, not a timed PC/XT CPU yet. Executes data movement,
-/// integer ALU, control flow, stack, strings, I/O and interrupts. BCD, shifts/rotates,
+/// integer ALU, shifts/rotates, control flow, stack, strings, I/O and interrupts. BCD,
 /// multiply/divide, single stepping (TF) and the 8087 remain explicitly unsupported.
 /// No prefetch queue or cycle counts: do not use this core to time peripherals yet.
 /// </summary>
@@ -118,6 +118,45 @@ public sealed class I8088Cpu(I8088Bus bus)
     private int IncDec(int value, bool word, bool decrement)
     {
         bool carry = Flag(Carry); int result = Alu(decrement ? 5 : 0, value, 1, word); SetFlag(Carry, carry); return result;
+    }
+    private int Shift(int operation, int value, int count, bool word)
+    {
+        if (count == 0) return value;
+        int mask = word ? 65535 : 255, sign = word ? 32768 : 128, original = value;
+        bool carry = Flag(Carry);
+        // The 8088 uses all eight count bits, unlike the 286's five-bit count mask.
+        for (int n = 0; n < count; n++)
+        {
+            bool outgoing = (value & ((operation & 1) == 0 ? sign : 1)) != 0;
+            value = operation switch
+            {
+                0 => value << 1 | (outgoing ? 1 : 0),
+                1 => value >> 1 | (outgoing ? sign : 0),
+                2 => value << 1 | (carry ? 1 : 0),
+                3 => value >> 1 | (carry ? sign : 0),
+                4 => value << 1,
+                5 => value >> 1,
+                _ => value >> 1 | (value & sign), // SAR preserves the sign bit
+            };
+            value &= mask;
+            carry = outgoing;
+        }
+        SetFlag(Carry, carry);
+        if (operation >= 4)
+        {
+            Szp(value, word);
+            SetFlag(Auxiliary, false); // undefined on silicon; normalize as in logical ALU
+        }
+        if (count == 1)
+            SetFlag(Overflow, operation switch
+            {
+                0 or 2 or 4 => ((value & sign) != 0) != carry,
+                1 or 3 => ((value & sign) != 0) != ((value & (sign >> 1)) != 0),
+                5 => (original & sign) != 0,
+                _ => false,
+            });
+        // OF for multi-bit operations is undefined; keep its previous value.
+        return value;
     }
     private bool Condition(int condition) => condition switch
     {
@@ -247,6 +286,15 @@ public sealed class I8088Cpu(I8088Bus bus)
             case 0xCD: EnterInterrupt(Fetch()); break;
             case 0xCE: if (Flag(Overflow)) EnterInterrupt(4); break;
             case 0xCF: IP = Pop(); CS = Pop(); Flags = Pop(); break;
+            case 0xD0: case 0xD1: case 0xD2: case 0xD3:
+            {
+                var (operation, rm) = Decode();
+                if (operation == 6) throw Unsupported(op, "grupo reservado /6");
+                int count = (op & 2) == 0 ? 1 : CX & 255;
+                int value = Shift(operation, Read(rm, word), count, word);
+                if (count != 0) Write(rm, word, value);
+                break;
+            }
             case 0xD7: SetReg(0, false, ReadByte(_s[_segmentOverride < 0 ? 3 : _segmentOverride], (ushort)(BX + GetReg(0, false)))); break;
             case 0xE0: case 0xE1: case 0xE2: case 0xE3:
             {
