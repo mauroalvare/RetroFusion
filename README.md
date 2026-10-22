@@ -83,7 +83,7 @@ se activan desde **Ver > Herramientas avanzadas**.
 | ![Estudio: elegir y preparar juegos](emu/docs/img/interfaz/estudio.png) | ![Creador: escribir, probar y jugar](emu/docs/img/interfaz/creador.png) |
 | Buscá y elegí los originales; pedí propuestas o escribí tu propia idea. | Partí de una idea o una plantilla; el emulador prueba el resultado. |
 
-**Abrir construcción** muestra la actividad disponible de la herramienta. **Uso de IA**
+**Abrir construcción** muestra la actividad disponible de la herramienta. El tiempo restante se estima a partir de tus trabajos anteriores. **Uso de IA**
 permite ajustar intentos y tope de texto, con una estimación orientativa y los tokens
 que informe el proveedor. Si se interrumpe un trabajo automático, podés continuarlo
 desde los pendientes del estudio o del creador con su último código y sus ediciones.

@@ -63,6 +63,7 @@ condiciones y cargos. Las herramientas instaladas usan los límites de tu cuenta
 y esfuerzos que publica cada herramienta. [Ver los pasos](docs/CONECTAR-IA.md).
 
 Durante un pedido, **Abrir construcción** muestra la actividad disponible y permite cancelar.
+El progreso muestra el tiempo transcurrido y un estimado orientativo cuando hay historial suficiente.
 **Uso de IA** permite ajustar los intentos y el tope de texto. Los trabajos interrumpidos
 del estudio y del creador aparecen como pendientes para continuar.
 Los juegos nuevos se guardan en las carpetas incluidas. Si ya tenés una biblioteca

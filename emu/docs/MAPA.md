@@ -170,7 +170,7 @@ $C probar out/juego.s                                        # la misma prueba p
 $C crear c64 out/tarea --ia agent --pedido "..."             # carpeta para un agente (TAREA.md, GUIA.md, juego.s)
 
 # paquetes autocontenidos (Windows y Linux) en emu/dist
-pwsh tools/publish.ps1 -Version 0.2.1
+pwsh tools/publish.ps1 -Version 0.2.2
 
 # Actualizar la instalación local y el único acceso RetroEmu del escritorio.
 # Requiere cerrar la app; conserva juegos y firmware existente y guarda un respaldo.

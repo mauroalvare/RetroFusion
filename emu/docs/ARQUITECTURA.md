@@ -5,6 +5,12 @@ hardware emulados. No hay recreaciones: cada instrucción del programa original 
 decodifica y ejecuta, y el programa se comunica con el hardware emulado igual que con
 el real (puertos, memoria de video, interrupciones, señal de cinta).
 
+`AiTiming` y `AiDurationHistory` (Retro.Ai) miden las operaciones de construcción
+con reloj monótono e historial local acotado. AiBuildWindow muestra el intervalo y la
+actividad; estudio/creador solo registran trabajos satisfactorios. El archivo de tiempos
+contiene claves hash de configuración/operación y segundos, sin consignas ni respuestas.
+El intervalo incluye validación y correcciones y no se presenta como dato del proveedor.
+
 ## Actualizaciones del programa
 
 `UpdateWindow` consulta releases estables al abrir una instalación empaquetada; se puede
