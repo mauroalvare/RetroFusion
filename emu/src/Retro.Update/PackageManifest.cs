@@ -60,6 +60,30 @@ public sealed class PackageManifest
         return manifest;
     }
 
+    // Both callers use an updater-owned folder, never the installed library.
+    internal static void CopyPackage(string source, string target)
+    {
+        var manifest = Read(source); manifest.Verify(source, exact: true); NoLinks(target);
+        var names = new HashSet<string>(manifest.Files.Keys, Paths) { FileName };
+        if (Directory.Exists(target))
+            foreach (string path in Directory.EnumerateFileSystemEntries(target, "*", SearchOption.AllDirectories))
+            {
+                if (File.GetAttributes(path).HasFlag(FileAttributes.ReparsePoint)) throw new IOException("Hay enlaces en la preparación.");
+                if (File.Exists(path) && !names.Contains(Path.GetRelativePath(target, path).Replace('\\', '/')))
+                    throw new IOException("La preparación contiene un archivo ajeno.");
+            }
+        Directory.CreateDirectory(target);
+        foreach (string relative in names.Where(n => n != FileName).Append(FileName))
+        {
+            string from = Within(source, relative), to = Within(target, relative);
+            NoLinks(Path.GetDirectoryName(to)!); Directory.CreateDirectory(Path.GetDirectoryName(to)!);
+            File.Copy(from, to, overwrite: true);
+            if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(to, File.GetUnixFileMode(from));
+            File.SetLastWriteTimeUtc(to, File.GetLastWriteTimeUtc(from));
+        }
+        manifest.Verify(target, exact: true);
+    }
+
     public void Verify(string root, bool exact)
     {
         NoLinks(root);

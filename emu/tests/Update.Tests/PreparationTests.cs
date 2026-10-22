@@ -39,13 +39,25 @@ public class PreparationTests
         Assert.That(again.Id, Is.EqualTo(plan.Id)); Assert.That(handler.Calls, Is.EqualTo(1));
     }
     [Test]
+    public async Task PreparedPayloadStaysInternalAndTheInstalledDirectoryIsUnchanged()
+    {
+        using var handler=new Transport(File.ReadAllBytes(_archive));using var http=new HttpClient(handler);
+        var plan=await UpdatePreparation.PrepareAsync(new ReleaseClient(http),_asset,_old,null,CancellationToken.None);
+        Assert.That(plan.NewRoot,Is.EqualTo(_old));Assert.That(plan.Format,Is.EqualTo(2));
+        Assert.That(plan.PayloadRoot,Does.StartWith(plan.Job+Path.DirectorySeparatorChar));
+        Assert.That(Directory.Exists(plan.LegacyRoot),Is.False);
+        Assert.That(PackageManifest.Read(_old).Version,Is.EqualTo("0.2.1"));
+        if(OperatingSystem.IsWindows())Assert.That(File.GetAttributes(UpdatePlan.Metadata(_root)).HasFlag(FileAttributes.Hidden),Is.True);
+    }
+
+    [Test]
     public async Task SavedPlanBeforeFinalRenameIsRecoveredWithoutNetwork()
     {
         var plan = UpdatePlan.Create(_old, _asset); plan.Save();
-        string stage = Path.Combine(plan.Job, "paquete", Path.GetFileName(plan.NewRoot)); PackageTests.OwnPackage(stage);
+        string stage = plan.PayloadRoot; PackageTests.OwnPackage(stage);
         using var handler = new Transport([]); using var http = new HttpClient(handler);
         var recovered = await UpdatePreparation.PrepareAsync(new ReleaseClient(http), _asset, _old, null, CancellationToken.None);
-        Assert.That(recovered.Id, Is.EqualTo(plan.Id)); Assert.That(Directory.Exists(recovered.NewRoot), Is.True); Assert.That(handler.Calls, Is.Zero);
+        Assert.That(recovered.Id, Is.EqualTo(plan.Id)); Assert.That(Directory.Exists(recovered.PayloadRoot), Is.True); Assert.That(handler.Calls, Is.Zero);
     }
     [Test]
     public async Task FailedInstallationCanBeRetriedWithoutLosingDataOrDownloadingAgain()
@@ -62,12 +74,13 @@ public class PreparationTests
         Assert.That(File.ReadAllText(Path.Combine(retry.NewRoot, "ROMs/dato-propio.txt")), Is.EqualTo("Datos personales de prueba"));
     }
     [Test]
-    public void ExistingUnrelatedVersionFolderIsNeverOverwritten()
+    public async Task ExistingUnrelatedVersionFolderIsIgnoredAndNeverOverwritten()
     {
         string existing = Path.Combine(_root, "RetroEmu-0.2.2-win-x64"); Directory.CreateDirectory(existing);
         File.WriteAllText(Path.Combine(existing, "personal.txt"), "No reemplazar");
-        using var handler = new Transport([]); using var http = new HttpClient(handler);
-        Assert.ThrowsAsync<IOException>(() => UpdatePreparation.PrepareAsync(new ReleaseClient(http), _asset, _old, null, CancellationToken.None));
-        Assert.That(handler.Calls, Is.Zero); Assert.That(File.ReadAllText(Path.Combine(existing, "personal.txt")), Is.EqualTo("No reemplazar"));
+        using var handler = new Transport(File.ReadAllBytes(_archive)); using var http = new HttpClient(handler);
+        var plan = await UpdatePreparation.PrepareAsync(new ReleaseClient(http), _asset, _old, null, CancellationToken.None);
+        Assert.That(plan.NewRoot, Is.EqualTo(_old)); Assert.That(Directory.Exists(plan.PayloadRoot), Is.True);
+        Assert.That(handler.Calls, Is.EqualTo(1)); Assert.That(File.ReadAllText(Path.Combine(existing, "personal.txt")), Is.EqualTo("No reemplazar"));
     }
 }

@@ -2,11 +2,11 @@ Actualizar RetroEmu
 ------------------
 Desde la 0.2.1, RetroEmu busca e instala actualizaciones al abrir. Descarga la
 entrega oficial de tu sistema, la verifica, cierra el programa y vuelve a abrirlo.
-La carpeta pasa a llamarse RetroEmu-VERSION-SISTEMA. En Windows se actualiza el
-acceso RetroEmu del escritorio si apuntaba a esa instalación.
+El emulador se actualiza en la misma carpeta, aunque su nombre tenga una versión
+anterior. Los accesos siguen funcionando y tus carpetas de juegos permanecen en su lugar.
 Se conservan juegos, trabajos pendientes, firmware y ajustes del usuario.
 Si la versión nueva no abre, se restaura la anterior. No borres .retroemu-updates:
-guarda el respaldo y los datos necesarios para recuperar una interrupción.
+guarda el respaldo del programa y el diario de recuperación.
 Podés omitir la actualización o desactivarla en Ayuda > Actualizaciones.
 
 Si usás una versión anterior o preferís actualizar manualmente:

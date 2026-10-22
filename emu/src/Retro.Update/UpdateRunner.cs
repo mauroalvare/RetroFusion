@@ -19,7 +19,7 @@ public static class UpdateRunner
     {
         if (!PackageManifest.Paths.Equals(Root, plan.OldRoot)) throw new InvalidOperationException("El ayudante solo se inicia desde la instalación que se actualiza.");
         plan.Arm();
-        var start = new ProcessStartInfo(Executable(plan.NewRoot)) { WorkingDirectory = plan.NewRoot, UseShellExecute = false, CreateNoWindow = true };
+        var start = new ProcessStartInfo(Executable(plan.PayloadRoot)) { WorkingDirectory = plan.PayloadRoot, UseShellExecute = false, CreateNoWindow = true };
         start.ArgumentList.Add("--apply-update"); start.ArgumentList.Add(plan.FilePath);
         using var process = Process.Start(start) ?? throw new IOException("No se pudo iniciar la actualización.");
     }
@@ -30,15 +30,43 @@ public static class UpdateRunner
         try
         {
             plan = UpdatePlan.Read(path);
-            if (!PackageManifest.Paths.Equals(Root, plan.NewRoot) || plan.ToVersion != AppVersion.ToString(3) || plan.ParentProcessId <= 0 || plan.ParentProcessId == Environment.ProcessId)
+            if (!PackageManifest.Paths.Equals(Root, plan.PayloadRoot) || plan.ToVersion != AppVersion.ToString(3) || plan.ParentProcessId <= 0 || plan.ParentProcessId == Environment.ProcessId)
                 throw new InvalidDataException("El ayudante no corresponde a esta actualización.");
             owned = true;
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(45));
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
             await WaitParent(plan, timeout.Token);
             EnsureClosed(plan.OldRoot);
+            if (plan.Format == 1 && plan.State == "prepared")
+            {
+                try
+                {
+                    using (UpdateInstaller.Lock(plan)) UpdatePreparation.AdoptLegacy(plan);
+                    using var self = Process.GetCurrentProcess();
+                    plan.RelayProcessId = self.Id; plan.RelayStarted = self.StartTime.ToUniversalTime().Ticks; plan.Save();
+                    var relay = new ProcessStartInfo(Executable(plan.PayloadRoot)) { WorkingDirectory = plan.PayloadRoot, UseShellExecute = false, CreateNoWindow = true };
+                    relay.ArgumentList.Add("--apply-update"); relay.ArgumentList.Add(plan.FilePath);
+                    using var process = Process.Start(relay) ?? throw new IOException("No se pudo continuar la actualización.");
+                    return 0;
+                }
+                catch
+                {
+                    plan.Format = 1; plan.LegacyStaged = false; plan.RelayProcessId = 0; plan.RelayStarted = 0;
+                    plan.Save(); throw;
+                }
+            }
+            owned = true;
+            await WaitRelay(plan, timeout.Token);
             using var gate = UpdateInstaller.Lock(plan);
+            RetireLegacyStaging(plan);
+            if (plan.State is "applying" or "recovery-needed")
+            {
+                UpdateInstaller.Rollback(plan);
+                using var recovered = Launch(plan.OldRoot, plan, acknowledge: false);
+                return 0;
+            }
             var shortcut = new UpdateShortcut(plan);
-            shortcut.Capture(); shortcut.PointTo(plan.NewRoot);
+            shortcut.Capture();
+            if (plan.Format == 1) shortcut.PointTo(plan.NewRoot);
             try
             {
                 await UpdateInstaller.ApplyAsync(plan, async () =>
@@ -93,6 +121,59 @@ public static class UpdateRunner
         finally { launched?.Dispose(); }
     }
 
+    public static async Task<int> RecoverAsync(string path, int parentId, long parentStarted)
+    {
+        var plan = UpdatePlan.Read(path);
+        if (plan.Format != 2 || !PackageManifest.Paths.Equals(Root, plan.PayloadRoot) ||
+            plan.ToVersion != AppVersion.ToString(3) || plan.State is not ("applying" or "recovery-needed"))
+            return 1;
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(45));
+            await WaitProcess(parentId, parentStarted, Path.Combine(plan.OldRoot, OperatingSystem.IsWindows() ? "RetroEmu.exe" : "RetroEmu"), timeout.Token);
+            EnsureClosed(plan.OldRoot);
+            using var gate = UpdateInstaller.Lock(plan);
+            UpdateInstaller.Rollback(plan);
+            using var previous = Launch(plan.OldRoot, plan, acknowledge: false);
+            return 0;
+        }
+        catch (Exception error) { WriteError(plan, error.Message); return 1; }
+    }
+
+    private static async Task WaitRelay(UpdatePlan plan, CancellationToken ct)
+    {
+        if (plan.RelayProcessId <= 0) return;
+        await WaitProcess(plan.RelayProcessId, plan.RelayStarted, Executable(plan.LegacyRoot), ct);
+    }
+
+    private static async Task WaitProcess(int id, long started, string executable, CancellationToken ct)
+    {
+        Process process;
+        try { process = Process.GetProcessById(id); } catch (ArgumentException) { return; }
+        using (process)
+        {
+            if (process.StartTime.ToUniversalTime().Ticks != started) return;
+            if (process.MainModule?.FileName is not { } actual || !PackageManifest.Paths.Equals(Path.GetFullPath(actual), executable))
+                throw new InvalidDataException("El proceso que debe cerrar no corresponde a esta instalación.");
+            await process.WaitForExitAsync(ct);
+        }
+    }
+
+    private static void RetireLegacyStaging(UpdatePlan plan)
+    {
+        if (!plan.LegacyStaged) return;
+        string saved = Path.Combine(plan.Job, "descarga-anterior");
+        if (Directory.Exists(plan.LegacyRoot))
+        {
+            EnsureClosed(plan.LegacyRoot);
+            PackageManifest.Read(plan.LegacyRoot).Verify(plan.LegacyRoot, exact: true);
+            if (Directory.Exists(saved) || File.Exists(saved)) throw new IOException("El respaldo de la descarga ya existe.");
+            Directory.Move(plan.LegacyRoot, saved);
+        }
+        else PackageManifest.Read(saved).Verify(saved, exact: true);
+        plan.LegacyStaged = false; plan.Save();
+    }
+
     private static async Task WaitParent(UpdatePlan plan, CancellationToken ct)
     {
         Process parent;
@@ -125,7 +206,7 @@ public static class UpdateRunner
     {
         var start = new ProcessStartInfo(Executable(root)) { WorkingDirectory = root, UseShellExecute = false, CreateNoWindow = true };
         start.ArgumentList.Add("--no-update");
-        if (acknowledge) { start.ArgumentList.Add("--update-ready"); start.ArgumentList.Add(plan.FilePath); }
+        if (acknowledge) { start.ArgumentList.Add("--no-organize"); start.ArgumentList.Add("--update-ready"); start.ArgumentList.Add(plan.FilePath); }
         if (plan.TestMode)
             foreach (string arg in new[] { "--hidden", "--mute", "--no-organize", "--autotest", "4", "update-test.png" }) start.ArgumentList.Add(arg);
         return Process.Start(start) ?? throw new IOException("No se pudo abrir RetroEmu.");
@@ -144,11 +225,24 @@ public static class UpdateRunner
     /// <returns>True when this process must exit; another copy was started or is updating.</returns>
     public static bool RecoverBeforeStart()
     {
-        if (!File.Exists(Path.Combine(Root, PackageManifest.FileName))) return false;
+        string? parent = Directory.GetParent(Root)?.FullName;
+        if (!File.Exists(Path.Combine(Root, PackageManifest.FileName)) &&
+            (parent == null || !Directory.Exists(UpdatePlan.Metadata(parent)))) return false;
         foreach (var plan in UpdatePlan.Pending(Root))
         {
             bool isNew = PackageManifest.Paths.Equals(Root, plan.NewRoot);
             if (plan.State == "committed") continue;
+            if (plan.Format == 2)
+            {
+                if (plan.State is "prepared" or "rolled-back") continue;
+                using var self = Process.GetCurrentProcess();
+                var helper = new ProcessStartInfo(Executable(plan.PayloadRoot)) { WorkingDirectory = plan.PayloadRoot, UseShellExecute = false, CreateNoWindow = true };
+                helper.ArgumentList.Add("--recover-update"); helper.ArgumentList.Add(plan.FilePath);
+                helper.ArgumentList.Add(self.Id.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                helper.ArgumentList.Add(self.StartTime.ToUniversalTime().Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                using var recovery = Process.Start(helper) ?? throw new IOException("No se pudo abrir la recuperación.");
+                return true;
+            }
             if (plan.State is "prepared" or "rolled-back")
             {
                 if (!isNew) continue;

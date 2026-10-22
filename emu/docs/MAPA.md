@@ -32,8 +32,8 @@ Para pruebas nativas sobre bibliotecas propias se puede usar `--no-organize`.
 
 `Retro.Update` y `Retro.App/UpdateWindow` implementan **Ayuda > Actualizaciones** y la
 búsqueda automática al abrir. Los paquetes incluyen `actualizacion.json`, generado por
-`tools/make_update_manifest.py`. La carpeta nueva se llama `RetroEmu-VERSION-RUNTIME`;
-el diario y respaldo están en `.retroemu-updates` de su carpeta superior. Los modos
+`tools/make_update_manifest.py`. La instalación conserva su ruta y nombre;
+el paquete temporal, diario y respaldo están en `.retroemu-updates` de su carpeta superior. Los modos
 internos `--apply-update` y `--update-ready` usan el mismo ejecutable. `--no-update`
 omite la búsqueda; también se omite con `--hidden` y `--autotest`. Preferencias en
 `%APPDATA%/RetroEmu/actualizaciones.json`, separadas de IA. La primera 0.2.1 se instala
@@ -175,7 +175,7 @@ $C probar out/juego.s                                        # la misma prueba p
 $C crear c64 out/tarea --ia agent --pedido "..."             # carpeta para un agente (TAREA.md, GUIA.md, juego.s)
 
 # paquetes autocontenidos (Windows y Linux) en emu/dist
-pwsh tools/publish.ps1 -Version 0.2.3
+pwsh tools/publish.ps1 -Version 0.2.4
 
 # Actualizar la instalación local y el único acceso RetroEmu del escritorio.
 # Requiere cerrar la app; conserva juegos y firmware existente y guarda un respaldo.
@@ -195,10 +195,10 @@ biblioteca existente en `Documentos/RetroEmu`. Sin datos anteriores usa la carpe
 portátil incluida; sin ella, creados y fusionados usan `Documentos/RetroEmu`.
 
 La instalación local de uso diario tiene un único acceso `RetroEmu`. Se inició en
-`Programa`; el updater cambia esa carpeta por el nombre de la versión instalada.
+`Programa`; el updater actualiza sus archivos sin cambiar la carpeta.
 Jugar, fusionar, crear y modificar se abren dentro de esa misma app. Las actualizaciones
 locales usan `tools/update-local.ps1`, que sigue ese acceso cuando apunta a una carpeta
-versionada dentro del espacio de trabajo; no se dejan copias o accesos por función.
+activa dentro del espacio de trabajo; no se dejan copias o accesos por función.
 Las pruebas automáticas quedan en `out/`, sin accesos en el escritorio. Solo se prepara
 otra copia visible si el usuario la pide expresamente.
 

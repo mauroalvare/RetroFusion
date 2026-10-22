@@ -19,11 +19,20 @@ tamaño y SHA-256. `SafePackage` limita la extracción y `PackageManifest` verif
 archivo de la descarga. El script de publicación genera `actualizacion.json`.
 
 `UpdateRunner` usa el mismo ejecutable nuevo como ayudante, sin otro programa instalado.
-Espera el cierre, redirige el acceso propio y aplica el diario de `UpdateInstaller`.
-Las bibliotecas y el firmware se trasladan completos a la carpeta versionada, junto con
-archivos propios; AppData y las bibliotecas externas conservan su ubicación. Un primer
-cuadro confirma el arranque; un fallo o corte permite revertir los movimientos. El
-respaldo queda en `.retroemu-updates`, junto a la instalación. Contrato: D-035.
+Espera el cierre y aplica el diario de `UpdateInstaller` en la raíz instalada.
+El plan formato 2 mantiene ROMs, fusiones, creaciones, firmware existente y archivos
+propios en su sitio; reemplaza únicamente archivos registrados del programa. El paquete
+inmutable y una copia de instalación quedan dentro de `.retroemu-updates`, oculto en
+Windows. El acceso y la ruta instalada no cambian. Se guarda el registro anterior y cada
+movimiento permite revertir; el nuevo arranque confirma su primer cuadro. El primer
+reinicio no reorganiza ROMs durante esa confirmación. Contrato actual: D-038.
+
+Un paquete preparado por el updater 0.2.1–0.2.3 usa formato 1. El ejecutable nuevo lo
+verifica, lo copia al área interna y delega allí antes de retirar la carpeta de descarga
+antigua. Espera ambos procesos por identidad; después aplica el mismo circuito en la
+carpeta original. Se conservan lectores y reversión del diario antiguo para trabajos
+ya empezados. La recuperación del formato 2 se ejecuta fuera de la instalación, para
+no bloquear en Windows las DLL que necesita restaurar.
 
 ## Capas y proyectos
 

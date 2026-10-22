@@ -27,7 +27,7 @@ public class InstallerTests
     private UpdatePlan Plan()
     {
         var asset = new ReleaseAsset(new(0, 2, 2), "win-x64", "test.zip", new Uri("https://github.com/own.zip"), 1, new string('0', 64));
-        var plan = UpdatePlan.Create(_old, asset); plan.Save(); return plan;
+        var plan = UpdatePlan.Create(_old, asset); plan.Format = 1; plan.Save(); return plan;
     }
     private void AssertData(string root)
     {
@@ -40,7 +40,7 @@ public class InstallerTests
     }
 
     [Test]
-    public async Task SuccessfulInstallMovesDataToVersionedFolderWithoutDuplicatingLibraries()
+    public async Task LegacyJournalMovesDataToVersionedFolderWithoutDuplicatingLibraries()
     {
         var plan = Plan(); bool activated = false;
         using (UpdateInstaller.Lock(plan)) await UpdateInstaller.ApplyAsync(plan, () => { AssertData(_new); activated = true; return Task.CompletedTask; });

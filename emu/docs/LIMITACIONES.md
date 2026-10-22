@@ -25,13 +25,20 @@ arreglar algo, se borra la entrada y se menciona en el commit.
   instalada. Se puede buscar manualmente en Ayuda > Actualizaciones.
 - Un archivo propio que coincide con uno nuevo o una instalación con enlaces requiere
   revisión manual: no se sobrescriben esos datos. El respaldo en .retroemu-updates se
-  conserva; no hay limpieza automática. Los accesos personalizados a rutas antiguas
-  necesitan ajuste manual; se actualiza únicamente el acceso RetroEmu del escritorio
-  que apuntaba a esa instalación en Windows.
-- Comprobado en Windows con archivos propios: cierre, cambio de carpeta, reapertura,
+  conserva; no hay limpieza automática. Desde 0.2.4 se mantiene la carpeta de instalación
+  y los accesos que apuntan a ella. No se combinan automáticamente otras copias del
+  programa o bibliotecas en carpetas vecinas.
+- Comprobado en Windows con archivos propios: cierre, actualización en la misma carpeta, reapertura,
   reversión al fallar el arranque y conservación de contenido/fechas. Linux tiene pruebas
   de extracción TAR y paquete inspeccionado; falta ejecutar su interfaz y reinicio nativos.
   Confirmar el primer cuadro no prueba la compatibilidad de todos los juegos.
+- El paquete preparado por 0.2.1–0.2.3 se adopta al instalar el nuevo: el actualizador
+  viejo puede mostrar momentáneamente la carpeta de descarga que creó; el ayudante nuevo
+  la aparta al área interna y conserva la raíz original. Si esa carpeta fue modificada,
+  no se retira ni sobrescribe.
+- El diario permite recuperar movimientos interrumpidos desde el ayudante interno.
+  Si un corte deja sin iniciar el ejecutable principal, el respaldo del programa queda
+  en .retroemu-updates. Los archivos de juegos no forman parte de esos movimientos.
 
 ## Imágenes del selector
 

@@ -459,7 +459,7 @@ alcance y límites. No se usan como plantilla de generación ni se declara calid
 IA por aprobarlos. Los cambios de perfil invalidan su caché y un trabajo interrumpido
 con huella anterior exige comprobar sus datos antes de continuar.
 
-## D-035 Protocolo del actualizador integrado (2026-10-21)
+## D-035 Protocolo inicial del actualizador (2026-10-21; instalación reemplazada por D-038)
 
 Retro.Update es una biblioteca del programa, no otra aplicación para el usuario.
 Consulta exclusivamente el release estable público de mauroalvare/RetroFusion; elige
@@ -527,3 +527,30 @@ No contiene ROMs, títulos, rutas ni ajustes de conexión; el updater conserva A
 
 El modo --autotest usa actividad en memoria: las verificaciones automáticas no leen
 ni modifican los favoritos y recientes del jugador.
+
+## D-038 Actualizar en la carpeta en uso (2026-10-22)
+
+El pedido vigente reemplaza el cambio de carpeta por versión: la actualización debe
+conservar la raíz instalada, también al llegar desde 0.2.2. El manifiesto del paquete
+sigue en formato 1. El diario pasa a formato 2: OldRoot y NewRoot coinciden; PayloadRoot
+está en Job/paquete y CandidateRoot en Job/instalar. El ayudante corre desde el paquete
+inmutable, para poder reemplazar y recuperar binarios de Windows sin bloquearlos.
+
+Solo se respaldan/reemplazan archivos del manifiesto del programa cuyo hash cambió. Las carpetas de
+juegos, firmware existente, estados y archivos desconocidos permanecen en su lugar.
+Se agregan archivos protegidos del paquete solo si faltan. Se rechazan colisiones
+con archivos propios. Un registro anterior independiente valida el alcance del diario;
+cada intento se anota antes de mover y la reversión usa cursor persistente.
+
+El paquete que preparó el actualizador publicado se verifica y adopta antes de instalar:
+formato 1 preparado -> copia interna -> relevo al mismo ejecutable allí -> espera del
+proceso anterior -> descarga vieja apartada dentro del trabajo -> instalación formato 2.
+No se renombran ni borran instalaciones de terceros. Se conservan recuperación y lectura
+del formato 1 para diarios anteriores. El primer reinicio usa --no-organize mientras
+confirma el arranque; --recover-update ejecuta la recuperación fuera de los binarios
+en uso. El acceso existente sigue apuntando a la misma ruta.
+
+Los archivos idénticos del runtime se conservan: no se renombran innecesariamente
+bibliotecas que Windows pueda retener. Un bloqueo transitorio tiene reintento acotado;
+no se cambian permisos para forzar el reemplazo. Si falta un archivo protegido del
+paquete, se puede agregar sin alterar los que ya conserva el usuario.

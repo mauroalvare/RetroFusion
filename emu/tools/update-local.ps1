@@ -17,7 +17,7 @@ if (!$PackageFolder) {
 if (!$ShortcutPath) { $ShortcutPath = Join-Path ([Environment]::GetFolderPath('Desktop')) 'RetroEmu.lnk' }
 if (!$Destination) {
     $Destination = Join-Path $workspace 'Programa'
-    # Follow the one existing installation after the integrated updater versions its folder.
+    # Follow the one existing installation without changing its location.
     if (Test-Path -LiteralPath $ShortcutPath -PathType Leaf) {
         $shell = New-Object -ComObject WScript.Shell
         $existing = $null

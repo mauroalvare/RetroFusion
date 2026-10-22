@@ -8,6 +8,12 @@ if (args.Length == 2 && args[0] == "--apply-update")
     Environment.ExitCode = await UpdateRunner.RunHelperAsync(args[1]);
     return;
 }
+if (args.Length == 4 && args[0] == "--recover-update" &&
+    int.TryParse(args[2], out int recoveryParent) && long.TryParse(args[3], out long recoveryStarted))
+{
+    Environment.ExitCode = await UpdateRunner.RecoverAsync(args[1], recoveryParent, recoveryStarted);
+    return;
+}
 string? ready = null;
 int readyIndex = Array.IndexOf(args, "--update-ready");
 if (readyIndex >= 0 && readyIndex + 1 < args.Length) ready = args[readyIndex + 1];
