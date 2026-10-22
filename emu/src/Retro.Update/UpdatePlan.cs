@@ -137,7 +137,13 @@ public sealed class UpdatePlan
         try
         {
             using (var stream = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None)) { stream.Write(bytes); stream.Flush(true); }
-            File.Move(temp, FilePath, true);
+            long deadline = Stopwatch.GetTimestamp() + Stopwatch.Frequency * 3;
+            while (true)
+            {
+                try { File.Move(temp, FilePath, true); break; }
+                catch (Exception error) when ((error is IOException or UnauthorizedAccessException) && Stopwatch.GetTimestamp() < deadline)
+                { Thread.Sleep(50); }
+            }
         }
         finally { if (File.Exists(temp)) File.Delete(temp); }
     }

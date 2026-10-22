@@ -113,6 +113,8 @@ public static class UpdateInstaller
         }
         catch (Exception error)
         {
+            try { File.WriteAllText(Path.Combine(plan.Job, "detalle-error.txt"), error.ToString()); }
+            catch (Exception diagnostic) when (diagnostic is IOException or UnauthorizedAccessException) { }
             plan.Error = error.Message;
             try { if (deactivate != null) await deactivate(); Rollback(plan); }
             catch (Exception rollback)

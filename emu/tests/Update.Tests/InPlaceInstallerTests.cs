@@ -183,6 +183,20 @@ public class InPlaceInstallerTests
     }
 
     [Test]
+    public async Task JournalRetriesAReaderThatTemporarilyPreventsAtomicReplacement()
+    {
+        var plan=Plan();
+        var held=new FileStream(plan.FilePath,FileMode.Open,FileAccess.Read,FileShare.Read);
+        var release=Task.Run(async()=>{await Task.Delay(150);held.Dispose();});
+        try
+        {
+            plan.Error="Estado de prueba";plan.Save();
+            Assert.That(UpdatePlan.Read(plan.FilePath).Error,Is.EqualTo("Estado de prueba"));
+        }
+        finally {held.Dispose();await release;}
+    }
+
+    [Test]
     public void UnknownCollisionIsRejectedBeforeAnyReplacement()
     {
         var plan=Plan();string path=Path.Combine(_installed,"nuevo.dll");File.WriteAllText(path,"Archivo del usuario");
