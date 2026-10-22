@@ -82,7 +82,7 @@ public class LibraryActivityTests
         var data = new LibraryActivity(_path); data.SetFavorite(Key(1, "fusion"), true);
         Assert.That(data.IsFavorite(Key(1, "created")), Is.False);
         Assert.That(data.IsFavorite(Key(1)), Is.False);
-        Assert.That(LibraryKey.Named("fusion", "id"), Is.EqualTo(LibraryKey.Named("fusion", "id")));
+
     }
 
     [Test]

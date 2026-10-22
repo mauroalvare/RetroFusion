@@ -5,7 +5,7 @@ param(
     [ValidatePattern('^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$')]
     [string[]]$Runtimes = @("win-x64", "linux-x64"),
     [ValidatePattern('^\d+\.\d+\.\d+$')]
-    [string]$Version = "0.2.2"
+    [string]$Version = "0.2.3"
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
@@ -49,7 +49,7 @@ foreach ($rid in $Runtimes) {
     Copy-Item (Join-Path $root "docs/CONECTAR-IA.md") (Join-Path $playerDocs "CONECTAR-IA.md")
     $playerImages = Join-Path $playerDocs "img/interfaz"
     New-Item -ItemType Directory -Force $playerImages | Out-Null
-    foreach ($image in "biblioteca.png", "modificaciones.png") {
+    foreach ($image in "biblioteca.png", "modificaciones.png", "favoritos.png") {
         Copy-Item (Join-Path $root "docs/img/interfaz/$image") (Join-Path $playerImages $image)
     }
     Copy-Item (Join-Path $root "docs/ARQUITECTURA.md") (Join-Path $playerDocs "ARQUITECTURA.md")
