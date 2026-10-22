@@ -3,7 +3,7 @@ namespace Retro.Cpu.I8088;
 /// <summary>
 /// First functional 8088 milestone, not a timed PC/XT CPU yet. Executes data movement,
 /// integer ALU including multiply/divide, shifts/rotates, control flow, stack, strings,
-/// I/O and interrupts. BCD, single stepping (TF) and the 8087 remain unsupported.
+/// I/O, decimal adjustments and interrupts. Single stepping (TF) and the 8087 remain unsupported.
 /// No prefetch queue or cycle counts: do not use this core to time peripherals yet.
 /// </summary>
 public sealed class I8088Cpu(I8088Bus bus)
@@ -96,6 +96,41 @@ public sealed class I8088Cpu(I8088Bus bus)
         SetFlag(Zero, value == 0);
         SetFlag(Parity, (System.Numerics.BitOperations.PopCount((uint)(value & 255)) & 1) == 0);
     }
+    private void DecimalAdjust(bool subtract, bool unpacked)
+    {
+        int original = AX & 255, value = original, high = AX >> 8;
+        bool lowAdjust = (original & 15) > 9 || Flag(Auxiliary), carry = Flag(Carry);
+        if (lowAdjust) value += subtract ? -6 : 6;
+        SetFlag(Auxiliary, lowAdjust);
+        if (unpacked)
+        {
+            // The 8088 adjusts AL and AH separately; do not use the later AX +/- 0106h.
+            if (lowAdjust) high += subtract ? -1 : 1;
+            AX = (ushort)(((high & 255) << 8) | (value & 15));
+            SetFlag(Carry, lowAdjust);
+        }
+        else
+        {
+            bool highAdjust = original > 0x99 || carry;
+            if (highAdjust) value += subtract ? -0x60 : 0x60;
+            SetReg(0, false, value);
+            SetFlag(Carry, highAdjust || subtract && lowAdjust && original < 6);
+            Szp(value, false);
+        }
+        // Undefined arithmetic flags retain their previous value, not a silicon claim.
+    }
+
+    private void AsciiProductAdjust(byte op, byte repeat)
+    {
+        int radix = Fetch();
+        if (repeat != 0 || radix != 10)
+            throw Unsupported(op, "solo AAM/AAD documentados en base 10, sin REP");
+        int low = AX & 255;
+        AX = op == 0xD4 ? (ushort)(((low / 10) << 8) | low % 10)
+            : (ushort)((low + (AX >> 8) * 10) & 255);
+        Szp(AX, false);
+    }
+
     private int Alu(int operation, int a, int b, bool word)
     {
         int mask = word ? 65535 : 255, sign = word ? 32768 : 128, result;
@@ -260,6 +295,8 @@ public sealed class I8088Cpu(I8088Bus bus)
             case 0x06: case 0x0E: case 0x16: case 0x1E: Push(_s[(op >> 3) & 3]); break;
             case 0x07: case 0x17: case 0x1F:
                 _s[(op >> 3) & 3] = Pop(); if (op == 0x17) _interruptShadow = _ssShadow = true; break;
+            case 0x27: case 0x2F: case 0x37: case 0x3F:
+                DecimalAdjust((op & 8) != 0, (op & 0x10) != 0); break;
             case 0x80: case 0x81: case 0x82: case 0x83:
             {
                 var (operation, rm) = Decode(); word = (op & 1) != 0;
@@ -325,6 +362,7 @@ public sealed class I8088Cpu(I8088Bus bus)
                 if (count != 0) Write(rm, word, value);
                 break;
             }
+            case 0xD4: case 0xD5: AsciiProductAdjust(op, repeat); break;
             case 0xD7: SetReg(0, false, ReadByte(_s[_segmentOverride < 0 ? 3 : _segmentOverride], (ushort)(BX + GetReg(0, false)))); break;
             case 0xE0: case 0xE1: case 0xE2: case 0xE3:
             {
