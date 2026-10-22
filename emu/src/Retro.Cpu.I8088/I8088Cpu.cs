@@ -2,8 +2,8 @@ namespace Retro.Cpu.I8088;
 
 /// <summary>
 /// First functional 8088 milestone, not a timed PC/XT CPU yet. Executes data movement,
-/// integer ALU, shifts/rotates, control flow, stack, strings, I/O and interrupts. BCD,
-/// multiply/divide, single stepping (TF) and the 8087 remain explicitly unsupported.
+/// integer ALU including multiply/divide, shifts/rotates, control flow, stack, strings,
+/// I/O and interrupts. BCD, single stepping (TF) and the 8087 remain unsupported.
 /// No prefetch queue or cycle counts: do not use this core to time peripherals yet.
 /// </summary>
 public sealed class I8088Cpu(I8088Bus bus)
@@ -157,6 +157,36 @@ public sealed class I8088Cpu(I8088Bus bus)
             });
         // OF for multi-bit operations is undefined; keep its previous value.
         return value;
+    }
+    private void MultiplyDivide(int operation, int value, bool word)
+    {
+        bool signed = (operation & 1) != 0;
+        if (operation < 6)
+        {
+            long left = signed ? word ? (short)AX : (sbyte)AX : word ? AX : AX & 255;
+            long right = signed ? word ? (short)value : (sbyte)value : value;
+            long product = left * right;
+            AX = (ushort)product;
+            if (word) DX = (ushort)(product >> 16);
+            bool overflow = signed ? product < (word ? -32768 : -128) || product > (word ? 32767 : 127)
+                : product > (word ? 65535 : 255);
+            SetFlag(Carry, overflow); SetFlag(Overflow, overflow);
+            // Other arithmetic flags are undefined; retain them deterministically.
+            return;
+        }
+        long dividend = word ? signed ? (int)(((uint)DX << 16) | AX) : ((uint)DX << 16) | AX
+            : signed ? (short)AX : AX;
+        long divisor = signed ? word ? (short)value : (sbyte)value : value;
+        if (divisor == 0) { EnterInterrupt(0); return; }
+        long quotient = dividend / divisor;
+        long maximum = signed ? word ? 32767 : 127 : word ? 65535 : 255;
+        // Unlike later x86 CPUs, 8088 IDIV also faults on -128 and -32768.
+        if (quotient < (signed ? -maximum : 0) || quotient > maximum) { EnterInterrupt(0); return; }
+        long remainder = dividend % divisor;
+        if (word) { AX = (ushort)quotient; DX = (ushort)remainder; }
+        else AX = (ushort)(((remainder & 255) << 8) | (quotient & 255));
+        // DIV/IDIV flags are undefined; errors retain AX/DX before entering type 0.
+        // EnterInterrupt saves the already consumed IP: 8088 returns to the next instruction.
     }
     private bool Condition(int condition) => condition switch
     {
@@ -315,6 +345,11 @@ public sealed class I8088Cpu(I8088Bus bus)
                 if (operation == 0) Alu(4, value, word ? FetchWord() : Fetch(), word);
                 else if (operation == 2) Write(rm, word, ~value);
                 else if (operation == 3) Write(rm, word, Alu(5, 0, value, word));
+                else if (operation >= 4)
+                {
+                    if (repeat != 0) throw Unsupported(op, "REP en multiplicación/división no documentado");
+                    MultiplyDivide(operation, value, word);
+                }
                 else throw Unsupported(op, $"grupo /{operation}"); break;
             }
             case 0xF8: SetFlag(Carry, false); break;
