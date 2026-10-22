@@ -509,3 +509,21 @@ recientes y se resta el tiempo transcurrido. Al superarlo se informa el exceso, 
 presentar un contador detenido en cero. La etapa/intento siguen siendo los mensajes
 reales del diseñador; el intervalo corresponde al trabajo completo, no a cada llamada.
 Un archivo dañado, bloqueado o sin permiso nunca impide crear/guardar el juego.
+
+## D-037 Identidad y actividad de biblioteca (2026-10-22)
+
+`biblioteca.json` en AppData tiene Version=1 y Games: diccionario de clave hash a
+Favorite y Played (UTC opcional). Original: sistema más hashes SHA-256 de los miembros
+de medios, ordenados y sin repetidos; no incluye nombres/rutas. Fusión: Id estable;
+creado: sistema y WorkId, o fecha UTC de creación si no hay WorkId. Se separan los tres
+tipos antes de derivar la clave. Los bytes se aprovechan del escaneo/carga existentes.
+
+Se retienen 40 recientes y hasta 4096 favoritos, aunque algún archivo no esté disponible.
+La interfaz cruza esas claves con las bibliotecas actuales. Solo se registra una carga
+satisfactoria; una sesión con error de guion no se agrega. Vaciar recientes conserva
+favoritos y archivos. Escritura temporal seguida de sustitución atómica; un error deja
+la selección en memoria e informa al jugador. Metadatos dañados/futuros no se sobrescriben.
+No contiene ROMs, títulos, rutas ni ajustes de conexión; el updater conserva AppData.
+
+El modo --autotest usa actividad en memoria: las verificaciones automáticas no leen
+ni modifican los favoritos y recientes del jugador.

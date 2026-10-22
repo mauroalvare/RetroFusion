@@ -101,6 +101,9 @@ public sealed class StudioWindow
         if (Path.GetFullPath(folder).Equals(Path.GetFullPath(_folder), StringComparison.OrdinalIgnoreCase)) _libraryChanged = true;
     }
 
+    /// <summary>Raised on the UI thread after a stored game starts successfully.</summary>
+    public event Action<StudioGame>? GameStarted;
+
     /// <summary>Command line --studio: plays a stored fusion game with the games in the folder.</summary>
     public void PlayById(string id)
     {
@@ -1057,6 +1060,7 @@ public sealed class StudioWindow
             if (st.IsCompletedSuccessfully)
             {
                 _host.StartFusion(st.Result);
+                if (st.Result.Error == null) GameStarted?.Invoke(st.Result.Game);
                 _progress = "";
                 _status = "";
             }

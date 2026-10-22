@@ -22,6 +22,11 @@ Los archivos sueltos de ROMs se ordenan automáticamente por sistema tras unos s
 sin cambios; el escaneo también se actualiza. Se respetan subcarpetas, archivos en uso,
 fechas y colisiones. Los dudosos quedan sin mover. `.retroemu/identidades.json` conserva
 perfiles cuando cambia un nombre: se lleva junto con la biblioteca al actualizar.
+`Retro.Core/LibraryActivity.cs` guarda favoritos y recientes en
+`%APPDATA%/RetroEmu/biblioteca.json`; `HomeScreen` ofrece ambas vistas y su búsqueda.
+Las claves de originales dependen del contenido y sistema, por lo que ordenar o renombrar
+el archivo conserva la marca. Las cargas fallidas no se registran.
+
 `RomOrganizer` y `RomIdentities` viven en Retro.Compat; el observador está en GameLibrary.
 Para pruebas nativas sobre bibliotecas propias se puede usar `--no-organize`.
 

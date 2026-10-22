@@ -71,6 +71,11 @@ y probalas con un punto de regreso. **Modificar > Variables y cambios divertidos
 
 Al abrirla elegís una máquina o **Todos los juegos**, buscás por nombre y pulsás **Jugar**.
 **Fusionados** y **Creados** tienen sus propias secciones; los originales siguen disponibles.
+Marcá la estrella de un juego para guardarlo en **Favoritos**. **Recientes** reúne los
+últimos juegos abiertos que siguen disponibles en tu biblioteca.
+
+![Favoritos en la biblioteca](emu/docs/img/interfaz/favoritos.png)
+
 Los archivos sueltos de `ROMs` se ordenan por sistema al detectarlos. Los que no se pueden
 identificar quedan en su lugar; se conservan tus subcarpetas, fechas y nombres repetidos.
 El selector muestra el hardware de cada máquina y las capturas o carátulas locales

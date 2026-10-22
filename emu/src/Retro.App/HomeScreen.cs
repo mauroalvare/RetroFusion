@@ -1,6 +1,7 @@
 using System.Numerics;
 using ImGuiNET;
 using Retro.Ai;
+using Retro.Core;
 using Retro.Fusion;
 using Retro.Machines;
 using Retro.Studio;
@@ -9,8 +10,9 @@ namespace Retro.App;
 
 /// <summary>The main browser replaces the play area; it is never a floating window.</summary>
 public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal, Action<string> playFusion,
-    Action browse, Action fuse, Action create, Action<bool> visibility, Func<bool> canReturn) : IDisposable
+    Action browse, Action fuse, Action create, Action<bool> visibility, Func<bool> canReturn, LibraryActivity? activity = null) : IDisposable
 {
+    private readonly LibraryActivity _activity = activity ?? new();
     private readonly ThumbnailCache _thumbnails = new();
     private int _thumbnailRevision = -1;
     private bool _open;
@@ -43,6 +45,8 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
 
     public void ShowOriginals() { Select("originals"); Open(); }
     public void ShowFusions() { Select("fusions"); Open(); }
+    public void ShowFavorites() { Select("favorites"); Open(); }
+    public void ShowRecents() { Select("recent"); Open(); }
 
     private void Select(string section, string machine = "")
     {
@@ -87,6 +91,8 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         ImGui.Spacing(); ImGui.Spacing();
         Nav("Inicio", "home");
         Nav("Todos los juegos", "all");
+        Nav("Favoritos", "favorites");
+        Nav("Recientes", "recent");
         ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
         ImGui.TextDisabled("Máquinas");
         foreach (var machine in Machines) Nav(Name(machine), "machine", machine.Id);
@@ -101,7 +107,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         string title = _section switch
         {
             "machine" => Name(Machines.Single(m => m.Id == _machine)), "all" => "Todos los juegos",
-            "fusions" => "Fusionados", "created" => "Creados", "originals" => "Juegos originales", _ => "Elegí una máquina",
+            "favorites" => "Favoritos", "recent" => "Recientes", "fusions" => "Fusionados", "created" => "Creados", "originals" => "Juegos originales", _ => "Elegí una máquina",
         };
         ImGui.SetWindowFontScale(1.4f);
         ImGui.TextUnformatted(title);
@@ -117,6 +123,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         }
         ImGui.EndDisabled();
         ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
+        if (_activity.Problem is { } activityProblem) ImGui.TextWrapped(activityProblem);
         if (_problem.Length > 0) ImGui.TextWrapped(_problem);
         if (library.OrganizationError != null) ImGui.TextWrapped(library.OrganizationError);
         else if (library.OrganizedCount > 0 || library.UnclassifiedCount > 0)
@@ -131,7 +138,8 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
             ImGui.SetNextItemWidth(-1);
             ImGui.InputTextWithHint("##buscar", "Buscar por nombre", ref _search, 150);
             ImGui.Spacing();
-            if (_section == "fusions") DrawFusions();
+            if (_section is "favorites" or "recent") DrawPersonal();
+            else if (_section == "fusions") DrawFusions();
             else if (_section == "created") DrawCreated();
             else DrawOriginals();
         }
@@ -192,19 +200,24 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         var games = library.Originals(_search, _section == "machine" ? _machine : null).ToList();
         var created = _created.Where(g => Matches(g.Title) && (_section == "all" || g.Machine == _machine)).ToList();
         var fusions = _section == "all" ? _fusions.Concat(_inspired).Where(g => Matches(g.Title)).ToList() : new List<StudioGame>();
+        if (games.Count + created.Count + fusions.Count == 0)
+        {
+            ImGui.TextWrapped(library.Scanning ? "Buscando juegos..." : _search.Length > 0
+                ? "No hay resultados para esta búsqueda." : "No hay juegos agregados. Usá Abrir archivo o arrastrá uno a la ventana.");
+            return;
+        }
         if (BeginList())
         {
             foreach (var game in games)
-                Row(game.Path, game.Name, Name(game.Machine), game.NotYet,
+                Row(OriginalKey(game), game.Name, Name(game.Machine), game.NotYet,
                     () => playOriginal(game.Path), game.NotYet == null && game.Confidence >= 50, game.Machine.Id, () => ThumbnailFiles.Beside(game.Path));
             foreach (var game in created)
-                Row(game.Folder, game.Title, game.MachineName, game.Pitch,
+                Row(CreatedKey(game), game.Title, game.MachineName, game.Pitch,
                     () => playOriginal(game.ProgramPath), File.Exists(game.ProgramPath), game.Machine, () => game.PicturePath);
             foreach (var game in fusions) FusionRow(game);
             ImGui.EndTable();
         }
-        if (games.Count + created.Count + fusions.Count == 0) ImGui.TextWrapped(library.Scanning ? "Buscando juegos..."
-            : _search.Length > 0 ? "No hay resultados para esta búsqueda." : "No hay juegos agregados. Usá Abrir archivo o arrastrá uno a la ventana.");
+
     }
 
     private void DrawFusions()
@@ -212,12 +225,13 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         if (ImGui.Button("Fusionar juegos")) { Close(); fuse(); }
         ImGui.Spacing();
         var games = _fusions.Where(g => Matches(g.Title)).ToList();
+        if (games.Count == 0) { ImGui.TextWrapped("No hay fusiones para mostrar."); return; }
         if (BeginList())
         {
             foreach (var game in games) FusionRow(game);
             ImGui.EndTable();
         }
-        if (games.Count == 0) ImGui.TextWrapped("No hay fusiones para mostrar.");
+
     }
 
     private void FusionRow(StudioGame game)
@@ -225,7 +239,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         var have = library.Entries.Where(e => e.ProfileId != null).Select(e => e.ProfileId!).ToHashSet();
         string missing = string.Join(", ", game.Games.Where(g => !have.Contains(g.Profile))
             .Select(g => ProfileLibrary.Find(g.Profile)?.Name ?? g.Profile));
-        Row(game.Id, game.Title, $"{(game.IsInspired ? "Con originales" : "Fusión")} · v{game.Version}", missing.Length > 0 ? "Falta: " + missing : game.Pitch,
+        Row(FusionKey(game), game.Title, $"{(game.IsInspired ? "Con originales" : "Fusión")} · v{game.Version}", missing.Length > 0 ? "Falta: " + missing : game.Pitch,
             () => playFusion(game.Id), missing.Length == 0,
             ProfileLibrary.Find(game.Games.FirstOrDefault(g => g.Slot == game.BaseSlot)?.Profile ?? game.Games.FirstOrDefault()?.Profile ?? "")?.Machine ?? "fusion",
             () => StudioLibrary.PicturePath(game));
@@ -237,25 +251,82 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         ImGui.Spacing();
         var games = _created.Where(g => Matches(g.Title)).ToList();
         var inspired = _inspired.Where(g => Matches(g.Title)).ToList();
+        if (games.Count + inspired.Count == 0) { ImGui.TextWrapped("No hay juegos creados para mostrar."); return; }
         if (BeginList())
         {
             foreach (var game in games)
-                Row(game.Folder, game.Title, game.MachineName, game.Pitch,
+                Row(CreatedKey(game), game.Title, game.MachineName, game.Pitch,
                     () => playOriginal(game.ProgramPath), File.Exists(game.ProgramPath), game.Machine, () => game.PicturePath);
             foreach (var game in inspired) FusionRow(game);
             ImGui.EndTable();
         }
-        if (games.Count + inspired.Count == 0) ImGui.TextWrapped("No hay juegos creados para mostrar.");
+
+    }
+
+    private static string OriginalKey(LibraryEntry game) => game.Identity.Length > 0 ? game.Identity
+        : LibraryKey.Named("original", game.Machine.Id + "\0" + game.Path);
+    private static string FusionKey(StudioGame game) => LibraryKey.Named("fusion", game.Id);
+    private static string CreatedKey(CreatedGame game) => LibraryKey.Named("created", game.Machine + "\0" +
+        (game.WorkId ?? game.Created.ToUniversalTime().Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+
+    public void RecordOriginal(string path, string machine, IReadOnlyList<MediaFile> files)
+    {
+        // Creator launches can precede the next library refresh.
+        CreatedGame? created = null;
+        try { created = CreatedGames.All().FirstOrDefault(g => Path.GetFullPath(g.ProgramPath).Equals(Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase)); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+        _activity.Played(created == null ? LibraryKey.Original(machine, files) : CreatedKey(created));
+    }
+
+    public void RecordFusion(StudioGame game) => _activity.Played(FusionKey(game));
+
+    private sealed record PersonalRow(string Key, string Title, Action Draw);
+    private void DrawPersonal()
+    {
+        if (_section == "recent")
+        {
+            ImGui.BeginDisabled(_activity.Recents.Count == 0);
+            if (ImGui.Button("Vaciar recientes")) _activity.ClearRecents();
+            ImGui.EndDisabled();
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Quita la lista; conserva tus juegos y favoritos.");
+            ImGui.Spacing();
+        }
+        var rows = library.Originals().Select(g => new PersonalRow(OriginalKey(g), g.Name,
+                () => Row(OriginalKey(g), g.Name, Name(g.Machine), g.NotYet, () => playOriginal(g.Path),
+                    g.NotYet == null && g.Confidence >= 50, g.Machine.Id, () => ThumbnailFiles.Beside(g.Path))))
+            .Concat(_created.Select(g => new PersonalRow(CreatedKey(g), g.Title,
+                () => Row(CreatedKey(g), g.Title, g.MachineName, g.Pitch, () => playOriginal(g.ProgramPath),
+                    File.Exists(g.ProgramPath), g.Machine, () => g.PicturePath))))
+            .Concat(_fusions.Concat(_inspired).Select(g => new PersonalRow(FusionKey(g), g.Title, () => FusionRow(g))))
+            .Where(r => Matches(r.Title) && (_section == "favorites" ? _activity.IsFavorite(r.Key) : _activity.LastPlayed(r.Key) != null))
+            .DistinctBy(r => r.Key);
+        rows = _section == "recent" ? rows.OrderByDescending(r => _activity.LastPlayed(r.Key)).ThenBy(r => r.Title, StringComparer.OrdinalIgnoreCase)
+            : rows.OrderBy(r => r.Title, StringComparer.OrdinalIgnoreCase);
+        var shown = rows.ToList();
+        if (shown.Count == 0)
+        {
+            ImGui.TextWrapped(library.Scanning ? "Buscando juegos..." : _search.Length > 0
+                ? "No hay resultados para esta búsqueda." : _section == "favorites"
+                ? "Marcá la estrella junto a un juego para guardarlo acá." : "Acá aparecen los juegos que abriste.");
+            return;
+        }
+        if (BeginList())
+        {
+            foreach (var row in shown) row.Draw();
+            ImGui.EndTable();
+        }
+
     }
 
     private bool Matches(string title) => title.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase);
 
     private static bool BeginList()
     {
-        if (!ImGui.BeginTable("juegos", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY | ImGuiTableFlags.BordersInnerH,
+        if (!ImGui.BeginTable("juegos", 4, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY | ImGuiTableFlags.BordersInnerH,
             new Vector2(0, Math.Max(50, ImGui.GetContentRegionAvail().Y - 30)))) return false;
         ImGui.TableSetupColumn("Juego", ImGuiTableColumnFlags.WidthStretch);
-        ImGui.TableSetupColumn("Sistema / versión", ImGuiTableColumnFlags.WidthFixed, Math.Clamp(ImGui.GetContentRegionAvail().X * 0.27f, 120, 180));
+        ImGui.TableSetupColumn("Sistema", ImGuiTableColumnFlags.WidthFixed, Math.Clamp(ImGui.GetContentRegionAvail().X * 0.24f, 95, 160));
+        ImGui.TableSetupColumn("Fav.", ImGuiTableColumnFlags.WidthFixed, 32);
         ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 75);
         ImGui.TableHeadersRow();
         return true;
@@ -263,8 +334,9 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
 
     private void Row(string id, string title, string detail, string? hint, Action play, bool playable, string machine, Func<string?> picture)
     {
-        ImGui.PushID(id);
         ImGui.TableNextRow();
+        ImGui.PushID(ImGui.TableGetRowIndex());
+        ImGui.PushID(id);
         ImGui.TableNextColumn();
         var position = ImGui.GetCursorScreenPos();
         var size = new Vector2(58, 42);
@@ -286,12 +358,26 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         if (ImGui.IsItemHovered()) ImGui.SetTooltip(string.IsNullOrWhiteSpace(hint) ? title : hint);
         ImGui.TableNextColumn(); ImGui.TextUnformatted(detail);
         ImGui.TableNextColumn();
+        bool favorite = _activity.IsFavorite(id);
+        if (ImGui.Button("##favorito", new Vector2(28, 24))) _activity.SetFavorite(id, !favorite);
+        var center = (ImGui.GetItemRectMin() + ImGui.GetItemRectMax()) / 2;
+        Span<Vector2> star = stackalloc Vector2[10];
+        for (int i = 0; i < star.Length; i++)
+        {
+            float angle = -MathF.PI / 2 + i * MathF.PI / 5, radius = (i & 1) == 0 ? 9 : 4;
+            star[i] = center + new Vector2(MathF.Cos(angle), MathF.Sin(angle)) * radius;
+        }
+        var starDraw = ImGui.GetWindowDrawList();
+        uint color = favorite ? ImGui.ColorConvertFloat4ToU32(new Vector4(1, 0.78f, 0.25f, 1)) : ImGui.GetColorU32(ImGuiCol.TextDisabled);
+        for (int i = 0; i < star.Length; i++) starDraw.AddLine(star[i], star[(i + 1) % star.Length], color, favorite ? 2 : 1);
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip(favorite ? "Quitar de favoritos" : "Agregar a favoritos");
+        ImGui.TableNextColumn();
         ImGui.BeginDisabled(!playable || library.Scanning);
         if (ImGui.Button("Jugar", new Vector2(-1, 0))) { Close(); play(); }
         ImGui.EndDisabled();
         if (!playable && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
             ImGui.SetTooltip(hint ?? "Este formato todavía no se puede abrir.");
-        ImGui.PopID();
+        ImGui.PopID(); ImGui.PopID();
     }
 
     public void Dispose() => _thumbnails.Dispose();

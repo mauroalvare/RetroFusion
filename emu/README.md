@@ -17,6 +17,10 @@ El paquete trae estas carpetas junto al programa:
 | **Juegos creados** | Las carpetas completas de los juegos que creaste. |
 
 Los juegos se consiguen por separado. Los originales siguen disponibles después de crear una fusión.
+La estrella junto a cada juego lo agrega a **Favoritos**. **Recientes** muestra los
+últimos juegos abiertos disponibles en tu biblioteca; podés vaciar la lista sin borrar
+juegos ni favoritos. Se conservan al cerrar o actualizar el programa.
+
 Los archivos sueltos de **ROMs** se ordenan automáticamente por sistema. Los dudosos
 quedan donde están; se respetan tus subcarpetas y los archivos con nombres repetidos.
 Para mostrar una carátula o captura, poné una imagen PNG o JPG con el mismo nombre

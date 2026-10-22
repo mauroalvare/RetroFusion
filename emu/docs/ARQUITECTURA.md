@@ -746,3 +746,18 @@ registradas por separado.
 | 4b | 80286 | PC AT con DOS y EGA | Pendiente, después de PC/XT |
 | 4c | 80386 / 80486 | PC DOS con VGA y sonido | Pendiente, después de PC AT |
 | 5 | 68000 | Atari ST, Amiga 500 | Pendiente |
+
+## Favoritos y recientes
+
+`Retro.Core.LibraryActivity` persiste favoritos y las últimas 40 cargas satisfactorias
+en `%APPDATA%/RetroEmu/biblioteca.json`, fuera de la instalación. `LibraryKey` identifica
+originales por sistema y hashes del contenido ya leído, sin depender de nombres, rutas
+ni orden de miembros ZIP. Las fusiones conservan su Id entre versiones; los creados
+usan WorkId o su fecha de creación y sistema. Ver D-037 para el formato y los límites.
+
+`GameLibrary` calcula la identidad durante su escaneo en segundo plano. `HomeScreen`
+filtra las entradas disponibles y comparte las marcas entre copias iguales.
+`RetroApp` registra originales solo después de cargarlos; `StudioWindow.GameStarted`
+se emite en el hilo gráfico tras iniciar la sesión sin error de guion. Los fallos no
+entran al historial. Las vistas personales usan la misma búsqueda y las mismas
+acciones de reproducción que la biblioteca general.

@@ -319,3 +319,18 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 Por pedido del usuario no se usan: contenido pornográfico, *Fundamentally Loathsome* y,
 por cautela, las ediciones de Cheril, Phantomasa, Sila Tsikl y Nanako Descends to Hell
 (retiradas en la auditoría de ROMs del 18/10/2026).
+
+### Favoritos y recientes
+
+- Se muestran juegos disponibles en las bibliotecas actuales. Un archivo abierto fuera
+  de ellas aparecerá al agregarlo a la biblioteca. No se guarda una copia del juego.
+- Recientes conserva 40 entradas y vuelve a cargar el juego; no reanuda una partida
+  guardada. Los favoritos admiten hasta 4096 marcas.
+- Mover o renombrar un original conserva su identidad si el contenido y sistema no
+  cambian. Reempaquetarlo en un ZIP de un solo juego también; agregar otras ediciones
+  al ZIP cambia su identidad. Las copias idénticas comparten la marca.
+- Creados anteriores sin WorkId se identifican por fecha de creación y sistema.
+  Editar esa fecha en sus metadatos puede cambiar la identidad.
+- Los datos son locales a la cuenta del sistema operativo. Un archivo ilegible o con
+  un formato futuro se conserva intacto y la app avisa que los cambios de esa sesión
+  no se guardarán. Si dos instancias escriben a la vez, prevalece la última.

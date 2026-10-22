@@ -78,7 +78,9 @@ public sealed class RetroApp
             {
                 if (visible) { _pausedBeforeLibrary = _host.Paused; _host.Paused = true; }
                 else _host.Paused = _pausedBeforeLibrary;
-            }, () => _host.LoadedMedia != null || _host.Fusion != null);
+            }, () => _host.LoadedMedia != null || _host.Fusion != null,
+            args.Contains("--autotest") ? new LibraryActivity(persist: false) : null);
+        _studio.GameStarted += game => _home.RecordFusion(game);
         Raylib.SetTargetFPS(Math.Max(60, Raylib.GetMonitorRefreshRate(Raylib.GetCurrentMonitor())));
         // The audio device pulls samples through a callback on its own thread, so the
         // emulator can pace itself on the real consumption rate.
@@ -401,7 +403,8 @@ public sealed class RetroApp
             }
             if (MachineCatalog.IdentifySet(files) is { } board)
             {
-                LaunchArcade(board.Machine, files, Path.GetDirectoryName(path));
+                if (LaunchArcade(board.Machine, files, Path.GetDirectoryName(path)))
+                    _home.RecordOriginal(path, board.Machine.Id, files);
                 return;
             }
             var candidates = files.SelectMany(MachineCatalog.Identify)
@@ -435,7 +438,7 @@ public sealed class RetroApp
                 .OrderBy(c => MediaArchive.DumpScore(c.File.Name))
                 .ThenBy(c => FormatPreference(c.File.Extension))
                 .ToList();
-            Launch(_versions[0]);
+            if (Launch(_versions[0])) _home.RecordOriginal(path, _versions[0].Machine.Id, files);
             if (_versions.Count > 1)
                 _host.Status += $"  |  Había {_versions.Count} versiones: cargué la recomendada (las otras, en Archivo > Otras versiones).";
         }
@@ -457,7 +460,7 @@ public sealed class RetroApp
     private void PlayFusion(string id) { _home.Close(); _studio.PlayById(id); }
     private void OpenModifications() { _home.Close(); _code.OpenModifications(); }
 
-    private void Launch(MachineCatalog.Candidate c)
+    private bool Launch(MachineCatalog.Candidate c)
     {
         _home.Close();
         try
@@ -473,16 +476,18 @@ public sealed class RetroApp
                 _host.Load(c.File, _autoType);
             }
             _host.Status = $"{c.Machine.Name} (CPU {c.Machine.Cpu}), {c.Reason}  |  {_host.Status}";
+            return true;
         }
         catch (Exception e)
         {
             _errorPopup = e is FileNotFoundException
                 ? $"No se pudo arrancar {c.Machine.Name}: {e.Message}\nEl firmware va en la carpeta firmware/ junto al programa."
                 : $"No se pudo cargar {c.File.Name} en {c.Machine.Name}: {e.Message}";
+            return false;
         }
     }
 
-    private void LaunchArcade(MachineInfo info, IReadOnlyList<MediaFile> files, string? folder)
+    private bool LaunchArcade(MachineInfo info, IReadOnlyList<MediaFile> files, string? folder)
     {
         _home.Close();
         try
@@ -490,10 +495,12 @@ public sealed class RetroApp
             if (_host.Machine != null)
                 _input.ReleaseAll(_host.Machine);
             _host.StartInvaders(info, files, _romDir, folder);
+            return true;
         }
         catch (Exception e)
         {
             _errorPopup = $"No se pudo encender {info.Name}: {e.Message}";
+            return false;
         }
     }
 

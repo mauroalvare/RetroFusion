@@ -6,7 +6,7 @@ namespace Retro.App;
 /// <summary>A game in the user's folder and the machine it needs.</summary>
 /// <param name="NotYet">Why the machine, already implemented, cannot load this file yet (a later format), or null.</param>
 /// <param name="ProfileId">The fusion profile of this copy (verified, or the basic one the fusions give it), or null.</param>
-public sealed record LibraryEntry(string Path, string Name, MachineInfo Machine, int Confidence, string Reason, string? NotYet = null, string? ProfileId = null);
+public sealed record LibraryEntry(string Path, string Name, MachineInfo Machine, int Confidence, string Reason, string? NotYet = null, string? ProfileId = null, string Identity = "");
 
 /// <summary>
 /// Looks through the user's game folder (in the background) and works out which machine
@@ -132,7 +132,7 @@ public sealed class GameLibrary : IDisposable
                 name = name[..^4];
             if (MachineCatalog.IdentifySet(files) is { } board)
             {
-                list.Add(new LibraryEntry(path, name, board.Machine, board.Confidence, board.Reason, null, fusable.GetValueOrDefault(path)));
+                list.Add(new LibraryEntry(path, name, board.Machine, board.Confidence, board.Reason, null, fusable.GetValueOrDefault(path), LibraryKey.Original(board.Machine.Id, files)));
                 continue;
             }
             var best = files.SelectMany(MachineCatalog.Identify)
@@ -141,7 +141,7 @@ public sealed class GameLibrary : IDisposable
                 .ThenByDescending(c => c.Confidence)
                 .FirstOrDefault();
             if (best != null)
-                list.Add(new LibraryEntry(path, name, best.Machine, best.Confidence, best.Reason, MachineCatalog.NotLoadableYet(best), fusable.GetValueOrDefault(path)));
+                list.Add(new LibraryEntry(path, name, best.Machine, best.Confidence, best.Reason, MachineCatalog.NotLoadableYet(best), fusable.GetValueOrDefault(path), LibraryKey.Original(best.Machine.Id, files)));
         }
         return list;
     }
