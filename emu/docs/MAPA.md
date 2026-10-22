@@ -68,6 +68,12 @@ o consultar un catálogo no garantiza acceso ni cuota. Guía: `docs/CONECTAR-IA.
 **Uso de IA** despliega modo, tope de texto y estimación inicial. **Abrir construcción**
 muestra texto enviado y tokens informados, con indicación si los datos son parciales.
 Los detalles del juego conservan ese registro cuando vuelve a abrirse.
+El progreso muestra un intervalo restante cuando hay al menos tres trabajos completados
+con esa herramienta/modelo, esfuerzo y tipo de operación. `AiTiming` usa reloj monótono;
+`AiDurationHistory` conserva hasta 20 duraciones por grupo (128 grupos) en
+`%APPDATA%/RetroEmu/tiempos-ia.json`, solo claves hash y segundos. Ideas, diseño, cambios
+y recuperación se estiman por separado en estudio y creador. Fallos/cancelaciones no
+entrenan; al superar el intervalo se muestra un aviso sin un contador clavado en cero.
 `AiOperation.cs` concentra medición y límites; el estudio los conserva al continuar.
 
 ## Modificar una partida

@@ -425,7 +425,7 @@ public sealed class CreatorWindow
         _writeAuthor = provider.Name;
         _activeWork = work;
         _progress = $"{provider.Name} está escribiendo el juego...";
-        _build.Start(provider);
+        _build.Start(provider, resume ? "continuar" : "diseño", $"{_ai.CliEfforts.GetValueOrDefault(_ai.Provider)}/{_ai.DesignAttempts}");
         var token = _cts.Token;
         string machine = _writeMachine, wish = _writeWish;
         var writer = new GameWriter { MaxAttempts = _ai.DesignAttempts, Checkpoint = state => { work.State = state; GameWorkStore.Save(work); } };
@@ -504,7 +504,7 @@ public sealed class CreatorWindow
         }
         if (_writeTask is { IsCompleted: true } wt)
         {
-            _build.Stop();
+            _build.Stop(_cts?.IsCancellationRequested != true && wt.IsCompletedSuccessfully && wt.Result.Ok);
             _writeTask = null;
             _cts = null;
             var work = _activeWork; _activeWork = null;

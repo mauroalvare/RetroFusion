@@ -1,42 +1,43 @@
-using System.Diagnostics;
 using System.Numerics;
 using ImGuiNET;
 using Retro.Ai;
 
 namespace Retro.App;
 
-/// <summary>Shows observed activity; elapsed time is not an estimate of remaining work.</summary>
-internal sealed class AiBuildWindow(string id, string title = "Construcción del juego", string openLabel = "Abrir construcción")
+/// <summary>Shows observed activity; local timing remains separate from observed CLI activity.</summary>
+internal sealed class AiBuildWindow(string id, string title = "Construcción del juego", string openLabel = "Abrir construcción", string? timingPath = null, TimeProvider? clock = null)
 {
-    private readonly Stopwatch _elapsed = new();
+    private AiTiming? _timing;
     private CliAgentProvider? _cli;
     private AiOperation? _operation;
-    private bool _started, _open;
+    private bool _started, _open, _estimate;
     public AiOperationStats? Usage => _operation?.Stats;
 
-    public void Start(IAiProvider provider)
+    public void Start(IAiProvider provider, string operation = "", string variant = "")
     {
         _operation = provider as AiOperation;
         _cli = (_operation?.Provider ?? provider) as CliAgentProvider;
-        _elapsed.Restart();
-        _started = true;
+        _timing = new AiTiming(provider.Name + "\0" + id + "\0" + operation + "\0" + variant, new AiDurationHistory(timingPath), clock);
+        _started = true; _estimate = operation.Length > 0;
     }
 
-    public void Stop() => _elapsed.Stop();
-    public void Reset() { _elapsed.Reset(); _cli = null; _operation = null; _started = _open = false; }
+    public void Stop(bool success = false) => _timing?.Stop(success);
+    public void Reset() { _timing = null; _cli = null; _operation = null; _started = _open = false; }
 
     public void Draw(bool busy, string stage, CancellationTokenSource? cancellation)
     {
         if (!_started) return;
-        if (!busy) _elapsed.Stop();
-        ImGui.TextDisabled($"Transcurrido: {Duration(_elapsed.Elapsed)}");
+        if (!busy) _timing?.Stop(false);
+        ImGui.TextDisabled($"Transcurrido: {Duration(_timing!.Elapsed)}");
+        if (busy && _estimate) ImGui.TextWrapped(_timing.RemainingText);
         if (ImGui.SmallButton($"{openLabel}##{id}")) _open = true;
         if (!_open) return;
         ImGui.SetNextWindowSize(new Vector2(640, 420), ImGuiCond.FirstUseEver);
         if (ImGui.Begin($"{title}##{id}", ref _open))
         {
             ImGui.TextWrapped(stage);
-            ImGui.TextUnformatted($"Tiempo transcurrido: {Duration(_elapsed.Elapsed)}");
+            ImGui.TextUnformatted($"Tiempo transcurrido: {Duration(_timing!.Elapsed)}");
+            if (busy && _estimate) ImGui.TextWrapped(_timing.RemainingText);
             if (_operation?.Stats is { } stats)
                 UsageDetails(stats);
             if (_cli?.Activity is { } activity)

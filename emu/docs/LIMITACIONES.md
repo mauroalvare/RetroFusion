@@ -4,6 +4,17 @@ Registro de lo que no funciona o funciona a medias. Cada entrada dice si es **ob
 (se vio en una prueba) o **probable** (se deduce del código, falta comprobarlo). Al
 arreglar algo, se borra la entrada y se menciona en el commit.
 
+## Tiempo de creación con IA
+
+- El estimado es un intervalo orientativo de trabajos completos anteriores, incluida
+  la validación y los reintentos. No es una ETA informada por el proveedor ni mide su
+  cola. Requiere tres trabajos satisfactorios con la misma configuración/operación.
+- El tamaño del juego, el número de correcciones y la carga del proveedor pueden
+  cambiar la duración. Si se supera el intervalo se mantiene el tiempo transcurrido
+  y el acceso a actividad/cancelación. Sin historial suficiente no se inventa una ETA.
+- Los modos manual y carpeta de agente no ofrecen esta estimación. No se guardan
+  pedidos, respuestas, ROMs ni credenciales en el historial de tiempos.
+
 ## Actualizaciones del programa
 
 - La primera 0.2.1 se instala manualmente: las versiones anteriores no incluyen el

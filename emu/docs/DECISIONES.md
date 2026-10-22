@@ -493,3 +493,19 @@ El programa nuevo confirma su primer cuadro con --update-ready. Si no abre, se d
 esa instancia propia y se recuperan carpeta, datos y acceso anteriores. Tras una
 interrupción se revisa el diario antes de iniciar. .retroemu-updates conserva respaldos;
 no se limpia automáticamente. El usuario retuvo la publicación de 0.2.1.
+
+
+## D-036 Tiempos locales de construcción (2026-10-22)
+
+AiTiming mide una operación completa con reloj monótono. El historial tiempos-ia.json
+es independiente de la configuración de conexión: diccionario de clave SHA-256 a lista
+de segundos, como máximo 128 grupos y 20 duraciones por grupo. La identidad combina
+herramienta/modelo elegidos, esfuerzo, límite de intentos, ventana y operación (ideas,
+diseño, cambios o continuar). No recibe prompts, respuestas, ROMs ni rutas de juegos.
+
+Solo las tareas satisfactorias entrenan el estimado; cancelar, fallar o reabrir un panel
+no añade muestras. A partir de tres muestras se amplía el intervalo de duraciones
+recientes y se resta el tiempo transcurrido. Al superarlo se informa el exceso, sin
+presentar un contador detenido en cero. La etapa/intento siguen siendo los mensajes
+reales del diseñador; el intervalo corresponde al trabajo completo, no a cada llamada.
+Un archivo dañado, bloqueado o sin permiso nunca impide crear/guardar el juego.

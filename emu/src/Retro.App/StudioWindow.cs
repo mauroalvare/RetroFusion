@@ -671,7 +671,7 @@ public sealed class StudioWindow
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
         _progress = $"{ai.Name} está pensando ideas...";
-        _build.Start(ai);
+        _build.Start(ai, "ideas", $"{_ai.CliEfforts.GetValueOrDefault(_ai.Provider)}/{_ai.DesignAttempts}");
         _conceptTask = Task.Run(() => new StudioDesigner().ConceptsAsync(ai, slots, ProfileLibrary.Find, wish, token, direction));
     }
 
@@ -725,7 +725,7 @@ public sealed class StudioWindow
                 var token = _cts.Token;
                 var sources = Sources();
                 _progress = $"{ai!.Name} está escribiendo el juego...";
-                _build.Start(ai);
+                _build.Start(ai, "diseño", $"{_ai.CliEfforts.GetValueOrDefault(_ai.Provider)}/{_ai.DesignAttempts}");
                 var designer = RecoverableDesigner(references);
                 _designTask = Task.Run(() => designer.WriteAsync(ai, slots, ProfileLibrary.Find, concept,
                     game => StudioValidator.Run(game, sources, _romDir), token, p => _progress = p, references));
@@ -766,7 +766,7 @@ public sealed class StudioWindow
                 var token = _cts.Token;
                 var sources = Sources();
                 _progress = $"{ai!.Name} está preparando la corrección...";
-                _build.Start(ai);
+                _build.Start(ai, "cambios", $"{_ai.CliEfforts.GetValueOrDefault(_ai.Provider)}/{_ai.DesignAttempts}");
                 var designer = RecoverableDesigner(references);
                 _designTask = Task.Run(() => designer.ReviseAsync(ai, current, ProfileLibrary.Find, request,
                     game => StudioValidator.Run(game, sources, _romDir), token, p => _progress = p, references));
@@ -851,7 +851,7 @@ public sealed class StudioWindow
             }
             var designer = RecoverableDesigner(references, work);
             _cts = new CancellationTokenSource(); var token = _cts.Token;
-            var sources = Sources(); _build.Start(ai);
+            var sources = Sources(); _build.Start(ai, "continuar", $"{_ai.CliEfforts.GetValueOrDefault(_ai.Provider)}/{_ai.DesignAttempts}");
             _designTask = Task.Run(() => designer.ResumeAsync(ai, work.State,
                 game => StudioValidator.Run(game, sources, _romDir), token, p => _progress = p, references));
         });
@@ -1004,7 +1004,7 @@ public sealed class StudioWindow
         }
         if (_conceptTask is { IsCompleted: true } ct)
         {
-            _build.Stop();
+            _build.Stop(_cts?.IsCancellationRequested != true && ct.IsCompletedSuccessfully);
             _conceptTask = null;
             if (ct.IsCompletedSuccessfully)
             {
@@ -1016,7 +1016,7 @@ public sealed class StudioWindow
         }
         if (_designTask is { IsCompleted: true } dt)
         {
-            _build.Stop();
+            _build.Stop(_cts?.IsCancellationRequested != true && dt.IsCompletedSuccessfully && dt.Result.Game != null);
             _designTask = null;
             RefreshWork();
             if (!dt.IsCompletedSuccessfully)
