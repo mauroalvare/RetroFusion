@@ -9,7 +9,7 @@ using Retro.Machines;
 namespace Retro.App;
 
 /// <summary>Main window: play mode (just the screen) and debugger mode (panels).</summary>
-public sealed class RetroApp
+public sealed partial class RetroApp
 {
     private readonly EmulatorHost _host = new();
     private readonly InputMapper _input = new();
@@ -62,6 +62,7 @@ public sealed class RetroApp
     public RetroApp(string[] args)
     {
         ConfigureStyle();
+        _stateSlots = new StateSlotStore(args.Contains("--autotest") ? Path.Combine(Environment.CurrentDirectory, "out", "autotest-state-slots") : null);
         // the system firmware: a "firmware" folder (release packages) or a "roms" folder that
         // has the Spectrum ROM in it (so a games folder called "ROMs" is never mistaken for it)
         _romDir = FindFolder("firmware") ?? FindFolderWith("roms", "48.rom") ?? Path.Combine(AppContext.BaseDirectory, "firmware");
@@ -117,6 +118,8 @@ public sealed class RetroApp
                 _autoPrepare = args[++i];
             else if (args[i] == "--crear-window")
                 OpenCreator();
+            else if (args[i] == "--states-window")
+                OpenStateWindow();
             else if (args[i] == "--studio-window")
                 OpenFusionStudio();
             else if (args[i] == "--code")
@@ -131,7 +134,7 @@ public sealed class RetroApp
                 openedFile = true;
             }
         }
-        if (!openedFile && !args.Any(a => a is "--studio" or "--preparar" or "--crear-window" or "--studio-window" or "--code" or "--mods-window" or "--debug"))
+        if (!openedFile && !args.Any(a => a is "--studio" or "--preparar" or "--crear-window" or "--studio-window" or "--code" or "--mods-window" or "--states-window" or "--debug"))
             _home.Open();
         _updates = new UpdateWindow(args);
     }
@@ -275,6 +278,7 @@ public sealed class RetroApp
             _studio.Draw();
             _creator.Draw();
             _code.Draw();
+            DrawStateWindow();
         }
         DrawPopups();
         AiConnectionWindow.Draw(_ai);
@@ -474,7 +478,7 @@ public sealed class RetroApp
         if (_host.Fusion is Retro.Studio.StudioSession { Game.IsInspired: true }) OpenInspiredCreator();
         else OpenFusionStudio();
     }
-    private void CloseEditors() { _studio.Close(); _creator.Close(); _code.Close(); }
+    private void CloseEditors() { _stateWindowOpen = false; _studio.Close(); _creator.Close(); _code.Close(); }
     private void OpenFusionStudio() { CloseEditors(); _home.Close(); _studio.Open(); }
     private void OpenCreator() { CloseEditors(); _home.Close(); _creator.Open(); }
     private void OpenInspiredCreator() { CloseEditors(); _home.Close(); _studio.Open(inspired: true); }
@@ -598,17 +602,7 @@ public sealed class RetroApp
             ImGui.Separator();
             if (ImGui.MenuItem("Guardar estado rápido", "F2", false, _host.CanUseStates)) _host.QuickSave();
             if (ImGui.MenuItem("Cargar estado rápido", _host.C64 != null ? "F4" : "F3", false, _host.CanUseStates)) _host.QuickLoad();
-            if (ImGui.BeginMenu("Ranuras de estado", _host.CanUseStates))
-            {
-                string id = _host.Machine?.Id ?? "none";
-                for (int i = 1; i <= 5; i++)
-                {
-                    string file = StatePath(id, i);
-                    if (ImGui.MenuItem($"Guardar en ranura {i}")) TryStateAction(() => _host.SaveStateToFile(file));
-                    if (ImGui.MenuItem($"Cargar ranura {i}", "", false, File.Exists(file))) TryStateAction(() => _host.LoadStateFromFile(file));
-                }
-                ImGui.EndMenu();
-            }
+            if (ImGui.MenuItem("Partidas guardadas...", "", false, _host.CanUseStates)) OpenStateWindow();
             ImGui.Separator();
             ImGui.BeginDisabled(_host.Machine == null);
             if (ImGui.MenuItem(_host.Paused ? "Continuar" : "Pausa", "F9", false, !_home.IsOpen))
@@ -807,12 +801,6 @@ public sealed class RetroApp
             return new List<string>();
         return StudioGames().Where(s => s.Games.Any(g => g.Profile == profileId)).Select(s => s.Title)
             .Distinct().ToList();
-    }
-
-    private static string StatePath(string machineId, int slot)
-    {
-        string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "RetroEmu", "states");
-        return Path.Combine(dir, $"{machineId}_slot{slot}.rfstate");
     }
 
     private void TryStateAction(Action action)

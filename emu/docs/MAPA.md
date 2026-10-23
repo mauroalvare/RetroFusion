@@ -271,3 +271,10 @@ los archivos ya creados permanecen donde estaban.
 El contraste funcional del 8088 se ejecuta desde el mismo `retro-cli` mediante
 `cpu8088 verificar --suite <carpeta-v2> --salida informe.json`. La suite externa y
 su licencia se conservan aparte; no se descargan automáticamente.
+
+
+**Juego > Partidas guardadas** muestra cinco ranuras por juego y edición, con fecha.
+Los guardados de versiones anteriores se pueden cargar desde el grupo del mismo nombre;
+conviene comprobar que correspondan al juego abierto. Los archivos nuevos se guardan
+en AppData/RetroEmu/states/<identidad>/slotN.rfstate. StateSlotStore.cs resuelve rutas y
+fechas; RetroApp.States.cs dibuja el panel. El guardado rápido es temporal.

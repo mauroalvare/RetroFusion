@@ -808,3 +808,17 @@ ValidateImage comparte la validación usada por Load, sin copiar ni calcular el 
 de la ROM. El catálogo usa esta vía al inspeccionar candidatos; solo la carga real
 crea bancos e identidad SHA. No cambia la firma de los archivos de juego.
 Referencia: [MMC1](https://www.nesdev.org/wiki/MMC1).
+
+
+## D-053 — Ranuras por contenido y acceso a guardados anteriores
+
+Juego > Partidas guardadas reúne cinco ranuras con fecha y acciones de guardar/cargar.
+La carpeta states/<SHA>/slotN.rfstate separa sistema, medios y firmware, usando la
+misma identidad por contenido que el historial de modificaciones. Renombrar un medio
+conserva sus ranuras. Una sesión sin medio tiene identidad propia por sistema/firmware.
+El estado binario y su escritura atómica no cambian.
+
+Los archivos anteriores states/<maquina>_slotN.rfstate siguen disponibles en un grupo
+separado para carga. No se migran ni se sobrescriben automáticamente porque no identifican
+el juego. El guardado rápido conserva su alcance temporal. La lista se actualiza al abrir,
+guardar/cargar o cambiar la sesión, sin inspeccionar archivos en cada cuadro de interfaz.
