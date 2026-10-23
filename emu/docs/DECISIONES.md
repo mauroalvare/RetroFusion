@@ -626,3 +626,23 @@ explícito de diagnóstico, nunca temporización de PC. --steps presupuesta amba
 y la salida 0 exige el resultado completo; 2 indica presupuesto agotado. La conexión
 escucha todos los cambios de OUT0, incluidos programación y GATE; el invitado programa
 el PIT antes de inicializar el PIC para descartar aquel flanco de arranque.
+
+## D-043 Análisis de modificaciones con evidencia y deshacer (2026-10-22)
+
+ModificationObservation registra hasta 2.048 direcciones de RAM mientras se observa
+la partida, conservando el observador previo. La captura copia valores, escrituras y
+hasta 160 instrucciones; el pedido incluye hasta 128 bytes candidatos. El proveedor
+recibe datos separados de la máquina y no puede escribirla.
+
+GameModificationAnalyzer usa IAiProvider sin distinguir proveedores. Su respuesta
+incluye explicación, hasta ocho variables nuevas y cuatro propuestas. Las direcciones
+y valores deben coincidir con la evidencia; se conservan restricciones de variables
+conocidas. Solo se aceptan bytes y palabras little endian en RAM de trabajo del sistema.
+Las nuevas definiciones son hipótesis de sesión, no perfiles verificados de fusión.
+
+GameModifications agrega Undo y CanUndo: conserva los cinco cambios más recientes
+con estado, imagen y congelados. Restore conserva el punto anterior a la primera
+prueba incluso si el historial se recorta. Dos cambios o congelados que comparten
+bits se rechazan antes de escribir; máscaras disjuntas siguen permitidas.
+El análisis no prueba el significado ni la jugabilidad de un valor. La aplicación
+continúa siendo explícita; no modifica los archivos originales.

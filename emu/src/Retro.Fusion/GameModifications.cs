@@ -8,6 +8,10 @@ public sealed record VariableEdit(string Variable, int Value, bool Freeze);
 /// <summary>RAM experiments for one running game. Nothing writes to the original media or profile.</summary>
 public sealed class GameModifications(IMachine machine, GameProfile profile)
 {
+    private sealed record UndoPoint(byte[] State, int[] Picture, Dictionary<string, int> Frozen);
+    private readonly LinkedList<UndoPoint> _undo = new();
+    private bool _historyTrimmed;
+    public bool CanUndo => _undo.Count > 0;
     private byte[]? _returnPoint;
     private int[]? _returnPicture;
     private readonly Dictionary<string, int> _frozen = new(StringComparer.Ordinal);
@@ -51,6 +55,9 @@ public sealed class GameModifications(IMachine machine, GameProfile profile)
     public void Apply(IReadOnlyList<VariableEdit> changes)
     {
         Validate(profile, changes, machine.Memory.AddressBits);
+        var effective = _frozen.Where(pair => changes.All(c => c.Variable != pair.Key))
+            .Select(pair => new VariableEdit(pair.Key, pair.Value, true)).Concat(changes).ToArray();
+        ValidateOverlap(profile, effective);
         byte[] before = machine.SaveState();
         int[] picture = (int[])machine.Video.Pixels.Clone();
         try
@@ -66,6 +73,8 @@ public sealed class GameModifications(IMachine machine, GameProfile profile)
             picture.CopyTo(machine.Video.Pixels, 0);
             throw;
         }
+        _undo.AddLast(new UndoPoint(before, picture, new Dictionary<string, int>(_frozen, StringComparer.Ordinal)));
+        if (_undo.Count > 5) { _undo.RemoveFirst(); _historyTrimmed = true; }
         _returnPoint ??= before;
         _returnPicture ??= picture;
         foreach (var change in changes)
@@ -81,6 +90,38 @@ public sealed class GameModifications(IMachine machine, GameProfile profile)
 
     public void ReleaseAll() => _frozen.Clear();
 
+    /// <summary>Restores the state before the latest edit, including the preceding freeze selection. Keeps five edits.</summary>
+    public bool Undo()
+    {
+        if (_undo.Last is not { } last) return false;
+        var point = last.Value;
+        machine.LoadState(point.State);
+        point.Picture.CopyTo(machine.Video.Pixels, 0);
+        _frozen.Clear();
+        foreach (var pair in point.Frozen) _frozen.Add(pair.Key, pair.Value);
+        _undo.RemoveLast();
+        if (_undo.Count == 0 && !_historyTrimmed) { _returnPoint = null; _returnPicture = null; }
+        return true;
+    }
+
+    private static void ValidateOverlap(GameProfile profile, IReadOnlyList<VariableEdit> changes)
+    {
+        var occupied = new Dictionary<uint, int>();
+        foreach (var change in changes)
+        {
+            var variable = profile.Variables[change.Variable];
+            int size = variable.Encoding == "uint8" ? 1 : variable.Encoding == "uint16" ? 2 : variable.Bytes;
+            int mask = variable.Mask == 0 ? 255 : variable.Mask;
+            for (int offset = 0; offset < size; offset++)
+            {
+                uint address = variable.AddressValue + (uint)offset;
+                if ((occupied.GetValueOrDefault(address) & mask) != 0)
+                    throw new InvalidOperationException("Dos cambios usan los mismos bits de memoria. Liberá el congelado anterior o probalos por separado.");
+                occupied[address] = occupied.GetValueOrDefault(address) | mask;
+            }
+        }
+    }
+
     /// <summary>Restores the complete machine at the first change, including CPU/video/time, and releases freezes.</summary>
     public bool Restore()
     {
@@ -89,6 +130,7 @@ public sealed class GameModifications(IMachine machine, GameProfile profile)
         _returnPicture!.CopyTo(machine.Video.Pixels, 0);
         _returnPoint = null;
         _returnPicture = null;
+        _undo.Clear(); _historyTrimmed = false;
         _frozen.Clear();
         return true;
     }
