@@ -43,7 +43,8 @@ public static class GameModificationAnalyzer
         Separá lo observado de las hipótesis. Una escritura o un cambio de byte no demuestra
         su significado ni que modificarlo sea útil. No afirmes haber ejecutado pruebas.
         Respondé analysis, variables nuevas y hasta cuatro ideas de cambios.
-        Cada variable nueva debe usar una dirección presente en la evidencia, nombre único
+        Cada variable nueva debe usar una dirección hexadecimal presente en la evidencia
+        (0009, 0x0009 o $0009 son el mismo byte), nombre único
         de identificador, label claro, bytes 1 o 2 (uint16 little endian), observed igual al
         valor capturado y reason que conecte su hipótesis con instrucciones o escrituras reales.
         Para dos bytes, ambas direcciones deben estar en la evidencia. No inventes direcciones,
@@ -68,7 +69,7 @@ public static class GameModificationAnalyzer
             type = "object", additionalProperties = false, required = new[] { "analysis", "variables", "ideas" },
             properties = new
             {
-                analysis = new { type = "string" },
+                analysis = new { type = "string", minLength = 1, maxLength = 3000 },
                 variables = new
                 {
                     type = "array", maxItems = 8,
@@ -78,9 +79,11 @@ public static class GameModificationAnalyzer
                         required = new[] { "name", "label", "address", "bytes", "observed", "reason" },
                         properties = new
                         {
-                            name = new { type = "string" }, label = new { type = "string" },
-                            address = new { type = "string" }, bytes = new { type = "integer", minimum = 1, maximum = 2 },
-                            observed = new { type = "integer" }, reason = new { type = "string" }
+                            name = new { type = "string", minLength = 1, maxLength = 32, pattern = "^[a-zA-Z_][a-zA-Z0-9_]*$" },
+                            label = new { type = "string", minLength = 1, maxLength = 80 },
+                            address = new { type = "string", pattern = @"^(?:0[xX]|\$)?[0-9a-fA-F]{4}$", minLength = 4, maxLength = 6 }, bytes = new { type = "integer", minimum = 1, maximum = 2 },
+                            observed = new { type = "integer", minimum = 0, maximum = 65535 },
+                            reason = new { type = "string", minLength = 1, maxLength = 1000 }
                         }
                     }
                 },
@@ -89,11 +92,14 @@ public static class GameModificationAnalyzer
         });
     }
 
+    public static AiRequest Request(GameAnalysisSnapshot snapshot, string wish, string previous = "") =>
+        new(Guide, [new(true, snapshot.Prompt(wish, previous))], Schema());
+
     public static async Task<GameAnalysisResult> AnalyzeAsync(IAiProvider provider, GameAnalysisSnapshot snapshot,
         string wish, string previous = "", CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
-        string answer = await provider.CompleteAsync(new(Guide, [new(true, snapshot.Prompt(wish, previous))], Schema()), ct);
+        string answer = await provider.CompleteAsync(Request(snapshot, wish, previous), ct);
         ct.ThrowIfCancellationRequested();
         return Parse(answer, snapshot);
     }
@@ -118,12 +124,14 @@ public static class GameModificationAnalyzer
             foreach (var variable in variables.EnumerateArray())
             {
                 Fields(variable, "name", "label", "address", "bytes", "observed", "reason");
-                string name = Text(variable, "name", 32), addressText = Text(variable, "address", 4);
+                string name = Text(variable, "name", 32), addressText = Text(variable, "address", 6);
+                if (addressText.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) addressText = addressText[2..];
+                else if (addressText.StartsWith('$')) addressText = addressText[1..];
                 if (!Regex.IsMatch(name, "^[a-zA-Z_][a-zA-Z0-9_]*$") || !names.Add(name))
                     throw new JsonException("El nombre de una variable es inválido o ya existe.");
-                if (addressText.Length != 4 || !uint.TryParse(addressText, System.Globalization.NumberStyles.HexNumber,
+                if (!Regex.IsMatch(addressText, "^[0-9a-fA-F]{4}$") || !uint.TryParse(addressText, System.Globalization.NumberStyles.HexNumber,
                     System.Globalization.CultureInfo.InvariantCulture, out uint address))
-                    throw new JsonException("La dirección debe tener cuatro dígitos hexadecimales.");
+                    throw new JsonException("La dirección debe tener cuatro dígitos hexadecimales; puede incluir 0x o $.");
                 int bytes = variable.GetProperty("bytes").GetInt32(), observed = variable.GetProperty("observed").GetInt32();
                 if (bytes is < 1 or > 2 || !ModificationObservation.IsWorkRam(snapshot.Machine, address) ||
                     bytes == 2 && !ModificationObservation.IsWorkRam(snapshot.Machine, address + 1) || !known.TryGetValue(address, out var first) ||

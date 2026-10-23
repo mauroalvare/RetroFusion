@@ -36,6 +36,7 @@ internal sealed class AiBuildWindow(string id, string title = "Construcción del
         if (ImGui.Begin($"{title}##{id}", ref _open))
         {
             ImGui.TextWrapped(stage);
+            if (ImGui.SmallButton("Copiar estado")) ImGui.SetClipboardText(stage);
             ImGui.TextUnformatted($"Tiempo transcurrido: {Duration(_timing!.Elapsed)}");
             if (busy && _estimate) ImGui.TextWrapped(_timing.RemainingText);
             if (_operation?.Stats is { } stats)
@@ -43,6 +44,9 @@ internal sealed class AiBuildWindow(string id, string title = "Construcción del
             if (_cli?.Activity is { } activity)
             {
                 ImGui.TextUnformatted(activity.Status);
+                ImGui.BeginDisabled(activity.Output.Length == 0);
+                if (ImGui.SmallButton("Copiar salida del CLI")) ImGui.SetClipboardText(activity.Output);
+                ImGui.EndDisabled();
                 ImGui.TextDisabled(activity.OutputCharacters == 0
                     ? "Todavía no hay salida."
                     : $"Sin salida nueva hace {Duration(activity.QuietFor)} · {activity.OutputCharacters:N0} caracteres");

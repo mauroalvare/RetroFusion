@@ -102,7 +102,11 @@ public sealed partial class CodeWindow : IDisposable
         _modificationPanelLeft = ImGui.GetWindowPos().X - viewport.Pos.X;
         ImGui.TextColored(LabelColor, _gameName);
         ImGui.TextDisabled(machine.DisplayName + " · " + machine.Cpu.CpuName);
-        if (_status.Length > 0) ImGui.TextWrapped(_status);
+        if (_status.Length > 0)
+        {
+            ImGui.TextWrapped(_status);
+            if (ImGui.SmallButton("Copiar mensaje")) ImGui.SetClipboardText(_status);
+        }
         if (_requestedPage is { } requested) { _activePage = requested; _requestedPage = null; }
         if (ImGui.BeginTable("navegacion-herramientas", ImGui.GetContentRegionAvail().X < 500 ? 2 : 4, ImGuiTableFlags.SizingStretchSame))
         {
@@ -155,6 +159,8 @@ public sealed partial class CodeWindow : IDisposable
         _modificationCts?.Cancel();
         StopObservation();
         _analysisSnapshot = null; _lastAnalysis = ""; _modificationWish = "";
+        _analysisProvider = _lastAnalysisProvider = _analysisPrompt = _analysisAnswer = _analysisError = "";
+        _analysisReply = null; _analysisAttempt++; _lastAnalysisAttempt = -1;
         _discoveredLabels.Clear(); _manualExplanation = false;
         _modificationActivity.Reset();
         _routineActivity.Reset();

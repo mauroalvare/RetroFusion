@@ -19,7 +19,12 @@ comprobarse jugando. Recibir el análisis no modifica la partida ni el archivo o
 
 El selector admite las CLI conectadas, Ollama y las APIs configuradas.
 **Modelo y conexión** reúne sus ajustes. También podés copiar el pedido a otro chat
-o agente y pegar su respuesta. **Ver actividad** muestra la salida disponible y permite cancelar.
+o agente y pegar su respuesta. **Ver actividad** muestra la salida disponible y permite cancelar;
+**Copiar salida del CLI** copia ese texto.
+
+Cada informe indica quién lo produjo y el cuadro analizado. Si otro intento falla,
+el último válido queda marcado como **Informe anterior**. **Pedido, respuesta y errores**
+permite copiar lo enviado, la respuesta y el error para revisarlos sin hacer otro pedido.
 
 ## Volver atrás
 

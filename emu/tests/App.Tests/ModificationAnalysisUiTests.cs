@@ -19,9 +19,9 @@ public class ModificationAnalysisUiTests
          "variables":[{"name":"counter_test","label":"Contador","address":"8000","bytes":1,"observed":{{value}},"reason":"INC (HL) en 9003 escribe el byte observado."}],
          "ideas":[{"title":"Cambiar el contador","effect":"Prueba de comportamiento, sin efecto confirmado.","changes":[{"variable":"counter_test","value":17,"freeze":true}]}]}
         """;
-    private sealed class SimulatedAi(string answer):IAiProvider
+    private sealed class SimulatedAi(string answer,string name="IA simulada"):IAiProvider
     {
-        public string Name=>"IA simulada";
+        public string Name=>name;
         public Task<string> CompleteAsync(AiRequest request,CancellationToken ct){ct.ThrowIfCancellationRequested();return Task.FromResult(answer);}
     }
     private sealed class DelayedAi:IAiProvider
@@ -110,6 +110,8 @@ public class ModificationAnalysisUiTests
         try {await oldTask.WaitAsync(TimeSpan.FromSeconds(5));}catch(OperationCanceledException){}
         window.Update();
         Assert.That(Get(window,"_lastAnalysis"),Is.EqualTo(""));
+        Assert.That(Get(window,"_lastAnalysisProvider"),Is.EqualTo(""));
+        Assert.That(Get(window,"_analysisAnswer"),Is.EqualTo(""));
         Assert.That(host.Machine.SaveState(),Is.EqualTo(before));
         Assert.That(Get(window,"_profile"),Is.Null);
     }
@@ -156,6 +158,56 @@ public class ModificationAnalysisUiTests
         Assert.That(saved.Variables.ContainsKey("counter_test"),Is.False);
         host.RefreshLoadedProfile();
         Assert.That(host.LoadedProfile?.Id,Is.EqualTo(saved.Id));
+    }
+
+    [Test]
+    public async Task AFailedNewAttemptKeepsThePreviousReportClearlyAttributedAndTheNewResponseCopyable()
+    {
+        var(host,window)=Start();using var owned=window;
+        const string first="""{"analysis":"Primer informe aceptado.","variables":[],"ideas":[]}""";
+        Call(window,"BeginModificationAnalysis",new SimulatedAi(first,"Proveedor anterior"));
+        await Finish(window);
+        long frame=((GameAnalysisSnapshot)Get(window,"_analysisSnapshot")!).Frame;
+        var delayed=new DelayedAi();Call(window,"BeginModificationAnalysis",delayed);
+        var task=(Task)Get(window,"_modificationTask")!;
+        Assert.That(typeof(CodeWindow).GetProperty("AnalysisReportHeading",Private)!.GetValue(window),Is.EqualTo("Informe anterior"));
+        Assert.That(Get(window,"_lastAnalysisProvider"),Is.EqualTo("Proveedor anterior"));
+        Assert.That(Get(window,"_lastAnalysisFrame"),Is.EqualTo(frame));
+        delayed.Answer.SetResult("Respuesta sin el objeto solicitado.");
+        try {await task.WaitAsync(TimeSpan.FromSeconds(5));}catch(AiException){}
+        window.Update();
+        Assert.That(Get(window,"_lastAnalysis"),Is.EqualTo("Primer informe aceptado."));
+        Assert.That(Get(window,"_analysisAnswer"),Is.EqualTo("Respuesta sin el objeto solicitado."));
+        Assert.That(Get(window,"_analysisError")!.ToString(),Does.Contain("objeto"));
+        Assert.That(Get(window,"_status")!.ToString(),Does.Contain("informe anterior").And.Contain("Proveedor anterior"));
+        Assert.That(Get(window,"_analysisPrompt")!.ToString(),Does.Contain("Primer informe aceptado").And.Contain("\"variables\""));
+        const string second="""{"analysis":"Segundo informe aceptado.","variables":[],"ideas":[]}""";
+        Call(window,"BeginModificationAnalysis",new SimulatedAi(second,"Proveedor nuevo"));
+        await Finish(window);
+        Assert.That(Get(window,"_lastAnalysis"),Is.EqualTo("Segundo informe aceptado."));
+        Assert.That(Get(window,"_lastAnalysisProvider"),Is.EqualTo("Proveedor nuevo"));
+        Assert.That(Get(window,"_analysisError"),Is.EqualTo(""));
+        Assert.That(typeof(CodeWindow).GetProperty("AnalysisReportHeading",Private)!.GetValue(window),Is.EqualTo("Informe"));
+    }
+
+    [Test]
+    public async Task ProviderFailuresDoNotEraseTheRequestOrPretendThePreviousReportWasUpdated()
+    {
+        var(host,window)=Start();using var owned=window;
+        const string first="""{"analysis":"Informe previo.","variables":[],"ideas":[]}""";
+        Call(window,"BeginModificationAnalysis",new SimulatedAi(first,"Primero"));
+        await Finish(window);
+        var delayed=new DelayedAi();Call(window,"BeginModificationAnalysis",delayed);
+        var task=(Task)Get(window,"_modificationTask")!;
+        delayed.Answer.SetException(new AiException("Fallo simulado del proceso."));
+        try {await task.WaitAsync(TimeSpan.FromSeconds(5));}catch(AiException){}
+        window.Update();
+        Assert.That(Get(window,"_analysisProvider"),Is.EqualTo("IA simulada demorada"));
+        Assert.That(Get(window,"_lastAnalysisProvider"),Is.EqualTo("Primero"));
+        Assert.That(Get(window,"_analysisAnswer"),Is.EqualTo(""));
+        Assert.That(Get(window,"_analysisPrompt")!.ToString(),Does.Contain("Pregunta o pedido"));
+        Assert.That(Get(window,"_analysisError"),Is.EqualTo("Fallo simulado del proceso."));
+        Assert.That(((GameProfile)Get(window,"_profile")!).Variables,Is.Empty);
     }
 
     [Test]

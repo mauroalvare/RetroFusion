@@ -670,3 +670,17 @@ manual excluye esas hipótesis. Los perfiles manuales conservan hashes del medio
 Tanto el parseo como la aceptación de un resultado tardío comprueban que nuevas
 definiciones no invadan nombres o direcciones ya conocidos y sus restricciones.
 App.Tests agrega pruebas del recorrido completo sin abrir una ventana ni llamar IAs reales.
+
+## D-045 Respuestas del analizador y procedencia de informes (2026-10-23)
+
+El analizador normaliza direcciones hexadecimales de cuatro cifras sin prefijo, con 0x
+o con $. La notación no cambia las comprobaciones de evidencia, valores, RAM, alias,
+rangos ni solo lectura. El esquema publica también los límites de textos que exige
+el parser. Request construye una única consigna para CLI y modos manuales.
+
+Cada intento conserva su pedido y, cuando existe, la respuesta original. El informe
+aceptado mantiene proveedor, cuadro y hora propios: un fallo o cancelación posteriores
+no lo hacen pasar por un resultado nuevo. Cambiar de partida descarta sus detalles.
+La interfaz permite copiar mensajes, informe, pedido, respuesta, error y salida del CLI.
+Los diagnósticos permanecen en memoria; no se escriben registros de conversaciones
+automáticamente ni se repite un pedido para obtenerlos.

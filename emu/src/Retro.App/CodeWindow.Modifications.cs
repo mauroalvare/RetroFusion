@@ -19,6 +19,12 @@ public sealed partial class CodeWindow
     private GameAnalysisSnapshot? _analysisSnapshot;
     private ModificationAdvice? _advice;
     private Task<GameAnalysisResult>? _modificationTask;
+    private Task<string>? _analysisReply;
+    private string _analysisProvider = "", _lastAnalysisProvider = "", _analysisPrompt = "", _analysisAnswer = "", _analysisError = "";
+    private long _analysisAttempt, _lastAnalysisAttempt = -1, _lastAnalysisFrame;
+    private DateTimeOffset _analysisStartedAt, _lastAnalysisAt;
+    private string AnalysisReportHeading => _analysisSnapshot != null && _lastAnalysisAttempt == _analysisAttempt
+        ? "Informe" : "Informe anterior";
     private CancellationTokenSource? _modificationCts;
     private readonly AiBuildWindow _modificationActivity = new("modificaciones", "Actividad de la IA", "Ver actividad");
     private readonly AiBuildWindow _routineActivity = new("rutinas", "Actividad de la IA", "Ver actividad");
@@ -123,10 +129,9 @@ public sealed partial class CodeWindow
                 if (callable) BeginModificationAnalysis(_ai.CreateProvider() ?? throw new AiException("Elegí una IA disponible."));
                 else
                 {
-                    Update(); _analysisSnapshot = _observation!.Capture(_gameName, SessionProfile());
-                    ImGui.SetClipboardText(GameModificationAnalyzer.Guide + "\n\n" +
-                        _analysisSnapshot.Prompt(_modificationWish, _lastAnalysis) +
-                        "\nRespondé solo JSON con este esquema:\n" + GameModificationAnalyzer.Schema().GetRawText());
+                    Update();
+                    PrepareAnalysis(_ai.Provider == "agent" ? "Agente en carpeta" : "Modo manual");
+                    ImGui.SetClipboardText(_analysisPrompt);
                     _manualModification = true;
                     _status = "Pedido copiado. Pegá la respuesta para revisar los hallazgos.";
                 }
@@ -142,14 +147,49 @@ public sealed partial class CodeWindow
         {
             ImGui.InputTextMultiline("##analisis-recibido", ref _modificationPasted, 32000, new Vector2(-1, 90));
             if (ImGui.Button("Revisar respuesta"))
+            {
+                _analysisAnswer = _modificationPasted;
                 try { AcceptAnalysis(GameModificationAnalyzer.Parse(_modificationPasted, _analysisSnapshot)); }
-                catch (AiException error) { _status = error.Message; }
+                catch (AiException error) { AnalysisFailed(error); }
+            }
         }
         if (_lastAnalysis.Length > 0)
         {
-            ImGui.Separator(); ImGui.TextColored(LabelColor, _analysisSnapshot == null ? "Informe anterior" : "Informe");
+            ImGui.Separator(); ImGui.TextColored(LabelColor, AnalysisReportHeading);
+            ImGui.TextWrapped(_lastAnalysisProvider);
+            ImGui.TextDisabled($"Cuadro {_lastAnalysisFrame} · {_lastAnalysisAt.ToLocalTime():HH:mm:ss}");
+            if (AnalysisReportHeading == "Informe anterior")
+                AiPicker.Hint("Este es el último informe aceptado; no corresponde al intento nuevo.");
+            if (ImGui.SmallButton("Copiar informe")) ImGui.SetClipboardText(
+                $"{AnalysisReportHeading}\n{_lastAnalysisProvider} · cuadro {_lastAnalysisFrame}\n\n{_lastAnalysis}");
+            ImGui.BeginChild("informe-analisis", new Vector2(0, Math.Clamp(ImGui.GetContentRegionAvail().Y * 0.45f, 100, 220)), ImGuiChildFlags.Borders);
             ImGui.TextWrapped(_lastAnalysis);
+            ImGui.EndChild();
             if (ImGui.Button("Ver variables y propuestas")) _requestedPage = ToolPage.Changes;
+        }
+        if (_analysisPrompt.Length > 0 && ImGui.CollapsingHeader("Pedido, respuesta y errores"))
+        {
+            ImGui.TextWrapped("Proveedor del intento: " + _analysisProvider);
+            ImGui.TextDisabled($"Captura del cuadro {_analysisSnapshot?.Frame}");
+            if (ImGui.SmallButton("Copiar pedido enviado")) ImGui.SetClipboardText(_analysisPrompt);
+            if (_analysisAnswer.Length > 0)
+            {
+                ImGui.SameLine();
+                if (ImGui.SmallButton("Copiar respuesta")) ImGui.SetClipboardText(_analysisAnswer);
+            }
+            if (_analysisError.Length > 0)
+            {
+                if (ImGui.SmallButton("Copiar error")) ImGui.SetClipboardText(_analysisError);
+                ImGui.TextWrapped(_analysisError);
+            }
+            if (_analysisAnswer.Length > 0)
+            {
+                ImGui.TextUnformatted("Respuesta recibida (podés seleccionar texto):");
+                string response = _analysisAnswer;
+                ImGui.InputTextMultiline("##respuesta-del-analisis", ref response, (uint)System.Text.Encoding.UTF8.GetByteCount(response) + 1,
+                    new Vector2(-1, 180), ImGuiInputTextFlags.ReadOnly);
+            }
+            else if (!busy) AiPicker.Hint("Este intento no devolvió una respuesta utilizable. Ver actividad conserva la salida del CLI.");
         }
         if (_analysisSnapshot != null && ImGui.CollapsingHeader("Evidencia enviada"))
         {
@@ -162,20 +202,45 @@ public sealed partial class CodeWindow
         }
     }
 
+    private AiRequest PrepareAnalysis(string provider)
+    {
+        _observation ??= new ModificationObservation(_machine!);
+        _analysisSnapshot = _observation.Capture(_gameName, SessionProfile());
+        _analysisProvider = provider; _analysisStartedAt = DateTimeOffset.UtcNow; _analysisAttempt++;
+        _analysisError = ""; _analysisAnswer = ""; _analysisReply = null;
+        var request = GameModificationAnalyzer.Request(_analysisSnapshot, _modificationWish, _lastAnalysis);
+        _analysisPrompt = CliAgentProvider.Flatten(request);
+        return request;
+    }
+
     private void BeginModificationAnalysis(IAiProvider provider)
     {
         Update();
         if (_machine == null || _host.Fusion != null || _modificationTask != null) return;
-        _observation ??= new ModificationObservation(_machine);
-        _analysisSnapshot = _observation.Capture(_gameName, SessionProfile());
+        var request = PrepareAnalysis(provider.Name);
         _modificationRevision = _mediaRevision; _modificationMachine = _machine;
         _modificationCts?.Dispose(); _modificationCts = new CancellationTokenSource();
         var token = _modificationCts.Token;
-        string wish = _modificationWish, previous = _lastAnalysis;
-        var snapshot = _analysisSnapshot;
+        var snapshot = _analysisSnapshot!;
         _status = $"{provider.Name} está analizando la captura de la partida...";
         _modificationActivity.Start(provider);
-        _modificationTask = Task.Run(() => GameModificationAnalyzer.AnalyzeAsync(provider, snapshot, wish, previous, token));
+        var reply = Task.Run(() => provider.CompleteAsync(request, token), token);
+        _analysisReply = reply;
+        _modificationTask = ReadAnalysis(reply, snapshot, token);
+    }
+
+    private static async Task<GameAnalysisResult> ReadAnalysis(Task<string> reply, GameAnalysisSnapshot snapshot, CancellationToken token)
+    {
+        string answer = await reply.ConfigureAwait(false);
+        token.ThrowIfCancellationRequested();
+        return GameModificationAnalyzer.Parse(answer, snapshot);
+    }
+
+    private void AnalysisFailed(Exception error)
+    {
+        _analysisError = error.Message;
+        _status = "No se pudo completar el análisis: " + error.Message;
+        if (_lastAnalysis.Length > 0) _status += " Se conserva el informe anterior de " + _lastAnalysisProvider + ".";
     }
 
     private void AcceptAnalysis(GameAnalysisResult result)
@@ -191,7 +256,9 @@ public sealed partial class CodeWindow
             _discoveredLabels[variable.Name] = variable.Label;
         }
         _modifications ??= new GameModifications(_machine!, profile);
-        _lastAnalysis = result.Analysis; _advice = result.Advice;
+        _lastAnalysis = result.Analysis; _advice = result.Advice; _analysisError = "";
+        _lastAnalysisProvider = _analysisProvider; _lastAnalysisFrame = _analysisSnapshot!.Frame;
+        _lastAnalysisAt = _analysisStartedAt; _lastAnalysisAttempt = _analysisAttempt;
         _manualModification = false; _modificationPasted = "";
         int variables = result.Variables.Count, proposals = result.Advice.Ideas.Count;
         _status = $"Análisis listo: {variables} variable{(variables == 1 ? "" : "s")} nueva{(variables == 1 ? "" : "s")} y {proposals} propuesta{(proposals == 1 ? "" : "s")}. Revisá Cambios.";
@@ -203,12 +270,14 @@ public sealed partial class CodeWindow
         _modificationTask = null; _modificationActivity.Stop();
         _modificationCts?.Dispose(); _modificationCts = null;
         if (_mediaRevision != _modificationRevision || !ReferenceEquals(_machine, _modificationMachine))
-        { _ = task.Exception; return; }
+        { _ = task.Exception; _analysisReply = null; return; }
+        if (_analysisReply is { IsCompletedSuccessfully: true } reply) _analysisAnswer = reply.Result;
+        _analysisReply = null;
         if (task.IsCanceled || task.Exception?.GetBaseException() is OperationCanceledException) _status = "Análisis cancelado.";
-        else if (task.IsFaulted) _status = "No se pudo completar el análisis: " + task.Exception!.GetBaseException().Message;
+        else if (task.IsFaulted) AnalysisFailed(task.Exception!.GetBaseException());
         else
             try { AcceptAnalysis(task.Result); }
-            catch (AiException error) { _status = error.Message; }
+            catch (AiException error) { AnalysisFailed(error); }
     }
 
     private void ApplyModifications(IReadOnlyList<VariableEdit> changes)
@@ -231,6 +300,7 @@ public sealed partial class CodeWindow
         _cts?.Cancel(); _modificationCts?.Cancel();
         _map = null; _codeSummary = ""; _analysisSnapshot = null; _advice = null; _variableInputs.Clear();
         StopObservation(); _modificationActivity.Reset();
+        _analysisPrompt = _analysisAnswer = _analysisError = ""; _analysisAttempt++;
         _status = undo ? "Último cambio deshecho; partida y congelados anteriores restaurados."
             : "Partida restaurada al momento anterior al primer cambio.";
     }

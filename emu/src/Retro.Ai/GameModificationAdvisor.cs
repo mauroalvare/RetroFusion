@@ -42,7 +42,7 @@ public static class GameModificationAdvisor
         type = "object", additionalProperties = false, required = new[] { "analysis", "ideas" },
         properties = new
         {
-            analysis = new { type = "string" },
+            analysis = new { type = "string", minLength = 1, maxLength = 3000 },
             ideas = new
             {
                 type = "array", maxItems = 4,
@@ -51,14 +51,14 @@ public static class GameModificationAdvisor
                     type = "object", additionalProperties = false, required = new[] { "title", "effect", "changes" },
                     properties = new
                     {
-                        title = new { type = "string" }, effect = new { type = "string" },
+                        title = new { type = "string", minLength = 1, maxLength = 100 }, effect = new { type = "string", minLength = 1, maxLength = 1600 },
                         changes = new
                         {
                             type = "array", minItems = 1, maxItems = 8,
                             items = new
                             {
                                 type = "object", additionalProperties = false, required = new[] { "variable", "value", "freeze" },
-                                properties = new { variable = new { type = "string" }, value = new { type = "integer" }, freeze = new { type = "boolean" } }
+                                properties = new { variable = new { type = "string", minLength = 1, maxLength = 100 }, value = new { type = "integer" }, freeze = new { type = "boolean" } }
                             }
                         }
                     }

@@ -98,7 +98,7 @@ public class GameAnalysisTests
 
     [TestCase("\"address\":\"8000\"","\"address\":\"D020\"")]
     [TestCase("\"address\":\"8000\"","\"address\":\"FFFF\"")]
-    [TestCase("\"address\":\"8000\"","\"address\":\"0x8000\"")]
+    [TestCase("\"address\":\"8000\"","\"address\":\"0x18000\"")]
     [TestCase("\"observed\":3","\"observed\":77")]
     [TestCase("\"bytes\":1","\"bytes\":3")]
     [TestCase("\"name\":\"pace\"","\"name\":\"bad name\"")]
@@ -110,6 +110,23 @@ public class GameAnalysisTests
     {
         var snapshot=new GameAnalysisSnapshot("Propio","zx48",0,"",[new(0x8000,3,0,1,0x9003,"INC")],Profile());
         Assert.Throws<AiException>(()=>GameModificationAnalyzer.Parse(Answer(3).Replace(old,replacement),snapshot));
+    }
+
+    [TestCase("8000")] [TestCase("0x8000")] [TestCase("0X8000")] [TestCase("$8000")]
+    public void ConventionalHexNotationRefersToTheSameObservedAddress(string address)
+    {
+        var snapshot=new GameAnalysisSnapshot("Propio","zx48",0,"",[new(0x8000,3,0,1,0x9003,"INC")],Profile());
+        var result=GameModificationAnalyzer.Parse(Answer(3).Replace("8000",address),snapshot);
+        Assert.That(result.Variables.Single().Address,Is.EqualTo(0x8000));
+        Assert.That(result.Advice.Ideas.Single().Changes.Single().Variable,Is.EqualTo("pace"));
+    }
+
+    [TestCase("0x18000")] [TestCase("$-8000")] [TestCase("0xGG00")] [TestCase("0x8000h")] [TestCase("0x")]
+    public void HexNotationStillRejectsMalformedAndOutOfRangeAddresses(string address)
+    {
+        var snapshot=new GameAnalysisSnapshot("Propio","zx48",0,"",[new(0x8000,3,0,1,0x9003,"INC")],Profile());
+        Assert.Throws<AiException>(()=>GameModificationAnalyzer.Parse(
+            Answer(3).Replace("8000",address),snapshot));
     }
 
     [Test]

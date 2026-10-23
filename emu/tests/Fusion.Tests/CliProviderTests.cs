@@ -146,6 +146,34 @@ public class CliProviderTests
         Assert.That(answer.Trim(), Is.EqualTo("idea de antigravity"));
     }
 
+    [TestCase("claude")] [TestCase("codex")] [TestCase("agy")] [TestCase("gemini")]
+    public async Task VariableAnalysisAcceptsPrefixedAddressesThroughTheActualCliAdapter(string tool)
+    {
+        string answer = """
+            {"analysis":"El contador tiene una escritura observada; su función es una hipótesis.",
+             "variables":[{"name":"counter","label":"Contador","address":"0x0009","bytes":1,"observed":240,"reason":"INC $09 escribe este byte."}],
+             "ideas":[{"title":"Probar el contador","effect":"Observar su efecto en la partida.","changes":[{"variable":"counter","value":12,"freeze":false}]}]}
+            """;
+        string response = tool switch
+        {
+            "claude" => JsonSerializer.Serialize(new { type="result",is_error=false,result=answer }),
+            "agy" => JsonSerializer.Serialize(new { status="SUCCESS",response="",structured_output=JsonSerializer.Deserialize<JsonElement>(answer) }),
+            "gemini" => JsonSerializer.Serialize(new { response=answer }),
+            _ => answer
+        };
+        string packet=Path.Combine(_dir,"answer.json");File.WriteAllText(packet,response,new System.Text.UTF8Encoding(false));
+        string body = tool=="codex" ? $"more > nul\ncopy /y \"{packet}\" \"%~5\" > nul"
+            : (tool=="agy" ? "" : "more > nul\n") + $"type \"{packet}\"";
+        var provider=new CliAgentProvider(tool=="claude"?CliTools.Claude:tool=="codex"?CliTools.Codex:CliTools.Google,Fake(tool,body));
+        var profile=new Retro.Fusion.GameProfile{Id="own-cli-analysis",Machine="nes",Name="Programa propio"};
+        var snapshot=new GameAnalysisSnapshot("Programa propio","nes",24,"8000: INC $09",
+            [new(9,240,239,1,0x8000,"INC $09")],profile);
+        var result=await GameModificationAnalyzer.AnalyzeAsync(provider,snapshot,"Investigar el contador");
+        Assert.That(result.Variables.Single().Address,Is.EqualTo(9));
+        Assert.That(result.Advice.Ideas.Single().Changes.Single().Value,Is.EqualTo(12));
+        Assert.That(profile.Variables,Is.Empty,"Analysis must not apply or persist a hypothesis.");
+    }
+
     [Test]
     public void MissingTool_ExplainsHowToInstallIt()
     {
