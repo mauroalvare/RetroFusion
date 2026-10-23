@@ -706,3 +706,30 @@ tras aceptar la carga. Deshacer dentro del panel conserva su selección previa d
 Cada propuesta confirma o rechaza la aplicación junto al botón y muestra el valor actual.
 El aviso de pausa refleja el estado presente. Una escritura confirmada no certifica el
 significado de la variable: las hipótesis siguen necesitando comprobarse en la partida.
+
+
+## D-047 Evidencia temporal y variables compartidas con el estudio (2026-10-23)
+
+La captura de análisis conserva intervalo de cuadros, rango escrito, cambios de valor
+y hasta seis últimos valores distintos consecutivos por byte. Son escrituras de CPU,
+no valores verificados de reglas ni acciones del jugador. La admisión acotada de2048
+bytes reparte espacio entre páginas; la selección de128bytes combina perfil, referencias
+y regiones diversas. El listado de160instrucciones prioriza contexto alrededor de los
+escritores y marca los puntos cuya ejecución no está registrada. Las copias asíncronas
+son independientes de la máquina. Observar desde ahora reinicia solo esa evidencia.
+No cambia el esquema de respuesta de la IA ni convierte hipótesis en perfiles verificados.
+
+VariableMemory comparte huella de bytes/máscaras, espejos y uint9 de bit alto separado.
+El parser rechaza alias entre nuevos hallazgos y las propuestas rechazan solapamientos
+antes de mostrarse. FrozenVariables mantiene bits sin estados completos; GameModifications
+conserva encima su undo5 y restauración. El laboratorio de preparación se suscribe al
+observador común sin reemplazar herramientas existentes.
+
+El estudio incorpora g.freeze(nombre,valor) y g.release(nombre opcional), disponibles
+también para juegos creados con originales. g.set conserva su ajuste al rango y libera
+el congelado de esa variable; valores no finitos y permisos/formato inválidos se rechazan.
+Las escrituras se verifican por lectura; un fallo no deja un lote parcialmente escrito.
+Reiniciar un original o toda la sesión libera sus pins antes de cargar el arranque;
+init puede declararlos de nuevo. Un fallo del guion también los libera. No se añade
+undo de guiones ni un formato de estado nuevo. El generador autónomo de ensamblador
+no usa máquinas originales ni necesita este congelado; conserva su contrato propio.

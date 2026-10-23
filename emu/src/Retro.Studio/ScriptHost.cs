@@ -57,9 +57,26 @@ public sealed class ScriptHost
         _session.ReferencedSlots.Add(id);
         var s = S(id);
         var v = Variable(s, name);
-        if (v.ReadOnly)
-            throw new ArgumentException($"La variable \"{name}\" de {s.Slot.Profile.Name} es de solo lectura (usá peek/poke si de verdad hace falta).");
-        v.Write(s.Slot.Machine.Memory, Num(value));
+        if (!double.IsFinite(value) || value < int.MinValue || value > int.MaxValue)
+            throw new ArgumentException("El valor de una variable debe ser un número finito representable.");
+        (s.Pins ??= new(s.Slot.Machine, s.Slot.Profile)).Apply([new(name, Math.Clamp(Num(value), v.Min, v.Max), false)]);
+    }
+
+    public void Freeze(string id, string name, double value)
+    {
+        _session.ReferencedSlots.Add(id);
+        var s = S(id);
+        _ = Variable(s, name);
+        if (!double.IsFinite(value) || value < int.MinValue || value > int.MaxValue)
+            throw new ArgumentException("El valor de una variable debe ser un número finito representable.");
+        (s.Pins ??= new(s.Slot.Machine, s.Slot.Profile)).Apply([new(name, Num(value), true)]);
+    }
+
+    public void Release(string id, string? name)
+    {
+        var s = S(id);
+        if (name != null) _ = Variable(s, name);
+        s.Pins?.Release(name);
     }
 
     private static string KeyFor(StudioSession.SlotState s, string name)
@@ -97,6 +114,7 @@ public sealed class ScriptHost
     public void Restart(string id)
     {
         var s = S(id);
+        s.Pins?.Release();
         s.Slot.Machine.LoadState(s.BootState);
         s.BootPicture.Pixels.CopyTo(s.Slot.Machine.Video.Pixels, 0);
         s.Slot.Machine.ReleaseAllKeys();
@@ -271,6 +289,8 @@ public sealed class ScriptHost
               poke: function (a, v) { __h.Poke(id, a, v); },
               get: function (name) { return __h.Get(id, name); },
               set: function (name, v) { __h.Set(id, name, v); },
+              freeze: function (name, v) { __h.Freeze(id, name, v); },
+              release: function (name) { __h.Release(id, name === undefined ? null : name); },
               control: function (name, down) { __h.Control(id, name, !!down); },
               key: function (name, down) { __h.Control(id, name, !!down); },
               tap: function (name, frames) { __h.Tap(id, name, frames === undefined ? 4 : frames); },

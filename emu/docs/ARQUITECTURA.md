@@ -616,10 +616,18 @@ el contexto de cada pedido, incluidas las explicaciones de rutinas y copiar/pega
 `ModificationObservation` se suscribe a `CpuWriteObservers` mientras la ventana
 está abierta; cada suscripción se retira sin alterar las de otras herramientas. Acota direcciones y copia la evidencia antes del trabajo asíncrono.
 `GameModificationAnalyzer` usa el proveedor común y valida direcciones/valores contra
-esa captura. Los hallazgos amplían un perfil privado de sesión, sin guardar hipótesis
+esa captura. La observación retiene hasta2048direcciones con admisión por página y
+selecciona hasta128bytes de regiones diversas; incluye contexto de los escritores,
+rangos e historial de seis valores distintos consecutivos, sin atribuirles significado.
+El contexto no ejecutado se marca expresamente y el intervalo usa cuadros emulados.
+Los hallazgos amplían un perfil privado de sesión, sin guardar hipótesis
 como variables verificadas para fusiones. No escribe en la máquina.
 
-`GameModifications` aplica lotes explícitos, evita solapamientos y mantiene congelados.
+`VariableMemory` describe bytes/máscaras, incluidos espejos de RAM y el bit alto de
+uint9; analizador, propuestas, modificaciones y estudio comparten esas comprobaciones.
+`FrozenVariables` mantiene los bits sin guardar estados completos. El estudio expone
+g.freeze/g.release y libera pins al reiniciar o fallar; g.set libera el pin de su variable.
+`GameModifications` añade la aplicación reversible y el historial sobre ese mismo motor.
 Conserva cinco estados de deshacer y el punto anterior al primer cambio, con sus píxeles.
 El congelado comparte el observador de CPU: repone solo los bits fijados después de
 cada escritura y antes de la siguiente lectura o DMA. Normaliza los espejos de RAM de

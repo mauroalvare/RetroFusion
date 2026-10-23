@@ -46,7 +46,9 @@ Cada juego (por la ranura de la receta) es un objeto `g`:
 | `g.area` | `{x, y, w, h}`: dónde está la imagen del juego dentro de su cuadro (sin el borde del Spectrum ni del C64: en el C64 son los 320x200 del medio de un cuadro de 384x272). Las coordenadas de las ayudas del perfil son relativas a esta área. |
 | `g.control(nombre, apretado)` | Aprieta o suelta un control del perfil (`left`, `right`, `jump`, `fire`, `start`...) o una tecla de la máquina (`'P'`, `'SPACE'`, `'P1 FIRE'`...). Queda apretado hasta que lo sueltes. |
 | `g.tap(nombre, cuadros)` | Aprieta un control durante N cuadros del juego y lo suelta solo. |
-| `g.get(variable)`, `g.set(variable, valor)` | Lee o escribe una variable del perfil (vidas, puntaje...). Las de solo lectura no se escriben. |
+| `g.get(variable)`, `g.set(variable, valor)` | Lee o escribe una variable del perfil. `set` limita el valor al rango del perfil y libera el congelado de esa variable; es una escritura puntual. Las de solo lectura no se escriben. |
+| `g.freeze(variable, valor)` | Escribe y mantiene fijo el valor durante las escrituras de CPU. Respeta formato, rango, máscaras y solo lectura; rechaza valores inválidos o solapados. No detiene la máquina ni demuestra el significado de la variable. |
+| `g.release(variable)`, `g.release()` | Libera una variable o todos los congelados de ese original, conservando su estado actual. `g.restart()` y el reinicio completo también los liberan; `init()` puede volver a declararlos. |
 | `g.peek(dir)`, `g.peek16(dir)`, `g.poke(dir, byte)` | Memoria directa (dirección numérica, ej. `0x806B`). |
 | `g.pause()`, `g.resume()`, `g.paused` | Congela el juego (su imagen queda quieta) o lo deja seguir. |
 | `g.speed = 0.5` | Velocidad de emulación (0 a 4). Cámara lenta, turbo. |

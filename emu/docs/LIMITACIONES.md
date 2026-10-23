@@ -92,7 +92,8 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 
 - Las ideas de cambios se basan en variables ya conocidas; no equivalen a descubrir
   automáticamente cualquier juego. Los efectos propuestos por IA requieren probarse.
-  La integración nueva se verificó con IA simulada, sin comprobar una sesión real de CLI.
+  La observación reúne un intervalo y un recorte acotado de escrituras/código; no registra
+  las acciones del jugador ni demuestra causalidad. Se prueba con IA simulada.
 - El punto de regreso completo se ofrece para originales. Los cambios avanzados sobre
   una máquina de una fusión no restauran el guion JavaScript completo.
 - Un perfil genérico por nombre puede corresponder a otra edición; se prioriza el hash
@@ -100,7 +101,8 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 - En originales, el congelado repone los bits elegidos después de cada escritura de CPU,
   antes de la siguiente lectura, y al empezar cada cuadro. No modifica ROM ni registros
   de hardware. Una escritura aplicada no confirma el significado de una hipótesis ni
-  garantiza un efecto visible. Las fusiones mantienen su edición propia por tick.
+  garantiza un efecto visible. El estudio comparte el congelado mediante g.freeze;
+  g.set sigue siendo una escritura puntual. No hay undo completo del guion.
 
 ## Recursos e identidad de las fusiones
 

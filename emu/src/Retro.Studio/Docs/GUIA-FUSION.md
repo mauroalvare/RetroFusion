@@ -127,6 +127,14 @@ variables, controles, sprites, ayudas y huellas realmente proporcionados en el p
 Una captura o el nombre del archivo no justifican inventar direcciones. Si el perfil
 no permite la interacción central, explicá qué dato debe prepararse antes de implementarla.
 
+Una escritura puntual con `g.set` puede ser reemplazada por el original dentro del
+cuadro siguiente. Si la regla exige un valor constante, `g.freeze` lo mantiene durante
+las escrituras de CPU; `g.release` lo libera. No congeles por rutina ni bloquees los
+contadores que hacen avanzar una transición. Respetá rangos, máscaras y solo lectura.
+Comprobá por separado el estado de juego, el buffer gráfico y las colisiones: desplazar
+un sprite no demuestra que se haya desplazado su entidad. Verificá también liberar y
+reiniciar. Estos métodos sirven en fusiones y creaciones con originales.
+
 ## 8. Justicia, aprendizaje y prueba
 
 Empezá con una situación comprensible y un riesgo que se pueda evitar. Enseñá una novedad

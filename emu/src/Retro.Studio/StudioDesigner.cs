@@ -68,7 +68,10 @@ public sealed class StudioDesigner
 
     public static string ConceptGuide => CoreGuide + "\n\n" + """
         Capacidades para evaluar ideas: g.get/set usan variables verificadas (respetá solo
-        lectura); controles y ayudas específicas se enumeran en cada perfil. g.sprite usa
+        lectura); g.set es puntual y g.freeze mantiene un valor durante las escrituras de
+        CPU hasta g.release o reinicio. Usá congelado solo si la regla lo necesita: no
+        confundas el dibujo de un personaje con su posición física ni bloquees transiciones.
+        Controles y ayudas específicas se enumeran en cada perfil. g.sprite usa
         gráficos de un bit; g.capture guarda recursos con colores, máximo 32x32 y 4096
         píxeles por original/partida. El guion integra choques/reglas y puede controlar,
         pausar, reiniciar, ajustar velocidad/volumen y emitir sonidos. No hay editor universal

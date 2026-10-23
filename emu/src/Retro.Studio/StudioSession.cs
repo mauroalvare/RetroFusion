@@ -26,6 +26,7 @@ public sealed class StudioSession : IFusionRun
         public required FusionSlot Slot;
         public required byte[] BootState;
         public required VideoFrame BootPicture;
+        public FrozenVariables? Pins;
         public double Accumulator;
         public bool Paused;
         public double Speed = 1;
@@ -263,6 +264,7 @@ public sealed class StudioSession : IFusionRun
 
     private void Fail(Exception e)
     {
+        foreach (var slot in _slots) slot.Pins?.Release();
         Error = Describe(e);
         foreach (var s in _slots)
             s.Paused = true;
@@ -299,6 +301,7 @@ public sealed class StudioSession : IFusionRun
     {
         foreach (var s in _slots)
         {
+            s.Pins?.Release();
             s.Slot.Machine.LoadState(s.BootState);
             s.BootPicture.Pixels.CopyTo(s.Slot.Machine.Video.Pixels, 0);
             s.Slot.Machine.ReleaseAllKeys();
@@ -348,6 +351,7 @@ public sealed class StudioSession : IFusionRun
             while (s.Accumulator >= 1 && guard++ < 8)
             {
                 s.Accumulator -= 1;
+                s.Pins?.Tick();
                 s.Slot.Machine.RunFrame(null);
                 int n = s.Slot.Machine.DrainAudio(_drain);
                 for (int i = 0; i < n; i++)

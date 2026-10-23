@@ -90,7 +90,9 @@ partida con cualquier proveedor configurado, búsqueda manual y código. El aná
 escrituras y código capturados, propone hipótesis de sesión y no aplica cambios. Hay
 cinco pasos de deshacer y un punto de regreso anterior al primer cambio. Cada propuesta
 muestra su resultado junto al botón; el congelado se mantiene durante la ejecución
-del cuadro, incluso antes de copiar sprites al video. Guía: [MODIFICACIONES.md](MODIFICACIONES.md).
+del cuadro, incluso antes de copiar sprites al video. **Observar desde ahora** reúne
+un intervalo nuevo sin borrar modificaciones. El estudio comparte este motor con
+`g.freeze` y `g.release` para fusiones y creaciones con originales. Guía: [MODIFICACIONES.md](MODIFICACIONES.md).
 
 ```powershell
 # Interfaz nativa con una cinta/perfil generados, sin juegos del usuario ni pedidos de IA
