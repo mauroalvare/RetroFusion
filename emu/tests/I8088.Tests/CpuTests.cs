@@ -10,6 +10,9 @@ public sealed partial class CpuTests
         public readonly List<(ushort Port, byte Value)> Output = [];
         public readonly List<uint> Reads = [];
         public bool TraceReads;
+        public bool TestSignal { get; set; }
+        public readonly List<bool> Locks = [];
+        public void SetLock(bool locked) => Locks.Add(locked);
         public byte ReadMemory(uint address) { if (TraceReads) Reads.Add(address); return Memory[address]; }
         public void WriteMemory(uint address, byte value) => Memory[address] = value;
         public byte In(ushort port) => port == 0xFFFF ? (byte)0x12 : (byte)0x34;

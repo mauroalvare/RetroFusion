@@ -777,3 +777,18 @@ No acredita ciclos, señales de bus, prelectura ni los casos excluidos.
 Las regresiones de hardware corrigen DAA/DAS en entradas no BCD, el byte de base de
 AAM/AAD, los selectores de segmento y REP sobre IDIV. Origen de los datos y revisión:
 [SingleStepTests/8088](https://github.com/SingleStepTests/8088/tree/aea84484abc79d09639d855b7b0ab32bc9e4dbeb).
+
+## D-051 — Herramientas 8088 y direcciones segmentadas
+
+ICpuDebugView.HasCycleTiming distingue un reloj medido de un núcleo funcional: el8088
+expone cero ciclos y declara que no tiene temporización. Su estado RETRO-8088 versión1
+guarda registros, interrupciones y esperas a frontera de instrucción; no contiene RAM
+ni dispositivos y valida los datos antes de cambiarlos. WAIT acepta TEST y ESC realiza
+la lectura de memoria sin emular un coprocesador. SetLock representa propiedad lógica
+del bus, sin pulsos ni tiempos eléctricos.
+
+IFlowAnalyzer.AddressBits conserva16 por defecto y admite20 para el8088. FlowInfo.Next
+opcional permite el salto de offset al finalizar un segmento sin alterar los analizadores
+anteriores. El desensamblador puede recibir CS para el visor en vivo; un mapa estático
+por dirección física no reconstruye todos los alias de segmentos de un programa.
+Estas herramientas no convierten el núcleo en una máquina PC/XT ni acreditan su reloj.

@@ -7,7 +7,7 @@ namespace Retro.Cpu.I8088;
 /// The 8087 remains unsupported.
 /// No prefetch queue or cycle counts: do not use this core to time peripherals yet.
 /// </summary>
-public sealed class I8088Cpu(I8088Bus bus, I8088InterruptSource? interrupts)
+public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interrupts)
 {
     public I8088Cpu(I8088Bus bus) : this(bus, null) { }
 
@@ -18,7 +18,7 @@ public sealed class I8088Cpu(I8088Bus bus, I8088InterruptSource? interrupts)
     private int _segmentOverride = -1;
     private bool _interruptShadow, _segmentShadow;
     private byte? _irq;
-    private bool _nmi, _trapPending;
+    private bool _nmi, _trapPending, _waitingForTest, _busLocked;
     private ushort _startCs, _startIp;
 
     public ushort AX { get => _r[0]; set => _r[0] = value; }
@@ -48,7 +48,8 @@ public sealed class I8088Cpu(I8088Bus bus, I8088InterruptSource? interrupts)
         Array.Clear(_r); Array.Clear(_s);
         CS = 0xFFFF; IP = 0; Flags = 0;
         Halted = false; Instructions = 0;
-        _interruptShadow = _segmentShadow = _nmi = _trapPending = false; _irq = null;
+        _interruptShadow = _segmentShadow = _nmi = _trapPending = _waitingForTest = false; _irq = null;
+        _busLocked = false; bus.SetLock(false);
     }
 
     /// <summary>Latched diagnostic vector, retained while IF is clear. Devices use I8088InterruptSource.</summary>
@@ -241,7 +242,7 @@ public sealed class I8088Cpu(I8088Bus bus, I8088InterruptSource? interrupts)
     private void EnterInterrupt(byte vector)
     {
         Push(Flags); Push(CS); Push(IP);
-        SetFlag(InterruptEnable, false); SetFlag(Trap, false); Halted = false;
+        SetFlag(InterruptEnable, false); SetFlag(Trap, false); Halted = _waitingForTest = false;
         IP = ReadWord(0, (ushort)(vector * 4)); CS = ReadWord(0, (ushort)(vector * 4 + 2));
     }
     private NotSupportedException Unsupported(byte opcode, string? detail = null) =>
@@ -264,21 +265,30 @@ public sealed class I8088Cpu(I8088Bus bus, I8088InterruptSource? interrupts)
         if (_trapPending && !inhibitNmi) { _trapPending = false; EnterInterrupt(1); return true; }
         bool trap = Flag(Trap);
         _startCs = CS; _startIp = IP; _segmentOverride = -1;
-        byte opcode, repeat = 0; int prefixes = 0;
+        byte opcode, repeat = 0; bool locked = false;
+        _waitingForTest = false; int prefixes = 0;
         while (true)
         {
             opcode = Fetch();
             if (opcode is 0x26 or 0x2E or 0x36 or 0x3E) _segmentOverride = (opcode >> 3) & 3;
             else if (opcode is 0xF2 or 0xF3) repeat = opcode;
-            else if (opcode != 0xF0) break; // LOCK has no competing bus master in this functional runner
+            else if (opcode is 0xF0 or 0xF1) locked = true;
+            else break;
             if (++prefixes == 65536) throw Unsupported(opcode, "segmento lleno de prefijos");
         }
-        Execute(opcode, repeat);
+        try
+        {
+            if (locked) LockBus();
+            Execute(opcode, repeat);
+        }
+        finally { if (_busLocked) { _busLocked = false; bus.SetLock(false); } }
         Instructions++;
         // POPF/IRET changes apply to the next instruction; clearing TF still traps this one.
-        _trapPending = trap && !_segmentShadow;
+        _trapPending = trap && !_segmentShadow && !_waitingForTest;
         return true;
     }
+
+    private void LockBus() { if (!_busLocked) { _busLocked = true; bus.SetLock(true); } }
 
     private void Execute(byte op, byte repeat)
     {
@@ -322,7 +332,9 @@ public sealed class I8088Cpu(I8088Bus bus, I8088InterruptSource? interrupts)
             case 0x84: case 0x85: { var (reg, rm) = Decode(); Alu(4, Read(rm, word), GetReg(reg, word), word); break; }
             case 0x86: case 0x87:
             {
-                var (reg, rm) = Decode(); int old = Read(rm, word); Write(rm, word, GetReg(reg, word)); SetReg(reg, word, old); break;
+                var (reg, rm) = Decode();
+                if (rm.Register < 0) LockBus();
+                int old = Read(rm, word); Write(rm, word, GetReg(reg, word)); SetReg(reg, word, old); break;
             }
             case 0x88: case 0x89: case 0x8A: case 0x8B:
             {
@@ -342,6 +354,10 @@ public sealed class I8088Cpu(I8088Bus bus, I8088InterruptSource? interrupts)
             case 0x98: AX = (ushort)(short)(sbyte)AX; break;
             case 0x99: DX = (AX & 0x8000) != 0 ? (ushort)0xFFFF : (ushort)0; break;
             case 0x9A: { ushort target = FetchWord(), segment = FetchWord(); Push(CS); Push(IP); CS = segment; IP = target; break; }
+            case 0x9B:
+                _waitingForTest = bus.TestSignal;
+                if (_waitingForTest) IP = _startIp;
+                break;
             case 0x9C: Push(Flags); break;
             case 0x9D: Flags = Pop(); break;
             case 0x9E: Flags = (ushort)((Flags & 0xFF00) | (AX >> 8)); break;
@@ -379,6 +395,13 @@ public sealed class I8088Cpu(I8088Bus bus, I8088InterruptSource? interrupts)
                 break;
             }
             case 0xD4: case 0xD5: AsciiProductAdjust(op, repeat); break;
+            case >= 0xD8 and <= 0xDF:
+            {
+                var (_, operand) = Decode();
+                // Without an 8087, the CPU decodes the EA and reads a word; no floating-point result is produced.
+                if (operand.Register < 0) _ = ReadWord(operand.Segment, operand.Offset);
+                break;
+            }
             case 0xD7: SetReg(0, false, ReadByte(_s[_segmentOverride < 0 ? 3 : _segmentOverride], (ushort)(BX + GetReg(0, false)))); break;
             case 0xE0: case 0xE1: case 0xE2: case 0xE3:
             {

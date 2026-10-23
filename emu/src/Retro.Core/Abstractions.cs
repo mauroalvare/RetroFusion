@@ -18,7 +18,9 @@ public interface ICpuDebugView
     string CpuName { get; }
     uint ProgramCounter { get; set; }
     uint StackPointer { get; }
-    /// <summary>Total clock cycles (T-states) executed since power on.</summary>
+    /// <summary>False for a functional core whose clock model is not implemented.</summary>
+    bool HasCycleTiming => true;
+    /// <summary>Total clock cycles (T-states), or zero when HasCycleTiming is false.</summary>
     long Cycles { get; }
     IReadOnlyList<RegisterValue> GetRegisters();
     bool TrySetRegister(string name, uint value);

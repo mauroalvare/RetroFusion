@@ -16,11 +16,16 @@ public enum FlowKind
     Halt,
 }
 
-public readonly record struct FlowInfo(int Length, FlowKind Kind, uint? Target);
+public readonly record struct FlowInfo(int Length, FlowKind Kind, uint? Target)
+{
+    /// <summary>Optional sequential address for segmented instruction streams.</summary>
+    public uint? Next { get; init; }
+}
 
 /// <summary>Control-flow classification of one instruction, per CPU.</summary>
 public interface IFlowAnalyzer
 {
+    int AddressBits => 16;
     FlowInfo Analyze(Func<uint, byte> peek, uint address);
 }
 
@@ -42,6 +47,7 @@ public sealed class Routine
 /// </summary>
 public sealed class CodeMap
 {
+    private uint _addressMask = 0xFFFF;
     private readonly Dictionary<uint, Routine> _routines = new();
     private readonly Dictionary<uint, FlowInfo> _code = new();
 
@@ -50,33 +56,35 @@ public sealed class CodeMap
 
     public static CodeMap Build(Func<uint, byte> peek, IFlowAnalyzer flow, IEnumerable<uint> entries, bool[]? executed = null, int maxInstructions = 60000)
     {
-        var map = new CodeMap();
-        var starts = new HashSet<uint>(entries.Select(e => e & 0xFFFF));
+        if (flow.AddressBits is < 1 or > 32) throw new ArgumentOutOfRangeException(nameof(flow));
+        uint mask = (uint)((1UL << flow.AddressBits) - 1);
+        var map = new CodeMap { _addressMask = mask };
+        var starts = new HashSet<uint>(entries.Select(e => e & mask));
         if (executed != null)
         {
             // Executed code whose previous byte is not executed starts a block we did
             // not reach statically: treat it as an entry.
-            for (int a = 0; a < executed.Length; a++)
+            for (int a = 0; a < executed.Length && (uint)a <= mask; a++)
                 if (executed[a] && (a == 0 || !executed[a - 1]))
                     starts.Add((uint)a);
         }
 
         // 1. find every instruction and every call target
-        var callTargets = new HashSet<uint>(entries.Select(e => e & 0xFFFF));
+        var callTargets = new HashSet<uint>(entries.Select(e => e & mask));
         var work = new Stack<uint>(starts);
         while (work.Count > 0 && map._code.Count < maxInstructions)
         {
-            uint a = work.Pop() & 0xFFFF;
+            uint a = work.Pop() & mask;
             while (!map._code.ContainsKey(a) && map._code.Count < maxInstructions)
             {
                 var f = flow.Analyze(peek, a);
                 map._code[a] = f;
-                uint next = (a + (uint)f.Length) & 0xFFFF;
+                uint next = (f.Next ?? (a + (uint)f.Length)) & map._addressMask;
                 switch (f.Kind)
                 {
                     case FlowKind.Call:
                     case FlowKind.CallIf:
-                        if (f.Target is uint ct) { callTargets.Add(ct); work.Push(ct); }
+                        if (f.Target is uint ct) { callTargets.Add(ct & mask); work.Push(ct & mask); }
                         a = next;
                         continue;
                     case FlowKind.JumpIf:
@@ -136,10 +144,10 @@ public sealed class CodeMap
                 if (a != r.Start && map._routines.ContainsKey(a))
                     continue;
                 r.Instructions.Add(a);
-                if (executed != null && executed[a])
+                if (executed != null && a < executed.Length && executed[a])
                     r.Executed = true;
-                uint next = (a + (uint)f.Length) & 0xFFFF;
-                r.End = Math.Max(r.End, next - 1);
+                uint next = (f.Next ?? (a + (uint)f.Length)) & map._addressMask;
+                r.End = Math.Max(r.End, (uint)Math.Min(map._addressMask, (ulong)a + (uint)Math.Max(1, f.Length) - 1));
                 switch (f.Kind)
                 {
                     case FlowKind.Call:
@@ -175,7 +183,7 @@ public sealed class CodeMap
 
     /// <summary>The routine that contains <paramref name="address"/>, if any.</summary>
     public Routine? RoutineAt(uint address) =>
-        _routines.Values.FirstOrDefault(r => r.Instructions.Contains(address & 0xFFFF));
+        _routines.Values.FirstOrDefault(r => r.Instructions.Contains(address & _addressMask));
 }
 
 /// <summary>Names and comments the user (or an AI) gave to a program, saved per game.</summary>
