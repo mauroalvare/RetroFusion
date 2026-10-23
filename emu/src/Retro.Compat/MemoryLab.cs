@@ -287,12 +287,12 @@ public static class MemoryLab
         {
             var watched = findings.Select(f => Convert.ToUInt16(f.Address, 16)).ToHashSet();
             var writers = new Dictionary<ushort, Dictionary<ushort, int>>();
-            watchable.WriteWatch = (address, _, pc) =>
+            using var writeObservation = CpuWriteObservers.Subscribe(watchable, (address, _, pc) =>
             {
                 if (!watched.Contains(address)) return;
                 if (!writers.TryGetValue(address, out var byPc)) writers[address] = byPc = new();
                 byPc[pc] = byPc.GetValueOrDefault(pc) + 1;
-            };
+            });
             m.LoadState(state);
             Run(Math.Min(o.IdleFrames, 1500));
             if (dirs.right != null)
@@ -305,7 +305,7 @@ public static class MemoryLab
                     Run(o.HoldLong, dirs.down);
                 }
             }
-            watchable.WriteWatch = null;
+            writeObservation.Dispose();
             int observed = Math.Min(o.IdleFrames, 1500) + o.HoldLong * 2;
             foreach (var f in findings)
             {

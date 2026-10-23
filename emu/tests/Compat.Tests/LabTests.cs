@@ -71,4 +71,18 @@ public class LabTests
             Directory.Delete(games, true);
         }
     }
+    [Test]
+    public void AnalysisPreservesAnExistingCpuWriteObserverAndTheFullMachineState()
+    {
+        var machine = new Retro.Systems.Spectrum.Spectrum48(new byte[16384]);
+        byte[] code = [0x21,0,0x80,0x34,0xC3,3,0x90];
+        for(int i=0;i<code.Length;i++)machine.Memory.Poke((uint)(0x9000+i),code[i]);
+        machine.Cpu.ProgramCounter=0x9000;
+        int writes=0;Action<ushort,byte,ushort> prior=(_,_,_)=>writes++;
+        machine.WriteWatch=prior;byte[] before=machine.SaveState();
+        MemoryLab.Analyze(machine,"zx48",new(IdleFrames:20,SampleEvery:5,HoldShort:3,HoldLong:5));
+        Assert.That(machine.WriteWatch,Is.SameAs(prior));Assert.That(writes,Is.GreaterThan(0));
+        Assert.That(machine.SaveState(),Is.EqualTo(before));
+    }
+
 }

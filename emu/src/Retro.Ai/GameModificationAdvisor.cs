@@ -16,7 +16,7 @@ public static class GameModificationAdvisor
         divertidas, distintas entre sí y específicas de este juego. Respondé en castellano.
         Usá únicamente los nombres de variables escribibles y sus rangos indicados. No inventes
         direcciones, variables, código ni capacidades. Las variables de solo lectura son contexto.
-        Cada cambio indica variable, value y freeze (mantener el valor antes de cada cuadro).
+        Cada cambio indica variable, value y freeze (mantener el valor durante las escrituras de CPU).
         Explicá qué esperás observar y señalá las suposiciones: conocer una dirección no demuestra
         que un efecto funcione. No prometas invulnerabilidad si solo hay vidas de reserva.
         Podés proponer un desafío, una combinación extraña de recursos o explorar una regla;

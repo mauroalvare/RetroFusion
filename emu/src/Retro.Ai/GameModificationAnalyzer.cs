@@ -6,7 +6,13 @@ using Retro.Fusion;
 
 namespace Retro.Ai;
 
-public sealed record MemoryEvidence(uint Address, byte Value, byte Initial, int Writes, uint? Writer, string Reference);
+public sealed record MemoryEvidence(uint Address, byte Value, byte Initial, int Writes, uint? Writer, string Reference)
+{
+    public byte? WriteMinimum { get; init; }
+    public byte? WriteMaximum { get; init; }
+    public int ValueChanges { get; init; }
+    public IReadOnlyList<byte> RecentValues { get; init; } = [];
+}
 public sealed record AnalyzedVariable(string Name, string Label, uint Address, int Bytes, int Observed, string Reason);
 public sealed record GameAnalysisResult(string Analysis, IReadOnlyList<AnalyzedVariable> Variables, ModificationAdvice Advice);
 
@@ -14,13 +20,18 @@ public sealed record GameAnalysisResult(string Analysis, IReadOnlyList<AnalyzedV
 public sealed record GameAnalysisSnapshot(string Game, string Machine, long Frame, string Listing,
     IReadOnlyList<MemoryEvidence> Candidates, GameProfile Profile)
 {
+    public long? ObservationStartFrame { get; init; }
+    public long FramesObserved => Math.Max(0, Frame - (ObservationStartFrame ?? Frame));
     public string Prompt(string wish, string previous = "")
     {
         var text = new StringBuilder($"Partida: {Game}. Sistema: {Machine}. Cuadro capturado: {Frame}.\n");
+        text.AppendLine($"Intervalo observado: cuadros {ObservationStartFrame ?? Frame}..{Frame} ({FramesObserved} cuadros emulados). No se registran las acciones del jugador.");
+        text.AppendLine("Rangos e historial describen escrituras de CPU; el valor actual puede diferir si hay un congelado. Un byte que no cambió también puede controlar una regla.");
         text.AppendLine("Direcciones disponibles; valores y escrituras observados, no significado confirmado:");
         foreach (var item in Candidates)
             text.AppendLine($"0x{item.Address:X4}: ahora={item.Value}, al abrir={item.Initial}, escrituras={item.Writes}" +
                 (item.Writer is uint pc ? $", última instrucción que escribió=0x{pc:X4}" : "") +
+                (item.WriteMinimum is byte min ? $", rango escrito={min}..{item.WriteMaximum}, cambios de valor={item.ValueChanges}, últimas escrituras distintas=[{string.Join(",", item.RecentValues)}]" : "") +
                 (item.Reference.Length > 0 ? $". {item.Reference}" : ""));
         text.AppendLine("Variables conocidas (conservar nombre, rango y solo lectura):");
         foreach (var (name, variable) in Profile.Variables)
@@ -54,6 +65,16 @@ public static class GameModificationAnalyzer
         comportamientos extraños cuando los datos lo permitan. No propongas siempre reservas
         infinitas ni fuerces efectos que no se pueden justificar. Contestá también las preguntas;
         si falta evidencia, explicá qué acción del jugador permitiría obtenerla.
+        Relacioná primero las escrituras y su código de alrededor con la pregunta. Frecuencia,
+        rango e historial no demuestran por sí solos vidas, tiempo, coordenadas ni causalidad.
+        No confundas un buffer gráfico con la posición física ni una copia con el estado original.
+        Para repetir una investigación, reutilizá los nombres conocidos: variables enumera solo
+        hallazgos nuevos. No cambies el nombre de un byte ya conocido ni lo agrupes con otro
+        dato sin evidencia. Proponé valores distintos del actual, un efecto visible a comprobar
+        y una acción concreta para comprobarlo. Preferí una prueba aislada antes de combinar.
+        freeze=true mantiene los bits durante las escrituras de CPU: no lo uses por rutina
+        sobre contadores que controlan bucles o transiciones. Si el significado es dudoso,
+        decilo y pedí una observación nueva de la acción relevante.
         Las ideas usan nombres ya conocidos o propuestos en variables, value y freeze.
         Respetá los rangos conocidos y solo lectura. Un byte admite 0..255 y una palabra 0..65535.
         No confundas bytes consecutivos con una palabra sin explicarlo como hipótesis.
@@ -137,7 +158,7 @@ public static class GameModificationAnalyzer
                     bytes == 2 && !ModificationObservation.IsWorkRam(snapshot.Machine, address + 1) || !known.TryGetValue(address, out var first) ||
                     bytes == 2 && !known.ContainsKey(address + 1))
                     throw new JsonException("La variable usa memoria que no está en la evidencia.");
-                if (OverlapsKnownMemory(snapshot.Profile, address, bytes))
+                if (OverlapsKnownMemory(profile, address, bytes))
                     throw new JsonException("La dirección ya pertenece a una variable conocida: usá su nombre y sus restricciones.");
                 int actual = first.Value | (bytes == 2 ? known[address + 1].Value << 8 : 0);
                 if (observed != actual) throw new JsonException("El valor observado no coincide con la captura.");
@@ -154,14 +175,9 @@ public static class GameModificationAnalyzer
 
     public static bool OverlapsKnownMemory(GameProfile profile, uint address, int bytes)
     {
+        var wanted = Enumerable.Range(0, bytes).Select(i => VariableMemory.Canonical(profile.Machine, address + (uint)i)).ToHashSet();
         foreach (var existing in profile.Variables.Values)
-        {
-            if (!uint.TryParse(existing.Address, System.Globalization.NumberStyles.HexNumber, null, out uint known)) continue;
-            int size = existing.Encoding == "uint16" ? 2 : existing.Encoding is "ascii" or "bcd" or "digits" ? existing.Bytes : 1;
-            if (address < (ulong)known + (uint)Math.Max(1, size) && known < (ulong)address + (uint)bytes) return true;
-            if (existing.Encoding == "uint9" && uint.TryParse(existing.HighBitAddress,
-                System.Globalization.NumberStyles.HexNumber, null, out uint high) && high >= address && high < (ulong)address + (uint)bytes) return true;
-        }
+            if (VariableMemory.Cells(existing).Any(cell => wanted.Contains(VariableMemory.Canonical(profile.Machine, cell.Address)))) return true;
         return false;
     }
 

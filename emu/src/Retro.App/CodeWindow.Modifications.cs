@@ -129,6 +129,10 @@ public sealed partial class CodeWindow
         AiPicker.Hint("Jugá unos segundos para reunir datos. El análisis propone cambios; aplicarlos queda a tu elección.");
         bool busy = _modificationTask != null;
         ImGui.BeginDisabled(busy);
+        if (ImGui.SmallButton("Observar desde ahora")) RestartAnalysisObservation();
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Empieza un intervalo nuevo sin cambiar la partida, las variables ni los congelados.");
+        ImGui.SameLine();
+        ImGui.TextDisabled($"{_observation?.FramesObserved ?? 0} cuadros · {_observation?.WrittenAddresses ?? 0} bytes escritos");
         AiPicker.Choose(_ai, "analisis", "El análisis usa un pedido a la IA elegida.");
         ImGui.TextUnformatted("Qué querés investigar o cambiar:");
         ImGui.InputTextMultiline("##investigar", ref _modificationWish, 2000, new Vector2(-1, 64));
@@ -152,7 +156,7 @@ public sealed partial class CodeWindow
         }
         ImGui.EndDisabled();
         if (busy) { ImGui.SameLine(); if (ImGui.Button("Cancelar análisis")) _modificationCts?.Cancel(); }
-        AiPicker.Hint($"Observación local: {_observation?.WrittenAddresses ?? 0} direcciones escritas. No se modifica la partida.");
+
         _modificationActivity.Draw(busy, _status, _modificationCts);
         if (_manualModification && _analysisSnapshot != null)
         {
@@ -204,13 +208,23 @@ public sealed partial class CodeWindow
         }
         if (_analysisSnapshot != null && ImGui.CollapsingHeader("Evidencia enviada"))
         {
-            ImGui.TextDisabled($"Cuadro {_analysisSnapshot.Frame} · {_analysisSnapshot.Candidates.Count} bytes de RAM · recorte de código");
+            ImGui.TextDisabled($"{_analysisSnapshot.FramesObserved} cuadros observados · {_analysisSnapshot.Candidates.Count} bytes de RAM · recorte de código");
             ImGui.BeginChild("evidencia", new Vector2(0, 180), ImGuiChildFlags.Borders);
             foreach (var candidate in _analysisSnapshot.Candidates)
                 ImGui.TextUnformatted($"0x{candidate.Address:X4} = {candidate.Value} · {candidate.Writes} escrituras" +
-                    (candidate.Writer is uint pc ? $" · instrucción 0x{pc:X4}" : ""));
+                    (candidate.Writer is uint pc ? $" · instrucción 0x{pc:X4}" : "") +
+                        (candidate.WriteMinimum is byte min ? $" · escritos {min}..{candidate.WriteMaximum} · cambios {candidate.ValueChanges}" : ""));
             ImGui.EndChild();
         }
+    }
+
+    private void RestartAnalysisObservation()
+    {
+        if (_modificationTask != null || _machine == null) return;
+        StopObservation(); _observation = new ModificationObservation(_machine);
+        _analysisSnapshot = null; _analysisAttempt++; _manualModification = false;
+        _analysisPrompt = _analysisAnswer = _analysisError = _modificationPasted = "";
+        _status = "Observación nueva. Jugá la acción que querés investigar y pedí el análisis.";
     }
 
     private AiRequest PrepareAnalysis(string provider)

@@ -5,30 +5,62 @@ using Retro.Fusion;
 
 namespace Retro.Ai;
 
-/// <summary>Bounded observation on the emulation thread. Disposing restores a previous write observer.</summary>
+/// <summary>Bounded CPU write evidence on the emulation thread, independent from edits.</summary>
 public sealed class ModificationObservation : IDisposable
 {
     private readonly IMachine _machine;
     private readonly byte[] _initial;
     private readonly IDisposable? _subscription;
-    private readonly Dictionary<uint, (int Count, uint Pc)> _writes = new();
+    private readonly long _startFrame;
+    private readonly Dictionary<uint, Writes> _writes = new();
+    private readonly Queue<uint>?[] _pages = new Queue<uint>?[256];
+    private sealed class Writes
+    {
+        public int Count, Changes;
+        public ushort Pc;
+        public byte Minimum = 255, Maximum, Last;
+        public readonly List<byte> Recent = new();
+        public void Add(byte value, ushort pc)
+        {
+            if (Count > 0 && value != Last) Changes = Math.Min(Changes + 1, int.MaxValue - 1);
+            Count = Math.Min(Count + 1, int.MaxValue - 1); Pc = pc;
+            Minimum = Math.Min(Minimum, value); Maximum = Math.Max(Maximum, value);
+            if (Recent.Count == 0 || Last != value)
+            {
+                if (Recent.Count == 6) Recent.RemoveAt(0);
+                Recent.Add(value);
+            }
+            Last = value;
+        }
+    }
     public int WrittenAddresses => _writes.Count;
+    public long FramesObserved => Math.Max(0, _machine.FrameCount - _startFrame);
 
     public ModificationObservation(IMachine machine)
     {
         if (machine.Memory.AddressBits != 16) throw new NotSupportedException("El análisis admite máquinas de 16 bits de dirección.");
-        _machine = machine;
-        _initial = Image(machine);
+        _machine = machine; _initial = Image(machine); _startFrame = machine.FrameCount;
         if (machine is IWriteWatch watch)
-        {
             _subscription = CpuWriteObservers.Subscribe(watch, (address, value, pc) =>
             {
-                if (!IsWorkRam(machine.Id, address)) return;
-                if (_writes.TryGetValue(address, out var old))
-                    _writes[address] = (Math.Min(old.Count + 1, int.MaxValue - 1), pc);
-                else if (_writes.Count < 2048) _writes[address] = (1, pc);
+                uint canonical = VariableMemory.Canonical(machine.Id, address);
+                if (!IsWorkRam(machine.Id, canonical)) return;
+                if (!_writes.TryGetValue(canonical, out var writes))
+                {
+                    int page = (int)(canonical >> 8);
+                    if (_writes.Count >= 2048)
+                    {
+                        int largest = 0;
+                        for (int i = 1; i < _pages.Length; i++)
+                            if ((_pages[i]?.Count ?? 0) > (_pages[largest]?.Count ?? 0)) largest = i;
+                        if ((_pages[page]?.Count ?? 0) >= _pages[largest]!.Count) return;
+                        _writes.Remove(_pages[largest]!.Dequeue());
+                    }
+                    (_pages[page] ??= new()).Enqueue(canonical);
+                    _writes[canonical] = writes = new Writes();
+                }
+                writes.Add(value, pc);
             });
-        }
     }
 
     public static bool IsWorkRam(string machine, uint address) => machine switch
@@ -40,45 +72,74 @@ public sealed class ModificationObservation : IDisposable
         _ => false
     };
 
+    // Round-robin pages keep a busy sprite table from hiding a quieter state variable.
+    private static IEnumerable<uint> Diverse(IEnumerable<uint> addresses)
+    {
+        var pages = addresses.GroupBy(a => a >> 8).Select(g => new Queue<uint>(g)).ToArray();
+        while (pages.Any(q => q.Count > 0))
+            foreach (var page in pages) if (page.TryDequeue(out uint address)) yield return address;
+    }
+
     public GameAnalysisSnapshot Capture(string game, GameProfile profile)
     {
         byte[] image = Image(_machine);
         var references = new Dictionary<uint, string>();
         var instructions = new List<uint>();
-        foreach (var pc in _writes.Values.OrderByDescending(w => w.Count).Select(w => w.Pc))
-            if (!instructions.Contains(pc) && instructions.Count < 48) instructions.Add(pc);
-        instructions.Add(_machine.Cpu.ProgramCounter & 0xFFFF);
+        void Instruction(uint pc) { if (instructions.Count < 160 && !instructions.Contains(pc)) instructions.Add(pc); }
+        var ranked = _writes.Keys.OrderByDescending(a => image[a] != _initial[a])
+            .ThenByDescending(a => _writes[a].Changes > 0).ThenBy(a => _writes[a].Count).ToArray();
+        foreach (uint address in Diverse(ranked).Take(24))
+        {
+            uint pc = _writes[address].Pc;
+            if (_machine.ExecutedMap is { } map)
+                for (uint start = pc > 16 ? pc - 16 : 0; start < pc; start++)
+                    if (map[start] && start + _machine.Disassembler.Disassemble(a => image[a & 0xFFFF], start).Length <= pc) Instruction(start);
+            for (int n = 0; n < 5; n++)
+            {
+                Instruction(pc);
+                pc = (pc + (uint)Math.Max(1, _machine.Disassembler.Disassemble(a => image[a & 0xFFFF], pc).Length)) & 0xFFFF;
+            }
+        }
+        Instruction(_machine.Cpu.ProgramCounter & 0xFFFF);
         if (_machine.ExecutedMap is { } executed)
-            for (uint address = 0; address < Math.Min(executed.Length, 65536) && instructions.Count < 160; address++)
-                if (executed[address] && IsGameCode(_machine.Id, address) && !instructions.Contains(address)) instructions.Add(address);
+            for (uint pc = 0; pc < Math.Min(executed.Length, 65536) && instructions.Count < 160; pc++)
+                if (executed[pc] && IsGameCode(_machine.Id, pc)) Instruction(pc);
         var listing = new StringBuilder();
-        foreach (uint pc in instructions.Distinct().Take(160))
+        foreach (uint pc in instructions)
         {
             var instruction = _machine.Disassembler.Disassemble(a => image[a & 0xFFFF], pc);
-            listing.AppendLine($"0x{pc:X4}: {string.Join(" ", instruction.Bytes.Select(b => b.ToString("X2")))}  {instruction.Text}");
+            string execution = _machine.ExecutedMap is { } map && map[pc] ? "" : " [contexto; ejecución no registrada]";
+            listing.AppendLine($"0x{pc:X4}: {string.Join(" ", instruction.Bytes.Select(b => b.ToString("X2")))}  {instruction.Text}{execution}");
             foreach (Match match in Regex.Matches(instruction.Text, @"\$([0-9a-fA-F]{2,4})\b"))
             {
-                uint address = Convert.ToUInt32(match.Groups[1].Value, 16);
+                uint address = VariableMemory.Canonical(_machine.Id, Convert.ToUInt32(match.Groups[1].Value, 16));
                 if (IsWorkRam(_machine.Id, address)) references.TryAdd(address, $"Referencia en 0x{pc:X4}: {instruction.Text}");
             }
         }
         var candidates = new SortedDictionary<uint, MemoryEvidence>();
-        void Add(uint address, string reference = "")
+        void Add(uint raw, string reference = "")
         {
-            if (candidates.Count >= 128 || !IsWorkRam(_machine.Id, address)) return;
-            var write = _writes.GetValueOrDefault(address);
+            uint address = VariableMemory.Canonical(_machine.Id, raw);
+            if (!IsWorkRam(_machine.Id, address) || candidates.Count >= 128 && !candidates.ContainsKey(address)) return;
+            _writes.TryGetValue(address, out var write);
             if (candidates.TryGetValue(address, out var old) && old.Reference.Length > 0) reference = old.Reference;
-            candidates[address] = new(address, image[address], _initial[address], write.Count,
-                write.Count > 0 ? write.Pc : null, reference);
+            candidates[address] = new(address, image[address], _initial[address], write?.Count ?? 0, write?.Pc, reference)
+            {
+                WriteMinimum = write?.Minimum, WriteMaximum = write?.Maximum, ValueChanges = write?.Changes ?? 0,
+                RecentValues = write?.Recent.ToArray() ?? []
+            };
         }
         foreach (var variable in profile.Variables.Values)
-            if (uint.TryParse(variable.Address, System.Globalization.NumberStyles.HexNumber, null, out uint address))
-            { Add(address, "Variable del perfil conocido."); Add(address + 1); }
-        foreach (var (address, _) in _writes.OrderByDescending(w => image[w.Key] != _initial[w.Key]).ThenByDescending(w => w.Value.Count))
-        { Add(address, references.GetValueOrDefault(address, "")); Add(address + 1); }
+            foreach (var cell in VariableMemory.Cells(variable)) Add(cell.Address, "Variable del perfil de sesión; su descripción indica si es una hipótesis.");
+        foreach (var (address, reference) in references.Take(16)) Add(address, reference);
+        foreach (uint address in Diverse(ranked))
+        {
+            Add(address, references.GetValueOrDefault(address, ""));
+            Add(address + 1, references.GetValueOrDefault(address + 1, ""));
+        }
         foreach (var (address, reference) in references) { Add(address, reference); Add(address + 1); }
-        return new(game, _machine.Id, _machine.FrameCount, listing.ToString(), candidates.Values.ToArray(),
-            GameProfile.Parse(profile.ToJson()));
+        return new(game, _machine.Id, _machine.FrameCount, listing.ToString(), candidates.Values.ToArray(), GameProfile.Parse(profile.ToJson()))
+        { ObservationStartFrame = _startFrame };
     }
 
     private static bool IsGameCode(string machine, uint address) => machine switch

@@ -253,4 +253,21 @@ public class ModificationAnalysisUiTests
         Assert.That(host.Machine!.Memory.Peek(0x8000), Is.Not.EqualTo(17));
     }
 
+    [Test]
+    public async Task StartingANewObservationKeepsTheGameItsVariablesAndFrozenValues()
+    {
+        var (host, window) = Start(); using var owned = window;
+        Call(window, "BeginModificationAnalysis", new SimulatedAi(Answer(host.Machine!.Memory.Peek(0x8000))));
+        await Finish(window);
+        Call(window,"ApplyModifications",(object)new VariableEdit[]{new("counter_test",17,true)});
+        host.StepFrame(); byte[] before=host.Machine.SaveState();
+        var observation=Get(window,"_observation");
+        Call(window,"RestartAnalysisObservation");
+        Assert.That(Get(window,"_observation"),Is.Not.SameAs(observation));
+        Assert.That(((GameModifications)Get(window,"_modifications")!).Frozen["counter_test"],Is.EqualTo(17));
+        Assert.That(host.Machine.SaveState(),Is.EqualTo(before));
+        Assert.That(Get(window,"_lastAnalysis")!.ToString(),Is.Not.Empty);
+        host.StepFrame();Assert.That(host.Machine.Memory.Peek(0x8000),Is.EqualTo(17));
+    }
+
 }

@@ -9,9 +9,12 @@ Abrí un original y usá **Herramientas > Modificar y analizar** o **Ctrl+M**.
 
 ## Investigar con IA
 
-Jugá unos segundos con la ventana abierta para reunir escrituras de memoria.
+Usá **Observar desde ahora**, jugá la acción que querés investigar y pedí el análisis.
+El contador indica cuántos cuadros y bytes se observaron. Reiniciar la observación
+conserva la partida, las variables y los congelados.
 Podés preguntar por una regla o pedir un efecto. El análisis recibe valores y un recorte
-del código de la partida; no necesita un perfil preparado.
+del código de la partida, junto con el rango y los últimos valores escritos. No necesita
+un perfil preparado ni confirma por sí solo qué significa cada dato.
 
 Los hallazgos aparecen en **Cambios**, con una explicación y propuestas para probar.
 Las variables nuevas se indican como hipótesis: su significado y efecto requieren

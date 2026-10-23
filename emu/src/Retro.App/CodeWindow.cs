@@ -737,7 +737,7 @@ public sealed partial class CodeWindow : IDisposable
             {
                 int value = 0; bool readable = true;
                 try { value = v.Read(m.Memory); }
-                catch (Exception error) when (error is FormatException or OverflowException or IndexOutOfRangeException or ArgumentException)
+                catch (Exception error) when (error is FormatException or OverflowException or IndexOutOfRangeException or ArgumentException or InvalidDataException)
                 { readable = false; }
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn(); ImGui.TextWrapped(VariableLabel(name));
@@ -768,7 +768,10 @@ public sealed partial class CodeWindow : IDisposable
                     ApplyModifications([new(name, v.Read(m.Memory), frozen)]);
                 }
                 ImGui.EndDisabled();
-                ImGui.TableNextColumn(); ImGui.TextWrapped(readable ? v.Description + (v.ReadOnly ? " (solo lectura)" : "") : "Este dato tiene un formato o dirección inválidos en el perfil.");
+                ImGui.TableNextColumn();
+                string description = readable ? v.Description + (v.ReadOnly ? " (solo lectura)" : "") : "Este dato tiene un formato o dirección inválidos en el perfil.";
+                ImGui.TextWrapped(description.Length > 140 ? description[..137] + "..." : description);
+                if (description.Length > 140 && ImGui.IsItemHovered()) ImGui.SetTooltip(description);
             }
             ImGui.EndTable();
         }

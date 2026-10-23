@@ -1,4 +1,3 @@
-using System.Globalization;
 using Retro.Core;
 
 namespace Retro.Fusion;
@@ -14,12 +13,9 @@ public sealed class GameModifications(IMachine machine, GameProfile profile) : I
     public bool CanUndo => _undo.Count > 0;
     private byte[]? _returnPoint;
     private int[]? _returnPicture;
-    private readonly Dictionary<string, int> _frozen = new(StringComparer.Ordinal);
-    private readonly Dictionary<uint, (byte Value, int Mask)> _pinned = new();
-    private IDisposable? _writeSubscription;
-    private bool _restoringByte;
+    private readonly FrozenVariables _pins = new(machine, profile);
     public bool CanRestore => _returnPoint != null;
-    public IReadOnlyDictionary<string, int> Frozen => _frozen;
+    public IReadOnlyDictionary<string, int> Frozen => _pins.Values;
 
     public static void Validate(GameProfile profile, IReadOnlyList<VariableEdit> changes, int addressBits = 32)
     {
@@ -34,14 +30,14 @@ public sealed class GameModifications(IMachine machine, GameProfile profile) : I
             if (variable.ReadOnly) throw new InvalidOperationException($"{change.Variable} es de solo lectura.");
             int size = variable.Encoding switch
             {
-                "uint8" => 1, "uint16" => 2,
+                "uint8" or "uint9" => 1, "uint16" => 2,
                 "bcd" or "digits" or "ascii" when variable.Bytes is >= 1 and <= 9 => variable.Bytes,
                 _ => throw new InvalidOperationException($"El formato de {change.Variable} no es válido para modificarlo.")
             };
             long capacity = variable.Encoding switch
             {
                 "uint8" => variable.Mask == 0 ? 255 : variable.Mask,
-                "uint16" => 65535,
+                "uint9" => 511, "uint16" => 65535,
                 "bcd" => (long)Math.Min(int.MaxValue, Math.Pow(100, size) - 1),
                 _ => (long)Math.Min(int.MaxValue, Math.Pow(10, size) - 1)
             };
@@ -49,28 +45,20 @@ public sealed class GameModifications(IMachine machine, GameProfile profile) : I
                 change.Value < variable.Min || change.Value > variable.Max || change.Value > capacity ||
                 variable.Encoding == "uint8" && variable.Mask != 0 && (change.Value & ~variable.Mask) != 0)
                 throw new InvalidOperationException($"{change.Variable}: usá un valor representable entre {variable.Min} y {Math.Min(variable.Max, capacity)}.");
-            if (addressBits is < 1 or > 32 || !uint.TryParse(variable.Address, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint address) ||
-                (ulong)address + (uint)size > (1UL << addressBits))
-                throw new InvalidOperationException($"La dirección de {change.Variable} queda fuera de esta máquina.");
+            _ = VariableMemory.Cells(variable, addressBits);
         }
+        VariableMemory.ValidateOverlap(profile, changes.Select(c => c.Variable));
     }
 
     public void Apply(IReadOnlyList<VariableEdit> changes)
     {
-        Validate(profile, changes, machine.Memory.AddressBits);
-        var effective = _frozen.Where(pair => changes.All(c => c.Variable != pair.Key))
-            .Select(pair => new VariableEdit(pair.Key, pair.Value, true)).Concat(changes).ToArray();
-        ValidateOverlap(profile, effective);
-        if (effective.Any(change => change.Freeze) && machine is not IWriteWatch)
-            throw new NotSupportedException("Esta máquina no permite mantener valores congelados durante la partida.");
+        _pins.Validate(changes);
+        var frozenBefore = new Dictionary<string, int>(Frozen, StringComparer.Ordinal);
         byte[] before = machine.SaveState();
         int[] picture = (int[])machine.Video.Pixels.Clone();
         try
         {
-            foreach (var change in changes) profile.Variables[change.Variable].Write(machine.Memory, change.Value);
-            foreach (var change in changes)
-                if (profile.Variables[change.Variable].Read(machine.Memory) != change.Value)
-                    throw new InvalidOperationException($"El juego no permite escribir {change.Variable} en esa memoria. No se aplicó la prueba.");
+            _pins.Apply(changes);
         }
         catch
         {
@@ -78,74 +66,16 @@ public sealed class GameModifications(IMachine machine, GameProfile profile) : I
             picture.CopyTo(machine.Video.Pixels, 0);
             throw;
         }
-        _undo.AddLast(new UndoPoint(before, picture, new Dictionary<string, int>(_frozen, StringComparer.Ordinal)));
+        _undo.AddLast(new UndoPoint(before, picture, frozenBefore));
         if (_undo.Count > 5) { _undo.RemoveFirst(); _historyTrimmed = true; }
         _returnPoint ??= before;
         _returnPicture ??= picture;
-        foreach (var change in changes)
-            if (change.Freeze) _frozen[change.Variable] = change.Value;
-            else _frozen.Remove(change.Variable);
-        RefreshPins();
     }
 
     /// <summary>Called before each emulated frame, including frames run in turbo.</summary>
-    public void Tick()
-    {
-        foreach (var (name, value) in _frozen) profile.Variables[name].Write(machine.Memory, value);
-    }
-
-    public void ReleaseAll()
-    {
-        _frozen.Clear(); RefreshPins();
-    }
-
-    private uint Canonical(uint address) => machine.Id switch
-    {
-        "nes" when address < 0x2000 => address & 0x7FF,
-        "invaders" => address & 0x3FFF,
-        _ => address
-    };
-
-    private void RefreshPins()
-    {
-        _pinned.Clear();
-        var bytes = new EditBytes();
-        foreach (var (name, value) in _frozen)
-        {
-            var variable = profile.Variables[name];
-            bytes.Values.Clear(); variable.Write(bytes, value);
-            int mask = variable.Mask == 0 ? 255 : variable.Mask;
-            foreach (var (address, desired) in bytes.Values)
-            {
-                uint canonical = Canonical(address);
-                var old = _pinned.GetValueOrDefault(canonical);
-                _pinned[canonical] = ((byte)((old.Value & ~mask) | (desired & mask)), old.Mask | mask);
-            }
-        }
-        if (_pinned.Count > 0) _writeSubscription ??= CpuWriteObservers.Subscribe((IWriteWatch)machine, KeepPinned);
-        else { _writeSubscription?.Dispose(); _writeSubscription = null; }
-    }
-
-    // The CPU write has completed, but its next read (including a sprite DMA) has not started.
-    private void KeepPinned(ushort address, byte value, ushort pc)
-    {
-        if (_restoringByte || !_pinned.TryGetValue(Canonical(address), out var pin)) return;
-        byte desired = (byte)((machine.Memory.Peek(address) & ~pin.Mask) | (pin.Value & pin.Mask));
-        if (machine.Memory.Peek(address) == desired) return;
-        _restoringByte = true;
-        try { machine.Memory.Poke(address, desired); }
-        finally { _restoringByte = false; }
-    }
-
-    private sealed class EditBytes : IMemoryView
-    {
-        public int AddressBits => 32;
-        public readonly Dictionary<uint, byte> Values = new();
-        public byte Peek(uint address) => Values.GetValueOrDefault(address);
-        public void Poke(uint address, byte value) => Values[address] = value;
-    }
-
-    public void Dispose() => ReleaseAll();
+    public void Tick() => _pins.Tick();
+    public void ReleaseAll() => _pins.Release();
+    public void Dispose() => _pins.Dispose();
 
     /// <summary>Restores the state before the latest edit, including the preceding freeze selection. Keeps five edits.</summary>
     public bool Undo()
@@ -154,30 +84,10 @@ public sealed class GameModifications(IMachine machine, GameProfile profile) : I
         var point = last.Value;
         machine.LoadState(point.State);
         point.Picture.CopyTo(machine.Video.Pixels, 0);
-        _frozen.Clear();
-        foreach (var pair in point.Frozen) _frozen.Add(pair.Key, pair.Value);
-        RefreshPins();
+        _pins.RestoreSelection(point.Frozen);
         _undo.RemoveLast();
         if (_undo.Count == 0 && !_historyTrimmed) { _returnPoint = null; _returnPicture = null; }
         return true;
-    }
-
-    private void ValidateOverlap(GameProfile profile, IReadOnlyList<VariableEdit> changes)
-    {
-        var occupied = new Dictionary<uint, int>();
-        foreach (var change in changes)
-        {
-            var variable = profile.Variables[change.Variable];
-            int size = variable.Encoding == "uint8" ? 1 : variable.Encoding == "uint16" ? 2 : variable.Bytes;
-            int mask = variable.Mask == 0 ? 255 : variable.Mask;
-            for (int offset = 0; offset < size; offset++)
-            {
-                uint address = Canonical(variable.AddressValue + (uint)offset);
-                if ((occupied.GetValueOrDefault(address) & mask) != 0)
-                    throw new InvalidOperationException("Dos cambios usan los mismos bits de memoria. Liberá el congelado anterior o probalos por separado.");
-                occupied[address] = occupied.GetValueOrDefault(address) | mask;
-            }
-        }
     }
 
     /// <summary>Restores the complete machine at the first change, including CPU/video/time, and releases freezes.</summary>
