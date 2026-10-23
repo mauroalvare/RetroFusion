@@ -151,7 +151,7 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         else if (a == 0x4015) v = sideEffects ? Apu.ReadStatus() : Apu.Status;
         else if (a < 0x4020) v = _openBus;
         else if (a < 0x6000) v = _openBus;
-        else if (a < 0x8000) v = _prgRam[a & 0x1FFF];
+        else if (a < 0x8000) v = Cartridge.PrgRamEnabled ? _prgRam[a & 0x1FFF] : _openBus;
         else v = Cartridge.CpuRead(a);
         if (sideEffects)
             _openBus = v;
@@ -175,8 +175,8 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         else if (a == 0x4016) WriteStrobe(v);
         else if (a < 0x4018) Apu.Write(a, v);
         else if (a < 0x6000) { }                       // test registers and expansion
-        else if (a < 0x8000) _prgRam[a & 0x1FFF] = v;
-        else Cartridge.CpuWrite(a, v);
+        else if (a < 0x8000) { if (Cartridge.PrgRamEnabled) _prgRam[a & 0x1FFF] = v; }
+        else Cartridge.CpuWrite(a, v, _cpu.CycleCount);
     }
 
     /// <summary>

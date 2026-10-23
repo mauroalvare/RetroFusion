@@ -792,3 +792,19 @@ opcional permite el salto de offset al finalizar un segmento sin alterar los ana
 anteriores. El desensamblador puede recibir CS para el visor en vivo; un mapa estático
 por dirección física no reconstruye todos los alias de segmentos de un programa.
 Estas herramientas no convierten el núcleo en una máquina PC/XT ni acreditan su reloj.
+
+## D-052 — MMC1 y validación de cartuchos sin cargar sus bancos
+
+MMC1 añade transferencia serie de5bits con registro elegido por la quinta dirección,
+reset D7, filtro D0 de ciclos consecutivos del6502, bancos PRG16/32KB yCHR4/8KB,
+cuatro modos de espejado y deshabilitación dePRG RAM. El ciclo opcional de CpuWrite
+conserva los llamadores anteriores; las escrituras directas sin ciclo no simulan ese
+filtro. Los estados3 guardan también la transferencia incompleta y su último ciclo.
+Las placas SEROM mantienen32KB fijos; SUROM extiende la selección a512KB. Las variantes
+no implementadas se explican en LIMITACIONES; no acredita compatibilidad de todas las
+placas ni persistencia de batería entre sesiones.
+
+ValidateImage comparte la validación usada por Load, sin copiar ni calcular el hash
+de la ROM. El catálogo usa esta vía al inspeccionar candidatos; solo la carga real
+crea bancos e identidad SHA. No cambia la firma de los archivos de juego.
+Referencia: [MMC1](https://www.nesdev.org/wiki/MMC1).

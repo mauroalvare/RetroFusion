@@ -187,16 +187,22 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 
 ### Nintendo NES (T-031)
 
-- Corre en la app, el CLI y la matriz: CPU 2A03, PPU, APU, OAM DMA, los dos mandos, PRG RAM
-  y estados guardados. Cadaverion, Cave (CNROM), Cheman y Super Uwol llegan al título y
-  entran al juego con START (capturas del CLI y de la app oculta, 18/10). Bootee no se
-  prueba ni se documenta: la protagoniza Cheril (ver Contenido excluido).
+- Corre en la app, el CLI y la matriz: CPU 2A03, PPU, APU, OAM DMA, dos mandos,
+  PRG RAM y estados guardados. La compatibilidad depende también del mapper y del
+  uso de vídeo, sonido y periféricos de cada cartucho; reconocerlo no acredita jugabilidad.
 - APU: la lectura de muestras del DMC no le roba ciclos a la CPU (en el chip son hasta 4
   por byte), los registros de longitud no tienen la demora de un ciclo frente al contador
   de cuadros y no hay filtros de salida aparte del pasa altos (el sonido es algo más
   brillante que en una consola). Los estados guardados de la versión sin sonido no se
   pueden cargar (formato 2).
-- Solo mappers 0 y 3: un .nes con otro mapper se reconoce y se explica por qué no carga.
+- Mappers 0/1/2/3/7: NROM, MMC1, UxROM, CNROM y AxROM. Los demás se reconocen y se
+  explica por qué no cargan. MMC1 admite bancos PRG/CHR, puerto serie, espejado,
+  PRG RAM de8KB y la selección exterior SUROM. No admite MMC1A, EEPROM ni RAM mayor;
+  la selección exterior con registros CHR divergentes en modo4KB todavía no se sigue
+  por acceso PPU. El control adicional de RAM de SNROM no está modelado. Los tamaños
+  ampliados NES2 y submappers MMC1 ajenos a0/5 se rechazan.
+- La RAM de cartuchos con batería se conserva en estados guardados, sin archivo de
+  batería independiente entre sesiones todavía.
 - Sin segundo jugador en la app (el mando 2 existe para el CLI y las fusiones) ni Zapper.
 - La matriz no ve respuesta en Cave con la sonda automática (sí con START a mano en el
   CLI): falta un guion curado.

@@ -33,7 +33,7 @@ public static class MachineCatalog
         new("vic20", "Commodore VIC-20", "MOS 6502", MachineStatus.Planned, new[] { "vic20-kernal.rom" }, new[] { ".prg", ".crt" }),
         new("plus4", "Commodore Plus/4", "MOS 7501 (familia 6502)", MachineStatus.Planned, new[] { "plus4-kernal.rom" }, new[] { ".prg", ".tap", ".d64" }),
         new("nes", "Nintendo NES", "Ricoh 2A03 (familia 6502)", MachineStatus.Available, Array.Empty<string>(), new[] { ".nes" },
-            "No necesita firmware. Juegos: cartuchos .nes (iNES) con mapper 0 (NROM), 2 (UxROM), 3 (CNROM) o 7 (AxROM)."),
+            "No necesita firmware. Juegos: cartuchos .nes (iNES) con mapper 0 (NROM), 1 (MMC1), 2 (UxROM), 3 (CNROM) o 7 (AxROM)."),
         new("pcxt", "IBM PC / XT", "Intel 8088", MachineStatus.Planned, new[] { "pcxt-bios.rom" }, new[] { ".exe", ".com", ".img", ".ima" }),
         new("atarist", "Atari ST", "Motorola 68000", MachineStatus.Planned, new[] { "tos.img" }, new[] { ".st", ".msa", ".stx" }),
         new("amiga500", "Amiga 500", "Motorola 68000", MachineStatus.Planned, new[] { "kick13.rom" }, new[] { ".adf", ".ipf" }),
@@ -159,7 +159,7 @@ public static class MachineCatalog
             return null;
         try
         {
-            Retro.Systems.Nes.NesCartridge.Load(d);
+            Retro.Systems.Nes.NesCartridge.ValidateImage(d);
             return null;
         }
         catch (InvalidDataException e)

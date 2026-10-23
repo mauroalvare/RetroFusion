@@ -93,7 +93,7 @@ public class CartridgeTests
     public void BadImages_SayWhy()
     {
         Assert.That(() => NesCartridge.Load(new byte[40]), Throws.TypeOf<InvalidDataException>().With.Message.Contains("firma"));
-        Assert.That(() => NesCartridge.Load(Image(1, 1, flags6: 0x10)), Throws.TypeOf<InvalidDataException>().With.Message.Contains("Mapper 1"));
+        Assert.That(() => NesCartridge.Load(Image(1, 1, flags6: 0x40)), Throws.TypeOf<InvalidDataException>().With.Message.Contains("Mapper 4"));
         var cut = Image(2, 1)[..20000];
         Assert.That(() => NesCartridge.Load(cut), Throws.TypeOf<InvalidDataException>().With.Message.Contains("cortada"));
     }
@@ -101,7 +101,6 @@ public class CartridgeTests
     private static readonly string HomebrewDir = Path.Combine(Retro.Core.PlayerFolders.Find("ROMs",
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "ROMs"))!, "descargados-autores", "NES");
 
-    [TestCase("mojon-twins--bootee.nes", 0)]
     [TestCase("mojon-twins--cadaverion.nes", 0)]
     [TestCase("mojon-twins--cave-cnrom.nes", 3)]
     [TestCase("mojon-twins--cheman.nes", 0)]
