@@ -25,7 +25,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <AssemblyName>RetroEmu</AssemblyName>
-    <Version>0.2.6</Version>
+    <Version>0.2.7</Version>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
