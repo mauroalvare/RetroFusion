@@ -6,18 +6,18 @@ namespace Retro.App;
 /// <summary>The AI chooser and its settings (key, model), shared by the fusion windows and the code view.</summary>
 public static class AiPicker
 {
-    public static readonly string[] Ids = { "sub-claude", "sub-codex", "sub-google", "manual", "agent", "claude", "openai", "gemini", "ollama" };
+    public static readonly string[] Ids = { "sub-claude", "sub-codex", "sub-google", "ollama", "manual", "agent", "claude", "openai", "gemini" };
     public static readonly string[] Names =
     {
         "Claude Code (cuenta de Claude)",
         "Codex CLI (cuenta de ChatGPT)",
         "Antigravity CLI (cuenta de Google)",
+        "Ollama (local)",
         "Copiar y pegar",
         "Carpeta para un agente",
         "Claude API",
         "OpenAI API",
         "Gemini API",
-        "Ollama (local)",
     };
 
     /// <summary>True when the emulator talks to the AI by itself (the others are copy/paste and the agent folder).</summary>
@@ -26,7 +26,7 @@ public static class AiPicker
     public static string ShortName(string provider) => provider switch
     {
         "claude" or "sub-claude" => "Claude",
-        "sub-codex" => "ChatGPT",
+        "sub-codex" => "Codex CLI",
         "sub-google" => "Gemini",
         "openai" => "ChatGPT",
         "gemini" => "Gemini",
@@ -39,12 +39,31 @@ public static class AiPicker
     {
         int provider = Math.Max(0, Array.IndexOf(Ids, ai.Provider));
         ImGui.SetNextItemWidth(-1);
-        if (ImGui.Combo(id, ref provider, Names, Names.Length))
+        if (ImGui.Combo(id, ref provider, Names, Names.Length, Names.Length))
         {
             ai.Provider = Ids[provider];
             ai.Save();
         }
     }
+
+    /// <summary>One compact chooser. Connection, model and usage details stay together on demand.</summary>
+    public static void Choose(AiSettings ai, string id, string costNote, Func<AiRequest>? preview = null)
+    {
+        Combo(ai, "##ia-" + id);
+        if (!IsApi(ai.Provider)) return;
+        string model = CliTools.ById(ai.Provider) != null ? ai.CliModels.GetValueOrDefault(ai.Provider, "")
+            : ai.Provider switch { "claude" => ai.ClaudeModel, "openai" => ai.OpenAiModel, "gemini" => ai.GeminiModel, _ => ai.OllamaModel };
+        string effort = ai.CliEfforts.GetValueOrDefault(ai.Provider, "");
+        Hint(model.Length > 0 ? "Modelo: " + model + (effort.Length > 0 ? " · " + effort : "")
+            : "Modelo: el configurado en la herramienta.");
+        if (ImGui.CollapsingHeader("Modelo y conexión##" + id))
+        {
+            Settings(ai, costNote);
+            if (preview != null) Generation(ai, preview);
+        }
+    }
+
+    private static readonly Dictionary<uint, (double At, AiEstimate Estimate)> Estimates = new();
 
     public static void Generation(AiSettings ai, Func<AiRequest> preview)
     {
@@ -58,7 +77,14 @@ public static class AiPicker
         if (ImGui.InputInt("Tope de texto (miles de caracteres)", ref limit, 10))
         { ai.TextLimitThousands = Math.Clamp(limit, 0, 10000); ai.Save(); }
         if (ImGui.IsItemHovered()) ImGui.SetTooltip("0: sin tope. Cuenta instrucciones, pedido, código y esquema en todos los intentos de ese trabajo. No recorta el contenido.");
-        var estimate = AiEstimate.For(preview());
+        uint key = ImGui.GetID("estimacion-local");
+        double now = ImGui.GetTime();
+        if (!Estimates.TryGetValue(key, out var cached) || now - cached.At >= 1 || now < cached.At)
+        {
+            cached = (now, AiEstimate.For(preview()));
+            Estimates[key] = cached;
+        }
+        var estimate = cached.Estimate;
         ImGui.TextDisabled($"Entrada orientativa: {estimate.Characters:N0} caracteres.");
         ImGui.TextDisabled($"Tokens de texto estimados: {estimate.LowTokens:N0} a {estimate.HighTokens:N0}.");
         Hint("La idea elegida, las imágenes, la salida y el contexto propio del CLI pueden aumentar el consumo. No estima el cupo de tu cuenta.");

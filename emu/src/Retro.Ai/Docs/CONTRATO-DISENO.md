@@ -36,6 +36,12 @@ Respetá memoria, arranque, rangos, permisos y presupuesto por cuadro. Acotá en
 bucles y efectos. No recorras la memoria para reconstruir una pantalla ni simules progreso,
 puntos o movimiento para engañar al comprobador.
 
+Revisá el ritmo del primer minuto: respuesta inmediata a los controles, amenazas que
+se anuncian, consecuencias distinguibles y una oportunidad de aprender antes de castigar.
+El reto debe nacer de las reglas, no de falta de información. Ajustá velocidades, márgenes
+de choque y recuperación antes de añadir más sistemas. En una fusión probá una situación
+donde ambos originales cambien la misma decisión; dos actividades alternadas no bastan.
+
 ## Lista de control
 
 - La regla distintiva cambia decisiones y cumple el pedido.

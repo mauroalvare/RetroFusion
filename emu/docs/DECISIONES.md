@@ -646,3 +646,27 @@ prueba incluso si el historial se recorta. Dos cambios o congelados que comparte
 bits se rechazan antes de escribir; máscaras disjuntas siguen permitidas.
 El análisis no prueba el significado ni la jugabilidad de un valor. La aplicación
 continúa siendo explícita; no modifica los archivos originales.
+
+## D-044 Navegación y proyectos de creación (2026-10-23)
+
+Biblioteca es el acceso a las colecciones. Juego reúne archivos, estados y ejecución;
+Crear contiene las tres modalidades; Herramientas reúne modificaciones y depurador;
+Opciones contiene conexión de IA, sonido y pantalla. Los espacios de trabajo se alternan
+sin cancelar sus tareas; siguen procesando resultados cuando el panel está cerrado.
+
+CodeWindow distingue cuatro páginas: Cambios, Analizar con IA, Buscar variables y Código.
+El selector de proveedor y modelo está junto al pedido. La reconstrucción local de rutinas
+se nombra aparte de la consulta a IA. El modo copiar/pegar de rutinas usa un estado explícito,
+sin depender del texto de un mensaje. WorkspaceLayout mantiene paneles dentro del área visible.
+
+El estudio usa una consigna tanto para pedir ideas como para construir la propuesta
+del jugador. La IA se elige antes de preparar originales. El creador separa proyecto nuevo
+de proyectos guardados; abrirlo no exporta demos sin una acción del jugador.
+Versiones, perfiles y disponibilidad se cachean al abrir, guardar o actualizar; la
+estimación de contexto se calcula como máximo una vez por segundo, no en cada cuadro.
+
+Los hallazgos de IA son definiciones privadas de sesión; guardar controles o una variable
+manual excluye esas hipótesis. Los perfiles manuales conservan hashes del medio cargado.
+Tanto el parseo como la aceptación de un resultado tardío comprueban que nuevas
+definiciones no invadan nombres o direcciones ya conocidos y sus restricciones.
+App.Tests agrega pruebas del recorrido completo sin abrir una ventana ni llamar IAs reales.

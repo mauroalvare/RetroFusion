@@ -36,7 +36,7 @@ public sealed partial class CodeWindow : IDisposable
     private GameProfile? _profile;
     private CodeMap? _map;
     private CodeAnnotations _notes = new();
-    private string _status = "";
+    private string _status = "", _codeSummary = "";
 
     // routine browser
     private uint? _selected;
@@ -72,106 +72,80 @@ public sealed partial class CodeWindow : IDisposable
         _host.BeforeFrame += ApplyFrozen;
     }
 
-    public void Open()
-    {
-        _open = true;
-        _modificationsMode = false;
-        _finderOnOpen = _variablesOnOpen = false;
-        if (_host.Machine is { } m)
-            m.ExecutedMap ??= new bool[0x10000];
-    }
+    public void Open() => OpenPage(ToolPage.Code);
 
     public void Update()
     {
         var m = _host.Machine;
-        if (m == null) return;
+        if (m == null) { StopObservation(); return; }
         if (!ReferenceEquals(m, _machine) || _media != _host.LoadedMedia || _mediaRevision != _host.MediaRevision)
             SwitchGame(m);
         PollExplain(m);
         PollModificationAdvice();
+        if (_open && _host.Fusion == null) _observation ??= new ModificationObservation(m);
+        else StopObservation();
     }
 
     public void Draw()
     {
         Update();
-        var m = _host.Machine;
-        if (m == null || !_open)
+        var machine = _host.Machine;
+        if (machine == null || !_open) { _modificationPanelLeft = null; return; }
+        var viewport = ImGui.GetMainViewport();
+        float width = Math.Min(620, viewport.Size.X - 20);
+        ImGui.SetNextWindowPos(new Vector2(viewport.Pos.X + Math.Max(10, viewport.Size.X - width - 10), viewport.Pos.Y + 30), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowSize(new Vector2(width, Math.Min(760, viewport.Size.Y - 70)), ImGuiCond.FirstUseEver);
+        bool visible = ImGui.Begin("Modificar y analizar###game-tools", ref _open);
+        WorkspaceLayout.KeepOnScreen();
+        if (!visible)
+        { _modificationPanelLeft = null; ImGui.End(); if (!_open) StopObservation(); return; }
+        _modificationPanelLeft = ImGui.GetWindowPos().X - viewport.Pos.X;
+        ImGui.TextColored(LabelColor, _gameName);
+        ImGui.TextDisabled(machine.DisplayName + " · " + machine.Cpu.CpuName);
+        if (_status.Length > 0) ImGui.TextWrapped(_status);
+        if (_requestedPage is { } requested) { _activePage = requested; _requestedPage = null; }
+        if (ImGui.BeginTable("navegacion-herramientas", ImGui.GetContentRegionAvail().X < 500 ? 2 : 4, ImGuiTableFlags.SizingStretchSame))
         {
-            _modificationPanelLeft = null;
-            return;
+            Page("Cambios", ToolPage.Changes);
+            Page("Analizar con IA", ToolPage.Analysis);
+            Page("Buscar variables", ToolPage.Search);
+            Page("Código", ToolPage.Code);
+            ImGui.EndTable();
         }
-        var vp = ImGui.GetMainViewport();
-        ImGui.SetNextWindowPos(new Vector2(vp.Pos.X + (_modificationsMode ? Math.Max(10, vp.Size.X - 550) : 10), vp.Pos.Y + 30), ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(Math.Min(_modificationsMode ? 540 : 940, vp.Size.X - 20), Math.Min(760, vp.Size.Y - 70)), ImGuiCond.FirstUseEver);
-        if (!ImGui.Begin(_modificationsMode ? "Modificar el juego" : "Código del juego", ref _open))
+        ImGui.Separator();
+        switch (_activePage)
         {
-            _modificationPanelLeft = null;
-            ImGui.End();
-            return;
+            case ToolPage.Changes: DrawModifications(machine); break;
+            case ToolPage.Analysis: DrawModificationAnalysis(machine); break;
+            case ToolPage.Search: DrawFinder(machine); break;
+            case ToolPage.Code: DrawCodeTools(machine); break;
         }
-        _modificationPanelLeft = _modificationsMode ? ImGui.GetWindowPos().X - vp.Pos.X : null;
-        if (_modificationsMode)
+        ImGui.End();
+        if (!_open) StopObservation();
+
+        void Page(string label, ToolPage page)
         {
-            DrawModifications(m);
-            ImGui.End();
-            return;
+            ImGui.TableNextColumn();
+            if (ImGui.Selectable(label, _activePage == page, ImGuiSelectableFlags.None, new Vector2(0, 28))) _activePage = page;
         }
-        if (_finderOnOpen || _variablesOnOpen)
-        {
-            bool finder = _finderOnOpen;
-            ImGui.TextUnformatted(_gameName);
-            if (ImGui.Button("Volver a modificaciones")) OpenModifications();
-            ImGui.SameLine();
-            if (ImGui.Button("Ver todas las herramientas de código")) Open();
-            if (finder) DrawFinder(m); else DrawVariables(m);
-            if (_status.Length > 0) ImGui.TextWrapped(_status);
-            ImGui.End();
-            return;
-        }
-        if (_map == null && m.ExecutedMap != null && m.FrameCount > 30)
-            Analyze(m);
-        ImGui.TextUnformatted($"{_gameName}  -  {m.DisplayName} ({m.Cpu.CpuName})");
-        ImGui.SameLine();
-        if (ImGui.Button(_map == null ? "Analizar el código" : "Actualizar análisis"))
-            Analyze(m);
+    }
+
+    private void DrawCodeTools(IMachine machine)
+    {
+        AiPicker.Hint("Herramientas técnicas: rutinas desensambladas, parches en memoria y perfil del original.");
+        if (_map == null && machine.ExecutedMap != null && machine.FrameCount > 30) Analyze(machine);
+        if (ImGui.Button(_map == null ? "Reconstruir rutinas" : "Actualizar rutinas")) Analyze(machine);
         if (_map != null)
         {
             ImGui.SameLine();
-            if (ImGui.Button("Exportar listado .asm"))
-                _status = "Guardado en " + Export(m);
+            if (ImGui.Button("Exportar .asm")) _status = "Guardado en " + Export(machine);
         }
-        if (_status.Length > 0)
-        {
-            ImGui.PushStyleColor(ImGuiCol.Text, DimColor);
-            ImGui.TextWrapped(_status);
-            ImGui.PopStyleColor();
-        }
-
-        if (ImGui.BeginTabBar("codetabs"))
-        {
-            if (ImGui.BeginTabItem("Rutinas"))
-            {
-                DrawRoutines(m);
-                ImGui.EndTabItem();
-            }
-            if (ImGui.BeginTabItem("Variables y controles"))
-            {
-                DrawVariables(m);
-                ImGui.EndTabItem();
-            }
-            if (ImGui.BeginTabItem("Buscar variables"))
-            {
-                DrawFinder(m);
-                ImGui.EndTabItem();
-            }
-            if (ImGui.BeginTabItem($"Cambios al código ({_notes.Patches.Count})"))
-            {
-                DrawPatches(m);
-                ImGui.EndTabItem();
-            }
-            ImGui.EndTabBar();
-        }
-        ImGui.End();
+        if (_codeSummary.Length > 0) AiPicker.Hint(_codeSummary);
+        if (!ImGui.BeginTabBar("herramientas-tecnicas")) return;
+        if (ImGui.BeginTabItem("Rutinas")) { DrawRoutines(machine); ImGui.EndTabItem(); }
+        if (ImGui.BeginTabItem("Parches")) { DrawPatches(machine); ImGui.EndTabItem(); }
+        if (ImGui.BeginTabItem("Perfil y controles")) { DrawVariables(machine); ImGui.EndTabItem(); }
+        ImGui.EndTabBar();
     }
 
     // ------------------------------------------------------------------ game identity
@@ -179,6 +153,9 @@ public sealed partial class CodeWindow : IDisposable
     {
         _cts?.Cancel();
         _modificationCts?.Cancel();
+        StopObservation();
+        _analysisSnapshot = null; _lastAnalysis = ""; _modificationWish = "";
+        _discoveredLabels.Clear(); _manualExplanation = false;
         _modificationActivity.Reset();
         _routineActivity.Reset();
         _mediaRevision = _host.MediaRevision;
@@ -189,12 +166,13 @@ public sealed partial class CodeWindow : IDisposable
         _explainStatus = "";
         _machine = m;
         _media = _host.LoadedMedia;
-        _map = null;
+        _map = null; _codeSummary = "";
         _selected = null;
         _line = null;
         _back.Clear();
         _search = null;
         (_gameId, _gameName, _profile) = Identify(m);
+        if (_profile != null) _profile = GameProfile.Parse(_profile.ToJson());
         _modifications = _profile == null ? null : new GameModifications(m, _profile);
         _notes = CodeAnnotations.Load(_gameId);
         _bootText = string.Join("\n", _profile?.Boot ?? DefaultBoot(m));
@@ -249,10 +227,15 @@ public sealed partial class CodeWindow : IDisposable
     private void Analyze(IMachine m)
     {
         m.ExecutedMap ??= new bool[0x10000];
-        _map = CodeMap.Build(a => m.Memory.Peek(a), m.Flow, m.CodeEntryPoints, m.ExecutedMap);
+        var entries = m.CodeEntryPoints.Append(m.Cpu.ProgramCounter);
+        int firstGame = -1; // Add an observed game entry separately from ROM fall-through.
+        for (int address = (int)SystemRomEnd(m); address < m.ExecutedMap.Length; address++)
+            if (m.ExecutedMap[address]) { firstGame = address; break; }
+        if (firstGame >= 0) entries = entries.Append((uint)firstGame);
+        _map = CodeMap.Build(a => m.Memory.Peek(a), m.Flow, entries, m.ExecutedMap);
         int executed = m.ExecutedMap.Count(x => x);
         int game = _map.Routines.Keys.Count(a => a >= SystemRomEnd(m));
-        _status = $"{_map.Routines.Count} rutinas ({game} del juego), {_map.Code.Count} instrucciones; " +
+        _codeSummary = $"{_map.Routines.Count} rutinas ({game} del juego), {_map.Code.Count} instrucciones; " +
                   $"{executed} se ejecutaron desde que abriste esta ventana. Jugá un rato y actualizá para encontrar más.";
         if (_selected is uint s && !_map.Routines.ContainsKey(s))
             _selected = null;
@@ -303,16 +286,16 @@ public sealed partial class CodeWindow : IDisposable
     {
         if (_map == null)
         {
-            ImGui.TextWrapped("Jugá un momento y pulsá Analizar el código para ver las rutinas ejecutadas.");
+            ImGui.TextWrapped("Jugá un momento y pulsá Reconstruir rutinas. Para investigar cambios con IA usá la pestaña Analizar con IA.");
             return;
         }
-        float listWidth = 300;
+        float listWidth = Math.Clamp(ImGui.GetContentRegionAvail().X * 0.35f, 150, 300);
         ImGui.BeginChild("routinelist", new Vector2(listWidth, 0), ImGuiChildFlags.Borders);
         ImGui.SetNextItemWidth(-1);
-        ImGui.InputTextWithHint("##filtro", "buscar por nombre o dirección", ref _filter, 64);
-        ImGui.Checkbox("Solo las que se ejecutaron", ref _onlyExecuted);
+        ImGui.InputTextWithHint("##filtro", "Buscar rutina", ref _filter, 64);
+        ImGui.Checkbox("Solo ejecutadas", ref _onlyExecuted);
         if (SystemRomEnd(m) > 0)
-            ImGui.Checkbox("Ocultar la ROM del sistema", ref _hideSystemRom);
+            ImGui.Checkbox("Ocultar ROM del sistema", ref _hideSystemRom);
         ImGui.Separator();
         ImGui.BeginChild("routinescroll");
         foreach (var r in _map.Routines.Values.OrderBy(r => r.Start))
@@ -356,13 +339,12 @@ public sealed partial class CodeWindow : IDisposable
         ImGui.TextColored(LabelColor, $"{Name(m, r.Start)}  (${r.Start:X4}-${r.End:X4}, {r.Instructions.Count} instrucciones)");
         if (_rename.Length == 0)
             _rename = _notes.Label(r.Start) ?? "";
-        ImGui.SetNextItemWidth(220);
+        ImGui.SetNextItemWidth(Math.Max(80, ImGui.GetContentRegionAvail().X - 100));
         if (ImGui.InputTextWithHint("##nombre", "nombre nuevo", ref _rename, 64, ImGuiInputTextFlags.EnterReturnsTrue))
             SetLabel(r.Start, _rename);
         ImGui.SameLine();
         if (ImGui.Button("Renombrar"))
             SetLabel(r.Start, _rename);
-        ImGui.SameLine();
         if (ImGui.Button("Ver en el depurador"))
             _showInDebugger(r.Start);
         ImGui.SameLine();
@@ -434,7 +416,7 @@ public sealed partial class CodeWindow : IDisposable
     private void DrawListing(IMachine m, Routine r)
     {
         float editHeight = _line != null ? 92 : 0;
-        ImGui.BeginChild("listing", new Vector2(0, -editHeight));
+        ImGui.BeginChild("listing", new Vector2(0, -editHeight), ImGuiChildFlags.None, ImGuiWindowFlags.HorizontalScrollbar);
         uint? expected = null;
         uint pc = m.Cpu.ProgramCounter;
         foreach (var a in r.Instructions.OrderBy(x => x))
@@ -593,23 +575,28 @@ public sealed partial class CodeWindow : IDisposable
     // ------------------------------------------------------------------ AI
     private void DrawExplain(IMachine m, Routine r)
     {
+        AiPicker.Choose(_ai, "rutina", "Explicar la rutina usa un pedido a la IA elegida.");
         var provider = AiPicker.IsApi(_ai.Provider) ? _ai.Provider : null;
         bool busy = _explainTask != null;
         if (provider != null)
         {
-            string who = AiPicker.ShortName(provider);
-            if (ImGui.Button(busy ? "La IA está leyendo..." : $"Explicar con IA ({who})") && !busy)
+            if (ImGui.Button(busy ? "La IA está leyendo..." : "Explicar esta rutina") && !busy)
             {
-                var ai = _ai.CreateProvider()!;
-                string prompt = CodeExplainer.Prompt(m, r, _notes, _profile, _map!);
-                _explainFor = r.Start;
-                _explainRevision = _mediaRevision;
-                _explainMachine = m;
-                _cts = new CancellationTokenSource();
-                var token = _cts.Token;
-                _explainStatus = "Pidiendo la explicación...";
-                _routineActivity.Start(ai);
-                _explainTask = Task.Run(() => CodeExplainer.ExplainAsync(ai, prompt, token));
+                try
+                {
+                    var ai = _ai.CreateProvider()!;
+                    string prompt = CodeExplainer.Prompt(m, r, _notes, _profile, _map!);
+                    _explainFor = r.Start;
+                    _explainRevision = _mediaRevision;
+                    _explainMachine = m;
+                    _cts = new CancellationTokenSource();
+                    var token = _cts.Token;
+                    _explainStatus = "Pidiendo la explicación...";
+                    _routineActivity.Start(ai);
+                    _explainTask = Task.Run(() => CodeExplainer.ExplainAsync(ai, prompt, token));
+                }
+                catch (Exception error) when (error is AiException or InvalidOperationException or IOException)
+                { _explainStatus = error.Message; }
             }
             if (busy)
             {
@@ -619,17 +606,18 @@ public sealed partial class CodeWindow : IDisposable
             }
             ImGui.SameLine();
         }
-        if (ImGui.Button("Copiar consigna para otra IA"))
+        if (ImGui.Button("Copiar pedido"))
         {
             ImGui.SetClipboardText(CodeExplainer.ManualPrompt(CodeExplainer.Prompt(m, r, _notes, _profile, _map!)));
+            _manualExplanation = true;
             _explainStatus = "Pedido copiado. Pegalo en tu IA y traé la respuesta completa.";
         }
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Elegí la IA y su conexión en Modificar > Variables y cambios divertidos.");
+            ImGui.SetTooltip("El selector de IA de esta sección también se usa para explicar rutinas.");
         if (_explainStatus.Length > 0)
             ImGui.TextColored(new Vector4(0.6f, 0.8f, 1, 1), _explainStatus);
         _routineActivity.Draw(_explainTask != null, _explainStatus, _cts);
-        if (_explainStatus.StartsWith("Consigna copiada"))
+        if (_manualExplanation)
         {
             ImGui.InputTextMultiline("##respuestaia", ref _pasted, 20000, new Vector2(-1, 60));
             if (ImGui.Button("Usar la respuesta"))
@@ -639,7 +627,7 @@ public sealed partial class CodeWindow : IDisposable
                     CodeExplainer.Apply(CodeExplainer.Parse(_pasted), r, _notes);
                     _notes.Save(_gameId);
                     _rename = "";
-                    _pasted = "";
+                    _pasted = ""; _manualExplanation = false;
                     _explainStatus = "Listo: nombre, explicación, pseudocódigo y comentarios guardados.";
                 }
                 catch (AiException e)
@@ -656,6 +644,7 @@ public sealed partial class CodeWindow : IDisposable
             return;
         _explainTask = null;
         _routineActivity.Stop();
+        _cts?.Dispose(); _cts = null;
         if (_explainRevision != _mediaRevision || !ReferenceEquals(m, _explainMachine))
         {
             _ = t.Exception;
@@ -695,9 +684,6 @@ public sealed partial class CodeWindow : IDisposable
             return;
         }
         ImGui.TextWrapped(_profile.Description);
-        AiPicker.Hint("Enter aplica el valor. Congelar lo mantiene fijo.");
-        DrawVariableValues(m, true);
-
         ImGui.Separator();
         ImGui.TextUnformatted("Controles para las fusiones (qué tecla del juego es cada acción):");
         var keys = m.Keys.Select(k => k.Name).ToArray();
@@ -720,24 +706,23 @@ public sealed partial class CodeWindow : IDisposable
             _profile.Boot = _bootText.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
             changed = true;
         }
-        if (changed) ProfileLibrary.Save(_profile);
+        if (changed) SaveProfile();
         AiPicker.Hint("N indica la duración en cuadros. Los cambios se guardan automáticamente en el perfil.");
     }
 
     private void DrawVariableValues(IMachine m, bool addresses)
     {
         if (_profile == null) return;
-        var flags = ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingFixedFit;
-        if (!addresses) flags |= ImGuiTableFlags.ScrollY;
-        var size = addresses ? Vector2.Zero : new Vector2(0, Math.Clamp(ImGui.GetWindowHeight() * 0.3f, 120, 235));
+        var flags = ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.ScrollY;
+        var size = new Vector2(0, Math.Clamp(ImGui.GetWindowHeight() * 0.32f, 130, 245));
         if (ImGui.BeginTable("vars", addresses ? 5 : 4, flags, size))
         {
-            if (!addresses) ImGui.TableSetupScrollFreeze(0, 1);
-            ImGui.TableSetupColumn("Variable");
-            if (addresses) ImGui.TableSetupColumn("Dirección");
-            ImGui.TableSetupColumn("Valor");
-            ImGui.TableSetupColumn("Congelar");
-            ImGui.TableSetupColumn("Qué es", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupScrollFreeze(0, 1);
+            ImGui.TableSetupColumn("Variable", ImGuiTableColumnFlags.WidthStretch, 2);
+            if (addresses) ImGui.TableSetupColumn("Dirección", ImGuiTableColumnFlags.WidthFixed, 70);
+            ImGui.TableSetupColumn("Valor", ImGuiTableColumnFlags.WidthFixed, 72);
+            ImGui.TableSetupColumn("Congelar", ImGuiTableColumnFlags.WidthFixed, 64);
+            ImGui.TableSetupColumn("Qué es", ImGuiTableColumnFlags.WidthStretch, 3);
             ImGui.TableHeadersRow();
             foreach (var (name, v) in _profile.Variables)
             {
@@ -746,10 +731,11 @@ public sealed partial class CodeWindow : IDisposable
                 catch (Exception error) when (error is FormatException or OverflowException or IndexOutOfRangeException or ArgumentException)
                 { readable = false; }
                 ImGui.TableNextRow();
-                ImGui.TableNextColumn(); ImGui.TextUnformatted(addresses ? name : VariableLabel(name));
+                ImGui.TableNextColumn(); ImGui.TextWrapped(VariableLabel(name));
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip(name + "\n" + v.Description);
                 if (addresses) { ImGui.TableNextColumn(); ImGui.TextUnformatted("$" + v.Address); }
                 ImGui.TableNextColumn();
-                ImGui.SetNextItemWidth(90);
+                ImGui.SetNextItemWidth(-1);
                 ImGui.BeginDisabled(v.ReadOnly || !readable);
                 string input = _variableInputs.GetValueOrDefault(name, value.ToString(CultureInfo.InvariantCulture));
                 // InputScalar/InputInt rejects EnterReturnsTrue in this ImGui version.
@@ -793,18 +779,12 @@ public sealed partial class CodeWindow : IDisposable
         ImGui.TextDisabled($"RAM ${start:X4}-${end:X4}");
         if (_search == null)
             return;
-        if (ImGui.Button("Aumentó")) _search.Filter(SearchCondition.Increased);
-        ImGui.SameLine();
-        if (ImGui.Button("Disminuyó")) _search.Filter(SearchCondition.Decreased);
-        ImGui.SameLine();
-        if (ImGui.Button("Cambió")) _search.Filter(SearchCondition.Changed);
-        ImGui.SameLine();
-        if (ImGui.Button("No cambió")) _search.Filter(SearchCondition.Unchanged);
-        ImGui.SameLine();
-        if (ImGui.Button("Es igual a")) _search.Filter(SearchCondition.EqualTo, _searchValue);
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(90);
-        ImGui.InputInt("##valor", ref _searchValue);
+        string[] conditions = ["Cambió", "No cambió", "Aumentó", "Disminuyó", "Es igual a"];
+        SearchCondition[] filters = [SearchCondition.Changed, SearchCondition.Unchanged, SearchCondition.Increased, SearchCondition.Decreased, SearchCondition.EqualTo];
+        ImGui.SetNextItemWidth(150);
+        ImGui.Combo("Condición", ref _searchCondition, conditions, conditions.Length);
+        if (_searchCondition == 4) { ImGui.SetNextItemWidth(90); ImGui.InputInt("Valor", ref _searchValue); }
+        if (ImGui.Button("Filtrar resultados")) _search.Filter(filters[_searchCondition], _searchValue);
         ImGui.TextUnformatted($"Quedan {_search.Count} direcciones.");
         if (_search.Count > 200)
         {
@@ -830,9 +810,11 @@ public sealed partial class CodeWindow : IDisposable
         string name = Regex.Replace(_newVarName.Trim().ToLowerInvariant(), @"[^a-z0-9_]", "_");
         if (name.Length == 0)
         {
-            _status = "Escribí un nombre para la variable (en inglés y sin espacios, ej. lives, score, energy).";
+            _status = "Escribí un nombre para identificar la variable.";
             return;
         }
+        if (_profile?.Variables.ContainsKey(name) == true)
+        { _status = "Ese nombre ya existe. Elegí otro para agregar una variable."; return; }
         if (_profile == null)
         {
             _profile = new GameProfile
@@ -840,13 +822,14 @@ public sealed partial class CodeWindow : IDisposable
                 Id = _gameId,
                 Name = _gameName,
                 Machine = m.Id,
-                Match = new ProfileMatch { NamePattern = Regex.Escape(Path.GetFileNameWithoutExtension(_host.LoadedMedia ?? _gameName)) },
+                Match = new ProfileMatch { Sha256 = _host.LoadedMediaHashes.ToList() },
                 Description = "Perfil creado con el buscador de variables.",
                 Boot = DefaultBoot(m),
                 Verified = "Creado con el buscador de variables del emulador.",
             };
             _bootText = string.Join("\n", _profile.Boot);
         }
+        _discoveredLabels.Remove(name);
         _profile.Variables[name] = new GameVariable
         {
             Address = address.ToString("X4"),
@@ -855,9 +838,9 @@ public sealed partial class CodeWindow : IDisposable
             Max = 255,
             Description = _newVarDescription.Trim().Length > 0 ? _newVarDescription.Trim() : $"Encontrada con el buscador (valía {value}).",
         };
-        ProfileLibrary.Save(_profile);
+        SaveProfile();
         _modifications ??= new GameModifications(m, _profile);
-        _status = $"\"{name}\" (${address:X4}) agregada al perfil de {_profile.Name}. Configurá sus controles en \"Variables y controles\" y ya se puede fusionar.";
+        _status = $"\"{name}\" (${address:X4}) agregada al perfil de {_profile.Name}. Sus controles se configuran en Código > Perfil y controles.";
         _newVarName = "";
         _newVarDescription = "";
     }

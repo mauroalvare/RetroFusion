@@ -29,6 +29,7 @@ public sealed class StudioWindow
     private bool _libraryChanged;
     private string _folder;
     private readonly List<GameSource> _games = new();
+    private IReadOnlyList<StudioGame> _savedGames = [];
     private readonly Dictionary<string, string> _unprepared = new();
     private readonly Dictionary<string, string> _labels = new();
     private Task<Retro.Compat.PrepareResult>? _prepareTask;
@@ -42,7 +43,6 @@ public sealed class StudioWindow
     private string _status = "";
 
     private string _wish = "";
-    private string _ownIdea = "";
     private IReadOnlyList<StudioWork> _pendingWork = Array.Empty<StudioWork>();
     private string? _activeWork;
     private string _request = "";
@@ -92,6 +92,7 @@ public sealed class StudioWindow
             _concepts = null; _gameSearch = "";
         }
         RefreshWork();
+        RefreshSavedGames();
         if (_games.Count == 0 || _libraryChanged)
             Scan();
     }
@@ -132,15 +133,23 @@ public sealed class StudioWindow
             return;
         }
         var catalog = Retro.Compat.GameCatalog.Scan(_folder);
+        var twins = catalog.GroupBy(g => g.Profile.Name).ToDictionary(group => group.Key, group => group.Count());
         foreach (var g in catalog)
         {
             _games.Add(g.Source);
             if (!g.Prepared)
                 _unprepared[g.Profile.Id] = g.Path;
-            bool twin = catalog.Count(o => o.Profile.Name == g.Profile.Name) > 1;
+            bool twin = twins[g.Profile.Name] > 1;
             _labels[g.Profile.Id] = twin ? $"{g.Profile.Name} · {Path.GetFileName(g.Path)}" : g.Profile.Name;
         }
         _status = $"{_games.Count} juegos encontrados.";
+    }
+
+    private void RefreshSavedGames()
+    {
+        try { _savedGames = StudioLibrary.AllVersions(); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        { _status = "No se pudieron actualizar los proyectos: " + error.Message; }
     }
 
     private IReadOnlyDictionary<string, GameSource> Sources() => _games.ToDictionary(g => g.Profile.Id);
@@ -160,7 +169,10 @@ public sealed class StudioWindow
 
     /// <summary>Screen width to leave free on the right for this panel (0 when closed, collapsed or not on the right half).</summary>
     public float RightReserve(float screenWidth) =>
-        _open && _panelLeft is float left && left > screenWidth / 2 ? screenWidth - left : 0;
+        _open && _panelLeft is float left && left >= 200 ? screenWidth - left : 0;
+
+    public void Close() { _open = false; _panelLeft = null; }
+    public void Update() { if (!_open) Poll(); }
 
     public void Draw()
     {
@@ -175,7 +187,9 @@ public sealed class StudioWindow
         var vp = ImGui.GetMainViewport();
         ImGui.SetNextWindowPos(new Vector2(vp.Pos.X + vp.Size.X - 540, vp.Pos.Y + 30), ImGuiCond.FirstUseEver);
         ImGui.SetNextWindowSize(new Vector2(530, Math.Min(760, vp.Size.Y - 70)), ImGuiCond.FirstUseEver);
-        if (!ImGui.Begin(_inspiredMode ? "Crear con originales" : "Fusionar juegos", ref _open))
+        bool visible = ImGui.Begin(_inspiredMode ? "Crear con originales" : "Fusionar juegos", ref _open);
+        WorkspaceLayout.KeepOnScreen();
+        if (!visible)
         {
             _panelLeft = null;
             ImGui.End();
@@ -244,12 +258,13 @@ public sealed class StudioWindow
             ImGui.TreePop();
         }
         AiPicker.Hint(_status);
+        DrawAiChooser("La preparación y creación pueden usar varios pedidos a la IA elegida.");
         ImGui.Separator();
         ImGui.TextColored(Gold, $"1. Elegí los juegos ({_chosen.Count}/3)");
         ImGui.SetNextItemWidth(-1);
         ImGui.InputTextWithHint("##buscar-juego", "Buscar por nombre o máquina", ref _gameSearch, 150);
         var matches = _games.Where(g => _labels.GetValueOrDefault(g.Profile.Id, g.Profile.Name).Contains(_gameSearch.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
-        ImGui.BeginChild("elegir-juegos", new Vector2(0, Math.Clamp(ImGui.GetWindowHeight() * 0.28f, 110, 200)), ImGuiChildFlags.Borders);
+        ImGui.BeginChild("elegir-juegos", new Vector2(0, Math.Min(Math.Clamp(ImGui.GetWindowHeight() * 0.28f, 110, 200), Math.Max(74, matches.Count * 30 + 12))), ImGuiChildFlags.Borders);
         if (matches.Count == 0) ImGui.TextWrapped("No encontré juegos con ese nombre. Probá otra búsqueda.");
         foreach (var g in matches)
         {
@@ -280,7 +295,12 @@ public sealed class StudioWindow
         }
         ImGui.EndChild();
         if (_chosen.Count > 0)
+        {
             ImGui.TextWrapped("Elegidos: " + string.Join(" + ", _chosen.Select(id => _games.FirstOrDefault(g => g.Profile.Id == id)?.Profile.Name ?? id)));
+            ImGui.BeginDisabled(Busy);
+            if (ImGui.SmallButton("Limpiar selección")) { _chosen.Clear(); _concepts = null; }
+            ImGui.EndDisabled();
+        }
         DrawPreparation();
         if (_chosen.Count < 2)
         {
@@ -288,7 +308,9 @@ public sealed class StudioWindow
             return;
         }
 
-        var existing = StudioLibrary.For(_chosen).Where(g => g.IsInspired == _inspiredMode).ToList();
+        var wanted = _chosen.OrderBy(id => id).ToArray();
+        var existing = _savedGames.Where(g => g.IsInspired == _inspiredMode && g.ProfileIds.OrderBy(id => id).SequenceEqual(wanted))
+            .GroupBy(g => g.Id).Select(group => group.OrderByDescending(g => g.Version).First()).ToList();
         if (existing.Count > 0 && ImGui.TreeNode(_inspiredMode ? "Creaciones anteriores con estos originales" : "Fusiones anteriores de esta combinación"))
         {
             foreach (var game in existing)
@@ -301,54 +323,35 @@ public sealed class StudioWindow
         DrawDirection();
         ImGui.Spacing();
         if (!_inspiredMode) ImGui.TextColored(Gold, "3. Definí los aportes");
-        DrawAiChooser("La creación puede necesitar varios pedidos a la IA.");
-        if (ImGui.BeginTabBar("forma-de-idea"))
+        ImGui.TextUnformatted(_inspiredMode ? "Tu propuesta para el juego (opcional):" : "Qué querés incorporar a la base (opcional):");
+        ImGui.InputTextMultiline("##deseo", ref _wish, 2000, new Vector2(-1, 64));
+        ImGui.BeginDisabled(Busy);
+        if (ImGui.Button("Proponer 3 ideas")) AskConcepts();
+        ImGui.EndDisabled();
+        ImGui.SameLine();
+        ImGui.BeginDisabled(Busy || _wish.Trim().Length < 10);
+        if (ImGui.Button(_inspiredMode ? "Crear con mi propuesta" : "Fusionar con mi propuesta"))
+            Write(new GameConcept("", "", _wish.Trim(), "", PlayerRequest: _wish.Trim()));
+        ImGui.EndDisabled();
+        if (_concepts != null)
         {
-            if (ImGui.BeginTabItem("Proponer ideas"))
+            ImGui.Separator();
+            ImGui.TextColored(Gold, "Elegí una propuesta");
+            foreach (var concept in _concepts)
             {
-                ImGui.TextUnformatted("Enfoque o pedido (opcional):");
-                ImGui.InputTextMultiline("##deseo", ref _wish, 1000, new Vector2(-1, 44));
-                ImGui.BeginDisabled(Busy);
-                if (ImGui.Button("Proponer 3 ideas")) AskConcepts();
+                ImGui.PushID(concept.Title);
+                ImGui.TextColored(Gold, concept.Title);
+                ImGui.TextWrapped(concept.Pitch);
+                AiPicker.Hint(concept.HowToPlay);
+                if (concept.Design.Length > 0 && ImGui.TreeNode("Detalles del diseño"))
+                { ImGui.TextWrapped(concept.Design); ImGui.TreePop(); }
+                if (!string.IsNullOrWhiteSpace(concept.MissingData))
+                    ImGui.TextWrapped(StudioDesigner.MissingDataPrefix + concept.MissingData);
+                ImGui.BeginDisabled(Busy || !string.IsNullOrWhiteSpace(concept.MissingData));
+                if (ImGui.Button(_inspiredMode ? "Crear este juego" : "Crear esta fusión")) Write(concept);
                 ImGui.EndDisabled();
-                if (_concepts != null)
-                {
-                    ImGui.Separator();
-                    ImGui.TextUnformatted("Ideas de la IA (elegí una):");
-                    foreach (var c in _concepts)
-                    {
-                        ImGui.PushID(c.Title);
-                        ImGui.TextColored(Gold, c.Title);
-                        ImGui.SameLine();
-                        ImGui.TextDisabled(c.Approach);
-                        ImGui.TextWrapped(c.Pitch);
-                        AiPicker.Hint("Cómo se juega: " + c.HowToPlay);
-                        if (c.Design.Length > 0 && ImGui.TreeNode("Diseño##" + c.Title))
-                        {
-                            ImGui.TextWrapped(c.Design);
-                            ImGui.TreePop();
-                        }
-                        if (!string.IsNullOrWhiteSpace(c.MissingData))
-                            ImGui.TextWrapped(StudioDesigner.MissingDataPrefix + c.MissingData);
-                        ImGui.BeginDisabled(Busy || !string.IsNullOrWhiteSpace(c.MissingData));
-                        if (ImGui.Button("Hacer este juego")) Write(c);
-                        ImGui.EndDisabled();
-                        ImGui.Spacing();
-                        ImGui.PopID();
-                    }
-                }
-                ImGui.EndTabItem();
+                ImGui.Spacing(); ImGui.PopID();
             }
-            if (ImGui.BeginTabItem("Mi idea"))
-            {
-                ImGui.TextUnformatted("Contá cómo querés unir los juegos:");
-                ImGui.InputTextMultiline("##idea", ref _ownIdea, 2000, new Vector2(-1, 60));
-                ImGui.BeginDisabled(Busy || _ownIdea.Trim().Length < 10);
-                if (ImGui.Button("Hacer mi idea")) Write(new GameConcept("", "", _ownIdea.Trim(), "", PlayerRequest: _ownIdea.Trim()));
-                ImGui.EndDisabled();
-                ImGui.EndTabItem();
-            }
-            ImGui.EndTabBar();
         }
         DrawProgress();
     }
@@ -403,19 +406,13 @@ public sealed class StudioWindow
 
     private void DrawAiChooser(string costNote)
     {
-        AiPicker.Combo(_ai);
-        if (AiPicker.IsApi(_ai.Provider))
-        {
-            AiPicker.Settings(_ai, costNote);
-            AiPicker.Generation(_ai, () => _host.Fusion is StudioSession current && current.Game.IsInspired == _inspiredMode
-                ? new(StudioDesigner.Guide, [new(true, StudioDesigner.RevisePrompt(current.Game, current.Game.Games, ProfileLibrary.Find, _request))], StudioDesigner.GameSchema())
-                : new(StudioDesigner.Guide, [new(true, StudioDesigner.WritePrompt(Slots(), ProfileLibrary.Find,
-                    new("", "", _ownIdea.Length > 0 ? _ownIdea : _wish, "", Direction: SelectedDirection())))], StudioDesigner.GameSchema()));
-        }
-        else if (_ai.Provider == "manual")
-            AiPicker.Hint("Copiá el pedido a tu chat y pegá acá la respuesta.");
-        else if (_ai.Provider == "agent")
-            AiPicker.Hint("Prepará la carpeta y pasale la tarea a tu agente.");
+        bool canPreview = _chosen.Count >= 2 || _host.Fusion is StudioSession active && active.Game.IsInspired == _inspiredMode;
+        AiPicker.Choose(_ai, "estudio", costNote, canPreview ? () => _host.Fusion is StudioSession current && current.Game.IsInspired == _inspiredMode
+            ? new(StudioDesigner.Guide, [new(true, StudioDesigner.RevisePrompt(current.Game, current.Game.Games, ProfileLibrary.Find, _request))], StudioDesigner.GameSchema())
+            : new(StudioDesigner.Guide, [new(true, StudioDesigner.WritePrompt(Slots(), ProfileLibrary.Find,
+                new("", "", _wish, "", Direction: SelectedDirection())))], StudioDesigner.GameSchema()) : null);
+        if (_ai.Provider == "manual") AiPicker.Hint("Copiá el pedido a tu chat y pegá la respuesta.");
+        else if (_ai.Provider == "agent") AiPicker.Hint("Prepará la carpeta y pasale la tarea a tu agente.");
     }
 
     private void DrawPlaying(StudioSession s)
@@ -462,7 +459,7 @@ public sealed class StudioWindow
         ImGui.SameLine();
         if (ImGui.Button("Detener"))
             _host.StopFusion();
-        var versions = StudioLibrary.Versions(g.Id);
+        var versions = _savedGames.Where(game => game.Id == g.Id).OrderBy(game => game.Version).ToList();
         if (versions.Count > 1)
         {
             ImGui.SameLine();
@@ -475,6 +472,7 @@ public sealed class StudioWindow
                 ImGui.EndCombo();
             }
         }
+        if (ImGui.SmallButton("Actualizar versiones")) RefreshSavedGames();
         if (s.Slots.Count > 1)
         {
             ImGui.TextDisabled("Depurador y código de:");
@@ -943,7 +941,7 @@ public sealed class StudioWindow
             game.Id = StudioLibrary.UniqueId(string.IsNullOrWhiteSpace(game.Id) ? StudioLibrary.Slug(game.Title) : game.Id);
         game.WorkId = _activeWork;
         game.Usage = _activeWork != null ? _build.Usage : null;
-        try { StudioLibrary.Save(game, picture); }
+        try { StudioLibrary.Save(game, picture); RefreshSavedGames(); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
             RefreshWork();

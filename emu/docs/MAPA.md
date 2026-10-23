@@ -5,16 +5,16 @@ Fuente única de rutas y comandos de desarrollo. El diseño interno está en
 
 ## Entrada para jugar
 
-Al iniciar sin un archivo aparece **Inicio**, integrado en el área principal. Ofrece las
+Al iniciar sin un archivo aparece **Biblioteca**, integrado en el área principal. Ofrece las
 máquinas disponibles, sus juegos y **Todos los juegos**, con búsqueda por nombre.
 **Todos los juegos** reúne originales, creados y fusiones; cada máquina lista originales
 y creaciones para ese sistema. **Fusionados** y **Creados** tienen también secciones
 propias. No aparece una ventana flotante.
-**Inicio** o Ctrl+L pausa la partida; **Volver a la partida** restaura la pausa previa.
+**Biblioteca** o Ctrl+L pausa la partida; **Volver a la partida** restaura la pausa previa.
 Elegir una máquina filtra la biblioteca sin reiniciar la partida; abrir un juego
 comienza la partida elegida. Las fusiones y los juegos creados se actualizan al entrar
-o pulsar Actualizar. **Ver > Herramientas avanzadas** muestra Código y Depurar; sus
-atajos siguen funcionando. `HomeScreen` ocupa el espacio entre menú y barra de estado;
+o pulsar Actualizar. **Herramientas > Modificar y analizar** reúne cambios, IA, búsqueda y código;
+**Herramientas > Modo depurador** conserva las herramientas técnicas y sus atajos. `HomeScreen` ocupa el espacio entre menú y barra de estado;
 el video y las herramientas quedan ocultos mientras se muestra. La disposición se adapta
 al tamaño de ventana; no se guarda como posición de una ventana flotante en imgui.ini.
 
@@ -67,7 +67,7 @@ el estado en `Juegos creados/.trabajos` y `GameWriter.ResumeAsync` lo revalida s
 otra idea ni repetir una respuesta completa.
 Muestra los juegos elegidos y separa **Proponer ideas** de **Mi idea**; las carpetas y
 las fusiones anteriores se despliegan cuando se necesitan.
-**Ayuda > Conectar IA** y los enlaces en el selector abren `AiConnectionWindow` con
+**Opciones > Conectar o configurar IA** y los enlaces en el selector abren `AiConnectionWindow` con
 instalación, acceso y conexión por herramienta. Modelos/esfuerzos se consultan al abrir
 la configuración y por **Actualizar modelos**, sin generar respuestas. Ruta, modelo
 manual y prueba de generación quedan en **Conexión avanzada**. Detectar la instalación
@@ -85,10 +85,10 @@ entrenan; al superar el intervalo se muestra un aviso sin un contador clavado en
 
 ## Modificar una partida
 
-**Modificar > Variables y cambios divertidos** (Ctrl+M) abre el panel de experimentos
-reversibles junto al juego. Incluye edición/congelado, punto de regreso y propuestas
-de IA sobre las variables conocidas. Las herramientas de rutinas y búsqueda siguen
-accesibles desde ese menú. Guía: [MODIFICACIONES.md](MODIFICACIONES.md).
+**Herramientas > Modificar y analizar** (Ctrl+M) reúne edición/congelado, análisis de
+partida con cualquier proveedor configurado, búsqueda manual y código. El análisis usa
+escrituras y código capturados, propone hipótesis de sesión y no aplica cambios. Hay
+cinco pasos de deshacer y un punto de regreso anterior al primer cambio. Guía: [MODIFICACIONES.md](MODIFICACIONES.md).
 
 ```powershell
 # Interfaz nativa con una cinta/perfil generados, sin juegos del usuario ni pedidos de IA
@@ -215,17 +215,17 @@ otra copia visible si el usuario la pide expresamente.
 
 ## Fusiones con base y creación con originales
 
-**Máquina > Juegos originales** permite buscar por nombre y abrir los juegos sin fusión,
-incluso mientras se juega una fusión. Por ejemplo, buscar `Spy` muestra Spy vs Spy de C64.
+**Biblioteca** permite buscar por nombre y abrir los originales, incluso después de
+jugar una fusión.
 Los juegos fusionados tienen su propia entrada; guardar o jugar una fusión no quita
 archivos originales de la biblioteca ni los reemplaza.
 
-**Fusión > Fusionar conservando un juego base** es la entrada para elegir juegos, prepararlos e
+**Crear > Fusionar juegos** es la entrada para elegir juegos, prepararlos e
 definir la unión. El selector conserva por defecto un original y permite invertir la base.
 `FusionDirection` acompaña ideas, escritura y correcciones; `StudioGame.baseSlot` se
 guarda sin dejar que la IA o la carpeta cambien la elección. `screen.base` dibuja solo
 la imagen nativa elegida; `screen.game` y pantallas secundarias completas siguen rechazados.
-**Crear > A partir de tus ROMs** permite diseñar una escena nueva. Esos juegos aparecen
+**Crear > Juego nuevo con tus ROMs** permite diseñar una escena nueva. Esos juegos aparecen
 en Creados y se guardan en Juegos creados. Las pruebas de `tests/Studio.Tests` usan IA simulada.
 
 Mientras la IA propone, escribe o corrige un juego, **Abrir construcción** muestra la

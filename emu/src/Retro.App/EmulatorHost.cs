@@ -61,11 +61,12 @@ public sealed class EmulatorHost
     public bool Paused { get; set; }
     public bool TurboWhileLoading { get; set; } = true;
     public bool Turbo { get; set; }
-    public string Status { get; set; } = "Arrastrá un juego a la ventana o usá Archivo > Abrir.";
+    public string Status { get; set; } = "Arrastrá un juego a la ventana o usá Juego > Abrir.";
     public string? LastStopReason { get; private set; }
     public string? LoadedMedia { get; private set; }
     public GameProfile? LoadedProfile { get; private set; }
     private IReadOnlyList<MediaFile> _loadedFiles = [];
+    public IReadOnlyList<string> LoadedMediaHashes => _loadedFiles.Select(ProfileMatch.HashOf).ToArray();
     public bool UsesMedia(string path) => (Fusion is Retro.Studio.StudioSession studio ? studio.MediaSources : _loadedFiles.Select(f => f.Source))
         .Any(source => source.Equals(path, StringComparison.OrdinalIgnoreCase) || source.StartsWith(path + "!", StringComparison.OrdinalIgnoreCase));
     /// <summary>Changes on load, restart or state restoration, even when the file name is unchanged.</summary>

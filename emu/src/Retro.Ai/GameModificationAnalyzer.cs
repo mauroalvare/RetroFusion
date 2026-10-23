@@ -129,6 +129,8 @@ public static class GameModificationAnalyzer
                     bytes == 2 && !ModificationObservation.IsWorkRam(snapshot.Machine, address + 1) || !known.TryGetValue(address, out var first) ||
                     bytes == 2 && !known.ContainsKey(address + 1))
                     throw new JsonException("La variable usa memoria que no está en la evidencia.");
+                if (OverlapsKnownMemory(snapshot.Profile, address, bytes))
+                    throw new JsonException("La dirección ya pertenece a una variable conocida: usá su nombre y sus restricciones.");
                 int actual = first.Value | (bytes == 2 ? known[address + 1].Value << 8 : 0);
                 if (observed != actual) throw new JsonException("El valor observado no coincide con la captura.");
                 var found = new AnalyzedVariable(name, Text(variable, "label", 80), address, bytes, observed, Text(variable, "reason", 1000));
@@ -140,6 +142,19 @@ public static class GameModificationAnalyzer
         }
         catch (Exception error) when (error is JsonException or InvalidOperationException or KeyNotFoundException or FormatException or OverflowException or ArgumentException)
         { throw new AiException("El análisis no se puede usar: " + error.Message, error); }
+    }
+
+    public static bool OverlapsKnownMemory(GameProfile profile, uint address, int bytes)
+    {
+        foreach (var existing in profile.Variables.Values)
+        {
+            if (!uint.TryParse(existing.Address, System.Globalization.NumberStyles.HexNumber, null, out uint known)) continue;
+            int size = existing.Encoding == "uint16" ? 2 : existing.Encoding is "ascii" or "bcd" or "digits" ? existing.Bytes : 1;
+            if (address < (ulong)known + (uint)Math.Max(1, size) && known < (ulong)address + (uint)bytes) return true;
+            if (existing.Encoding == "uint9" && uint.TryParse(existing.HighBitAddress,
+                System.Globalization.NumberStyles.HexNumber, null, out uint high) && high >= address && high < (ulong)address + (uint)bytes) return true;
+        }
+        return false;
     }
 
     public static GameVariable Definition(AnalyzedVariable variable) => new()

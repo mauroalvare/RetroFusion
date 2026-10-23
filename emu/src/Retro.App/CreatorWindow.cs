@@ -23,7 +23,6 @@ public sealed class CreatorWindow
     private readonly string _romDir;
     private readonly AiSettings _ai;
     private readonly Action<string> _play;
-    private readonly Action? _fromOriginals;
     private bool _open;
     private int _machine;               // index in Templates.All
     private string _wish = "";
@@ -55,12 +54,11 @@ public sealed class CreatorWindow
     private Task<(GameDraft draft, TrialReport report)>? _agentTask;
     private string? _agentReport;
 
-    public CreatorWindow(string romDir, AiSettings ai, Action<string> play, Action? fromOriginals = null)
+    public CreatorWindow(string romDir, AiSettings ai, Action<string> play)
     {
         _romDir = romDir;
         _ai = ai;
         _play = play;
-        _fromOriginals = fromOriginals;
     }
 
     public void Open()
@@ -68,12 +66,6 @@ public sealed class CreatorWindow
         _open = true;
         RefreshWork();
         _games = null;
-        if (!_exported)
-        {
-            // the example games, tried once in the emulator, so there is something to play right away
-            _exported = true;
-            _exportTask = Task.Run(() => CreatedGames.ExportExamples(_romDir));
-        }
     }
 
     private bool Busy => _writeTask != null || _templateTask != null || _retryTask != null || _manualTask != null || _agentTask != null;
@@ -87,7 +79,10 @@ public sealed class CreatorWindow
 
     /// <summary>Screen width to leave free on the right for this panel (0 when closed or not on the right half).</summary>
     public float RightReserve(float screenWidth) =>
-        _open && _panelLeft is float left && left > screenWidth / 2 ? screenWidth - left : 0;
+        _open && _panelLeft is float left && left >= 200 ? screenWidth - left : 0;
+
+    public void Close() { _open = false; _panelLeft = null; }
+    public void Update() { if (!_open) Poll(); }
 
     public void Draw()
     {
@@ -100,7 +95,9 @@ public sealed class CreatorWindow
         var vp = ImGui.GetMainViewport();
         ImGui.SetNextWindowPos(new Vector2(vp.Pos.X + vp.Size.X - 540, vp.Pos.Y + 30), ImGuiCond.FirstUseEver);
         ImGui.SetNextWindowSize(new Vector2(530, Math.Min(760, vp.Size.Y - 70)), ImGuiCond.FirstUseEver);
-        if (!ImGui.Begin("Crear un juego de 8 bits", ref _open))
+        bool visible = ImGui.Begin("Crear un juego de 8 bits", ref _open);
+        WorkspaceLayout.KeepOnScreen();
+        if (!visible)
         {
             _panelLeft = null;
             ImGui.End();
@@ -108,22 +105,21 @@ public sealed class CreatorWindow
         }
         _panelLeft = ImGui.GetWindowPos().X - vp.Pos.X;
         DrawPendingWork();
-        DrawNew();
-        ImGui.Separator();
-        DrawGames();
+        if (ImGui.BeginTabBar("proyectos-creador"))
+        {
+            if (ImGui.BeginTabItem("Nuevo proyecto")) { DrawNew(); ImGui.EndTabItem(); }
+            if (ImGui.BeginTabItem("Proyectos guardados"))
+            {
+                if (Busy) { ImGui.TextWrapped(_progress); _build.Draw(_writeTask != null, _progress, _cts); }
+                DrawGames(); ImGui.EndTabItem();
+            }
+            ImGui.EndTabBar();
+        }
         ImGui.End();
     }
 
     private void DrawNew()
     {
-        if (_fromOriginals != null)
-        {
-            ImGui.BeginDisabled(Busy);
-            if (ImGui.Button("Crear a partir de tus ROMs")) { _open = false; _fromOriginals(); }
-            ImGui.EndDisabled();
-            ImGui.Separator();
-            ImGui.TextColored(Gold, "Crear desde cero");
-        }
         ImGui.TextWrapped("Elegí una máquina y describí el juego que querés crear.");
         ImGui.TextUnformatted("Máquina:");
         for (int i = 0; i < Templates.All.Count; i++)
@@ -131,17 +127,13 @@ public sealed class CreatorWindow
             ImGui.SameLine();
             ImGui.RadioButton(Templates.All[i].Name, ref _machine, i);
         }
-        AiPicker.Combo(_ai, "##ia-crear");
         bool callable = AiPicker.IsApi(_ai.Provider);
-        if (callable)
-        {
-            AiPicker.Settings(_ai, "La creación puede necesitar varios pedidos a la IA.");
-            AiPicker.Generation(_ai, () => new(GameWriter.Guide(Templates.All[_machine]),
+        AiPicker.Choose(_ai, "crear", "La creación puede necesitar varios pedidos a la IA.",
+            () => new(GameWriter.Guide(Templates.All[_machine]),
                 [new(true, GameWriter.FirstPrompt(Templates.All[_machine], _wish, new Random(0)))], null));
-        }
-        else if (_ai.Provider == "manual")
-            AiPicker.Hint("Copiá el pedido a tu chat y pegá acá la respuesta.");
-        else
+        if (_ai.Provider == "manual")
+            AiPicker.Hint("Copiá el pedido a tu chat y pegá la respuesta.");
+        else if (_ai.Provider == "agent")
             AiPicker.Hint("Prepará la carpeta y pasale la tarea a tu agente.");
         ImGui.TextUnformatted("Qué juego querés (opcional):");
         ImGui.InputTextMultiline("##pedido-crear", ref _wish, 1000, new Vector2(-1, 44));
@@ -306,7 +298,13 @@ public sealed class CreatorWindow
     private void DrawGames()
     {
         _games ??= CreatedGames.All();
-        ImGui.TextColored(Gold, "Juegos creados");
+        ImGui.TextColored(Gold, "Proyectos guardados");
+        if (ImGui.SmallButton("Actualizar proyectos")) _games = CreatedGames.All();
+        ImGui.SameLine();
+        ImGui.BeginDisabled(_exported || _exportTask != null);
+        if (ImGui.SmallButton("Agregar demos incluidas"))
+        { _exported = true; _exportTask = Task.Run(() => CreatedGames.ExportExamples(_romDir)); }
+        ImGui.EndDisabled();
         if (ImGui.SmallButton("Abrir la carpeta"))
         {
             Directory.CreateDirectory(CreatedGames.UserFolder);

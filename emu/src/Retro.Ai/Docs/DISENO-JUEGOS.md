@@ -149,3 +149,13 @@ Los metadatos describen lo implementado; no anuncian planes ni funciones ausente
 Si entregás un informe de trabajo, diferenciá lo probado, lo inferido y lo pendiente.
 Ese informe es para desarrollo. La pantalla del juego y su ayuda muestran únicamente
 lo que una persona necesita para jugar.
+
+
+## Revisión de la experiencia
+
+Evaluá una secuencia corta de juego, no una lista de funciones: qué observa el jugador,
+qué decide, qué respuesta obtiene y qué aprende. Los controles deben responder con
+claridad; riesgos, choques y recuperación tienen que poder anticiparse. Ajustá esa
+secuencia antes de añadir niveles, efectos o pantallas. En una fusión, ambos originales
+deben condicionar la misma decisión dentro del mundo elegido; alternar dos actividades
+independientes conserva la separación que el jugador quería superar.

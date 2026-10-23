@@ -91,6 +91,12 @@ una pantalla de título, tarjetas ni un HUD universal que tape o reemplace los s
 - No copies la presentación de una fusión anterior como un conjunto. Heredar la del
   original base sí es parte del objetivo. Los aportes nuevos deben encajar con ella.
 
+Antes de escribir, describí una situación concreta en la que una acción del aportante
+cambie lo que conviene hacer en la base y la base condicione esa acción. Si al quitar
+un original solo desaparece una decoración o un minijuego separado, rediseñá ese vínculo.
+En una revisión conservá lo que el jugador reconoce; ajustá respuesta, colisiones,
+ritmo y comunicación antes de sumar sistemas o reemplazar la presentación.
+
 ## 6. Instrumentación para poder probarlo
 
 El guion informa `game.state('title')`, `game.state('playing')` y `game.state('gameover')`,

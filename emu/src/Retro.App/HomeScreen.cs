@@ -10,11 +10,13 @@ namespace Retro.App;
 
 /// <summary>The main browser replaces the play area; it is never a floating window.</summary>
 public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal, Action<string> playFusion,
-    Action browse, Action fuse, Action create, Action<bool> visibility, Func<bool> canReturn, LibraryActivity? activity = null) : IDisposable
+    Action browse, Action<bool> visibility, Func<bool> canReturn, LibraryActivity? activity = null) : IDisposable
 {
     private readonly LibraryActivity _activity = activity ?? new();
     private readonly ThumbnailCache _thumbnails = new();
     private int _thumbnailRevision = -1;
+    private readonly Dictionary<string, GameProfile> _profiles = new(StringComparer.Ordinal);
+    private HashSet<string> _availableProfiles = new(StringComparer.Ordinal);
     private bool _open;
     private string _section = "home", _machine = "", _search = "", _problem = "";
     private List<StudioGame> _fusions = new();
@@ -23,7 +25,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
     private static readonly MachineInfo[] Machines = MachineCatalog.All.Where(m => m.Status == MachineStatus.Available)
         .OrderBy(m => m.Id switch { "zx48" => 0, "c64" => 1, "nes" => 2, _ => 3 }).ToArray();
     public bool IsOpen => _open;
-    public int GameCount => library.Originals().Count() + _created.Count + _fusions.Count + _inspired.Count;
+    public int GameCount => library.Entries.Count(entry => entry.Machine.Status == MachineStatus.Available) + _created.Count + _fusions.Count + _inspired.Count;
 
     public void Open()
     {
@@ -65,6 +67,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
             _fusions = games.Where(g => !g.IsInspired).ToList();
             _inspired = games.Where(g => g.IsInspired).ToList();
             _created = CreatedGames.All();
+            RefreshProfiles();
             _problem = "";
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
@@ -73,11 +76,26 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         }
     }
 
+    private void RefreshProfiles()
+    {
+        _availableProfiles = library.Entries.Where(entry => entry.ProfileId != null).Select(entry => entry.ProfileId!).ToHashSet();
+        try
+        {
+            var profiles = ProfileLibrary.All().GroupBy(profile => profile.Id).ToDictionary(group => group.Key, group => group.Last());
+            foreach (string id in _fusions.Concat(_inspired).SelectMany(game => game.ProfileIds).Distinct())
+                if (!profiles.ContainsKey(id) && ProfileLibrary.Find(id) is { } profile) profiles[id] = profile;
+            _profiles.Clear();
+            foreach (var pair in profiles) _profiles.Add(pair.Key, pair.Value);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        { _problem = "No se pudieron actualizar los datos de los juegos: " + error.Message; }
+    }
+
     public void Draw()
     {
         _thumbnails.Poll();
         if (!_open) return;
-        if (_thumbnailRevision != library.Revision) { _thumbnailRevision = library.Revision; _thumbnails.Clear(); }
+        if (_thumbnailRevision != library.Revision) { _thumbnailRevision = library.Revision; _thumbnails.Clear(); RefreshProfiles(); }
         var viewport = ImGui.GetMainViewport();
         ImGui.SetNextWindowPos(viewport.WorkPos);
         ImGui.SetNextWindowSize(new Vector2(viewport.WorkSize.X, Math.Max(1, viewport.WorkSize.Y - 24)));
@@ -222,7 +240,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
 
     private void DrawFusions()
     {
-        if (ImGui.Button("Fusionar juegos")) { Close(); fuse(); }
+        AiPicker.Hint("Las fusiones nuevas se preparan desde Crear > Fusionar juegos.");
         ImGui.Spacing();
         var games = _fusions.Where(g => Matches(g.Title)).ToList();
         if (games.Count == 0) { ImGui.TextWrapped("No hay fusiones para mostrar."); return; }
@@ -236,18 +254,18 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
 
     private void FusionRow(StudioGame game)
     {
-        var have = library.Entries.Where(e => e.ProfileId != null).Select(e => e.ProfileId!).ToHashSet();
+        var have = _availableProfiles;
         string missing = string.Join(", ", game.Games.Where(g => !have.Contains(g.Profile))
-            .Select(g => ProfileLibrary.Find(g.Profile)?.Name ?? g.Profile));
+            .Select(g => _profiles.GetValueOrDefault(g.Profile)?.Name ?? g.Profile));
         Row(FusionKey(game), game.Title, $"{(game.IsInspired ? "Con originales" : "Fusión")} · v{game.Version}", missing.Length > 0 ? "Falta: " + missing : game.Pitch,
             () => playFusion(game.Id), missing.Length == 0,
-            ProfileLibrary.Find(game.Games.FirstOrDefault(g => g.Slot == game.BaseSlot)?.Profile ?? game.Games.FirstOrDefault()?.Profile ?? "")?.Machine ?? "fusion",
+            _profiles.GetValueOrDefault(game.Games.FirstOrDefault(g => g.Slot == game.BaseSlot)?.Profile ?? game.Games.FirstOrDefault()?.Profile ?? "")?.Machine ?? "fusion",
             () => StudioLibrary.PicturePath(game));
     }
 
     private void DrawCreated()
     {
-        if (ImGui.Button("Crear un juego")) { Close(); create(); }
+        AiPicker.Hint("Para un proyecto nuevo, usá el menú Crear.");
         ImGui.Spacing();
         var games = _created.Where(g => Matches(g.Title)).ToList();
         var inspired = _inspired.Where(g => Matches(g.Title)).ToList();

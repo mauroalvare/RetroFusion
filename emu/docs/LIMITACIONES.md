@@ -4,6 +4,26 @@ Registro de lo que no funciona o funciona a medias. Cada entrada dice si es **ob
 (se vio en una prueba) o **probable** (se deduce del código, falta comprobarlo). Al
 arreglar algo, se borra la entrada y se menciona en el commit.
 
+## Análisis y modificaciones de partidas
+
+- El significado de una variable propuesta por IA es una hipótesis. Ver escrituras y
+  código no demuestra que su modificación produzca el efecto descrito.
+- El pedido lleva hasta 128 bytes candidatos y 160 instrucciones, a partir de una
+  observación acotada a 2.048 direcciones. No es un análisis completo de la ROM.
+  Si faltan datos, jugá con la ventana abierta y formulá una pregunta más concreta.
+- Las nuevas variables admiten bytes o palabras little endian en RAM de trabajo.
+  Se excluyen firmware, hardware y regiones reservadas de dirección fija; una pila
+  dinámica o código en RAM pueden entrar en la evidencia. Las áreas conservadoras
+  también pueden dejar afuera variables válidas. Las herramientas manuales siguen disponibles.
+- Hipótesis e historial son de sesión; no se guardan como perfiles verificados.
+  Deshacer conserva los cinco cambios más recientes; restaurar conserva el primero.
+  Ambos restauran el progreso de partida desde ese punto. Abrir, recargar o reiniciar
+  un juego o cargar un estado externo descarta esa sesión.
+- La comprobación nueva usa IA simulada. No demuestra que todos los proveedores
+  encuentren variables útiles ni valida semántica o calidad creativa de sus respuestas.
+- Las listas de proyectos se actualizan al abrir, guardar o pulsar Actualizar.
+  Los cambios externos no se descubren leyendo todos sus archivos en cada cuadro.
+
 ## Tiempo de creación con IA
 
 - El estimado es un intervalo orientativo de trabajos completos anteriores, incluida

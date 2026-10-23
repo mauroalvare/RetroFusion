@@ -609,23 +609,34 @@ máquina no incluye el guion ni las otras máquinas.
 Las bibliotecas omiten metadatos ilegibles o incompletos sin modificar los archivos del
 jugador. Los campos de texto anulados se normalizan antes de llegar a la interfaz.
 
-`CodeWindow` comparte el editor avanzado con la vista **Modificar**. `GameModifications`
-valida y aplica lotes de variables, mantiene congelados y conserva un único punto de
-regreso anterior al primer cambio; copia también los píxeles para restaurar una partida
-pausada sin mostrar la imagen del experimento. No toca medios ni perfiles. El host emite
-`BeforeFrame` por cuadro original (también turbo/paso), y una vez por tick de fusión.
-El guardado de regreso completo de esta vista se ofrece para originales.
+`CodeWindow` reúne Cambios, Analizar con IA, Buscar variables y Código. La reconstrucción
+local de rutinas se distingue del pedido a IA. El selector de proveedor/modelo está en
+el contexto de cada pedido, incluidas las explicaciones de rutinas y copiar/pegar.
 
-`EmulatorHost.LoadedProfile` se obtiene con los bytes reales del medio. `MediaRevision`
-cambia también si al reabrir Modificar aparece un perfil nuevo para esos mismos bytes;
-eso permite preparar el juego en el estudio y volver a la partida sin recargarla. La revisión
-cambia al cargar, recargar, reiniciar o restaurar; las tareas, borradores, congelados y
-propuestas se vinculan a revisión y máquina. Se cancelan o descartan respuestas viejas,
-incluidas las explicaciones de rutinas. Se conservan los guardados rápidos solo mientras
-no cambie el medio. `GameModificationAdvisor` usa el proveedor común, valida respuestas
-declarativas y no aplica sus ideas automáticamente. El panel de actividad sirve también
-para este análisis y para las rutinas. Detalle del recorrido en
-[MODIFICACIONES.md](MODIFICACIONES.md); decisión D-018.
+`ModificationObservation` encadena el observador de escrituras solo mientras la ventana
+está abierta. Acota direcciones y copia la evidencia antes del trabajo asíncrono.
+`GameModificationAnalyzer` usa el proveedor común y valida direcciones/valores contra
+esa captura. Los hallazgos amplían un perfil privado de sesión, sin guardar hipótesis
+como variables verificadas para fusiones. No escribe en la máquina.
+
+`GameModifications` aplica lotes explícitos, evita solapamientos y mantiene congelados.
+Conserva cinco estados de deshacer y el punto anterior al primer cambio, con sus píxeles.
+El host emite `BeforeFrame` por cuadro original, incluidos turbo/paso. El regreso de
+partida completo se ofrece para originales. Restaurar desde esta vista actualiza
+MediaRevision pero conserva las definiciones y el historial restante de la sesión.
+
+`EmulatorHost.LoadedProfile` usa los bytes reales del medio. Las tareas se vinculan a
+máquina y MediaRevision: respuestas anteriores a otra carga, reinicio o restauración
+se descartan, aunque el proveedor no responda a cancelación. El panel de actividad
+sirve para análisis y rutinas. Guía: [MODIFICACIONES.md](MODIFICACIONES.md), D-043.
+
+La navegación tiene seis entradas: Biblioteca, Juego, Crear, Herramientas, Opciones y
+Ayuda. Los tres espacios de trabajo se cierran visualmente entre sí, conservando sus
+trabajos pendientes. Sus tareas siguen recibiendo resultados en segundo plano.
+WorkspaceLayout mantiene los paneles dentro del área visible tras redimensionar.
+El estudio cachea versiones al abrir/guardar/actualizar; la biblioteca cachea perfiles
+y disponibilidad por revisión. No se releen esos JSON por cada cuadro dibujado.
+El creador separa proyectos nuevos y guardados; exportar demos es una acción explícita.
 
 Cada máquina expone `Flow` (un `IFlowAnalyzer` por CPU que clasifica cada instrucción:
 normal, CALL, salto, retorno, salto indirecto), sus `CodeEntryPoints` (reset e

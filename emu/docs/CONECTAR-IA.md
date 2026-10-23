@@ -1,6 +1,6 @@
 # Conectar una IA
 
-Abrí **Ayuda > Conectar IA**, elegí una herramienta y seguí sus tres pasos.
+Abrí **Opciones > Conectar o configurar IA**, elegí una herramienta y seguí sus tres pasos.
 La misma ayuda está en Fusionar y Crear. RetroEmu detecta las instalaciones habituales;
 no hace falta buscar el ejecutable ni escribir el nombre de un modelo.
 

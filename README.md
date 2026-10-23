@@ -59,11 +59,11 @@ Estos dos vienen incluidos como ejemplo (originales, escritos solo con las guía
 
 ## La app por dentro
 
-**Modificar mientras jugás:** cambiá o congelá variables conocidas, pedí ideas a tu IA
-y probalas con un punto de regreso. **Modificar > Variables y cambios divertidos**
-(Ctrl+M). [Cómo usarlo](emu/docs/MODIFICACIONES.md).
+**Investigar y modificar una partida:** pedile a tu IA que analice memoria y código,
+revisá las variables y propuestas, y elegí qué aplicar. Podés congelar valores, deshacer
+el último cambio o restaurar la partida. **Herramientas > Modificar y analizar** (Ctrl+M). [Cómo usarlo](emu/docs/MODIFICACIONES.md).
 
-![Modificar una partida y revisar propuestas de ejemplo](emu/docs/img/interfaz/modificaciones.png)
+![Variables y propuestas de análisis de una partida](emu/docs/img/interfaz/modificaciones.png)
 
 | Elegir una máquina | Juegos de la máquina elegida |
 |---|---|
@@ -80,8 +80,9 @@ Los archivos sueltos de `ROMs` se ordenan por sistema al detectarlos. Los que no
 identificar quedan en su lugar; se conservan tus subcarpetas, fechas y nombres repetidos.
 El selector muestra el hardware de cada máquina y las capturas o carátulas locales
 de los juegos. Una imagen PNG o JPG con el mismo nombre junto al juego sirve como miniatura.
-**Inicio** o **Ctrl+L** vuelve al selector y conserva la partida. El código y el depurador
-se activan desde **Ver > Herramientas avanzadas**.
+**Biblioteca** o **Ctrl+L** vuelve al selector y conserva la partida. **Crear** reúne las
+fusiones y los juegos nuevos; **Herramientas** reúne modificaciones, código y depurador.
+**Opciones** contiene la conexión de IA, sonido y pantalla.
 
 | Estudio de fusiones | Creador de juegos de 8 bits |
 |---|---|
@@ -115,7 +116,7 @@ firmware y ajustes, y vuelve a abrirse en la misma carpeta. Tus bibliotecas perm
 La descarga y los temporales se eliminan al completar la actualización.
 Podés omitir la actualización o cambiar esa opción en **Ayuda > Actualizaciones**.
 Para pasar desde una versión anterior, seguí `ACTUALIZAR.txt` del paquete.
-**Ayuda > Conectar IA** muestra cómo instalar e iniciar sesión en cada herramienta,
+**Opciones > Conectar o configurar IA** muestra cómo instalar e iniciar sesión en cada herramienta,
 y consulta sus modelos y esfuerzos disponibles. [Guía de conexión](emu/docs/CONECTAR-IA.md).
 Los estados guardados se ofrecen en los originales; las fusiones se reinician desde el estudio.
 

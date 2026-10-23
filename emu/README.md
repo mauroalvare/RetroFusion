@@ -48,7 +48,7 @@ muestra las teclas del juego o sistema activo. También se puede usar un mando.
 | F11 | Pantalla completa |
 
 Las cintas pueden tardar en cargar. Si el joystick del C64 no responde,
-cambiá el puerto en **Máquina > Joystick**.
+cambiá el puerto en **Juego > Controles y hardware**.
 Los estados guardados están disponibles en originales. Si un estado está dañado,
 la partida actual se conserva.
 
@@ -56,14 +56,14 @@ la partida actual se conserva.
 
 - **Fusionar juegos:** elegí 2 o 3 originales y cuál es la base. Conserva sus mapas,
   aspecto y reglas, con personajes o mecánicas de los otros dentro de ese mundo.
-- **Crear > A partir de tus ROMs:** diseñá un juego nuevo con esos recursos, sin una base obligatoria.
-- **Crear > Desde cero:** elegí la máquina y describí lo que querés. Podés dejar la idea a elección de la IA.
+- **Crear > Juego nuevo con tus ROMs:** diseñá un juego nuevo con esos recursos, sin una base obligatoria.
+- **Crear > Juego nuevo desde cero:** elegí la máquina y describí lo que querés. Podés dejar la idea a elección de la IA.
 - **Cambiar una fusión:** pedí otra versión desde el estudio. Las anteriores quedan guardadas.
 
 Elegí cómo trabajar: una herramienta instalada con tu sesión iniciada, copiar y pegar
 desde un chat, una carpeta para tu agente o una API. Las APIs tienen sus propias
 condiciones y cargos. Las herramientas instaladas usan los límites de tu cuenta.
-**Ayuda > Conectar IA** guía la instalación y el acceso; después muestra los modelos
+**Opciones > Conectar o configurar IA** guía la instalación y el acceso; después muestra los modelos
 y esfuerzos que publica cada herramienta. [Ver los pasos](docs/CONECTAR-IA.md).
 
 Durante un pedido, **Abrir construcción** muestra la actividad disponible y permite cancelar.
@@ -76,8 +76,10 @@ carpetas nuevas solo tengan ayuda.
 
 ## Modificar
 
-**Ctrl+M** abre las variables conocidas. Podés cambiar valores, congelarlos o pedir propuestas.
-**Volver antes de probar** recupera la partida anterior al primer cambio.
+**Herramientas > Modificar y analizar** o **Ctrl+M** reúne los cambios, el análisis con IA,
+la búsqueda de variables y las herramientas de código. La IA puede investigar una partida
+sin perfil previo; sus hallazgos aparecen como hipótesis para probar.
+**Deshacer último cambio** conserva hasta cinco cambios; **Restaurar partida** vuelve al primero.
 [Ver las opciones de modificación](docs/MODIFICACIONES.md).
 
 ![Modificar una partida](docs/img/interfaz/modificaciones.png)
@@ -95,4 +97,5 @@ También se aceptan archivos ZIP. La compatibilidad depende de la edición del j
 El paquete incluye el firmware redistribuible del Spectrum y Open ROMs para C64,
 con sus licencias en **firmware**.
 
-**Ver > Herramientas avanzadas** habilita el visor de código y el depurador.
+El visor de código está en la misma ventana de modificaciones. El depurador se abre
+desde **Herramientas** o con **F12**.

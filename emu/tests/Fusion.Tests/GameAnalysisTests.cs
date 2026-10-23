@@ -121,6 +121,17 @@ public class GameAnalysisTests
         Assert.That(profile.Variables["pace"].ReadOnly,Is.True);
     }
 
+    [TestCase("uint8", "8000", false)] [TestCase("uint8", "8000", true)]
+    [TestCase("uint16", "7FFF", false)] [TestCase("uint9", "8001", true)]
+    public void ANewAliasCannotBypassTheRangeOrReadOnlyStatusOfKnownMemory(string encoding,string address,bool readOnly)
+    {
+        var profile=Profile();
+        profile.Variables["known"]=new(){Address=address,Encoding=encoding,Min=0,Max=9,ReadOnly=readOnly,
+            HighBitAddress="8000",HighBitMask=1};
+        var snapshot=new GameAnalysisSnapshot("Propio","zx48",0,"",[new(0x8000,3,0,1,0x9003,"INC")],profile);
+        Assert.Throws<AiException>(()=>GameModificationAnalyzer.Parse(Answer(3),snapshot));
+    }
+
     [Test]
     public void AWordRequiresBothObservedBytesAndTheCorrectLittleEndianValue()
     {

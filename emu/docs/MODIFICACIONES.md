@@ -1,40 +1,39 @@
-# Modificar una partida
+# Modificar y analizar una partida
 
-Abrí un original y presioná **Ctrl+M**, o entrá en **Modificar > Variables y cambios divertidos**.
+Abrí un original y usá **Herramientas > Modificar y analizar** o **Ctrl+M**.
 
-## Cambiar valores
+- **Cambios:** editá valores con Enter, congelalos o aplicá una propuesta.
+- **Analizar con IA:** elegí proveedor y modelo, escribí tu pregunta y pulsá **Analizar la partida**.
+- **Buscar variables:** compará la memoria mientras jugás y filtrá los resultados.
+- **Código:** revisá rutinas, explicaciones, parches y controles del perfil.
 
-Escribí un número y confirmá con **Enter**. **Congelar** mantiene ese valor fijo;
-**Soltar todos los congelados** permite que vuelva a cambiar. Los datos de solo lectura no se editan.
+## Investigar con IA
 
-El primer cambio guarda la partida. **Volver antes de probar** recupera ese momento:
-también deshace el progreso jugado desde entonces. El archivo original se conserva.
+Jugá unos segundos con la ventana abierta para reunir escrituras de memoria.
+Podés preguntar por una regla o pedir un efecto. El análisis recibe valores y un recorte
+del código de la partida; no necesita un perfil preparado.
 
-El punto de regreso es temporal. Se descarta al abrir, recargar o reiniciar un juego,
-o al cargar otro estado.
+Los hallazgos aparecen en **Cambios**, con una explicación y propuestas para probar.
+Las variables nuevas se indican como hipótesis: su significado y efecto requieren
+comprobarse jugando. Recibir el análisis no modifica la partida ni el archivo original.
 
-## Pedir ideas
+El selector admite las CLI conectadas, Ollama y las APIs configuradas.
+**Modelo y conexión** reúne sus ajustes. También podés copiar el pedido a otro chat
+o agente y pegar su respuesta. **Ver actividad** muestra la salida disponible y permite cancelar.
 
-Elegí tu IA, describí qué querés probar y pulsá **Pedir ideas para modificar**.
-La IA recibe las variables conocidas y sus valores. Revisá cada propuesta antes de pulsar
-**Probar estos cambios**: recibir una respuesta no modifica la partida.
+## Volver atrás
 
-**Ver actividad de la IA** muestra el tiempo transcurrido y la salida disponible.
-Podés cancelar el pedido. También se admite copiar y pegar desde otro chat.
+**Deshacer último cambio** recupera el estado anterior al último cambio; guarda hasta cinco.
+**Restaurar partida** vuelve al momento anterior al primero. Ambas opciones recuperan
+también el progreso de juego desde ese punto. **Liberar valores congelados** permite
+que vuelvan a cambiar, sin restaurar la partida.
 
-## Si faltan variables
+El historial y las hipótesis duran esta sesión del original. Abrir, recargar o reiniciar
+el juego, o cargar un estado externo, los descarta. Las hipótesis de IA no se guardan
+como datos verificados para fusiones.
 
-**Buscar variables** permite comparar la memoria mientras jugás y filtrar según
-cómo cambió un valor. Al reducir los resultados, podés guardar una variable en el perfil.
+## Fusiones y juegos creados con originales
 
-**Preparar un juego en el estudio** abre el análisis automático. Al terminar,
-volvé con **Ctrl+M** para actualizar el perfil sin reiniciar la partida.
-
-**Ver rutinas y análisis del código** abre las herramientas avanzadas.
-
-## En una fusión
-
-Pedí una versión nueva desde el estudio para cambiar sus reglas.
-El regreso de partida completo está disponible solo en originales.
-La vista avanzada del original enfocado permite editar sus datos, sin guardar
-el estado completo de la fusión.
+Sus reglas se editan como una versión nueva desde el estudio. El guardado de regreso
+completo de esta herramienta se ofrece para originales; **Código** permite revisar
+el original enfocado como herramienta técnica.

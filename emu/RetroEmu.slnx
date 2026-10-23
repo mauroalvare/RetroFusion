@@ -21,6 +21,7 @@
     <Project Path="src/Retro.Systems.Spectrum/Retro.Systems.Spectrum.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/App.Tests/App.Tests.csproj" />
     <Project Path="tests/Arcade.Tests/Arcade.Tests.csproj" />
     <Project Path="tests/C64.Tests/C64.Tests.csproj" />
     <Project Path="tests/Compat.Tests/Compat.Tests.csproj" />

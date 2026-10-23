@@ -29,7 +29,7 @@ $start.CreateNoWindow = $true
 $start.RedirectStandardOutput = $true
 $start.RedirectStandardError = $true
 $start.Environment['RETROEMU_PROFILES'] = $testRoot
-foreach ($arg in @('--hidden', '--mute', '--mods-window', '--autotest', "$Seconds", 'out/ui-modifications/panel.png', $tapePath))
+foreach ($arg in @('--hidden', '--mute', '--no-organize', '--no-update', '--mods-window', '--autotest', "$Seconds", 'out/ui-modifications/panel.png', $tapePath))
     { $start.ArgumentList.Add($arg) }
 $process = [Diagnostics.Process]::Start($start)
 try {
