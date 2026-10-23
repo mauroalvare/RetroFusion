@@ -69,19 +69,21 @@ public sealed class ModificationHostTests
     public void FreezeIsReappliedForEveryEmulatedFrameIncludingTurbo()
     {
         var host = Host();
-        // A private program increments RAM continuously. The callback must see the
-        // result of the preceding frame and restore 9 before each subsequent frame.
+        // A private program increments RAM continuously. Pinning must hold both
+        // before and after every emulated frame, including turbo and manual stepping.
         host.LoadBinary([0x21, 0, 0x80, 0x34, 0xC3, 3, 0x90], 0x9000, true);
         var profile = new GameProfile { Variables = new() { ["counter"] = new() { Address = "8000" } } };
-        var edits = new GameModifications(host.Machine!, profile); edits.Apply([new("counter", 9, true)]);
+        using var edits = new GameModifications(host.Machine!, profile); edits.Apply([new("counter", 9, true)]);
         int frames = 0;
         host.BeforeFrame += machine => { edits.Tick(); Assert.That(machine.Memory.Peek(0x8000), Is.EqualTo(9)); frames++; };
         host.Continue(); host.Turbo = true;
         for (int i = 0; i < 4 && frames < 2; i++) host.Update(1.0 / 60);
         Assert.That(frames, Is.GreaterThan(1)); Assert.That(host.Machine!.FrameCount, Is.EqualTo(frames));
+        Assert.That(host.Machine.Memory.Peek(0x8000), Is.EqualTo(9));
         int before = frames;
         host.Paused = true; host.StepFrame();
         Assert.That(frames, Is.EqualTo(before + 1)); Assert.That(host.Machine.FrameCount, Is.EqualTo(frames));
+        Assert.That(host.Machine.Memory.Peek(0x8000), Is.EqualTo(9));
     }
 
     [Test]

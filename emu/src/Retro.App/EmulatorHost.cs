@@ -33,6 +33,7 @@ public sealed class EmulatorHost
 
     public void StartFusion(Retro.Fusion.IFusionRun session)
     {
+        SessionChanging?.Invoke();
         MediaRevision++;
         DiscardQuickState();
         Fusion = session;
@@ -46,6 +47,7 @@ public sealed class EmulatorHost
 
     public void StopFusion()
     {
+        SessionChanging?.Invoke();
         MediaRevision++;
         DiscardQuickState();
         Fusion = null;
@@ -73,6 +75,8 @@ public sealed class EmulatorHost
     public long MediaRevision { get; private set; }
     public bool CanUseStates => Fusion == null && _machine != null;
     public event Action<IMachine>? BeforeFrame;
+    /// <summary>Releases game-bound edits before a loader can execute bootstrap instructions.</summary>
+    public event Action? SessionChanging;
     public double EffectiveSpeed { get; private set; } = 1;
 
     private readonly AudioQueue _audio = new(44100 / 2);
@@ -170,6 +174,7 @@ public sealed class EmulatorHost
 
     private void SetMachine(IMachine m, MachineInfo info)
     {
+        SessionChanging?.Invoke();
         MediaRevision++;
         DiscardQuickState();
         Fusion = null;
@@ -187,6 +192,7 @@ public sealed class EmulatorHost
     public void Load(MediaFile file, bool autoType)
     {
         var profile = ProfileLibrary.ForFiles([file]);
+        SessionChanging?.Invoke();
         if (C64 is { } c64)
         {
             var r = C64Media.Load(c64, file);
@@ -385,6 +391,7 @@ public sealed class EmulatorHost
 
     public void Reset(bool hard)
     {
+        SessionChanging?.Invoke();
         Machine?.Reset(hard);
         StateRestored();
         Status = hard ? "Reinicio total (memoria borrada)." : "Reinicio.";
@@ -459,6 +466,7 @@ public sealed class EmulatorHost
         }
         if (pixels != null && pixels.Length == machine.Video.Pixels.Length)
             pixels.CopyTo(machine.Video.Pixels, 0);
+        SessionChanging?.Invoke();
         StateRestored();
     }
 
@@ -468,6 +476,7 @@ public sealed class EmulatorHost
         if (Fusion != null || _loadedFiles.Count == 0) return;
         var profile = ProfileLibrary.ForFiles(_loadedFiles);
         if (profile?.ToJson() == LoadedProfile?.ToJson()) return;
+        SessionChanging?.Invoke();
         LoadedProfile = profile;
         MediaRevision++;
     }

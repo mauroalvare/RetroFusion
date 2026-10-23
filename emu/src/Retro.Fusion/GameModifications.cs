@@ -6,7 +6,7 @@ namespace Retro.Fusion;
 public sealed record VariableEdit(string Variable, int Value, bool Freeze);
 
 /// <summary>RAM experiments for one running game. Nothing writes to the original media or profile.</summary>
-public sealed class GameModifications(IMachine machine, GameProfile profile)
+public sealed class GameModifications(IMachine machine, GameProfile profile) : IDisposable
 {
     private sealed record UndoPoint(byte[] State, int[] Picture, Dictionary<string, int> Frozen);
     private readonly LinkedList<UndoPoint> _undo = new();
@@ -15,6 +15,9 @@ public sealed class GameModifications(IMachine machine, GameProfile profile)
     private byte[]? _returnPoint;
     private int[]? _returnPicture;
     private readonly Dictionary<string, int> _frozen = new(StringComparer.Ordinal);
+    private readonly Dictionary<uint, (byte Value, int Mask)> _pinned = new();
+    private IDisposable? _writeSubscription;
+    private bool _restoringByte;
     public bool CanRestore => _returnPoint != null;
     public IReadOnlyDictionary<string, int> Frozen => _frozen;
 
@@ -58,6 +61,8 @@ public sealed class GameModifications(IMachine machine, GameProfile profile)
         var effective = _frozen.Where(pair => changes.All(c => c.Variable != pair.Key))
             .Select(pair => new VariableEdit(pair.Key, pair.Value, true)).Concat(changes).ToArray();
         ValidateOverlap(profile, effective);
+        if (effective.Any(change => change.Freeze) && machine is not IWriteWatch)
+            throw new NotSupportedException("Esta máquina no permite mantener valores congelados durante la partida.");
         byte[] before = machine.SaveState();
         int[] picture = (int[])machine.Video.Pixels.Clone();
         try
@@ -80,6 +85,7 @@ public sealed class GameModifications(IMachine machine, GameProfile profile)
         foreach (var change in changes)
             if (change.Freeze) _frozen[change.Variable] = change.Value;
             else _frozen.Remove(change.Variable);
+        RefreshPins();
     }
 
     /// <summary>Called before each emulated frame, including frames run in turbo.</summary>
@@ -88,7 +94,58 @@ public sealed class GameModifications(IMachine machine, GameProfile profile)
         foreach (var (name, value) in _frozen) profile.Variables[name].Write(machine.Memory, value);
     }
 
-    public void ReleaseAll() => _frozen.Clear();
+    public void ReleaseAll()
+    {
+        _frozen.Clear(); RefreshPins();
+    }
+
+    private uint Canonical(uint address) => machine.Id switch
+    {
+        "nes" when address < 0x2000 => address & 0x7FF,
+        "invaders" => address & 0x3FFF,
+        _ => address
+    };
+
+    private void RefreshPins()
+    {
+        _pinned.Clear();
+        var bytes = new EditBytes();
+        foreach (var (name, value) in _frozen)
+        {
+            var variable = profile.Variables[name];
+            bytes.Values.Clear(); variable.Write(bytes, value);
+            int mask = variable.Mask == 0 ? 255 : variable.Mask;
+            foreach (var (address, desired) in bytes.Values)
+            {
+                uint canonical = Canonical(address);
+                var old = _pinned.GetValueOrDefault(canonical);
+                _pinned[canonical] = ((byte)((old.Value & ~mask) | (desired & mask)), old.Mask | mask);
+            }
+        }
+        if (_pinned.Count > 0) _writeSubscription ??= CpuWriteObservers.Subscribe((IWriteWatch)machine, KeepPinned);
+        else { _writeSubscription?.Dispose(); _writeSubscription = null; }
+    }
+
+    // The CPU write has completed, but its next read (including a sprite DMA) has not started.
+    private void KeepPinned(ushort address, byte value, ushort pc)
+    {
+        if (_restoringByte || !_pinned.TryGetValue(Canonical(address), out var pin)) return;
+        byte desired = (byte)((machine.Memory.Peek(address) & ~pin.Mask) | (pin.Value & pin.Mask));
+        if (machine.Memory.Peek(address) == desired) return;
+        _restoringByte = true;
+        try { machine.Memory.Poke(address, desired); }
+        finally { _restoringByte = false; }
+    }
+
+    private sealed class EditBytes : IMemoryView
+    {
+        public int AddressBits => 32;
+        public readonly Dictionary<uint, byte> Values = new();
+        public byte Peek(uint address) => Values.GetValueOrDefault(address);
+        public void Poke(uint address, byte value) => Values[address] = value;
+    }
+
+    public void Dispose() => ReleaseAll();
 
     /// <summary>Restores the state before the latest edit, including the preceding freeze selection. Keeps five edits.</summary>
     public bool Undo()
@@ -99,12 +156,13 @@ public sealed class GameModifications(IMachine machine, GameProfile profile)
         point.Picture.CopyTo(machine.Video.Pixels, 0);
         _frozen.Clear();
         foreach (var pair in point.Frozen) _frozen.Add(pair.Key, pair.Value);
+        RefreshPins();
         _undo.RemoveLast();
         if (_undo.Count == 0 && !_historyTrimmed) { _returnPoint = null; _returnPicture = null; }
         return true;
     }
 
-    private static void ValidateOverlap(GameProfile profile, IReadOnlyList<VariableEdit> changes)
+    private void ValidateOverlap(GameProfile profile, IReadOnlyList<VariableEdit> changes)
     {
         var occupied = new Dictionary<uint, int>();
         foreach (var change in changes)
@@ -114,7 +172,7 @@ public sealed class GameModifications(IMachine machine, GameProfile profile)
             int mask = variable.Mask == 0 ? 255 : variable.Mask;
             for (int offset = 0; offset < size; offset++)
             {
-                uint address = variable.AddressValue + (uint)offset;
+                uint address = Canonical(variable.AddressValue + (uint)offset);
                 if ((occupied.GetValueOrDefault(address) & mask) != 0)
                     throw new InvalidOperationException("Dos cambios usan los mismos bits de memoria. Liberá el congelado anterior o probalos por separado.");
                 occupied[address] = occupied.GetValueOrDefault(address) | mask;
@@ -131,7 +189,7 @@ public sealed class GameModifications(IMachine machine, GameProfile profile)
         _returnPoint = null;
         _returnPicture = null;
         _undo.Clear(); _historyTrimmed = false;
-        _frozen.Clear();
+        ReleaseAll();
         return true;
     }
 }

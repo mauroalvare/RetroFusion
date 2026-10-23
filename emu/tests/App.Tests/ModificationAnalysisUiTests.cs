@@ -220,4 +220,37 @@ public class ModificationAnalysisUiTests
         Assert.That(Get(window,"_observation"),Is.Null);
         Assert.That(host.Machine.SaveState(),Is.EqualTo(before));
     }
+    [Test]
+    public async Task ProposalReportsItsActualValuesAndARejectedChangeBesideTheButton()
+    {
+        var (host, window) = Start(); using var owned = window;
+        Call(window, "BeginModificationAnalysis", new SimulatedAi(Answer(host.Machine!.Memory.Peek(0x8000))));
+        await Finish(window);
+        Call(window, "ApplyProposal", 0, (object)new VariableEdit[] { new("counter_test", 17, true) });
+        var feedback = (Dictionary<int, string>)Get(window, "_proposalFeedback")!;
+        Assert.That(feedback[0], Does.Contain("Propuesta aplicada").And.Contain("17"));
+        host.StepFrame();
+        Assert.That(host.Machine.Memory.Peek(0x8000), Is.EqualTo(17), "The running CPU must not replace the pinned value.");
+        Call(window, "ApplyProposal", 1, (object)new VariableEdit[] { new("missing", 7, true) });
+        Assert.That(feedback.Keys, Is.EquivalentTo(new[] { 1 }));
+        Assert.That(feedback[1], Does.StartWith("No se aplicó"));
+    }
+
+    [TestCase("reset")] [TestCase("load")] [TestCase("state")]
+    public async Task ANewSessionReleasesPinsBeforeCodeWindowGetsAnotherUpdate(string operation)
+    {
+        var (host, window) = Start(); using var owned = window;
+        Call(window, "BeginModificationAnalysis", new SimulatedAi(Answer(host.Machine!.Memory.Peek(0x8000))));
+        await Finish(window);
+        Call(window, "ApplyModifications", (object)new VariableEdit[] { new("counter_test", 17, true) });
+        var edits = (GameModifications)Get(window, "_modifications")!;
+        if (operation == "reset") host.Reset(true);
+        else if (operation == "load") host.Load(new Retro.Core.MediaFile("new-own.tap", [3,0,255,0,255], "own.tap"), false);
+        else { host.QuickSave(); host.QuickLoad(); }
+        Assert.That(edits.Frozen, Is.Empty);
+        host.LoadBinary([0x21,0,0x80,0x34,0xC3,3,0x90], 0x9000, true);
+        host.StepFrame();
+        Assert.That(host.Machine!.Memory.Peek(0x8000), Is.Not.EqualTo(17));
+    }
+
 }

@@ -26,6 +26,11 @@ Cada informe indica quién lo produjo y el cuadro analizado. Si otro intento fal
 el último válido queda marcado como **Informe anterior**. **Pedido, respuesta y errores**
 permite copiar lo enviado, la respuesta y el error para revisarlos sin hacer otro pedido.
 
+Al aplicar una propuesta, el resultado aparece junto al botón con el valor anterior,
+el pedido y el valor actual. Si se rechaza, el motivo aparece ahí mismo. Congelar mantiene
+el valor aunque el juego intente cambiarlo. Si la partida está pausada, **F9** la continúa.
+Que la escritura se aplique no confirma el efecto supuesto: comprobalo jugando.
+
 ## Volver atrás
 
 **Deshacer último cambio** recupera el estado anterior al último cambio; guarda hasta cinco.

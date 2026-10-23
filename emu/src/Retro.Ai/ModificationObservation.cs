@@ -10,8 +10,7 @@ public sealed class ModificationObservation : IDisposable
 {
     private readonly IMachine _machine;
     private readonly byte[] _initial;
-    private readonly IWriteWatch? _watch;
-    private readonly Action<ushort, byte, ushort>? _previous, _callback;
+    private readonly IDisposable? _subscription;
     private readonly Dictionary<uint, (int Count, uint Pc)> _writes = new();
     public int WrittenAddresses => _writes.Count;
 
@@ -20,19 +19,15 @@ public sealed class ModificationObservation : IDisposable
         if (machine.Memory.AddressBits != 16) throw new NotSupportedException("El análisis admite máquinas de 16 bits de dirección.");
         _machine = machine;
         _initial = Image(machine);
-        _watch = machine as IWriteWatch;
-        if (_watch != null)
+        if (machine is IWriteWatch watch)
         {
-            _previous = _watch.WriteWatch;
-            _callback = (address, value, pc) =>
+            _subscription = CpuWriteObservers.Subscribe(watch, (address, value, pc) =>
             {
-                _previous?.Invoke(address, value, pc);
                 if (!IsWorkRam(machine.Id, address)) return;
                 if (_writes.TryGetValue(address, out var old))
                     _writes[address] = (Math.Min(old.Count + 1, int.MaxValue - 1), pc);
                 else if (_writes.Count < 2048) _writes[address] = (1, pc);
-            };
-            _watch.WriteWatch = _callback;
+            });
         }
     }
 
@@ -99,8 +94,5 @@ public sealed class ModificationObservation : IDisposable
         return image;
     }
 
-    public void Dispose()
-    {
-        if (_watch != null && ReferenceEquals(_watch.WriteWatch, _callback)) _watch.WriteWatch = _previous;
-    }
+    public void Dispose() => _subscription?.Dispose();
 }

@@ -613,15 +613,20 @@ jugador. Los campos de texto anulados se normalizan antes de llegar a la interfa
 local de rutinas se distingue del pedido a IA. El selector de proveedor/modelo está en
 el contexto de cada pedido, incluidas las explicaciones de rutinas y copiar/pegar.
 
-`ModificationObservation` encadena el observador de escrituras solo mientras la ventana
-está abierta. Acota direcciones y copia la evidencia antes del trabajo asíncrono.
+`ModificationObservation` se suscribe a `CpuWriteObservers` mientras la ventana
+está abierta; cada suscripción se retira sin alterar las de otras herramientas. Acota direcciones y copia la evidencia antes del trabajo asíncrono.
 `GameModificationAnalyzer` usa el proveedor común y valida direcciones/valores contra
 esa captura. Los hallazgos amplían un perfil privado de sesión, sin guardar hipótesis
 como variables verificadas para fusiones. No escribe en la máquina.
 
 `GameModifications` aplica lotes explícitos, evita solapamientos y mantiene congelados.
 Conserva cinco estados de deshacer y el punto anterior al primer cambio, con sus píxeles.
-El host emite `BeforeFrame` por cuadro original, incluidos turbo/paso. El regreso de
+El congelado comparte el observador de CPU: repone solo los bits fijados después de
+cada escritura y antes de la siguiente lectura o DMA. Normaliza los espejos de RAM de
+NES y arcade para impedir alias incompatibles. `Dispose` libera el observador sin
+restaurar la partida. El host emite `SessionChanging` antes del arranque de otro medio
+o un reinicio y al aceptar un estado externo; el panel libera los congelados anteriores.
+`BeforeFrame` sigue cubriendo cambios directos de depuración, incluidos turbo/paso. El regreso de
 partida completo se ofrece para originales. Restaurar desde esta vista actualiza
 MediaRevision pero conserva las definiciones y el historial restante de la sesión.
 

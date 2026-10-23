@@ -15,6 +15,7 @@ public sealed partial class CodeWindow
     private long _mediaRevision = -1, _explainRevision, _modificationRevision;
     private IMachine? _modificationMachine, _explainMachine;
     private GameModifications? _modifications;
+    private readonly Dictionary<int, string> _proposalFeedback = new();
     private ModificationObservation? _observation;
     private GameAnalysisSnapshot? _analysisSnapshot;
     private ModificationAdvice? _advice;
@@ -77,7 +78,7 @@ public sealed partial class CodeWindow
     private void DrawModifications(IMachine machine)
     {
         if (!OriginalAvailable()) return;
-        AiPicker.Hint("Enter aplica un valor. Congelar lo mantiene fijo antes de cada cuadro.");
+        AiPicker.Hint("Enter aplica un valor. Congelar mantiene el valor aunque el juego intente cambiarlo.");
         ImGui.BeginDisabled(_modifications?.CanUndo != true);
         if (ImGui.Button("Deshacer último cambio")) RestoreModifications(undo: true);
         ImGui.EndDisabled();
@@ -90,7 +91,7 @@ public sealed partial class CodeWindow
         if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
             ImGui.SetTooltip("Vuelve al momento anterior al primer cambio de esta sesión.");
         if (_modifications?.Frozen.Count is > 0 && ImGui.SmallButton("Liberar valores congelados"))
-        { _modifications.ReleaseAll(); _status = "Los valores vuelven a cambiar con el juego."; }
+        { ReleaseModifications(); _status = "Los valores vuelven a cambiar con el juego."; }
         ImGui.Separator();
         if (_profile?.Variables.Count is > 0) DrawVariableValues(machine, true);
         else ImGui.TextWrapped("Todavía no hay variables. Analizá la partida con IA o usá la búsqueda manual.");
@@ -102,12 +103,22 @@ public sealed partial class CodeWindow
         int id = 0;
         foreach (var idea in _advice.Ideas)
         {
-            ImGui.PushID(id++);
+            int proposalId = id++;
+            ImGui.PushID(proposalId);
             ImGui.TextColored(LabelColor, idea.Title);
             ImGui.TextWrapped(idea.Effect);
             foreach (var change in idea.Changes)
                 ImGui.TextWrapped($"{VariableLabel(change.Variable)}: {change.Value}{(change.Freeze ? " (congelado)" : "")}");
-            if (ImGui.Button("Aplicar propuesta")) ApplyModifications(idea.Changes);
+            if (ImGui.Button("Aplicar propuesta")) ApplyProposal(proposalId, idea.Changes);
+            if (_proposalFeedback.TryGetValue(proposalId, out string? feedback))
+            {
+                ImGui.TextWrapped(feedback);
+                if (_host.Paused) ImGui.TextWrapped("La partida está pausada: F9 para continuar.");
+                foreach (var change in idea.Changes)
+                    if (_profile?.Variables.TryGetValue(change.Variable, out var variable) == true)
+                        ImGui.TextWrapped($"Ahora: {VariableLabel(change.Variable)} = {variable.Read(machine.Memory)}" +
+                            (_modifications?.Frozen.ContainsKey(change.Variable) == true ? " (congelado)" : ""));
+            }
             ImGui.Spacing(); ImGui.PopID();
         }
     }
@@ -256,7 +267,7 @@ public sealed partial class CodeWindow
             _discoveredLabels[variable.Name] = variable.Label;
         }
         _modifications ??= new GameModifications(_machine!, profile);
-        _lastAnalysis = result.Analysis; _advice = result.Advice; _analysisError = "";
+        _lastAnalysis = result.Analysis; _advice = result.Advice; _proposalFeedback.Clear(); _analysisError = "";
         _lastAnalysisProvider = _analysisProvider; _lastAnalysisFrame = _analysisSnapshot!.Frame;
         _lastAnalysisAt = _analysisStartedAt; _lastAnalysisAttempt = _analysisAttempt;
         _manualModification = false; _modificationPasted = "";
@@ -280,16 +291,30 @@ public sealed partial class CodeWindow
             catch (AiException error) { AnalysisFailed(error); }
     }
 
-    private void ApplyModifications(IReadOnlyList<VariableEdit> changes)
+    private void ReleaseModifications() { _modifications?.ReleaseAll(); _proposalFeedback.Clear(); }
+
+    private void ApplyProposal(int id, IReadOnlyList<VariableEdit> changes)
+    {
+        var before = changes.Select(c => _profile?.Variables.TryGetValue(c.Variable, out var v) == true
+            ? $"{VariableLabel(c.Variable)}: {v.Read(_machine!.Memory)} -> {c.Value}" : c.Variable).ToArray();
+        bool applied = ApplyModifications(changes);
+        _proposalFeedback.Clear();
+        _proposalFeedback[id] = applied
+            ? "Propuesta aplicada. " + string.Join("; ", before) + ". Revisá su efecto en la partida."
+            : _status;
+    }
+
+    private bool ApplyModifications(IReadOnlyList<VariableEdit> changes)
     {
         try
         {
             if (_modifications == null) throw new InvalidOperationException("Primero agregá variables para esta partida.");
             _modifications.Apply(changes);
             _status = "Cambios aplicados. Podés deshacer el último o restaurar la partida.";
+            return true;
         }
         catch (Exception error) when (error is InvalidOperationException or IOException or NotSupportedException)
-        { _status = "No se aplicó el cambio: " + error.Message; }
+        { _status = "No se aplicó el cambio: " + error.Message; return false; }
     }
 
     private void RestoreModifications(bool undo = false)
@@ -298,7 +323,7 @@ public sealed partial class CodeWindow
         _host.StateRestored();
         _mediaRevision = _host.MediaRevision; // Keep this session's definitions and remaining undo history.
         _cts?.Cancel(); _modificationCts?.Cancel();
-        _map = null; _codeSummary = ""; _analysisSnapshot = null; _advice = null; _variableInputs.Clear();
+        _map = null; _codeSummary = ""; _analysisSnapshot = null; _advice = null; _proposalFeedback.Clear(); _variableInputs.Clear();
         StopObservation(); _modificationActivity.Reset();
         _analysisPrompt = _analysisAnswer = _analysisError = ""; _analysisAttempt++;
         _status = undo ? "Último cambio deshecho; partida y congelados anteriores restaurados."
@@ -315,7 +340,8 @@ public sealed partial class CodeWindow
 
     public void Dispose()
     {
-        StopObservation(); _host.BeforeFrame -= ApplyFrozen;
+        StopObservation(); _modifications?.Dispose();
+        _host.BeforeFrame -= ApplyFrozen; _host.SessionChanging -= ReleaseModifications;
         _cts?.Cancel(); _modificationCts?.Cancel();
         _cts?.Dispose(); _modificationCts?.Dispose();
     }

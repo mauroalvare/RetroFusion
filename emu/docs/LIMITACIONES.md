@@ -97,8 +97,10 @@ arreglar algo, se borra la entrada y se menciona en el commit.
   una máquina de una fusión no restauran el guion JavaScript completo.
 - Un perfil genérico por nombre puede corresponder a otra edición; se prioriza el hash
   cuando existe. Un perfil que enumera hashes ya no se reutiliza por nombre si no coincide.
-- El congelado se repone por cuadro; no intercepta cada instrucción que escribe la variable.
-  En la vista avanzada de fusiones se repone por tick compartido.
+- En originales, el congelado repone los bits elegidos después de cada escritura de CPU,
+  antes de la siguiente lectura, y al empezar cada cuadro. No modifica ROM ni registros
+  de hardware. Una escritura aplicada no confirma el significado de una hipótesis ni
+  garantiza un efecto visible. Las fusiones mantienen su edición propia por tick.
 
 ## Recursos e identidad de las fusiones
 

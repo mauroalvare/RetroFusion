@@ -684,3 +684,25 @@ no lo hacen pasar por un resultado nuevo. Cambiar de partida descarta sus detall
 La interfaz permite copiar mensajes, informe, pedido, respuesta, error y salida del CLI.
 Los diagnósticos permanecen en memoria; no se escriben registros de conversaciones
 automáticamente ni se repite un pedido para obtenerlos.
+
+
+## D-046 Congelado durante el cuadro y confirmación de propuestas (2026-10-23)
+
+Reponer un valor solo al empezar el cuadro permite que el programa lo sobrescriba antes
+de consumirlo. `GameModifications` conserva los bits fijados después de cada escritura
+CPU y antes de su siguiente lectura, incluida la copia DMA de sprites. La escritura
+normal de CPU y sus ciclos siguen ejecutándose; la reposición usa el acceso de depuración
+sin efectos de entrada/salida. Se conserva `Tick` para accesos directos fuera de la CPU.
+Los espejos de RAM se normalizan al detectar solapamientos y mantener el congelado.
+
+`CpuWriteObservers.Subscribe` comparte `IWriteWatch` entre herramientas en el hilo de
+emulación, conserva el observador previo y permite retirar suscripciones en cualquier
+orden. No reemplaza un observador externo instalado después. `GameModifications.Dispose`
+libera sus congelados sin cargar un estado anterior. Cerrar el panel conserva el efecto;
+cambiar de sesión o salir lo libera. `EmulatorHost.SessionChanging` avisa antes de que
+un cargador ejecute el arranque de otro medio o un reinicio; para estados externos avisa
+tras aceptar la carga. Deshacer dentro del panel conserva su selección previa de congelados.
+
+Cada propuesta confirma o rechaza la aplicación junto al botón y muestra el valor actual.
+El aviso de pausa refleja el estado presente. Una escritura confirmada no certifica el
+significado de la variable: las hipótesis siguen necesitando comprobarse en la partida.

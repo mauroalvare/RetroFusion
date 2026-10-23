@@ -70,6 +70,7 @@ public sealed partial class CodeWindow : IDisposable
         _showInDebugger = showInDebugger;
         _openStudio = openStudio;
         _host.BeforeFrame += ApplyFrozen;
+        _host.SessionChanging += ReleaseModifications;
     }
 
     public void Open() => OpenPage(ToolPage.Code);
@@ -158,6 +159,8 @@ public sealed partial class CodeWindow : IDisposable
         _cts?.Cancel();
         _modificationCts?.Cancel();
         StopObservation();
+        _modifications?.Dispose();
+        _proposalFeedback.Clear();
         _analysisSnapshot = null; _lastAnalysis = ""; _modificationWish = "";
         _analysisProvider = _lastAnalysisProvider = _analysisPrompt = _analysisAnswer = _analysisError = "";
         _analysisReply = null; _analysisAttempt++; _lastAnalysisAttempt = -1;
