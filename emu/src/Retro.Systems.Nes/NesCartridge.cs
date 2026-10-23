@@ -1,25 +1,27 @@
 namespace Retro.Systems.Nes;
 
 /// <summary>How the PPU's two physical nametables are laid out in its 4 logical ones.</summary>
-public enum NesMirroring { Horizontal, Vertical, FourScreen }
+public enum NesMirroring { Horizontal, Vertical, FourScreen, SingleLower, SingleUpper }
 
 /// <summary>
 /// A cartridge read from an iNES (.nes) image: PRG ROM seen by the CPU at $8000-$FFFF and
 /// CHR ROM (or 8 KB of CHR RAM) seen by the PPU at $0000-$1FFF. Supported mappers:
-/// 0 (NROM: 16 or 32 KB of PRG, fixed) and 3 (CNROM: any write to $8000-$FFFF picks the
-/// 8 KB CHR bank).
+/// 0 (NROM), 2 (UxROM: switchable 16 KB PRG), 3 (CNROM: 8 KB CHR banks)
+/// and 7 (AxROM: 32 KB PRG banks with single-screen mirroring).
 /// </summary>
 public sealed class NesCartridge
 {
     public const int HeaderSize = 16, TrainerSize = 512, PrgUnit = 0x4000, ChrUnit = 0x2000;
-    public static readonly int[] SupportedMappers = { 0, 3 };
+    public static readonly int[] SupportedMappers = { 0, 2, 3, 7 };
 
     private readonly byte[] _prg;
     private readonly byte[] _chr;
-    private int _chrBank;
+    private int _chrBank, _prgBank;
+    private readonly NesMirroring _initialMirroring;
+    public string Identity { get; private init; } = "";
 
     public int Mapper { get; }
-    public NesMirroring Mirroring { get; }
+    public NesMirroring Mirroring { get; private set; }
     public bool HasBattery { get; }
     public bool ChrIsRam { get; }
     public int PrgSize => _prg.Length;
@@ -33,7 +35,8 @@ public sealed class NesCartridge
         _chr = chr;
         ChrIsRam = chrIsRam;
         Mapper = mapper;
-        Mirroring = mirroring;
+        _initialMirroring = mirroring;
+        Mirroring = mapper == 7 ? NesMirroring.SingleLower : mirroring;
         HasBattery = battery;
     }
 
@@ -55,9 +58,13 @@ public sealed class NesCartridge
         if (nes2)
             mapper |= (data[8] & 0x0F) << 8;
         if (!SupportedMappers.Contains(mapper))
-            throw new InvalidDataException($"Mapper {mapper} no soportado todavía (por ahora: 0 NROM y 3 CNROM).");
+            throw new InvalidDataException($"Mapper {mapper} no soportado todavía (por ahora: 0 NROM, 2 UxROM, 3 CNROM y 7 AxROM).");
         if (prgUnits == 0)
             throw new InvalidDataException("La imagen dice que no tiene PRG ROM.");
+        if (nes2 && data[9] != 0)
+            throw new InvalidDataException("Los tamaños ampliados de NES 2.0 todavía no están implementados.");
+        if (mapper is 0 or 3 && prgUnits > 2 || mapper == 7 && (prgUnits < 2 || prgUnits % 2 != 0))
+            throw new InvalidDataException("El tamaño de PRG ROM no corresponde a este mapper.");
         int offset = HeaderSize + ((f6 & 0x04) != 0 ? TrainerSize : 0);
         int prgSize = prgUnits * PrgUnit, chrSize = chrUnits * ChrUnit;
         if (data.Length < offset + prgSize + chrSize)
@@ -66,21 +73,33 @@ public sealed class NesCartridge
         bool chrRam = chrSize == 0;
         var chr = chrRam ? new byte[ChrUnit] : data.AsSpan(offset + prgSize, chrSize).ToArray();
         var mirroring = (f6 & 0x08) != 0 ? NesMirroring.FourScreen : (f6 & 0x01) != 0 ? NesMirroring.Vertical : NesMirroring.Horizontal;
-        return new NesCartridge(prg, chr, chrRam, mapper, mirroring, (f6 & 0x02) != 0);
+        return new NesCartridge(prg, chr, chrRam, mapper, mirroring, (f6 & 0x02) != 0)
+        { Identity = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(data)) };
     }
 
     /// <summary>CPU read in $8000-$FFFF (16 KB of PRG appears twice).</summary>
-    public byte CpuRead(ushort address) => _prg[(address - 0x8000) % _prg.Length];
+    private int PrgOffset(ushort address) => Mapper switch
+    {
+        2 => ((address < 0xC000 ? _prgBank : _prg.Length / PrgUnit - 1) * PrgUnit + (address & 0x3FFF)) % _prg.Length,
+        7 => (_prgBank * 0x8000 + (address & 0x7FFF)) % _prg.Length,
+        _ => (address - 0x8000) % _prg.Length
+    };
+    public byte CpuRead(ushort address) => _prg[PrgOffset(address)];
 
     /// <summary>CPU write in $8000-$FFFF: on CNROM it selects the CHR bank; on NROM it does nothing.</summary>
     public void CpuWrite(ushort address, byte value)
     {
-        if (Mapper == 3)
-            _chrBank = value % (_chr.Length / ChrUnit);
+        if (Mapper == 3) _chrBank = value % (_chr.Length / ChrUnit);
+        else if (Mapper == 2) _prgBank = (value & 15) % (_prg.Length / PrgUnit);
+        else if (Mapper == 7)
+        {
+            _prgBank = (value & 7) % (_prg.Length / 0x8000);
+            Mirroring = (value & 0x10) == 0 ? NesMirroring.SingleLower : NesMirroring.SingleUpper;
+        }
     }
 
     /// <summary>Code editor change to the copy of PRG in memory (the file is not touched).</summary>
-    public void PatchPrg(ushort address, byte value) => _prg[(address - 0x8000) % _prg.Length] = value;
+    public void PatchPrg(ushort address, byte value) => _prg[PrgOffset(address)] = value;
 
     /// <summary>PPU read in $0000-$1FFF (pattern tables).</summary>
     public byte PpuRead(ushort address) => _chr[_chrBank * ChrUnit + (address & 0x1FFF)];
@@ -100,6 +119,8 @@ public sealed class NesCartridge
         {
             NesMirroring.Horizontal => table >> 1,
             NesMirroring.Vertical => table & 1,
+            NesMirroring.SingleLower => 0,
+            NesMirroring.SingleUpper => 1,
             _ => table,
         };
     }
@@ -108,20 +129,37 @@ public sealed class NesCartridge
     public void Save(BinaryWriter w)
     {
         w.Write(_chrBank);
-        if (ChrIsRam)
-            w.Write(_chr);
+        if (ChrIsRam) w.Write(_chr);
+        if (Mapper is 2 or 7) { w.Write(_prgBank); w.Write((int)Mirroring); }
     }
 
     public void Load(BinaryReader r)
     {
-        _chrBank = r.ReadInt32();
-        if (ChrIsRam)
-            r.Read(_chr, 0, _chr.Length);
+        int bank = r.ReadInt32();
+        if (bank < 0 || bank >= _chr.Length / ChrUnit) throw new InvalidDataException("El banco CHR del estado no es válido.");
+        byte[]? chr = ChrIsRam ? r.ReadBytes(_chr.Length) : null;
+        if (chr != null && chr.Length != _chr.Length) throw new EndOfStreamException();
+        int prg = 0; var mirroring = _initialMirroring;
+        if (Mapper is 2 or 7)
+        {
+            prg = r.ReadInt32(); mirroring = (NesMirroring)r.ReadInt32();
+            if (prg < 0 || prg >= _prg.Length / (Mapper == 7 ? 0x8000 : PrgUnit) ||
+                (Mapper == 7 ? mirroring is not (NesMirroring.SingleLower or NesMirroring.SingleUpper) : mirroring != _initialMirroring))
+                throw new InvalidDataException("El banco PRG del estado no es válido.");
+        }
+        _chrBank = bank; _prgBank = prg; Mirroring = mirroring;
+        if (chr != null) chr.CopyTo(_chr, 0);
+    }
+
+    public void ResetBanks()
+    {
+        _chrBank = _prgBank = 0;
+        Mirroring = Mapper == 7 ? NesMirroring.SingleLower : _initialMirroring;
     }
 
     public string Describe() =>
-        $"Cartucho NES: mapper {Mapper} ({(Mapper == 0 ? "NROM" : "CNROM")}), PRG {PrgSize / 1024} KB, " +
+        $"Cartucho NES: mapper {Mapper} ({(Mapper switch { 0 => "NROM", 2 => "UxROM", 3 => "CNROM", 7 => "AxROM", _ => "desconocido" })}), PRG {PrgSize / 1024} KB, " +
         (ChrIsRam ? "CHR RAM 8 KB" : $"CHR ROM {ChrSize / 1024} KB") +
-        $", espejado {(Mirroring switch { NesMirroring.Horizontal => "horizontal", NesMirroring.Vertical => "vertical", _ => "de 4 pantallas" })}" +
+        $", espejado {(Mirroring switch { NesMirroring.Horizontal => "horizontal", NesMirroring.Vertical => "vertical", NesMirroring.SingleLower => "una pantalla inferior", NesMirroring.SingleUpper => "una pantalla superior", _ => "de 4 pantallas" })}" +
         (HasBattery ? ", con batería" : "");
 }

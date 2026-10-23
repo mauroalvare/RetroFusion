@@ -344,8 +344,8 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 - Los estados guardados de la app corresponden a originales. Una fusión necesita guardar
   también el guion y todas sus máquinas; hasta implementar ese formato, estas opciones
   están deshabilitadas durante una fusión. Se puede reiniciar desde el estudio.
-- Los estados en archivo validan el formato de máquina, no el hash del juego. Hay que
-  usarlos con el mismo juego y firmware con que se guardaron.
+- Los estados NES nuevos validan la edición del cartucho. Los anteriores de NES y
+  los de otras máquinas requieren usar el mismo juego y firmware con que se guardaron.
 - `retrofusion/` (kit Python inicial) no tiene su punto de entrada `retro.py`: no se puede
   correr tal cual.
 
@@ -383,3 +383,8 @@ por cautela, las ediciones de Cheril, Phantomasa, Sila Tsikl y Nanako Descends t
   que nunca se guardaron. Reaplicar es opcional y puede alterar el arranque si una variable
   también se usa durante la carga; se puede desactivar y aplicar la selección manualmente.
   Las hipótesis persistidas no se consideran perfiles verificados para fusión.
+
+- La ampliación NES incorpora UxROM y AxROM. Sus bancos y espejado tienen pruebas de
+  componente y ejecución con cartuchos locales; esto no valida todas las revisiones
+  de placa ni los conflictos de bus. Los mappers que no están implementados se rechazan
+  al abrir, conservando el original en la biblioteca.

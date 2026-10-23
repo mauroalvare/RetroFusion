@@ -751,3 +751,16 @@ El cargador se ejecuta sin los congelados anteriores. Al restaurar la sesión se
 la identidad y las definiciones del perfil antes de importar; otra edición o firmware
 usa otra clave. Una selección se aplica como transacción y se puede deshacer en un paso.
 Los estados completos y cinco pasos de deshacer siguen siendo propios de cada sesión.
+
+## D-049 — Bancos NES y estados vinculados al cartucho
+
+La primera ampliación añade mappers 2 (UxROM) y 7 (AxROM), con bancos PRG y espejado
+por cartucho. Los parches del visor actúan en el banco visible. Reiniciar la CPU no
+borra los registros de la placa; un reinicio total vuelve a su selección inicial.
+
+El estado NES formato 3 incluye el SHA-256 de la imagen iNES original y rechaza otra
+edición antes de modificar memoria. Guarda también registros de los nuevos mappers.
+Sigue leyendo formato 2 para mappers 0/3; ese formato anterior no identifica el juego.
+La ampliación no acredita variantes de placa, conflictos de bus ni temporización completa.
+Referencias: [UxROM](https://www.nesdev.org/wiki/UxROM),
+[AxROM](https://www.nesdev.org/wiki/AxROM).

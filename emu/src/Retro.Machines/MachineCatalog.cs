@@ -33,7 +33,7 @@ public static class MachineCatalog
         new("vic20", "Commodore VIC-20", "MOS 6502", MachineStatus.Planned, new[] { "vic20-kernal.rom" }, new[] { ".prg", ".crt" }),
         new("plus4", "Commodore Plus/4", "MOS 7501 (familia 6502)", MachineStatus.Planned, new[] { "plus4-kernal.rom" }, new[] { ".prg", ".tap", ".d64" }),
         new("nes", "Nintendo NES", "Ricoh 2A03 (familia 6502)", MachineStatus.Available, Array.Empty<string>(), new[] { ".nes" },
-            "No necesita firmware. Juegos: cartuchos .nes (iNES) con mapper 0 (NROM) o 3 (CNROM)."),
+            "No necesita firmware. Juegos: cartuchos .nes (iNES) con mapper 0 (NROM), 2 (UxROM), 3 (CNROM) o 7 (AxROM)."),
         new("pcxt", "IBM PC / XT", "Intel 8088", MachineStatus.Planned, new[] { "pcxt-bios.rom" }, new[] { ".exe", ".com", ".img", ".ima" }),
         new("atarist", "Atari ST", "Motorola 68000", MachineStatus.Planned, new[] { "tos.img" }, new[] { ".st", ".msa", ".stx" }),
         new("amiga500", "Amiga 500", "Motorola 68000", MachineStatus.Planned, new[] { "kick13.rom" }, new[] { ".adf", ".ipf" }),
@@ -145,7 +145,7 @@ public static class MachineCatalog
     /// </summary>
     public static string? NotLoadableYet(Candidate c) => c.Machine.Id switch
     {
-        "nes" when NesMapperProblem(c.File.Data) is { } problem => problem + ": por ahora solo andan los mappers 0 (NROM) y 3 (CNROM)",
+        "nes" when NesMapperProblem(c.File.Data) is { } problem => problem,
         "c64" when c.File.Extension is ".d64" => "los discos .d64 del C64 llegan en la próxima etapa: buscá la versión .t64 o .prg del juego",
         "c64" when c.File.Extension is ".crt" => "los cartuchos .crt del C64 llegan en la próxima etapa: buscá la versión .t64 o .prg del juego",
         "c64" when c.File.Extension is ".tap" => "las cintas de pulsos .tap del C64 llegan en la próxima etapa: buscá la versión .t64 o .prg del juego",
