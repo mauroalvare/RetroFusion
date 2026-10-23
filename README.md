@@ -17,32 +17,26 @@ los prueba y quedan como un `.prg` o un `.tap` que corre en cualquier emulador.
 
 Los originales corren en sus máquinas emuladas. Podés conservar los mapas, gráficos,
 interfaz y reglas de un **juego base** e incorporar personajes o mecánicas de los demás.
-Invertir la base cambia la dirección de la fusión. **Crear > A partir de tus ROMs** es
+Invertir la base cambia la dirección de la fusión. **Crear > Juego nuevo con tus ROMs** es
 un recorrido aparte para diseñar un juego nuevo con esos recursos.
-Se juegan desde **Inicio > Fusionados** si los juegos están en tu carpeta `ROMs`.
+Se juegan desde **Biblioteca > Fusionados** si los juegos están en tu carpeta `ROMs`.
 Con **Fusionar juegos** elegís los originales, la base y los aportes. El guion puede
 conservar la imagen nativa de esa base; no se admiten pantallas independientes pegadas.
 Las instrucciones priorizan que los aportes tengan comportamiento y consecuencias en
 el mundo conservado, sin añadir el mismo menú, HUD o estética a todas las combinaciones.
 El alcance comprobado del motor está en [Pruebas de fusión](emu/docs/PRUEBAS-FUSION.md).
 
-### Manic Invaders — creado con IA
+### Una fusión incluida
 
-**Space Invaders** (arcade Taito, Intel 8080) + **Manic Miner** (ZX Spectrum 48K, Zilog Z80)
+![Fusión de plataformas y defensa arcade](emu/docs/img/fusiones/manic-invaders.png)
 
-![Manic Invaders](emu/docs/img/fusiones/manic-invaders.png)
-
-Una flota invasora se posa sobre la mina de Miner Willy. Con un láser que encontró en la
-mina, Willy junta las llaves de cada caverna y escapa por el portal antes de que los
-invasores aterricen o se le acabe el aire. Son las 20 cavernas originales y la flota del
-arcade de verdad, que ahora apunta a Willy.
-
-Las capturas son del emulador corriendo las fusiones con copias propias de los juegos; los
-juegos no se incluyen.
+La fusión de ejemplo combina exploración de cavernas y defensa frente a una flota:
+recoger objetos, atravesar plataformas y disparar forman parte de la misma partida.
+Los originales se cargan desde la biblioteca del usuario; los juegos no se incluyen.
 
 ## Juegos de 8 bits creados desde cero
 
-Menú **Crear > Juego de 8 bits nuevo**: elegís la máquina y, si querés, qué juego te
+Menú **Crear > Juego nuevo desde cero**: elegís la máquina y, si querés, qué juego te
 gustaría; la IA lo escribe en ensamblador con una guía del hardware, el emulador lo
 ensambla, lo carga como cualquier juego y un jugador robot lo prueba; si algo falla, la IA
 recibe el informe y una imagen de la pantalla y lo corrige. Sin pedido, cada vez parte de
