@@ -19,6 +19,7 @@ internal static class I8088Diagnostic
         try
         {
             if (path == "irq-demo") return PcInterruptDiagnostic.Run(limit);
+            if (path == "timer-demo") return PcTimerDiagnostic.Run(limit);
             if (path != "demo" && new FileInfo(path).Length is 0 or > 65280)
                 throw new InvalidDataException("El programa crudo debe tener entre 1 y 65280 bytes.");
             // Original tiny program: sum 1..10, store at DS:0200, halt. No external firmware or game.

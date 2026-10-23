@@ -19,7 +19,7 @@ static int Usage()
         RetroEmu CLI
 
           retro-cli info <archivo>
-          retro-cli cpu8088 <programa.bin|demo|irq-demo> [--steps n]   diagnóstico del núcleo; todavía sin PC/BIOS/DOS
+          retro-cli cpu8088 <programa.bin|demo|irq-demo|timer-demo> [--steps n]   diagnóstico del núcleo; todavía sin PC/BIOS/DOS
           retro-cli run <archivo> [opciones]
           retro-cli studio <juego.js|juego.json|id> --games <carpeta> [--seconds n] [--shots prefijo]
           retro-cli compat <carpeta-guiones|guion.json> --juegos <carpeta> [--salida r.json] [--md tabla.md]

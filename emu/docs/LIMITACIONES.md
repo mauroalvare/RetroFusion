@@ -111,8 +111,8 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 - Hay un núcleo 8088 parcial accesible por `cpu8088 demo`; todavía no hay máquina PC,
   BIOS/DOS ni juegos compatibles. Faltan instrucciones, desensamblador, prelectura y
   temporización del bus. No se verificó con una suite de hardware externa. Cobertura
-  observada y próximos pasos en [I8088.md](I8088.md). El8253 tiene modos binarios0/2/3,
-  reloj externo y latch; quedan modos1/4/5,BCD,divisores límite y sincronización de
+  observada y próximos pasos en [I8088.md](I8088.md). El 8253 tiene modos binarios 0/2/3,
+  reloj externo y latch; quedan modos 1/4/5, BCD, divisores límite y sincronización de
   placa pendientes ([PIT8253.md](PIT8253.md)). TF y el 8259A individual ya tienen
   pruebas funcionales, incluidos programas por puertos; no aportan el reloj de PC ni
   forman una placa completa con PIT, PPI, CGA, discos y BIOS. Cascada, disparo por

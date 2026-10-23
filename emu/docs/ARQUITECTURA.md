@@ -176,8 +176,8 @@ una interrupción se ejecuta la instrucción que la placa pone en el bus de dato
 Existe un intérprete parcial con registros, segmentación de 20 bits, ModR/M, ALU,
 rotaciones/desplazamientos, pila, saltos, interrupciones, cadenas y E/S de byte. CL
 conserva los ocho bits de conteo del 8088. El comando `cpu8088 demo` ejecuta
-una suma propia y llega a HLT. No hay aún prelectura ni tiempo por ciclo: no se conecta
-a periféricos que necesiten un reloj ni implementa `ICpuDebugView`.
+una suma propia y llega a HLT. No hay aún prelectura ni tiempo por ciclo: no permite
+sincronizar periféricos con el reloj de PC ni implementa `ICpuDebugView`.
 El controlador de interrupciones sí puede comprobarse funcionalmente sin ese reloj. No cambia
 las CPUs actuales ni habilita PC/XT en el lanzador. La cobertura exacta, pruebas y
 siguientes pasos están en [I8088.md](I8088.md).
@@ -193,7 +193,10 @@ Pit8253 agrega tres contadores binarios independientes en modos 0/2/3, lectura c
 latch, recarga y GATE. Tick recibe un pulso externo de un canal; OutputChanged comunica
 sus transiciones incluso durante programación o cambios de GATE. La placa decide
 relojes y conexiones. No se deriva tiempo de Instructions. Contrato, fuentes y
-límites pendientes en D-042 y [PIT8253.md](PIT8253.md).
+límites pendientes en D-042 y [PIT8253.md](PIT8253.md). El diagnóstico `cpu8088 timer-demo`
+conecta OUT0 con IRQ0, configura los puertos 40h/43h y 20h/21h desde código invitado, espera HLT y
+atiende tres interrupciones con EOI/IRET. Solo recibe pulsos mientras espera; ése es
+un cronograma de diagnóstico, no una relación de ciclos CPU/PIT.
 
 ## Placa de Space Invaders (Taito/Midway 8080)
 

@@ -113,7 +113,7 @@ dotnet run --project src/Retro.App -c Release -- --hidden --mute --mods-window -
 | `src/Retro.Core` | Interfaces (`IMachine`, `ICpuDebugView`, `IMemoryView`), medios y zips, `MemorySearch`, PNG, mapa de código |
 | `src/Retro.Cpu.Z80`, `Retro.Cpu.I8080`, `Retro.Cpu.M6502` | Núcleos de CPU con desensamblador |
 | `src/Retro.Cpu.I8088`, `tests/I8088.Tests` | Primer núcleo 8088 parcial y sus pruebas propias; todavía sin máquina PC/XT |
-| `src/Retro.Systems.Pc`, `tests/Pc.Tests` | ComponentesPC: 8259A,8253 binario con reloj externo y ejecución8088; todavía sin máquina PC/XT |
+| `src/Retro.Systems.Pc`, `tests/Pc.Tests` | Componentes PC: 8259A, 8253 binario con reloj externo y ejecución 8088; todavía sin máquina PC/XT |
 | `src/Retro.Systems.Spectrum`, `Retro.Systems.Arcade`, `Retro.Systems.C64`, `Retro.Systems.Nes` | Máquinas |
 | `src/Retro.Machines` | Catálogo de máquinas (qué máquina es cada archivo) y `MachineLauncher` (arranca una máquina con un juego); lo usan la app, el CLI, las fusiones y la compatibilidad |
 | `src/Retro.Compat` | Matriz de compatibilidad: guiones por juego, ejecutor sin ventana con sonda de controles, informe JSON y Markdown, descubrimiento de guiones |
@@ -251,3 +251,8 @@ Los ejemplos incluidos son Manic Invaders (estudio), Tormenta y Topos (creador).
 Diagnóstico de interrupciones 8088+8259A (programa propio, sin BIOS/DOS): desde emu,
 `dotnet run --project src/Retro.Cli -c Release -- cpu8088 irq-demo --steps 1000`.
 Detalles y resultado esperado en [I8088.md](I8088.md).
+
+Diagnóstico del temporizador 8253 conectado a IRQ0/8088 (reloj externo, programa propio):
+`dotnet run --project src/Retro.Cli -c Release -- cpu8088 timer-demo --steps 1000`.
+Desde emu. Contadores, contrato de reloj y límites en [PIT8253.md](PIT8253.md);
+resultado esperado y presupuesto en [I8088.md](I8088.md).
