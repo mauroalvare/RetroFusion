@@ -263,3 +263,7 @@ Diagnóstico del temporizador 8253 conectado a IRQ0/8088 (reloj externo, program
 `dotnet run --project src/Retro.Cli -c Release -- cpu8088 timer-demo --steps 1000`.
 Desde emu. Contadores, contrato de reloj y límites en [PIT8253.md](PIT8253.md);
 resultado esperado y presupuesto en [I8088.md](I8088.md).
+
+Los nuevos trabajos en carpetas para agentes usan rutas únicas para evitar reemplazar
+un guion pendiente al crear otro trabajo. La ruta elegida se muestra en la ventana;
+los archivos ya creados permanecen donde estaban.

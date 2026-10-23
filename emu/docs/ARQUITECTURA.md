@@ -831,3 +831,11 @@ sesión, y usa `GameModifications.ApplySelection` como una transacción con un �
 de deshacer. Antes del arranque se desprenden los observadores de congelado antiguos.
 La selección guarda los valores pedidos, no el valor cambiante leído al cerrar. Los
 puntos completos de regreso pertenecen solo a la sesión actual. D-048 define el formato.
+
+La biblioteca de perfiles omite archivos incompletos, inaccesibles o incompatibles y
+conserva las otras entradas. El guardado reemplaza atómicamente el documento anterior;
+los patrones de identificación tienen un tiempo máximo de evaluación. Al cambiar de
+juego, las respuestas pendientes se cancelan y sus tareas se retiran de la interfaz,
+sin bloquear un análisis nuevo ni aplicar una respuesta al medio equivocado.
+Las carpetas automáticas de trabajos de agentes tienen un identificador único, tanto
+en estudio como en el creador; una carpeta explícita conserva el comportamiento anterior.

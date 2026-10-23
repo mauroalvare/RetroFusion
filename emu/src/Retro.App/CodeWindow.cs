@@ -78,6 +78,7 @@ public sealed partial class CodeWindow : IDisposable
 
     public void Update()
     {
+        _retiredWork.RemoveAll(task => task.IsCompleted);
         var m = _host.Machine;
         if (m == null) { StopObservation(); return; }
         if (!ReferenceEquals(m, _machine) || _media != _host.LoadedMedia || _mediaRevision != _host.MediaRevision)
@@ -158,8 +159,8 @@ public sealed partial class CodeWindow : IDisposable
     // ------------------------------------------------------------------ game identity
     private void SwitchGame(IMachine m)
     {
-        _cts?.Cancel();
-        _modificationCts?.Cancel();
+        RetireWork(ref _explainTask, ref _cts);
+        RetireWork(ref _modificationTask, ref _modificationCts);
         StopObservation();
         _modifications?.Dispose();
         _proposalFeedback.Clear();
@@ -853,10 +854,10 @@ public sealed partial class CodeWindow : IDisposable
             Max = 255,
             Description = _newVarDescription.Trim().Length > 0 ? _newVarDescription.Trim() : $"Encontrada con el buscador (valía {value}).",
         };
-        SaveProfile();
+        bool saved = SaveProfile();
         _modifications ??= new GameModifications(m, _profile);
         PersistModifications();
-        _status = $"\"{name}\" (${address:X4}) agregada al perfil de {_profile.Name}. Sus controles se configuran en Código > Perfil y controles.";
+        if (saved) _status = $"\"{name}\" (${address:X4}) agregada al perfil de {_profile.Name}. Sus controles se configuran en Código > Perfil y controles.";
         _newVarName = "";
         _newVarDescription = "";
     }

@@ -25,7 +25,7 @@ public static class GameWorkspace
     public static string Create(string machine, string wish, Random rng, string? cliHint, string? folder = null)
     {
         var t = Templates.For(machine) ?? throw new ArgumentException($"no hay plantilla para {machine}");
-        string dir = folder ?? Path.Combine(Root, $"{t.Machine}-{DateTime.Now:yyyyMMdd-HHmmss}");
+        string dir = folder ?? Path.Combine(Root, $"{t.Machine}-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}");
         Directory.CreateDirectory(dir);
         File.WriteAllText(Path.Combine(dir, GameDesignGuide.FileName), GameDesignGuide.Text);
         File.WriteAllText(Path.Combine(dir, "CONTRATO.md"), GameDesignGuide.Compact);

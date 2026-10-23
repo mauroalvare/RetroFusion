@@ -225,8 +225,14 @@ public sealed class GameProfile
         if (Match.Files.Count > 0 && Match.Files.All(n => files.Any(f => f.Name.Equals(n, StringComparison.OrdinalIgnoreCase))))
             return true;
         if (Match.NamePattern != null)
-            return files.Any(f => Regex.IsMatch(f.Name, Match.NamePattern, RegexOptions.IgnoreCase))
-                   || files.Any(f => Regex.IsMatch(f.Source, Match.NamePattern, RegexOptions.IgnoreCase));
+        {
+            try
+            {
+                return files.Any(f => Regex.IsMatch(f.Name, Match.NamePattern, RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100)))
+                    || files.Any(f => Regex.IsMatch(f.Source, Match.NamePattern, RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100)));
+            }
+            catch (RegexMatchTimeoutException) { return false; }
+        }
         return false;
     }
 }
@@ -264,19 +270,22 @@ public static class ProfileLibrary
     public static IReadOnlyList<GameProfile> All()
     {
         var list = new List<GameProfile>(BuiltIn);
-        if (Directory.Exists(UserFolder))
-            foreach (var f in Directory.GetFiles(UserFolder, "*.json"))
+        string[] files;
+        try { files = Directory.Exists(UserFolder) ? Directory.GetFiles(UserFolder, "*.json") : []; }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return list; }
+        foreach (var file in files)
+        {
+            try
             {
-                try
-                {
-                    var p = GameProfile.Parse(File.ReadAllText(f));
-                    list.RemoveAll(x => x.Id == p.Id);
-                    list.Add(p);
-                }
-                catch (JsonException)
-                {
-                }
+                if (new FileInfo(file).Length > 2 * 1024 * 1024) continue;
+                var profile = GameProfile.Parse(File.ReadAllText(file));
+                Validate(profile);
+                list.RemoveAll(x => x.Id == profile.Id);
+                list.Add(profile);
             }
+            catch (Exception error) when (error is JsonException or IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
+            { /* Preserve incomplete user profiles; other games remain available. */ }
+        }
         return list;
     }
 
@@ -309,9 +318,38 @@ public static class ProfileLibrary
     /// <summary>Writes the profile as &lt;folder&gt;/&lt;id&gt;.json and returns the path.</summary>
     public static string SaveTo(GameProfile profile, string folder)
     {
+        Validate(profile);
         Directory.CreateDirectory(folder);
         string path = Path.Combine(folder, profile.Id + ".json");
-        File.WriteAllText(path, profile.ToJson());
-        return path;
+        string temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            using (var file = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                JsonSerializer.Serialize(file, profile, GameProfile.Json);
+                file.Flush(flushToDisk: true);
+            }
+            File.Move(temporary, path, overwrite: true);
+            return path;
+        }
+        finally
+        {
+            try { File.Delete(temporary); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+        }
     }
+
+    private static void Validate(GameProfile profile)
+    {
+        if (string.IsNullOrWhiteSpace(profile.Id) || profile.Id.Length > 120 || profile.Id is "." or ".." ||
+            profile.Id.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || profile.Id.Contains('/') || profile.Id.Contains('\\') ||
+            profile.Name == null || string.IsNullOrWhiteSpace(profile.Machine) || profile.Match == null || profile.Match.Files == null || profile.Match.Sha256 == null ||
+            profile.Variables == null || profile.Variables.Any(v => string.IsNullOrWhiteSpace(v.Key) || v.Value == null) ||
+            profile.Controls == null || profile.Boot == null || profile.Sprites == null || profile.Helpers == null || profile.HelpersDoc == null)
+            throw new InvalidDataException("El perfil está incompleto o su nombre no es válido.");
+        foreach (var variable in profile.Variables.Values) _ = VariableMemory.Cells(variable);
+        if (profile.Match.NamePattern != null)
+            _ = new Regex(profile.Match.NamePattern, RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
+    }
+
 }

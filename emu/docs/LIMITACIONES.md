@@ -18,7 +18,8 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 - Las hipótesis pueden conservarse en el historial privado; no se guardan como perfiles verificados.
   Deshacer conserva los cinco cambios más recientes; restaurar conserva el primero.
   Ambos restauran el progreso de partida desde ese punto. Abrir, recargar o reiniciar
-  un juego o cargar un estado externo descarta esa sesión.
+  un juego o cargar un estado externo descarta los puntos de regreso de esa sesión;
+  el historial optativo y la selección guardada se pueden recuperar.
 - La comprobación nueva usa IA simulada. No demuestra que todos los proveedores
   encuentren variables útiles ni valida semántica o calidad creativa de sus respuestas.
 - Las listas de proyectos se actualizan al abrir, guardar o pulsar Actualizar.

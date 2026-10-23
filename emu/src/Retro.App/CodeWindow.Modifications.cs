@@ -350,12 +350,34 @@ public sealed partial class CodeWindow
             : "Partida restaurada al momento anterior al primer cambio.";
     }
 
-    private void SaveProfile()
+    private bool SaveProfile()
     {
-        if (_profile == null) return;
-        var persistent = GameProfile.Parse(_profile.ToJson());
-        foreach (var name in _discoveredLabels.Keys) persistent.Variables.Remove(name);
-        ProfileLibrary.Save(persistent);
+        if (_profile == null) return false;
+        try
+        {
+            var persistent = GameProfile.Parse(_profile.ToJson());
+            foreach (var name in _discoveredLabels.Keys) persistent.Variables.Remove(name);
+            ProfileLibrary.Save(persistent);
+            return true;
+        }
+        catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
+        { _status = "No se pudo guardar el perfil: " + error.Message; return false; }
+    }
+
+    private readonly List<Task> _retiredWork = new();
+
+    private void RetireWork<T>(ref Task<T>? task, ref CancellationTokenSource? source)
+    {
+        source?.Cancel();
+        if (task != null)
+        {
+            var cancellation = source;
+            _retiredWork.Add(task);
+            _ = task.ContinueWith(completed => { _ = completed.Exception; cancellation?.Dispose(); },
+                CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+        }
+        else source?.Dispose();
+        task = null; source = null;
     }
 
     public void Dispose()
@@ -363,13 +385,13 @@ public sealed partial class CodeWindow
         PersistModifications();
         StopObservation(); _modifications?.Dispose();
         _host.BeforeFrame -= ApplyFrozen; _host.SessionChanging -= LeaveModificationSession;
-        _cts?.Cancel(); _modificationCts?.Cancel();
-        _cts?.Dispose(); _modificationCts?.Dispose();
+        RetireWork(ref _explainTask, ref _cts);
+        RetireWork(ref _modificationTask, ref _modificationCts);
     }
 
     public Task CancelWork()
     {
         _cts?.Cancel(); _modificationCts?.Cancel();
-        return Task.WhenAll(new Task?[] { _explainTask, _modificationTask }.OfType<Task>());
+        return Task.WhenAll(_retiredWork.Concat(new Task?[] { _explainTask, _modificationTask }.OfType<Task>()));
     }
 }

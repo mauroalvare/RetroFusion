@@ -13,13 +13,13 @@ public static class StudioWorkspace
     public const string GameFile = "juego.json";
     public const string ReportFile = "informe.md";
 
-    public static string Root =>
+    public static string Root { get; set; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "RetroEmu", "agente-juegos");
 
     /// <summary>Creates the folder for a new game (from a concept or the player's idea) or a new version of one.</summary>
     public static string Create(StudioGame game, string task, Func<string, GameProfile?> find, string? cliHint, string? folder = null, OriginalReferences? references = null)
     {
-        string dir = folder ?? Path.Combine(Root, string.IsNullOrWhiteSpace(game.Id) ? "juego" : game.Id);
+        string dir = folder ?? Path.Combine(Root, $"{(string.IsNullOrWhiteSpace(game.Id) ? "juego" : game.Id)}-{Guid.NewGuid():N}");
         Directory.CreateDirectory(dir);
         File.WriteAllText(Path.Combine(dir, Retro.Ai.GameDesignGuide.FileName), Retro.Ai.GameDesignGuide.Text);
         File.WriteAllText(Path.Combine(dir, "CONTRATO.md"), StudioDesigner.CoreGuide);

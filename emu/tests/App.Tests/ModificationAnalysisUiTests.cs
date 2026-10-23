@@ -270,4 +270,28 @@ public class ModificationAnalysisUiTests
         host.StepFrame();Assert.That(host.Machine.Memory.Peek(0x8000),Is.EqualTo(17));
     }
 
+    [Test]
+    public async Task AnOldProviderIgnoringCancellationDoesNotBlockAnalysisOfTheNextGame()
+    {
+        var (host, window) = Start(); using var owned = window;
+        var delayed = new DelayedAi();
+        Call(window, "BeginModificationAnalysis", delayed);
+        var old = (Task)Get(window, "_modificationTask")!;
+        try
+        {
+            host.Load(new Retro.Core.MediaFile("another.tap", [3, 0, 255, 1, 254], "another.tap"), false); window.Update();
+            Assert.That(Get(window, "_modificationTask"), Is.Null);
+            Call(window, "BeginModificationAnalysis", new SimulatedAi(
+                "{\"analysis\":\"Informe del juego nuevo.\",\"variables\":[],\"ideas\":[]}", "Proveedor nuevo"));
+            await Finish(window);
+            Assert.That(Get(window, "_lastAnalysis"), Is.EqualTo("Informe del juego nuevo."));
+            Assert.That(Get(window, "_lastAnalysisProvider"), Is.EqualTo("Proveedor nuevo"));
+        }
+        finally
+        {
+            delayed.Answer.TrySetResult("{}");
+            try { await old; } catch (OperationCanceledException) { }
+        }
+    }
+
 }
