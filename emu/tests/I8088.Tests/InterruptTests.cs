@@ -144,14 +144,24 @@ public sealed partial class CpuTests
         Assert.That(cpu.ReadWord(cpu.ES, 0), Is.EqualTo(0x2211));
     }
 
-    [Test]
-    public void ATrapAfterHaltCanBeAcceptedEvenWhenMaskableInterruptsAreDisabled()
+    [TestCase(false)] [TestCase(true)]
+    public void ATrapAfterHaltWaitsForAnEnabledExternalInterrupt(bool nmi)
     {
         var (cpu, bus) = Program(0xF4);
-        Vector(cpu, bus, 1, 0x3000); cpu.Flags = I8088Cpu.Trap;
-        cpu.Step(); Assert.That(cpu.Halted, Is.False, "A pending trap must let bounded callers continue stepping.");
-        cpu.Step(); Assert.That((cpu.CS, cpu.IP), Is.EqualTo((0x3000, 0x20)));
+        Vector(cpu, bus, 1, 0x3000); Vector(cpu, bus, nmi ? (byte)2 : (byte)8, 0x4000);
+        cpu.Flags = (ushort)(I8088Cpu.Trap | (nmi ? 0 : I8088Cpu.InterruptEnable));
+        cpu.Step();
+        Assert.That((cpu.Halted, cpu.TrapPending, cpu.Instructions), Is.EqualTo((true, true, 1L)));
+        Assert.That(cpu.Step(), Is.False);
+        Assert.That(cpu.Step(), Is.False);
+        if (nmi) cpu.RequestNmi(); else cpu.RequestInterrupt(8);
+        cpu.Step();
+        Assert.That((cpu.Halted, cpu.CS, cpu.IP), Is.EqualTo((false, 0x4000, 0x20)));
         Assert.That(cpu.ReadWord(cpu.SS, cpu.SP), Is.EqualTo(1));
+        cpu.Step();
+        Assert.That((cpu.CS, cpu.IP), Is.EqualTo((0x3000, 0x20)));
+        Assert.That(cpu.ReadWord(cpu.SS, cpu.SP), Is.EqualTo(0x20));
+        Assert.That(cpu.Instructions, Is.EqualTo(1));
     }
 
     [Test]

@@ -111,7 +111,10 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 - Hay un núcleo 8088 parcial accesible por `cpu8088 demo`; todavía no hay máquina PC,
   BIOS/DOS ni juegos compatibles. Faltan instrucciones, desensamblador, prelectura y
   temporización del bus. No se verificó con una suite de hardware externa. Cobertura
-  observada y próximos pasos en [I8088.md](I8088.md).
+  observada y próximos pasos en [I8088.md](I8088.md). TF y el 8259A individual ya tienen
+  pruebas funcionales, incluidos programas por puertos; no aportan el reloj de PC ni
+  forman una placa completa con PIT, PPI, CGA, discos y BIOS. Cascada, disparo por
+  nivel y tiempos eléctricos del 8259A se rechazan o quedan pendientes, según el contrato.
 
 ### ZX Spectrum
 

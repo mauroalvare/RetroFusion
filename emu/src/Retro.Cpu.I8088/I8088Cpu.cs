@@ -18,7 +18,7 @@ public sealed class I8088Cpu(I8088Bus bus, I8088InterruptSource? interrupts)
     private int _segmentOverride = -1;
     private bool _interruptShadow, _segmentShadow;
     private byte? _irq;
-    private bool _nmi, _trapPending, _halted;
+    private bool _nmi, _trapPending;
     private ushort _startCs, _startIp;
 
     public ushort AX { get => _r[0]; set => _r[0] = value; }
@@ -35,8 +35,7 @@ public sealed class I8088Cpu(I8088Bus bus, I8088InterruptSource? interrupts)
     public ushort DS { get => _s[3]; set => _s[3] = value; }
     public ushort IP { get; set; }
     public ushort Flags { get => _flags; set => _flags = (ushort)((value & 0x0FD5) | 0xF002); }
-    /// <summary>A pending internal trap can wake HLT even with IF clear.</summary>
-    public bool Halted { get => _halted && !_trapPending; private set => _halted = value; }
+    public bool Halted { get; private set; }
     public bool TrapPending => _trapPending;
     /// <summary>Instructions executed; each REP iteration is a restartable step.</summary>
     public long Instructions { get; private set; }
@@ -255,10 +254,11 @@ public sealed class I8088Cpu(I8088Bus bus, I8088InterruptSource? interrupts)
         { _irq = null; EnterInterrupt(vector); return true; }
         if (Flag(InterruptEnable) && !inhibit && interrupts?.InterruptRequested == true)
         { EnterInterrupt(interrupts.Acknowledge()); return true; }
+        // HLT finishes only after an enabled external interrupt; its trap waits until then.
+        if (Halted) return false;
         // The original 8088 gives external interrupts priority over the pending trap.
         // Keep it pending across their entry, so it nests before the first ISR instruction.
         if (_trapPending && !inhibitNmi) { _trapPending = false; EnterInterrupt(1); return true; }
-        if (Halted) return false;
         bool trap = Flag(Trap);
         _startCs = CS; _startIp = IP; _segmentOverride = -1;
         byte opcode, repeat = 0; int prefixes = 0;

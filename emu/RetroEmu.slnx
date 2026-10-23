@@ -17,6 +17,7 @@
     <Project Path="src/Retro.Systems.Arcade/Retro.Systems.Arcade.csproj" />
     <Project Path="src/Retro.Systems.C64/Retro.Systems.C64.csproj" />
     <Project Path="src/Retro.Systems.Nes/Retro.Systems.Nes.csproj" />
+    <Project Path="src/Retro.Systems.Pc/Retro.Systems.Pc.csproj" />
     <Project Path="src/Retro.Systems.Spectrum/Retro.Systems.Spectrum.csproj" />
   </Folder>
   <Folder Name="/tests/">
@@ -29,6 +30,7 @@
     <Project Path="tests/M6502.Tests/M6502.Tests.csproj" />
     <Project Path="tests/Asm.Tests/Asm.Tests.csproj" />
     <Project Path="tests/Nes.Tests/Nes.Tests.csproj" />
+    <Project Path="tests/Pc.Tests/Pc.Tests.csproj" />
     <Project Path="tests/Retro.Cpu.Z80.Tests/Retro.Cpu.Z80.Tests.csproj" />
     <Project Path="tests/Studio.Tests/Studio.Tests.csproj" />
     <Project Path="tests/Update.Tests/Update.Tests.csproj" />

@@ -55,7 +55,8 @@ src/
                            video, audio, breakpoints, apertura de archivos (.zip), PNG.
   Retro.Cpu.Z80            Núcleo Z80 + desensamblador. No sabe nada del Spectrum.
   Retro.Cpu.I8080          Núcleo Intel 8080 + desensamblador.
-  Retro.Cpu.I8088          Primer núcleo funcional 8088, parcial y sin tiempo por ciclo.
+  Retro.Cpu.I8088          Núcleo8088 parcial: TF, INTR y aceptación de vectores; sin ciclos.
+  Retro.Systems.Pc         Componentes de PC: 8259A individual funcional. Máquina aún pendiente.
   Retro.Cpu.M6502          Núcleo MOS 6502/6510 (NMOS, con los opcodes no documentados)
                            + desensamblador.
   Retro.Systems.Spectrum   ZX Spectrum 48K: memoria, ULA, cinta, snapshots, símbolos.
@@ -89,7 +90,8 @@ tests/
                            interrupciones, reversión y acceso directo temporal.
   Retro.Cpu.Z80.Tests      FUSE (1.356 casos) + ZEXDOC/ZEXALL.
   I8080.Tests              TST8080, 8080PRE, CPUTEST y 8080EXM con ciclos exactos.
-  I8088.Tests              ALU, rotaciones, segmentos, pila, interrupciones y cadenas.
+  I8088.Tests              ALU, segmentos, pila, cadenas, TF y aceptación de interrupciones.
+  Pc.Tests                 8259A, prioridades/máscaras y programas 8088 por puertos.
   M6502.Tests              SingleStepTests de Tom Harte (256.000 casos, cada ciclo de
                            bus) y la suite funcional de Klaus Dormann.
   C64.Tests                CIA, VIC-II, arranque, SYS, Open ROMs, estados guardados y
@@ -175,9 +177,17 @@ Existe un intérprete parcial con registros, segmentación de 20 bits, ModR/M, A
 rotaciones/desplazamientos, pila, saltos, interrupciones, cadenas y E/S de byte. CL
 conserva los ocho bits de conteo del 8088. El comando `cpu8088 demo` ejecuta
 una suma propia y llega a HLT. No hay aún prelectura ni tiempo por ciclo: no se conecta
-a periféricos ni implementa `ICpuDebugView` hasta contar con un reloj válido. No cambia
+a periféricos que necesiten un reloj ni implementa `ICpuDebugView`.
+El controlador de interrupciones sí puede comprobarse funcionalmente sin ese reloj. No cambia
 las CPUs actuales ni habilita PC/XT en el lanzador. La cobertura exacta, pruebas y
 siguientes pasos están en [I8088.md](I8088.md).
+
+El 8088 consulta `I8088InterruptSource` al aceptar INTR; el 8259A decide entonces el
+vector. TF conserva una trampa pendiente con prioridad posterior a las interrupciones
+externas. `Retro.Systems.Pc/Pic8259A` implementa el controlador individual por flancos;
+`cpu8088 irq-demo` configura sus puertos y ejecuta manejadores propios. Aún no hay
+reloj de PC, BIOS ni máquina registrada: no se sincronizan periféricos con Instructions.
+Contratos funcionales y límites: D-040 e [I8088.md](I8088.md).
 
 ## Placa de Space Invaders (Taito/Midway 8080)
 

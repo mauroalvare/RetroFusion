@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="../Retro.Systems.Pc/Retro.Systems.Pc.csproj" />
     <ProjectReference Include="..\Retro.Core\Retro.Core.csproj" />
     <ProjectReference Include="..\Retro.Cpu.Z80\Retro.Cpu.Z80.csproj" />
     <ProjectReference Include="..\Retro.Systems.Spectrum\Retro.Systems.Spectrum.csproj" />

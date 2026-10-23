@@ -571,7 +571,7 @@ una preparación interrumpida se reconoce por su comprobante. Un plan preparado 
 una recuperación pendiente, otros programas y respaldos completos de formato 1 se
 conservan. El borrado de la raíz nunca es recursivo: archivos ajenos la mantienen.
 
-## D-040 Aceptación de interrupciones del8088 (2026-10-22)
+## D-040 Aceptación de interrupciones del 8088 (2026-10-22)
 
 El núcleo conserva el constructor de un bus y la inyección de vector de diagnóstico.
 Los dispositivos usan I8088InterruptSource: exponen INTR y resuelven el vector en
@@ -580,6 +580,23 @@ mientras están inhibidos. El contrato representa una secuencia funcional, no pu
 
 TF se muestrea antes de la instrucción; su trampa pendiente se acepta en otro Step
 sin sumar Instructions. Las interrupciones externas tienen prioridad y la trampa puede
-anidarse antes de la primera instrucción de su manejador, como documenta el8088.
+anidarse antes de la primera instrucción de su manejador, como documenta el 8088.
 MOV/POP hacia cualquier segmento admitido protegen la instrucción siguiente también
-de NMI/TF. HLT no impide aceptar una trampa pendiente. No se añaden ciclos ficticios.
+de NMI/TF. HLT conserva la trampa pendiente hasta ser reanudado por una interrupción externa. No se añaden ciclos ficticios.
+
+## D-041 Primer componente PC: 8259A individual (2026-10-22)
+
+Se incorpora Retro.Systems.Pc y Pc.Tests para desarrollar los dispositivos sin presentar
+como disponible una máquina PC incompleta. Pic8259A implementa I8088InterruptSource;
+su interfaz separa comandos/datos de puertos, cuyo mapeo corresponde a la placa.
+Inicialización individual 8086 por flancos, máscaras, prioridades, EOI/rotación, AEOI,
+máscara especial, estado y poll son funcionales; no se asignan ciclos ficticios.
+Los modos de nivel/cascada/8080/buffer/SFNM no soportados fallan explícitamente.
+La combinación poll/AEOI también se rechaza hasta contrastar sus efectos; no se
+inventa cuándo borrar ISR en un modo de consulta sin pulsos INTA.
+
+El propio programa de cpu8088 irq-demo inicializa los puertos 20h/21h y atiende pedidos
+que se inyectan mientras espera en HLT. Los manejadores propios incrementan contadores,
+mandan EOI y vuelven por IRET. El diagnóstico tiene presupuesto y resultado verificable.
+No requiere juegos, ROMs ni descargas. Las pruebas recorren pedidos/máscaras exhaustivos
+y combinan el controlador con el 8088, incluidas prioridad, anidación y trampa pendiente.
