@@ -180,11 +180,10 @@ public sealed class UpdatePlan
 
 public static class UpdatePreparation
 {
-    internal static void HideMetadata(UpdatePlan plan)
+    internal static void CreateMetadata(UpdatePlan plan)
     {
         string folder = UpdatePlan.Metadata(plan.Parent);
         PackageManifest.NoLinks(folder); Directory.CreateDirectory(folder);
-        if (OperatingSystem.IsWindows()) File.SetAttributes(folder, File.GetAttributes(folder) | FileAttributes.Hidden);
     }
 
     /// <summary>Adopts a verified download prepared by the published 0.2.1-0.2.3 updater.</summary>
@@ -197,7 +196,7 @@ public static class UpdatePreparation
         var next = PackageManifest.Read(source);
         if (next.Version != plan.ToVersion || next.Runtime != plan.Runtime) throw new InvalidDataException("Descarga anterior incorrecta.");
         next.Verify(source, exact: true);
-        HideMetadata(plan);
+        CreateMetadata(plan);
         string payload = Path.Combine(plan.Job, "paquete", plan.PackageName);
         PackageManifest.CopyPackage(source, payload);
         plan.Format = 2; plan.LegacyStaged = true; plan.Save();
@@ -208,25 +207,41 @@ public static class UpdatePreparation
     {
         var previous = PackageManifest.Read(installed); previous.Verify(installed, exact: false);
         var plan = UpdatePlan.Create(installed, asset);
-        HideMetadata(plan);
-        using var gate = new FileStream(Path.Combine(UpdatePlan.Metadata(plan.Parent), "prepare.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
-        var prepared = UpdatePlan.Pending(installed).FirstOrDefault(p => p.Format == 2 &&
-            p.State is "prepared" or "rolled-back" && p.ToVersion == asset.Version.ToString(3) && p.FromVersion == previous.Version);
-        if (prepared != null)
+        CreateMetadata(plan);
+        try
         {
-            PackageManifest.Read(prepared.PayloadRoot).Verify(prepared.PayloadRoot, exact: true);
-            if (prepared.State == "rolled-back")
+            using var gate = new FileStream(Path.Combine(UpdatePlan.Metadata(plan.Parent), "prepare.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+            var prepared = UpdatePlan.Pending(installed).FirstOrDefault(p => p.Format == 2 &&
+                p.State is "prepared" or "rolled-back" && p.ToVersion == asset.Version.ToString(3) && p.FromVersion == previous.Version);
+            if (prepared != null)
             {
-                prepared.State = "prepared"; prepared.Moves.Clear(); prepared.RollbackNext = null; prepared.Error = null; prepared.Save();
+                PackageManifest.Read(prepared.PayloadRoot).Verify(prepared.PayloadRoot, exact: true);
+                if (prepared.State == "rolled-back")
+                {
+                    prepared.State = "prepared"; prepared.Moves.Clear(); prepared.RollbackNext = null; prepared.Error = null; prepared.Save();
+                }
+                UpdateCleanup.ClearPreparation(prepared);
+                return prepared;
             }
-            return prepared;
+            Directory.CreateDirectory(plan.Job);
+            UpdateCleanup.MarkPreparation(plan);
+            try
+            {
+                string archive = Path.Combine(plan.Job, "package.part");
+                await client.DownloadAsync(asset, archive, progress, ct);
+                progress?.Report(new("Verificando los archivos..."));
+                await Task.Run(() => SafePackage.Extract(archive, Path.Combine(plan.Job, "paquete"), asset, ct), ct);
+                ct.ThrowIfCancellationRequested();
+                plan.Save(); File.Delete(archive); UpdateCleanup.ClearPreparation(plan);
+                return plan;
+            }
+            catch
+            {
+                try { UpdateCleanup.DiscardPreparation(plan); }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+                throw;
+            }
         }
-        Directory.CreateDirectory(plan.Job);
-        string archive = Path.Combine(plan.Job, "package.part");
-        await client.DownloadAsync(asset, archive, progress, ct);
-        progress?.Report(new("Verificando los archivos..."));
-        await Task.Run(() => SafePackage.Extract(archive, Path.Combine(plan.Job, "paquete"), asset, ct), ct);
-        ct.ThrowIfCancellationRequested();
-        plan.Save(); File.Delete(archive); return plan;
+        finally { UpdateCleanup.RemoveEmptyMetadata(plan.Parent); }
     }
 }

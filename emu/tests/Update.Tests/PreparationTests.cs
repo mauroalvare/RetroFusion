@@ -47,7 +47,7 @@ public class PreparationTests
         Assert.That(plan.PayloadRoot,Does.StartWith(plan.Job+Path.DirectorySeparatorChar));
         Assert.That(Directory.Exists(plan.LegacyRoot),Is.False);
         Assert.That(PackageManifest.Read(_old).Version,Is.EqualTo("0.2.1"));
-        if(OperatingSystem.IsWindows())Assert.That(File.GetAttributes(UpdatePlan.Metadata(_root)).HasFlag(FileAttributes.Hidden),Is.True);
+        if(OperatingSystem.IsWindows())Assert.That(File.GetAttributes(UpdatePlan.Metadata(_root)).HasFlag(FileAttributes.Hidden),Is.False);
     }
 
     [Test]
@@ -83,4 +83,28 @@ public class PreparationTests
         Assert.That(plan.NewRoot, Is.EqualTo(_old)); Assert.That(Directory.Exists(plan.PayloadRoot), Is.True);
         Assert.That(handler.Calls, Is.EqualTo(1)); Assert.That(File.ReadAllText(Path.Combine(existing, "personal.txt")), Is.EqualTo("No reemplazar"));
     }
+    [Test]
+    public void InvalidDownloadLeavesNoUpdaterFolder()
+    {
+        using var handler = new Transport(File.ReadAllBytes(_archive)); using var http = new HttpClient(handler);
+        Assert.ThrowsAsync<InvalidDataException>(() => UpdatePreparation.PrepareAsync(new ReleaseClient(http),
+            _asset with { Sha256 = new string('0',64) }, _old, null, CancellationToken.None));
+        Assert.That(Directory.Exists(UpdatePlan.Metadata(_root)), Is.False);
+        Assert.That(File.ReadAllText(Path.Combine(_old,"ROMs/dato-propio.txt")), Is.EqualTo("Datos personales de prueba"));
+    }
+
+    [Test]
+    public void CancelledDownloadLeavesNoUpdaterFolder()
+    {
+        using var handler = new Transport(File.ReadAllBytes(_archive)); using var http = new HttpClient(handler);
+        using var cancellation = new CancellationTokenSource();
+        Assert.CatchAsync<OperationCanceledException>(() => UpdatePreparation.PrepareAsync(new ReleaseClient(http),
+            _asset, _old, new CancelProgress(cancellation), cancellation.Token));
+        Assert.That(Directory.Exists(UpdatePlan.Metadata(_root)), Is.False);
+        PackageManifest.Read(_old).Verify(_old, exact: false);
+    }
+
+    private sealed class CancelProgress(CancellationTokenSource cancellation) : IProgress<UpdateProgress>
+    { public void Report(UpdateProgress value) => cancellation.Cancel(); }
+
 }

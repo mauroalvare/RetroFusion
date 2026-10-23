@@ -22,10 +22,12 @@ archivo de la descarga. El script de publicación genera `actualizacion.json`.
 Espera el cierre y aplica el diario de `UpdateInstaller` en la raíz instalada.
 El plan formato 2 mantiene ROMs, fusiones, creaciones, firmware existente y archivos
 propios en su sitio; reemplaza únicamente archivos registrados del programa. El paquete
-inmutable y una copia de instalación quedan dentro de `.retroemu-updates`, oculto en
-Windows. El acceso y la ruta instalada no cambian. Se guarda el registro anterior y cada
+inmutable y una copia de instalación usan temporalmente `.retroemu-updates`. El acceso y la ruta instalada no cambian. Se guarda el registro anterior y cada
 movimiento permite revertir; el nuevo arranque confirma su primer cuadro. El primer
-reinicio no reorganiza ROMs durante esa confirmación. Contrato actual: D-038.
+reinicio no reorganiza ROMs durante esa confirmación. Después, `UpdateCleanup` espera la salida del ayudante y elimina
+el trabajo completo, el respaldo y la carpeta temporal vacía. Si el borrado se interrumpe,
+un comprobante acotado permite reintentarlo al abrir. Los trabajos activos o pendientes
+de recuperación se conservan. Contratos: D-038 y D-039.
 
 Un paquete preparado por el updater 0.2.1–0.2.3 usa formato 1. El ejecutable nuevo lo
 verifica, lo copia al área interna y delega allí antes de retirar la carpeta de descarga

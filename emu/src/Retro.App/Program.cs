@@ -37,10 +37,12 @@ rlImGui.Setup(true, true);
 var appArgs = args.ToList();
 if (readyIndex >= 0 && readyIndex + 1 < args.Length) appArgs.RemoveRange(readyIndex, 2);
 var app = new RetroApp(appArgs.ToArray());
+bool cleanupStarted = false;
 while (!Raylib.WindowShouldClose() && !app.QuitRequested)
 {
     app.Frame(Raylib.GetFrameTime());
     if (ready != null) { UpdateRunner.Acknowledge(ready); ready = null; }
+    if (!cleanupStarted) { UpdateCleanup.Start(AppContext.BaseDirectory); cleanupStarted = true; }
 }
 app.Shutdown();
 rlImGui.Shutdown();

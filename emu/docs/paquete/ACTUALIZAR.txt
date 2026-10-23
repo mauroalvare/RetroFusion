@@ -5,8 +5,8 @@ entrega oficial de tu sistema, la verifica, cierra el programa y vuelve a abrirl
 El emulador se actualiza en la misma carpeta, aunque su nombre tenga una versión
 anterior. Los accesos siguen funcionando y tus carpetas de juegos permanecen en su lugar.
 Se conservan juegos, trabajos pendientes, firmware y ajustes del usuario.
-Si la versión nueva no abre, se restaura la anterior. No borres .retroemu-updates:
-guarda el respaldo del programa y el diario de recuperación.
+Si la versión nueva no abre, se restaura la anterior. Al terminar se eliminan la
+descarga y los temporales. Si se interrumpe la actualización, se conservan hasta recuperarla.
 Podés omitir la actualización o desactivarla en Ayuda > Actualizaciones.
 
 Si usás una versión anterior o preferís actualizar manualmente:

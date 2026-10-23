@@ -24,8 +24,9 @@ arreglar algo, se borra la entrada y se menciona en el commit.
   Sin red, con otra instancia abierta o ante un paquete inválido se conserva la versión
   instalada. Se puede buscar manualmente en Ayuda > Actualizaciones.
 - Un archivo propio que coincide con uno nuevo o una instalación con enlaces requiere
-  revisión manual: no se sobrescriben esos datos. El respaldo en .retroemu-updates se
-  conserva; no hay limpieza automática. Desde 0.2.4 se mantiene la carpeta de instalación
+  revisión manual: no se sobrescriben esos datos. Desde 0.2.5 los temporales y respaldos
+  de actualizaciones confirmadas se eliminan automáticamente. Una actualización pendiente
+  o interrumpida conserva sus archivos para recuperarse. Desde 0.2.4 se mantiene la carpeta de instalación
   y los accesos que apuntan a ella. No se combinan automáticamente otras copias del
   programa o bibliotecas en carpetas vecinas.
 - Comprobado en Windows con archivos propios: cierre, actualización en la misma carpeta, reapertura,
@@ -38,7 +39,10 @@ arreglar algo, se borra la entrada y se menciona en el commit.
   no se retira ni sobrescribe.
 - El diario permite recuperar movimientos interrumpidos desde el ayudante interno.
   Si un corte deja sin iniciar el ejecutable principal, el respaldo del programa queda
-  en .retroemu-updates. Los archivos de juegos no forman parte de esos movimientos.
+  en .retroemu-updates hasta recuperar la operación. Si Windows bloquea un temporal,
+  el borrado reintenta y puede continuar en el próximo inicio. Los archivos de juegos
+  no forman parte de esos movimientos. Los respaldos completos de diarios antiguos
+  de formato 1 requieren revisión manual; no se eliminan con el limpiador en sitio.
 
 ## Imágenes del selector
 

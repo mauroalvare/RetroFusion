@@ -554,3 +554,19 @@ Los archivos idénticos del runtime se conservan: no se renombran innecesariamen
 bibliotecas que Windows pueda retener. Un bloqueo transitorio tiene reintento acotado;
 no se cambian permisos para forzar el reemplazo. Si falta un archivo protegido del
 paquete, se puede agregar sin alterar los que ya conserva el usuario.
+
+## D-039 Eliminar temporales tras confirmar la actualización (2026-10-22)
+
+El usuario rechaza conservar oculta la carpeta de trabajo junto a la instalación.
+No se oculta como mecanismo de limpieza. Tras el primer cuadro confirmado y la salida
+del ayudante, el proceso instalado elimina los trabajos terminados de formato 2,
+incluido el respaldo, y quita .retroemu-updates si queda vacía. No hay otro ejecutable.
+Los bloqueos globales de preparación/aplicación y la comprobación de procesos impiden
+borrar trabajos activos. Antes de autorizar la eliminación se verifica la instalación.
+
+Un comprobante limpiar-ID.json, limitado a un ID GUID y nombre de instalación bajo
+la carpeta de trabajo, permite completar un borrado interrumpido. No admite rutas
+libres ni enlaces. Las descargas propias canceladas o inválidas también se descartan;
+una preparación interrumpida se reconoce por su comprobante. Un plan preparado válido,
+una recuperación pendiente, otros programas y respaldos completos de formato 1 se
+conservan. El borrado de la raíz nunca es recursivo: archivos ajenos la mantienen.

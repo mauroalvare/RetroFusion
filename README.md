@@ -112,6 +112,7 @@ desde los pendientes del estudio o del creador con su último código y sus edic
 
 Desde la 0.2.1, el programa busca e instala actualizaciones al abrir. Conserva tus juegos,
 firmware y ajustes, y vuelve a abrirse en la misma carpeta. Tus bibliotecas permanecen en su lugar.
+La descarga y los temporales se eliminan al completar la actualización.
 Podés omitir la actualización o cambiar esa opción en **Ayuda > Actualizaciones**.
 Para pasar desde una versión anterior, seguí `ACTUALIZAR.txt` del paquete.
 **Ayuda > Conectar IA** muestra cómo instalar e iniciar sesión en cada herramienta,

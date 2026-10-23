@@ -33,7 +33,9 @@ Para pruebas nativas sobre bibliotecas propias se puede usar `--no-organize`.
 `Retro.Update` y `Retro.App/UpdateWindow` implementan **Ayuda > Actualizaciones** y la
 búsqueda automática al abrir. Los paquetes incluyen `actualizacion.json`, generado por
 `tools/make_update_manifest.py`. La instalación conserva su ruta y nombre;
-el paquete temporal, diario y respaldo están en `.retroemu-updates` de su carpeta superior. Los modos
+el paquete temporal, diario y respaldo usan `.retroemu-updates` durante la operación.
+`UpdateCleanup` elimina los trabajos confirmados y la carpeta vacía después de que
+sale el ayudante; no borra trabajos activos ni recuperaciones pendientes. Los modos
 internos `--apply-update` y `--update-ready` usan el mismo ejecutable. `--no-update`
 omite la búsqueda; también se omite con `--hidden` y `--autotest`. Preferencias en
 `%APPDATA%/RetroEmu/actualizaciones.json`, separadas de IA. La primera 0.2.1 se instala
@@ -175,7 +177,7 @@ $C probar out/juego.s                                        # la misma prueba p
 $C crear c64 out/tarea --ia agent --pedido "..."             # carpeta para un agente (TAREA.md, GUIA.md, juego.s)
 
 # paquetes autocontenidos (Windows y Linux) en emu/dist
-pwsh tools/publish.ps1 -Version 0.2.4
+pwsh tools/publish.ps1 -Version 0.2.5
 
 # Actualizar la instalación local y el único acceso RetroEmu del escritorio.
 # Requiere cerrar la app; conserva juegos y firmware existente y guarda un respaldo.
