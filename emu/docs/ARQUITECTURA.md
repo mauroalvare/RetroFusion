@@ -839,3 +839,8 @@ juego, las respuestas pendientes se cancelan y sus tareas se retiran de la inter
 sin bloquear un análisis nuevo ni aplicar una respuesta al medio equivocado.
 Las carpetas automáticas de trabajos de agentes tienen un identificador único, tanto
 en estudio como en el creador; una carpeta explícita conserva el comportamiento anterior.
+
+
+El trabajo de placa PC/XT está en Retro.Systems.Pc: PcMemory y PcBus conectan memoria,
+PIC y PIT sin registrar aún una máquina disponible. Alcance, mapa y pasos pendientes
+se mantienen en [PCXT.md](PCXT.md). Las instrucciones8088 no equivalen a ciclos de placa.

@@ -278,3 +278,8 @@ Los guardados de versiones anteriores se pueden cargar desde el grupo del mismo 
 conviene comprobar que correspondan al juego abierto. Los archivos nuevos se guardan
 en AppData/RetroEmu/states/<identidad>/slotN.rfstate. StateSlotStore.cs resuelve rutas y
 fechas; RetroApp.States.cs dibuja el panel. El guardado rápido es temporal.
+
+
+El trabajo de placa PC/XT está en Retro.Systems.Pc: PcMemory y PcBus conectan memoria,
+PIC y PIT sin registrar aún una máquina disponible. Alcance, mapa y pasos pendientes
+se mantienen en [PCXT.md](PCXT.md). Las instrucciones8088 no equivalen a ciclos de placa.

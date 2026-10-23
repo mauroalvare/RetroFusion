@@ -780,14 +780,14 @@ AAM/AAD, los selectores de segmento y REP sobre IDIV. Origen de los datos y revi
 
 ## D-051 — Herramientas 8088 y direcciones segmentadas
 
-ICpuDebugView.HasCycleTiming distingue un reloj medido de un núcleo funcional: el8088
-expone cero ciclos y declara que no tiene temporización. Su estado RETRO-8088 versión1
+ICpuDebugView.HasCycleTiming distingue un reloj medido de un núcleo funcional: el 8088
+expone cero ciclos y declara que no tiene temporización. Su estado RETRO-8088 versión 1
 guarda registros, interrupciones y esperas a frontera de instrucción; no contiene RAM
 ni dispositivos y valida los datos antes de cambiarlos. WAIT acepta TEST y ESC realiza
 la lectura de memoria sin emular un coprocesador. SetLock representa propiedad lógica
 del bus, sin pulsos ni tiempos eléctricos.
 
-IFlowAnalyzer.AddressBits conserva16 por defecto y admite20 para el8088. FlowInfo.Next
+IFlowAnalyzer.AddressBits conserva 16 por defecto y admite 20 para el 8088. FlowInfo.Next
 opcional permite el salto de offset al finalizar un segmento sin alterar los analizadores
 anteriores. El desensamblador puede recibir CS para el visor en vivo; un mapa estático
 por dirección física no reconstruye todos los alias de segmentos de un programa.
@@ -795,12 +795,12 @@ Estas herramientas no convierten el núcleo en una máquina PC/XT ni acreditan s
 
 ## D-052 — MMC1 y validación de cartuchos sin cargar sus bancos
 
-MMC1 añade transferencia serie de5bits con registro elegido por la quinta dirección,
-reset D7, filtro D0 de ciclos consecutivos del6502, bancos PRG16/32KB yCHR4/8KB,
-cuatro modos de espejado y deshabilitación dePRG RAM. El ciclo opcional de CpuWrite
+MMC1 añade transferencia serie de 5 bits con registro elegido por la quinta dirección,
+reset D7, filtro D0 de ciclos consecutivos del 6502, bancos PRG de 16/32 KB y CHR de 4/8 KB,
+cuatro modos de espejado y deshabilitación de PRG RAM. El ciclo opcional de CpuWrite
 conserva los llamadores anteriores; las escrituras directas sin ciclo no simulan ese
-filtro. Los estados3 guardan también la transferencia incompleta y su último ciclo.
-Las placas SEROM mantienen32KB fijos; SUROM extiende la selección a512KB. Las variantes
+filtro. Los estados 3 guardan también la transferencia incompleta y su último ciclo.
+Las placas SEROM mantienen 32 KB fijos; SUROM extiende la selección a 512 KB. Las variantes
 no implementadas se explican en LIMITACIONES; no acredita compatibilidad de todas las
 placas ni persistencia de batería entre sesiones.
 
@@ -822,3 +822,15 @@ Los archivos anteriores states/<maquina>_slotN.rfstate siguen disponibles en un 
 separado para carga. No se migran ni se sobrescriben automáticamente porque no identifican
 el juego. El guardado rápido conserva su alcance temporal. La lista se actualiza al abrir,
 guardar/cargar o cambiar la sesión, sin inspeccionar archivos en cada cuadro de interfaz.
+
+
+## D-054 — Memoria y bus parcial PC/XT
+
+PcMemory separa RAM instalada, RAM de vídeo CGA con su espejo y un BIOS de 8–64 KB
+alineado al final de 1 MB. Protege y copia el firmware aportado, identifica sus bytes
+por SHA y no inventa RAM en los huecos. PcBus conecta 8259A/8253, máscara NMI por bit 7
+en A0–AF y páginas DMA; estas últimas todavía no realizan transferencias.
+TickPit es un pulso externo, independiente del contador de instrucciones. No se
+registró una máquina jugable ni se incluyó firmware en la distribución. Los puertos
+pendientes fallan explícitamente durante el diagnóstico. Alcance y orden restante en
+[PCXT.md](PCXT.md);no implica POST completo, DOS ni temporización validada.

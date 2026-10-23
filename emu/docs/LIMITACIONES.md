@@ -197,10 +197,10 @@ arreglar algo, se borra la entrada y se menciona en el commit.
   pueden cargar (formato 2).
 - Mappers 0/1/2/3/7: NROM, MMC1, UxROM, CNROM y AxROM. Los demás se reconocen y se
   explica por qué no cargan. MMC1 admite bancos PRG/CHR, puerto serie, espejado,
-  PRG RAM de8KB y la selección exterior SUROM. No admite MMC1A, EEPROM ni RAM mayor;
-  la selección exterior con registros CHR divergentes en modo4KB todavía no se sigue
+  PRG RAM de 8 KB y la selección exterior SUROM. No admite MMC1A, EEPROM ni RAM mayor;
+  la selección exterior con registros CHR divergentes en modo 4 KB todavía no se sigue
   por acceso PPU. El control adicional de RAM de SNROM no está modelado. Los tamaños
-  ampliados NES2 y submappers MMC1 ajenos a0/5 se rechazan.
+  ampliados NES2 y submappers MMC1 ajenos a 0/5 se rechazan.
 - La RAM de cartuchos con batería se conserva en estados guardados, sin archivo de
   batería independiente entre sesiones todavía.
 - Sin segundo jugador en la app (el mando 2 existe para el CLI y las fusiones) ni Zapper.
@@ -394,3 +394,8 @@ por cautela, las ediciones de Cheril, Phantomasa, Sila Tsikl y Nanako Descends t
   componente y ejecución con cartuchos locales; esto no valida todas las revisiones
   de placa ni los conflictos de bus. Los mappers que no están implementados se rechazan
   al abrir, conservando el original en la biblioteca.
+
+
+El bus PC/XT conecta memoria, 8259A y 8253 con reloj externo, más registros NMI y
+páginas DMA. Todavía faltan dispositivos y reloj de CPU para completar el POST.
+La RAM CGA aún no dibuja vídeo; no hay una máquina PC jugable. Ver [PCXT.md](PCXT.md).
