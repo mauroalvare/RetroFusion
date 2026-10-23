@@ -24,7 +24,7 @@ public sealed partial class CodeWindow
     private string _analysisProvider = "", _lastAnalysisProvider = "", _analysisPrompt = "", _analysisAnswer = "", _analysisError = "";
     private long _analysisAttempt, _lastAnalysisAttempt = -1, _lastAnalysisFrame;
     private DateTimeOffset _analysisStartedAt, _lastAnalysisAt;
-    private string AnalysisReportHeading => _analysisSnapshot != null && _lastAnalysisAttempt == _analysisAttempt
+    private string AnalysisReportHeading => _savedReport ? "Informe del historial" : _analysisSnapshot != null && _lastAnalysisAttempt == _analysisAttempt
         ? "Informe" : "Informe anterior";
     private CancellationTokenSource? _modificationCts;
     private readonly AiBuildWindow _modificationActivity = new("modificaciones", "Actividad de la IA", "Ver actividad");
@@ -92,6 +92,7 @@ public sealed partial class CodeWindow
             ImGui.SetTooltip("Vuelve al momento anterior al primer cambio de esta sesión.");
         if (_modifications?.Frozen.Count is > 0 && ImGui.SmallButton("Liberar valores congelados"))
         { ReleaseModifications(); _status = "Los valores vuelven a cambiar con el juego."; }
+        DrawRememberedChanges();
         ImGui.Separator();
         if (_profile?.Variables.Count is > 0) DrawVariableValues(machine, true);
         else ImGui.TextWrapped("Todavía no hay variables. Analizá la partida con IA o usá la búsqueda manual.");
@@ -168,11 +169,12 @@ public sealed partial class CodeWindow
                 catch (AiException error) { AnalysisFailed(error); }
             }
         }
+        DrawAnalysisHistory();
         if (_lastAnalysis.Length > 0)
         {
             ImGui.Separator(); ImGui.TextColored(LabelColor, AnalysisReportHeading);
             ImGui.TextWrapped(_lastAnalysisProvider);
-            ImGui.TextDisabled($"Cuadro {_lastAnalysisFrame} · {_lastAnalysisAt.ToLocalTime():HH:mm:ss}");
+            ImGui.TextDisabled($"Cuadro {_lastAnalysisFrame} · {_lastAnalysisAt.ToLocalTime():dd/MM HH:mm:ss}");
             if (AnalysisReportHeading == "Informe anterior")
                 AiPicker.Hint("Este es el último informe aceptado; no corresponde al intento nuevo.");
             if (ImGui.SmallButton("Copiar informe")) ImGui.SetClipboardText(
@@ -231,6 +233,7 @@ public sealed partial class CodeWindow
     {
         _observation ??= new ModificationObservation(_machine!);
         _analysisSnapshot = _observation.Capture(_gameName, SessionProfile());
+        _savedReport = false;
         _analysisProvider = provider; _analysisStartedAt = DateTimeOffset.UtcNow; _analysisAttempt++;
         _analysisError = ""; _analysisAnswer = ""; _analysisReply = null;
         var request = GameModificationAnalyzer.Request(_analysisSnapshot, _modificationWish, _lastAnalysis);
@@ -285,6 +288,7 @@ public sealed partial class CodeWindow
         _lastAnalysisProvider = _analysisProvider; _lastAnalysisFrame = _analysisSnapshot!.Frame;
         _lastAnalysisAt = _analysisStartedAt; _lastAnalysisAttempt = _analysisAttempt;
         _manualModification = false; _modificationPasted = "";
+        RecordAnalysis();
         int variables = result.Variables.Count, proposals = result.Advice.Ideas.Count;
         _status = $"Análisis listo: {variables} variable{(variables == 1 ? "" : "s")} nueva{(variables == 1 ? "" : "s")} y {proposals} propuesta{(proposals == 1 ? "" : "s")}. Revisá Cambios.";
     }
@@ -305,7 +309,7 @@ public sealed partial class CodeWindow
             catch (AiException error) { AnalysisFailed(error); }
     }
 
-    private void ReleaseModifications() { _modifications?.ReleaseAll(); _proposalFeedback.Clear(); }
+    private void ReleaseModifications() { _modifications?.ReleaseAll(); _proposalFeedback.Clear(); RememberSelection(); }
 
     private void ApplyProposal(int id, IReadOnlyList<VariableEdit> changes)
     {
@@ -324,6 +328,7 @@ public sealed partial class CodeWindow
         {
             if (_modifications == null) throw new InvalidOperationException("Primero agregá variables para esta partida.");
             _modifications.Apply(changes);
+            RememberSelection();
             _status = "Cambios aplicados. Podés deshacer el último o restaurar la partida.";
             return true;
         }
@@ -337,9 +342,10 @@ public sealed partial class CodeWindow
         _host.StateRestored();
         _mediaRevision = _host.MediaRevision; // Keep this session's definitions and remaining undo history.
         _cts?.Cancel(); _modificationCts?.Cancel();
-        _map = null; _codeSummary = ""; _analysisSnapshot = null; _advice = null; _proposalFeedback.Clear(); _variableInputs.Clear();
+        _map = null; _codeSummary = ""; _analysisSnapshot = null; _proposalFeedback.Clear(); _variableInputs.Clear();
         StopObservation(); _modificationActivity.Reset();
         _analysisPrompt = _analysisAnswer = _analysisError = ""; _analysisAttempt++;
+        RememberSelection();
         _status = undo ? "Último cambio deshecho; partida y congelados anteriores restaurados."
             : "Partida restaurada al momento anterior al primer cambio.";
     }
@@ -354,8 +360,9 @@ public sealed partial class CodeWindow
 
     public void Dispose()
     {
+        PersistModifications();
         StopObservation(); _modifications?.Dispose();
-        _host.BeforeFrame -= ApplyFrozen; _host.SessionChanging -= ReleaseModifications;
+        _host.BeforeFrame -= ApplyFrozen; _host.SessionChanging -= LeaveModificationSession;
         _cts?.Cancel(); _modificationCts?.Cancel();
         _cts?.Dispose(); _modificationCts?.Dispose();
     }

@@ -733,3 +733,21 @@ Reiniciar un original o toda la sesión libera sus pins antes de cargar el arran
 init puede declararlos de nuevo. Un fallo del guion también los libera. No se añade
 undo de guiones ni un formato de estado nuevo. El generador autónomo de ensamblador
 no usa máquinas originales ni necesita este congelado; conserva su contrato propio.
+
+## D-048 — Historial optativo por edición y reaplicación reversible
+
+El análisis, sus variables experimentales y la selección de cambios pertenecen al jugador.
+No se descartan al reiniciar cuando se elige conservarlos. Se guardan en AppData/RetroEmu/
+modificaciones, separados de los perfiles preparados de fusión y de los paquetes del programa.
+
+El documento privado formato 1 contiene clave SHA-256 de sistema/medios/firmware,
+definiciones de variables, etiquetas experimentales, hasta doce informes con proveedor,
+fecha, cuadro, pedido y propuestas, selección de valores pedidos y opción de reaplicación.
+No contiene ROMs, volcados de RAM, listados de código, credenciales ni puntos de regreso.
+El guardado usa reemplazo atómico; un formato futuro o dañado no se sobrescribe.
+
+Guardar no activa cambios al abrir: reaplicar requiere otra opción explícita por juego.
+El cargador se ejecuta sin los congelados anteriores. Al restaurar la sesión se valida
+la identidad y las definiciones del perfil antes de importar; otra edición o firmware
+usa otra clave. Una selección se aplica como transacción y se puede deshacer en un paso.
+Los estados completos y cinco pasos de deshacer siguen siendo propios de cada sesión.

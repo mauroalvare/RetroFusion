@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Diagnostics;
 using Retro.Core;
 using Retro.Fusion;
@@ -67,6 +68,7 @@ public sealed class EmulatorHost
     public string? LastStopReason { get; private set; }
     public string? LoadedMedia { get; private set; }
     public GameProfile? LoadedProfile { get; private set; }
+    public string FirmwareIdentity { get; private set; } = "";
     private IReadOnlyList<MediaFile> _loadedFiles = [];
     public IReadOnlyList<string> LoadedMediaHashes => _loadedFiles.Select(ProfileMatch.HashOf).ToArray();
     public bool UsesMedia(string path) => (Fusion is Retro.Studio.StudioSession studio ? studio.MediaSources : _loadedFiles.Select(f => f.Source))
@@ -101,14 +103,17 @@ public sealed class EmulatorHost
                 string rom = Path.Combine(romDirectory, info.RomFiles[0]);
                 if (!File.Exists(rom))
                     throw new FileNotFoundException($"Falta la ROM {info.RomFiles[0]} en {romDirectory}.");
-                SetMachine(new Spectrum48(File.ReadAllBytes(rom)), info);
+                var firmware = File.ReadAllBytes(rom);
+                SetMachine(new Spectrum48(firmware), info, Convert.ToHexString(SHA256.HashData(firmware)));
                 Status = $"{info.Name} encendido.";
                 break;
             }
             case "c64":
             {
-                var c64 = new C64(C64Firmware.Find(romDirectory));
-                SetMachine(c64, info);
+                var firmware = C64Firmware.Find(romDirectory);
+                var c64 = new C64(firmware);
+                SetMachine(c64, info, Convert.ToHexString(SHA256.HashData(
+                    [.. firmware.Kernal, .. firmware.Basic, .. firmware.Chargen])));
                 Status = $"{info.Name} encendido ({c64.FirmwareDescription}).";
                 break;
             }
@@ -172,7 +177,7 @@ public sealed class EmulatorHost
         return msg;
     }
 
-    private void SetMachine(IMachine m, MachineInfo info)
+    private void SetMachine(IMachine m, MachineInfo info, string firmware = "")
     {
         SessionChanging?.Invoke();
         MediaRevision++;
@@ -180,6 +185,7 @@ public sealed class EmulatorHost
         Fusion = null;
         m.ExecutedMap = new bool[0x10000];   // the code view sees everything the game ran
         Machine = m;
+        FirmwareIdentity = firmware;
         Info = info;
         Paused = false;
         LoadedMedia = null;

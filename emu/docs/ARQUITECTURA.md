@@ -815,3 +815,19 @@ filtra las entradas disponibles y comparte las marcas entre copias iguales.
 se emite en el hilo gráfico tras iniciar la sesión sin error de guion. Los fallos no
 entran al historial. Las vistas personales usan la misma búsqueda y las mismas
 acciones de reproducción que la biblioteca general.
+
+## Historial privado de modificaciones
+
+`Retro.App.ModificationHistory` guarda documentos JSON formato 1 por SHA-256 de sistema,
+hashes del medio y firmware. El guardado es optativo por juego y usa archivo temporal,
+flush y reemplazo atómico. No escribe ROMs ni perfiles de fusión. Cada documento limita
+variables/selección a 256, informes a 12 y tamaño a 2 MiB. Al leer valida direcciones,
+formatos, rangos, propuestas y solapamientos antes de tocar la partida; los archivos
+incompatibles quedan intactos. Un perfil actualizado con otra definición bloquea la carga.
+
+`CodeWindow.History` restaura hallazgos y permite elegir informes sin ejecutar propuestas.
+La reaplicación requiere otra opción explícita; sucede después del cargador, en la nueva
+sesión, y usa `GameModifications.ApplySelection` como una transacción con un único paso
+de deshacer. Antes del arranque se desprenden los observadores de congelado antiguos.
+La selección guarda los valores pedidos, no el valor cambiante leído al cerrar. Los
+puntos completos de regreso pertenecen solo a la sesión actual. D-048 define el formato.

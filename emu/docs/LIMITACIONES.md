@@ -15,7 +15,7 @@ arreglar algo, se borra la entrada y se menciona en el commit.
   Se excluyen firmware, hardware y regiones reservadas de dirección fija; una pila
   dinámica o código en RAM pueden entrar en la evidencia. Las áreas conservadoras
   también pueden dejar afuera variables válidas. Las herramientas manuales siguen disponibles.
-- Hipótesis e historial son de sesión; no se guardan como perfiles verificados.
+- Las hipótesis pueden conservarse en el historial privado; no se guardan como perfiles verificados.
   Deshacer conserva los cinco cambios más recientes; restaurar conserva el primero.
   Ambos restauran el progreso de partida desde ese punto. Abrir, recargar o reiniciar
   un juego o cargar un estado externo descarta esa sesión.
@@ -374,3 +374,10 @@ por cautela, las ediciones de Cheril, Phantomasa, Sila Tsikl y Nanako Descends t
 - Los datos son locales a la cuenta del sistema operativo. Un archivo ilegible o con
   un formato futuro se conserva intacto y la app avisa que los cambios de esa sesión
   no se guardarán. Si dos instancias escriben a la vez, prevalece la última.
+
+- El historial de modificaciones se conserva únicamente si se activa para el juego.
+  Guarda hasta doce informes y 256 variables/cambios por edición y firmware; no guarda
+  los estados de deshacer entre sesiones. No recupera análisis de versiones anteriores
+  que nunca se guardaron. Reaplicar es opcional y puede alterar el arranque si una variable
+  también se usa durante la carga; se puede desactivar y aplicar la selección manualmente.
+  Las hipótesis persistidas no se consideran perfiles verificados para fusión.

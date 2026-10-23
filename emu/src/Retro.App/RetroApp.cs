@@ -71,7 +71,8 @@ public sealed class RetroApp
         Retro.Studio.StudioLibrary.ExportBuiltIns();
         _browser = new FileBrowser(games);
         _studio = new StudioWindow(_host, _romDir, games, _ai);
-        _code = new CodeWindow(_host, _ai, ShowInDebugger, EditCurrentStudioGame);
+        _code = new CodeWindow(_host, _ai, ShowInDebugger, EditCurrentStudioGame,
+            new ModificationHistory(persist: !args.Contains("--autotest")));
         _creator = new CreatorWindow(_romDir, _ai, OpenFile);
         _home = new HomeScreen(_library, OpenFile, PlayFusion, _browser.Open,
             visible =>

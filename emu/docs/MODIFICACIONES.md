@@ -41,9 +41,26 @@ Que la escritura se aplique no confirma el efecto supuesto: comprobalo jugando.
 también el progreso de juego desde ese punto. **Liberar valores congelados** permite
 que vuelvan a cambiar, sin restaurar la partida.
 
-El historial y las hipótesis duran esta sesión del original. Abrir, recargar o reiniciar
-el juego, o cargar un estado externo, los descarta. Las hipótesis de IA no se guardan
-como datos verificados para fusiones.
+## Conservar lo encontrado
+
+Activá **Conservar análisis y cambios de este juego** para recuperar las variables,
+las propuestas y los últimos doce informes al volver a jugar. Cada informe conserva su
+proveedor, fecha y cuadro; elegirlo no aplica cambios. Desmarcar borra el historial guardado
+de ese juego y deja los hallazgos actuales disponibles durante esta sesión.
+
+**Reaplicar cambios al reiniciar y volver a jugar** vuelve a escribir los valores elegidos
+y mantiene los congelados. Es opcional y puede afectar el arranque. Desmarcarla libera
+los congelados actuales sin borrar los informes ni la selección recordada.
+**Cambios recordados** permite revisar esa selección y aplicarla manualmente.
+Los cambios recuperados se pueden deshacer juntos; los puntos de regreso completos
+pertenecen a la partida actual y no se guardan entre sesiones.
+
+Los datos se vinculan al contenido del juego, el sistema y el firmware: renombrar o mover
+el archivo no los pierde; otra edición tiene su propio historial. Se guardan en
+`%APPDATA%/RetroEmu/modificaciones`, fuera de los archivos del programa, y se conservan
+al actualizar. Un archivo ilegible se conserva sin aplicar cambios.
+Las hipótesis siguen siendo experimentales: guardarlas no las convierte en datos
+verificados para fusiones. Sin activar el guardado, duran la sesión actual.
 
 ## Fusiones y juegos creados con originales
 

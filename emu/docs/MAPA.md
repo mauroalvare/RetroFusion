@@ -87,12 +87,15 @@ entrenan; al superar el intervalo se muestra un aviso sin un contador clavado en
 
 **Herramientas > Modificar y analizar** (Ctrl+M) reúne edición/congelado, análisis de
 partida con cualquier proveedor configurado, búsqueda manual y código. El análisis usa
-escrituras y código capturados, propone hipótesis de sesión y no aplica cambios. Hay
+escrituras y código capturados, propone hipótesis experimentales y no aplica cambios. Hay
 cinco pasos de deshacer y un punto de regreso anterior al primer cambio. Cada propuesta
 muestra su resultado junto al botón; el congelado se mantiene durante la ejecución
 del cuadro, incluso antes de copiar sprites al video. **Observar desde ahora** reúne
 un intervalo nuevo sin borrar modificaciones. El estudio comparte este motor con
-`g.freeze` y `g.release` para fusiones y creaciones con originales. Guía: [MODIFICACIONES.md](MODIFICACIONES.md).
+`g.freeze` y `g.release` para fusiones y creaciones con originales.
+`CodeWindow.History.cs` ofrece guardado optativo de informes/variables y reaplicación al
+reiniciar. `ModificationHistory.cs` guarda por edición exacta en
+`%APPDATA%/RetroEmu/modificaciones`; no escribe perfiles verificados. Guía: [MODIFICACIONES.md](MODIFICACIONES.md).
 
 ```powershell
 # Interfaz nativa con una cinta/perfil generados, sin juegos del usuario ni pedidos de IA

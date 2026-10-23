@@ -63,14 +63,15 @@ public sealed partial class CodeWindow : IDisposable
     private string _newVarDescription = "";
     private string _bootText = "";
 
-    public CodeWindow(EmulatorHost host, AiSettings ai, Action<uint> showInDebugger, Action? openStudio = null)
+    public CodeWindow(EmulatorHost host, AiSettings ai, Action<uint> showInDebugger, Action? openStudio = null, ModificationHistory? history = null)
     {
         _host = host;
         _ai = ai;
         _showInDebugger = showInDebugger;
         _openStudio = openStudio;
+        _history = history ?? new ModificationHistory();
         _host.BeforeFrame += ApplyFrozen;
-        _host.SessionChanging += ReleaseModifications;
+        _host.SessionChanging += LeaveModificationSession;
     }
 
     public void Open() => OpenPage(ToolPage.Code);
@@ -117,6 +118,7 @@ public sealed partial class CodeWindow : IDisposable
             Page("Código", ToolPage.Code);
             ImGui.EndTable();
         }
+        DrawHistoryOptions();
         ImGui.Separator();
         switch (_activePage)
         {
@@ -186,6 +188,7 @@ public sealed partial class CodeWindow : IDisposable
         _notes = CodeAnnotations.Load(_gameId);
         _bootText = string.Join("\n", _profile?.Boot ?? DefaultBoot(m));
         _status = "";
+        LoadModificationHistory();
         if (_open)
             m.ExecutedMap ??= new bool[0x10000];
     }
@@ -852,6 +855,7 @@ public sealed partial class CodeWindow : IDisposable
         };
         SaveProfile();
         _modifications ??= new GameModifications(m, _profile);
+        PersistModifications();
         _status = $"\"{name}\" (${address:X4}) agregada al perfil de {_profile.Name}. Sus controles se configuran en Código > Perfil y controles.";
         _newVarName = "";
         _newVarDescription = "";
