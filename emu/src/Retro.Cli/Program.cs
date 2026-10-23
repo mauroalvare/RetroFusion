@@ -19,6 +19,7 @@ static int Usage()
         RetroEmu CLI
 
           retro-cli info <archivo>
+          retro-cli cpu8088 verificar --suite <carpeta-v2> [--salida informe.json]
           retro-cli cpu8088 <programa.bin|demo|irq-demo|timer-demo> [--steps n]   diagnóstico del núcleo; todavía sin PC/BIOS/DOS
           retro-cli run <archivo> [opciones]
           retro-cli studio <juego.js|juego.json|id> --games <carpeta> [--seconds n] [--shots prefijo]
@@ -90,7 +91,7 @@ if (Opt("modelo") is { } cliModel)
     Environment.SetEnvironmentVariable("RETROEMU_MODELO", cliModel);   // the model of the subscription tool, for this run
 
 if (command == "cpu8088")
-    return I8088Diagnostic.Run(mediaPath, Opt("steps"));
+    return mediaPath == "verificar" ? I8088Verification.Run(Opt("suite") ?? "", Opt("salida")) : I8088Diagnostic.Run(mediaPath, Opt("steps"));
 
 if (command == "studio")
     return RunStudio(mediaPath, Opt("games") ?? ".", Opt("seconds"), Opt("shots"));

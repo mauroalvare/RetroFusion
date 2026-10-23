@@ -764,3 +764,16 @@ Sigue leyendo formato 2 para mappers 0/3; ese formato anterior no identifica el 
 La ampliación no acredita variantes de placa, conflictos de bus ni temporización completa.
 Referencias: [UxROM](https://www.nesdev.org/wiki/UxROM),
 [AxROM](https://www.nesdev.org/wiki/AxROM).
+
+## D-050 — Contraste funcional externo del 8088
+
+`cpu8088 verificar --suite <carpeta-v2> [--salida informe.json]` compara registros y
+memoria con SingleStepTests/8088. La suite se obtiene por separado; el comando no
+hace descargas ni usa IA. Se respetan estados y máscaras de metadatos, se excluye OF
+indefinido de desplazamientos múltiples y se enmascaran los flags indefinidos que
+un error aritmético apila. El informe separa aprobados, fallidos y excluidos.
+No acredita ciclos, señales de bus, prelectura ni los casos excluidos.
+
+Las regresiones de hardware corrigen DAA/DAS en entradas no BCD, el byte de base de
+AAM/AAD, los selectores de segmento y REP sobre IDIV. Origen de los datos y revisión:
+[SingleStepTests/8088](https://github.com/SingleStepTests/8088/tree/aea84484abc79d09639d855b7b0ab32bc9e4dbeb).

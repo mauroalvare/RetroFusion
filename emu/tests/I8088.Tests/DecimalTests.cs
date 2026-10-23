@@ -121,11 +121,40 @@ public sealed partial class CpuTests
         Assert.That(cpu.AX, Is.EqualTo(opcode == 0xD4 ? 5 : 15));
     }
 
-    [TestCase(0xD4, 0)] [TestCase(0xD4, 16)] [TestCase(0xD5, 0)] [TestCase(0xD5, 16)]
-    public void UndocumentedRadicesFailExplicitlyWithoutChangingArithmeticState(int opcode, int radix)
+    [TestCase(0xD4, 16, 0x0F0E)] [TestCase(0xD5, 0, 0x00FE)] [TestCase(0xD5, 16, 0x009E)]
+    public void HardwareVerifiedRadicesExtendBeyondDecimal(int opcode, int radix, int expected)
     {
-        var (cpu, _) = Program((byte)opcode, (byte)radix); cpu.AX = 0xCAFE; ushort flags = cpu.Flags;
-        Assert.Throws<NotSupportedException>(() => cpu.Step());
-        Assert.That(cpu.AX, Is.EqualTo(0xCAFE)); Assert.That(cpu.Flags, Is.EqualTo(flags));
+        var (cpu, _) = Program((byte)opcode, (byte)radix); cpu.AX = 0xCAFE;
+        cpu.Step(); Assert.That(cpu.AX, Is.EqualTo(expected));
     }
+
+    [Test]
+    public void AamZeroEntersTheDivideVectorAndReturnsPastTheImmediate()
+    {
+        var (cpu, bus) = Program(0xD4, 0); DivideVector(cpu, bus); cpu.AX = 0xCAFE;
+        cpu.Step(); Assert.That(cpu.CS, Is.EqualTo(0x3000));
+        Assert.That(cpu.Flags & (I8088Cpu.Sign | I8088Cpu.Zero | I8088Cpu.Parity), Is.EqualTo(I8088Cpu.Zero | I8088Cpu.Parity));
+        Assert.That(cpu.ReadWord(cpu.SS, cpu.SP), Is.EqualTo(2));
+        cpu.Step(); Assert.That(cpu.IP, Is.EqualTo(2));
+    }
+
+    [TestCase(0x27, 0x369E, 0x10, 0x36A4, false)]
+    [TestCase(0x27, 0x009A, 0, 0x0000, true)]
+    [TestCase(0x2F, 0xEA01, 0x10, 0xEAFB, false)]
+    public void DecimalAdjustMatchesNmosHardwareOutsideValidBcd(int opcode, int initial, int flags, int expected, bool carry)
+    {
+        var (cpu, _) = Program((byte)opcode); cpu.AX = (ushort)initial; cpu.Flags = (ushort)flags;
+        cpu.Step(); Assert.That(cpu.AX, Is.EqualTo(expected));
+        Assert.That(cpu.Flag(I8088Cpu.Carry), Is.EqualTo(carry));
+    }
+    [TestCase(0x8C, 0xF8)] [TestCase(0x8E, 0xE0)] [TestCase(0x8E, 0xF8)]
+    public void SegmentMovesIgnoreTheHighRegisterSelectorBitOn8088(int opcode, int modrm)
+    {
+        var (cpu, _) = Program((byte)opcode, (byte)modrm); cpu.AX = 0x1234; cpu.DS = 0x5678;
+        cpu.Step();
+        if (opcode == 0x8C) Assert.That(cpu.AX, Is.EqualTo(0x5678));
+        else if (modrm == 0xE0) Assert.That(cpu.ES, Is.EqualTo(0x1234));
+        else Assert.That(cpu.DS, Is.EqualTo(0x1234));
+    }
+
 }

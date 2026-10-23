@@ -103,7 +103,8 @@ public sealed class I8088Cpu(I8088Bus bus, I8088InterruptSource? interrupts)
     private void DecimalAdjust(bool subtract, bool unpacked)
     {
         int original = AX & 255, value = original, high = AX >> 8;
-        bool lowAdjust = (original & 15) > 9 || Flag(Auxiliary), carry = Flag(Carry);
+        bool auxiliary = Flag(Auxiliary);
+        bool lowAdjust = (original & 15) > 9 || auxiliary, carry = Flag(Carry);
         if (lowAdjust) value += subtract ? -6 : 6;
         SetFlag(Auxiliary, lowAdjust);
         if (unpacked)
@@ -115,10 +116,12 @@ public sealed class I8088Cpu(I8088Bus bus, I8088InterruptSource? interrupts)
         }
         else
         {
-            bool highAdjust = original > 0x99 || carry;
+            // The original NMOS part compares against 9F when the incoming AF is set.
+            // Hardware-generated tests cover inputs outside the valid packed-BCD domain.
+            bool highAdjust = original > (auxiliary ? 0x9F : 0x99) || carry;
             if (highAdjust) value += subtract ? -0x60 : 0x60;
             SetReg(0, false, value);
-            SetFlag(Carry, highAdjust || subtract && lowAdjust && original < 6);
+            SetFlag(Carry, highAdjust);
             Szp(value, false);
         }
         // Undefined arithmetic flags retain their previous value, not a silicon claim.
@@ -127,11 +130,10 @@ public sealed class I8088Cpu(I8088Bus bus, I8088InterruptSource? interrupts)
     private void AsciiProductAdjust(byte op, byte repeat)
     {
         int radix = Fetch();
-        if (repeat != 0 || radix != 10)
-            throw Unsupported(op, "solo AAM/AAD documentados en base 10, sin REP");
         int low = AX & 255;
-        AX = op == 0xD4 ? (ushort)(((low / 10) << 8) | low % 10)
-            : (ushort)((low + (AX >> 8) * 10) & 255);
+        if (op == 0xD4 && radix == 0) { Szp(0, false); EnterInterrupt(0); return; }
+        AX = op == 0xD4 ? (ushort)(((low / radix) << 8) | low % radix)
+            : (ushort)((low + (AX >> 8) * radix) & 255);
         Szp(AX, false);
     }
 
@@ -197,7 +199,7 @@ public sealed class I8088Cpu(I8088Bus bus, I8088InterruptSource? interrupts)
         // OF for multi-bit operations is undefined; keep its previous value.
         return value;
     }
-    private void MultiplyDivide(int operation, int value, bool word)
+    private void MultiplyDivide(int operation, int value, bool word, bool negateQuotient = false)
     {
         bool signed = (operation & 1) != 0;
         if (operation < 6)
@@ -218,6 +220,7 @@ public sealed class I8088Cpu(I8088Bus bus, I8088InterruptSource? interrupts)
         long divisor = signed ? word ? (short)value : (sbyte)value : value;
         if (divisor == 0) { EnterInterrupt(0); return; }
         long quotient = dividend / divisor;
+        if (negateQuotient) quotient = -quotient;
         long maximum = signed ? word ? 32767 : 127 : word ? 65535 : 255;
         // Unlike later x86 CPUs, 8088 IDIV also faults on -128 and -32768.
         if (quotient < (signed ? -maximum : 0) || quotient > maximum) { EnterInterrupt(0); return; }
@@ -327,7 +330,8 @@ public sealed class I8088Cpu(I8088Bus bus, I8088InterruptSource? interrupts)
             }
             case 0x8C: case 0x8E:
             {
-                var (reg, rm) = Decode(); if (reg > 3 || op == 0x8E && reg == 1) throw Unsupported(op, "registro de segmento");
+                var (reg, rm) = Decode(); reg &= 3;
+                if (op == 0x8E && reg == 1) throw Unsupported(op, "MOV CS no documentado");
                 if (op == 0x8C) Write(rm, true, _s[reg]);
                 else { _s[reg] = (ushort)Read(rm, true); _interruptShadow = _segmentShadow = true; }
                 break;
@@ -397,8 +401,8 @@ public sealed class I8088Cpu(I8088Bus bus, I8088InterruptSource? interrupts)
                 else if (operation == 3) Write(rm, word, Alu(5, 0, value, word));
                 else if (operation >= 4)
                 {
-                    if (repeat != 0) throw Unsupported(op, "REP en multiplicación/división no documentado");
-                    MultiplyDivide(operation, value, word);
+                    if (repeat != 0 && operation != 7) throw Unsupported(op, "REP en multiplicación/división no contrastado");
+                    MultiplyDivide(operation, value, word, repeat != 0);
                 }
                 else throw Unsupported(op, $"grupo /{operation}"); break;
             }

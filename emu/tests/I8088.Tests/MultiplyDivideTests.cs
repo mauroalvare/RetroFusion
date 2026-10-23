@@ -134,10 +134,19 @@ public sealed partial class CpuTests
         Assert.That(cpu.DX, Is.EqualTo(1)); Assert.That(cpu.AX, Is.EqualTo(0xFFFE));
         Assert.That(bus.Memory[0x4FFFF], Is.EqualTo(2)); Assert.That(bus.Memory[0x40000], Is.Zero);
     }
-    [TestCase(0xF3, 0xF6, 0xE3)] [TestCase(0xF2, 0xF7, 0xFB)]
+    [TestCase(0xF3, 0xF6, 0xE3)]
     public void UndocumentedRepeatMultiplyDivideIsExplicitlyRejected(int prefix, int opcode, int modrm)
     {
         var (cpu, _) = Program((byte)prefix, (byte)opcode, (byte)modrm);
         Assert.Throws<NotSupportedException>(() => cpu.Step());
     }
+    [TestCase(0xF2, false)] [TestCase(0xF3, false)] [TestCase(0xF2, true)] [TestCase(0xF3, true)]
+    public void RepOnIdivNegatesOnlyTheQuotient(int prefix, bool word)
+    {
+        var (cpu, _) = Program((byte)prefix, word ? (byte)0xF7 : (byte)0xF6, 0xFB);
+        cpu.AX = 17; cpu.DX = 0; cpu.BX = 5; cpu.Step();
+        if (word) { Assert.That(cpu.AX, Is.EqualTo(0xFFFD)); Assert.That(cpu.DX, Is.EqualTo(2)); }
+        else Assert.That(cpu.AX, Is.EqualTo(0x02FD));
+    }
+
 }

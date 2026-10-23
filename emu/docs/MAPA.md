@@ -267,3 +267,7 @@ resultado esperado y presupuesto en [I8088.md](I8088.md).
 Los nuevos trabajos en carpetas para agentes usan rutas únicas para evitar reemplazar
 un guion pendiente al crear otro trabajo. La ruta elegida se muestra en la ventana;
 los archivos ya creados permanecen donde estaban.
+
+El contraste funcional del 8088 se ejecuta desde el mismo `retro-cli` mediante
+`cpu8088 verificar --suite <carpeta-v2> --salida informe.json`. La suite externa y
+su licencia se conservan aparte; no se descargan automáticamente.
