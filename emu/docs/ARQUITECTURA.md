@@ -56,7 +56,7 @@ src/
   Retro.Cpu.Z80            Núcleo Z80 + desensamblador. No sabe nada del Spectrum.
   Retro.Cpu.I8080          Núcleo Intel 8080 + desensamblador.
   Retro.Cpu.I8088          Núcleo8088 parcial: TF, INTR y aceptación de vectores; sin ciclos.
-  Retro.Systems.Pc         Componentes de PC: 8259A individual funcional. Máquina aún pendiente.
+  Retro.Systems.Pc         Componentes de PC: 8259A y 8253 binario con reloj externo. Máquina pendiente.
   Retro.Cpu.M6502          Núcleo MOS 6502/6510 (NMOS, con los opcodes no documentados)
                            + desensamblador.
   Retro.Systems.Spectrum   ZX Spectrum 48K: memoria, ULA, cinta, snapshots, símbolos.
@@ -91,7 +91,7 @@ tests/
   Retro.Cpu.Z80.Tests      FUSE (1.356 casos) + ZEXDOC/ZEXALL.
   I8080.Tests              TST8080, 8080PRE, CPUTEST y 8080EXM con ciclos exactos.
   I8088.Tests              ALU, segmentos, pila, cadenas, TF y aceptación de interrupciones.
-  Pc.Tests                 8259A, prioridades/máscaras y programas 8088 por puertos.
+  Pc.Tests                 8259A, ondas/recargas del 8253 y programas 8088 por puertos.
   M6502.Tests              SingleStepTests de Tom Harte (256.000 casos, cada ciclo de
                            bus) y la suite funcional de Klaus Dormann.
   C64.Tests                CIA, VIC-II, arranque, SYS, Open ROMs, estados guardados y
@@ -187,7 +187,13 @@ vector. TF conserva una trampa pendiente con prioridad posterior a las interrupc
 externas. `Retro.Systems.Pc/Pic8259A` implementa el controlador individual por flancos;
 `cpu8088 irq-demo` configura sus puertos y ejecuta manejadores propios. Aún no hay
 reloj de PC, BIOS ni máquina registrada: no se sincronizan periféricos con Instructions.
-Contratos funcionales y límites: D-040 e [I8088.md](I8088.md).
+Contratos funcionales y límites: D-040/D-041 e [I8088.md](I8088.md).
+
+Pit8253 agrega tres contadores binarios independientes en modos 0/2/3, lectura con
+latch, recarga y GATE. Tick recibe un pulso externo de un canal; OutputChanged comunica
+sus transiciones incluso durante programación o cambios de GATE. La placa decide
+relojes y conexiones. No se deriva tiempo de Instructions. Contrato, fuentes y
+límites pendientes en D-042 y [PIT8253.md](PIT8253.md).
 
 ## Placa de Space Invaders (Taito/Midway 8080)
 

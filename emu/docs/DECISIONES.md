@@ -600,3 +600,21 @@ que se inyectan mientras espera en HLT. Los manejadores propios incrementan cont
 mandan EOI y vuelven por IRET. El diagnóstico tiene presupuesto y resultado verificable.
 No requiere juegos, ROMs ni descargas. Las pruebas recorren pedidos/máscaras exhaustivos
 y combinan el controlador con el 8088, incluidas prioridad, anidación y trampa pendiente.
+
+## D-042 Temporizador8253 con reloj externo (2026-10-22)
+
+Pit8253 comparte Retro.Systems.Pc con el PIC. WriteControl,WriteCounter y ReadCounter
+separan E/S del mapeo de puertos que decide la placa. Cada Tick(channel) representa un
+pulso completo externo, con GATE estable. Instructions del8088 nunca se usa como reloj.
+SetGate actúa entre pulsos; OutputChanged comunica también los cambios de programación
+y GATE, para no perder flancos al conectarlo al PIC. Notificación síncrona sin reentrada.
+
+Se implementan contadores binarios0/2/3 y alias6/7: carga en un pulso propio, divisor
+cero=65536, recargas, pausa/reinicio y latch. La cuenta impar del modo3 sigue el8253,
+sin sustituirla por el8254. Las transferencias de palabra se completan antes de otra
+operación de carga/latch; los usos indefinidos se rechazan. Reprogramar el modo permite
+abandonarlas. Reset es determinista de placa; el silicio carece de pinRESET.
+
+Modos1/4/5,BCD,divisor1 en2/3,divisor3 en3 y read-back se rechazan explícitamente.
+No se simulan tiempos eléctricos ni se ofrece PCXT/DOS. Fuentes,semántica y pruebas
+en [PIT8253.md](PIT8253.md).
