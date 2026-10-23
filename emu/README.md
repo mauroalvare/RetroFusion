@@ -79,6 +79,8 @@ carpetas nuevas solo tengan ayuda.
 **Herramientas > Modificar y analizar** o **Ctrl+M** reúne los cambios, el análisis con IA,
 la búsqueda de variables y las herramientas de código. La IA puede investigar una partida
 sin perfil previo; sus hallazgos aparecen como hipótesis para probar.
+**Conservar análisis y cambios de este juego** guarda lo encontrado para volver a usarlo.
+La reaplicación al reiniciar o abrir el juego se activa por separado.
 **Deshacer último cambio** conserva hasta cinco cambios; **Restaurar partida** vuelve al primero.
 [Ver las opciones de modificación](docs/MODIFICACIONES.md).
 

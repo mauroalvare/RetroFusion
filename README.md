@@ -55,7 +55,8 @@ Estos dos vienen incluidos como ejemplo (originales, escritos solo con las guía
 
 **Investigar y modificar una partida:** pedile a tu IA que analice memoria y código,
 revisá las variables y propuestas, y elegí qué aplicar. Podés congelar valores, deshacer
-el último cambio o restaurar la partida. **Herramientas > Modificar y analizar** (Ctrl+M). [Cómo usarlo](emu/docs/MODIFICACIONES.md).
+el último cambio o restaurar la partida. Podés guardar los análisis y las variables por
+juego, y elegir si sus cambios se reaplican al reiniciar o volver a jugar. **Herramientas > Modificar y analizar** (Ctrl+M). [Cómo usarlo](emu/docs/MODIFICACIONES.md).
 
 ![Variables y propuestas de análisis de una partida](emu/docs/img/interfaz/modificaciones.png)
 

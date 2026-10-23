@@ -336,7 +336,8 @@ arreglar algo, se borra la entrada y se menciona en el commit.
   que el CLI emite. No revela razonamiento interno ni puede obtener texto que la herramienta
   todavía no envió. Puede mostrar JSON o código según el formato del CLI. Conserva solo
   los últimos 12.000 caracteres en memoria; no crea un registro de conversaciones en disco.
-  El tiempo transcurrido está disponible; la estimación del tiempo restante sigue pendiente.
+  El tiempo transcurrido está disponible; el estimado restante requiere al menos tres
+  trabajos completos comparables. Los modos manual y carpeta no tienen ese estimado.
 
 - En el C64, F1/F3/F5/F7 son teclas de la máquina: la carga rápida de estado pasa a F4 y
   el reinicio queda en el menú Máquina.
