@@ -26,7 +26,21 @@ public class AiModelCatalogTests
             new { model = "future-a", displayName = "Nuevo A", hidden = false, isDefault = true,
                 supportedReasoningEfforts = new[] { new { reasoningEffort = "deep" }, new { reasoningEffort = "light" } } } }, nextCursor = "page2" } });
         string second = "{\"id\":2,\"result\":{\"data\":[{\"model\":\"future-b\",\"displayName\":\"Nuevo B\",\"supportedReasoningEfforts\":[{\"reasoningEffort\":\"light\"}]},{\"model\":\"hidden\",\"hidden\":true}],\"nextCursor\":null}}";
-        string exe = Fake("codex", ReadLine(false) + "echo {\"id\":1,\"result\":{}}\n" + ReadLine(true) + ReadLine(true) + "echo " + first + "\n" + ReadLine(true) + "echo " + second);
+        // cmd.exe's SET /P can discard a second buffered line from a redirected pipe.
+        // Use a line reader so the fixture models the real JSON-lines protocol.
+        string script = Path.Combine(_dir, "catalog.ps1");
+        string requestsPath = Path.Combine(_dir, "requests.txt").Replace("'", "''");
+        File.WriteAllText(script, $$$"""
+            function Read-Request { [IO.File]::AppendAllText('{{{requestsPath}}}', [Console]::ReadLine() + "`n") }
+            Read-Request
+            [Console]::WriteLine('{"id":1,"result":{}}'); [Console]::Out.Flush()
+            Read-Request
+            Read-Request
+            [Console]::WriteLine('{{{first}}}'); [Console]::Out.Flush()
+            Read-Request
+            [Console]::WriteLine('{{{second}}}'); [Console]::Out.Flush()
+            """);
+        string exe = Fake("codex", $"powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"{script}\"");
         var result = await AiModelCatalog.ReadCliAsync(CliTools.Codex, exe, CancellationToken.None);
         Assert.That(result.Select(m => m.Id), Is.EqualTo(new[] { "future-a", "future-b" }));
         Assert.That(result[0].Efforts.Select(e => e.Id), Is.EqualTo(new[] { "deep", "light" }));
