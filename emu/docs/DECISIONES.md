@@ -570,3 +570,16 @@ libres ni enlaces. Las descargas propias canceladas o inválidas también se des
 una preparación interrumpida se reconoce por su comprobante. Un plan preparado válido,
 una recuperación pendiente, otros programas y respaldos completos de formato 1 se
 conservan. El borrado de la raíz nunca es recursivo: archivos ajenos la mantienen.
+
+## D-040 Aceptación de interrupciones del8088 (2026-10-22)
+
+El núcleo conserva el constructor de un bus y la inyección de vector de diagnóstico.
+Los dispositivos usan I8088InterruptSource: exponen INTR y resuelven el vector en
+Acknowledge solo cuando IF y las sombras permiten aceptarlo. No se consumen pedidos
+mientras están inhibidos. El contrato representa una secuencia funcional, no pulsos INTA.
+
+TF se muestrea antes de la instrucción; su trampa pendiente se acepta en otro Step
+sin sumar Instructions. Las interrupciones externas tienen prioridad y la trampa puede
+anidarse antes de la primera instrucción de su manejador, como documenta el8088.
+MOV/POP hacia cualquier segmento admitido protegen la instrucción siguiente también
+de NMI/TF. HLT no impide aceptar una trampa pendiente. No se añaden ciclos ficticios.

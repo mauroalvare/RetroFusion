@@ -3,19 +3,22 @@ namespace Retro.Cpu.I8088;
 /// <summary>
 /// First functional 8088 milestone, not a timed PC/XT CPU yet. Executes data movement,
 /// integer ALU including multiply/divide, shifts/rotates, control flow, stack, strings,
-/// I/O, decimal adjustments and interrupts. Single stepping (TF) and the 8087 remain unsupported.
+/// I/O, decimal adjustments and interrupts. Single stepping uses a pending type-1 boundary.
+/// The 8087 remains unsupported.
 /// No prefetch queue or cycle counts: do not use this core to time peripherals yet.
 /// </summary>
-public sealed class I8088Cpu(I8088Bus bus)
+public sealed class I8088Cpu(I8088Bus bus, I8088InterruptSource? interrupts)
 {
+    public I8088Cpu(I8088Bus bus) : this(bus, null) { }
+
     public const ushort Carry = 0x0001, Parity = 0x0004, Auxiliary = 0x0010, Zero = 0x0040,
         Sign = 0x0080, Trap = 0x0100, InterruptEnable = 0x0200, Direction = 0x0400, Overflow = 0x0800;
     private readonly ushort[] _r = new ushort[8], _s = [0, 0xFFFF, 0, 0];
     private ushort _flags = 0xF002;
     private int _segmentOverride = -1;
-    private bool _interruptShadow, _ssShadow;
+    private bool _interruptShadow, _segmentShadow;
     private byte? _irq;
-    private bool _nmi;
+    private bool _nmi, _trapPending, _halted;
     private ushort _startCs, _startIp;
 
     public ushort AX { get => _r[0]; set => _r[0] = value; }
@@ -32,7 +35,9 @@ public sealed class I8088Cpu(I8088Bus bus)
     public ushort DS { get => _s[3]; set => _s[3] = value; }
     public ushort IP { get; set; }
     public ushort Flags { get => _flags; set => _flags = (ushort)((value & 0x0FD5) | 0xF002); }
-    public bool Halted { get; private set; }
+    /// <summary>A pending internal trap can wake HLT even with IF clear.</summary>
+    public bool Halted { get => _halted && !_trapPending; private set => _halted = value; }
+    public bool TrapPending => _trapPending;
     /// <summary>Instructions executed; each REP iteration is a restartable step.</summary>
     public long Instructions { get; private set; }
     public uint PhysicalPC => Physical(CS, IP);
@@ -44,10 +49,10 @@ public sealed class I8088Cpu(I8088Bus bus)
         Array.Clear(_r); Array.Clear(_s);
         CS = 0xFFFF; IP = 0; Flags = 0;
         Halted = false; Instructions = 0;
-        _interruptShadow = _ssShadow = _nmi = false; _irq = null;
+        _interruptShadow = _segmentShadow = _nmi = _trapPending = false; _irq = null;
     }
 
-    /// <summary>Latched vector from the future interrupt controller, retained while IF is clear.</summary>
+    /// <summary>Latched diagnostic vector, retained while IF is clear. Devices use I8088InterruptSource.</summary>
     public void RequestInterrupt(byte vector) => _irq = vector;
     public void RequestNmi() => _nmi = true;
 
@@ -243,13 +248,18 @@ public sealed class I8088Cpu(I8088Bus bus)
     /// <summary>One instruction, one REP iteration, or interrupt acceptance. False while halted with no accepted interrupt.</summary>
     public bool Step()
     {
-        bool inhibit = _interruptShadow, inhibitNmi = _ssShadow;
-        _interruptShadow = _ssShadow = false;
+        bool inhibit = _interruptShadow, inhibitNmi = _segmentShadow;
+        _interruptShadow = _segmentShadow = false;
         if (_nmi && !inhibitNmi) { _nmi = false; EnterInterrupt(2); return true; }
         if (_irq is { } vector && Flag(InterruptEnable) && !inhibit)
         { _irq = null; EnterInterrupt(vector); return true; }
+        if (Flag(InterruptEnable) && !inhibit && interrupts?.InterruptRequested == true)
+        { EnterInterrupt(interrupts.Acknowledge()); return true; }
+        // The original 8088 gives external interrupts priority over the pending trap.
+        // Keep it pending across their entry, so it nests before the first ISR instruction.
+        if (_trapPending && !inhibitNmi) { _trapPending = false; EnterInterrupt(1); return true; }
         if (Halted) return false;
-        if (Flag(Trap)) throw new NotSupportedException("8088: el paso a paso por TF todavía no está implementado.");
+        bool trap = Flag(Trap);
         _startCs = CS; _startIp = IP; _segmentOverride = -1;
         byte opcode, repeat = 0; int prefixes = 0;
         while (true)
@@ -262,6 +272,8 @@ public sealed class I8088Cpu(I8088Bus bus)
         }
         Execute(opcode, repeat);
         Instructions++;
+        // POPF/IRET changes apply to the next instruction; clearing TF still traps this one.
+        _trapPending = trap && !_segmentShadow;
         return true;
     }
 
@@ -294,7 +306,7 @@ public sealed class I8088Cpu(I8088Bus bus)
         {
             case 0x06: case 0x0E: case 0x16: case 0x1E: Push(_s[(op >> 3) & 3]); break;
             case 0x07: case 0x17: case 0x1F:
-                _s[(op >> 3) & 3] = Pop(); if (op == 0x17) _interruptShadow = _ssShadow = true; break;
+                _s[(op >> 3) & 3] = Pop(); _interruptShadow = _segmentShadow = true; break;
             case 0x27: case 0x2F: case 0x37: case 0x3F:
                 DecimalAdjust((op & 8) != 0, (op & 0x10) != 0); break;
             case 0x80: case 0x81: case 0x82: case 0x83:
@@ -317,7 +329,7 @@ public sealed class I8088Cpu(I8088Bus bus)
             {
                 var (reg, rm) = Decode(); if (reg > 3 || op == 0x8E && reg == 1) throw Unsupported(op, "registro de segmento");
                 if (op == 0x8C) Write(rm, true, _s[reg]);
-                else { _s[reg] = (ushort)Read(rm, true); if (reg == 2) _interruptShadow = _ssShadow = true; }
+                else { _s[reg] = (ushort)Read(rm, true); _interruptShadow = _segmentShadow = true; }
                 break;
             }
             case 0x8D: { var (reg, rm) = Decode(); if (rm.Register >= 0) throw Unsupported(op, "LEA requiere memoria"); _r[reg] = rm.Offset; break; }
