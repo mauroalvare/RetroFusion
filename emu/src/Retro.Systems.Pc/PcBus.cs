@@ -5,28 +5,36 @@ namespace Retro.Systems.Pc;
 /// <summary>Partial PC/XT board bus. Missing devices fail explicitly; clocks are supplied externally.</summary>
 public sealed class PcBus : I8088Bus
 {
+    private readonly bool _pc5150;
     private readonly byte[] _dmaPages = new byte[4];
     public PcMemory Memory { get; }
     public Pic8259A Pic { get; } = new();
     public Pit8253 Pit { get; } = new();
     public Cga6845 Cga { get; }
+    public Ppi8255 Ppi { get; } = new();
+    public PcKeyboard Keyboard { get; } = new();
     public bool NmiEnabled { get; private set; }
     public bool BusLocked { get; private set; }
     public bool TestSignal { get; set; }
     public long CpuClocks { get; private set; }
     public ReadOnlySpan<byte> DmaPageRegisters => _dmaPages;
 
-    public PcBus(PcMemory memory)
+    public PcBus(PcMemory memory, bool pc5150 = false)
     {
         Memory = memory ?? throw new ArgumentNullException(nameof(memory));
+        _pc5150 = pc5150;
         Cga = new Cga6845(Memory);
+        Ppi.InputA = () => _pc5150 && (Ppi.PortB & 0x80) != 0 ? EquipmentSwitches : Keyboard.Data;
+        Ppi.InputC = ReadPpiC;
+        Ppi.OutputBChanged += value => { Pit.SetGate(2, (value & 1) != 0); Keyboard.SetControl(value); };
+        Keyboard.IrqChanged += high => Pic.SetLine(1, high);
         Pit.OutputChanged += (channel, high) => { if (channel == 0) Pic.SetLine(0, high); };
         Reset(clearMemory: false);
     }
 
     public void Reset(bool clearMemory)
     {
-        CpuClocks = 0; Pit.Reset(); Pic.Reset(); Cga.Reset();
+        CpuClocks = 0; Pit.Reset(); Pic.Reset(); Cga.Reset(); Keyboard.Reset(); Ppi.Reset();
         Pit.SetGate(0, true); Pit.SetGate(1, true);
         Array.Clear(_dmaPages); NmiEnabled = BusLocked = TestSignal = false;
         if (clearMemory) Memory.ClearRam();
@@ -36,7 +44,21 @@ public sealed class PcBus : I8088Bus
     public void Clock()
     {
         if ((++CpuClocks & 3) == 0) TickPit();
-        Cga.ClockMaster(); Cga.ClockMaster(); Cga.ClockMaster();
+        Cga.ClockMaster(); Cga.ClockMaster(); Cga.ClockMaster(); Keyboard.Clock();
+    }
+
+    // One floppy drive, no 8087, CGA 80-column display. Switches describe installed RAM.
+    private byte EquipmentSwitches => (byte)(0x21 | (_pc5150 ? Math.Min(3, Memory.RamKilobytes / 16 - 1) : Math.Clamp(Memory.RamKilobytes / 64 - 1, 0, 3)) << 2);
+    private byte ReadPpiC()
+    {
+        int switches;
+        if (_pc5150)
+        {
+            int expansion = Math.Max(0, Memory.RamKilobytes - 64) / 32;
+            switches = (Ppi.PortB & 4) != 0 ? expansion & 15 : (expansion >> 4) & 1;
+        }
+        else switches = (Ppi.PortB & 8) == 0 ? EquipmentSwitches & 15 : EquipmentSwitches >> 4;
+        return (byte)(switches | (Pit.GetOutput(2) ? 0x20 : 0));
     }
 
     public byte ReadMemory(uint address) => Memory.Read(address);
@@ -53,6 +75,7 @@ public sealed class PcBus : I8088Bus
     {
         >= 0x3D0 and <= 0x3DF => Cga.Read(port),
         >= 0x3B0 and <= 0x3BF => 0xFF, // No MDA is installed alongside the CGA.
+        >= 0x60 and <= 0x63 => Ppi.Read(port - 0x60),
         0x20 => Pic.ReadCommand(), 0x21 => Pic.ReadData(),
         >= 0x40 and <= 0x42 => Pit.ReadCounter(port - 0x40),
         >= 0x80 and <= 0x83 or >= 0xA0 and <= 0xAF => 0xFF, // write-only board latches
@@ -65,6 +88,7 @@ public sealed class PcBus : I8088Bus
         {
             case >= 0x3D0 and <= 0x3DF: Cga.Write(port, value); break;
             case >= 0x3B0 and <= 0x3BF: break;
+            case >= 0x60 and <= 0x63: Ppi.Write(port - 0x60, value); break;
             case 0x20: Pic.WriteCommand(value); break;
             case 0x21: Pic.WriteData(value); break;
             case >= 0x40 and <= 0x42: Pit.WriteCounter(port - 0x40, value); break;

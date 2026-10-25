@@ -876,3 +876,16 @@ controlador de vídeo alternativo.
 Se prueba el recorrido 8088 temporizado → PIT → PIC → salida de HLT → rutina de
 interrupción, manteniendo separado Instructions de T. El firmware libre avanza hasta
 el próximo dispositivo pendiente; no se interceptan sus servicios ni se omite POST.
+
+
+## D-058 — PPI y teclado PC/XT
+
+Ppi8255 implementa modo 0 y BSR con latches separados de las entradas. PcBus selecciona
+el cableado de interruptores 5150/5160 mediante constructor; no interpreta un firmware
+como si ambos modelos tuvieran los mismos puertos. Port B alimenta GATE2 y control de
+teclado, y la recepción completa genera IRQ1 hasta el pulso de clear.
+
+PcKeyboard recibe bytes set-1 aportados por el host. La transmisión consume reloj,
+el latch bloquea el siguiente byte y un inhibit prolongado inicia BAT del teclado.
+No hay respuestas condicionadas a una dirección BIOS. El firmware real avanza hasta
+DMA pendiente, sin saltarse comprobaciones ni interceptar servicios.

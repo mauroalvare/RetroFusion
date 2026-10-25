@@ -22,7 +22,7 @@ public sealed class PcBusTests
         var board = Board(); board.Out(0x81, 3); board.Out(0x83, 7);
         Assert.That(board.DmaPageRegisters.ToArray(), Is.EqualTo(new byte[] { 0, 3, 0, 7 }));
         Assert.Throws<NotSupportedException>(() => board.Out(0x0D, 0));
-        Assert.Throws<NotSupportedException>(() => board.In(0x60));
+        Assert.That(board.In(0x60), Is.Zero);
         board.Reset(false); Assert.That(board.DmaPageRegisters.ToArray(), Is.All.Zero);
     }
 
