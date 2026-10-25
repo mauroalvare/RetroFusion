@@ -9,6 +9,7 @@ public sealed class PcBus : I8088Bus
     public PcMemory Memory { get; }
     public Pic8259A Pic { get; } = new();
     public Pit8253 Pit { get; } = new();
+    public Cga6845 Cga { get; }
     public bool NmiEnabled { get; private set; }
     public bool BusLocked { get; private set; }
     public bool TestSignal { get; set; }
@@ -18,20 +19,25 @@ public sealed class PcBus : I8088Bus
     public PcBus(PcMemory memory)
     {
         Memory = memory ?? throw new ArgumentNullException(nameof(memory));
+        Cga = new Cga6845(Memory);
         Pit.OutputChanged += (channel, high) => { if (channel == 0) Pic.SetLine(0, high); };
         Reset(clearMemory: false);
     }
 
     public void Reset(bool clearMemory)
     {
-        CpuClocks = 0; Pit.Reset(); Pic.Reset();
+        CpuClocks = 0; Pit.Reset(); Pic.Reset(); Cga.Reset();
         Pit.SetGate(0, true); Pit.SetGate(1, true);
         Array.Clear(_dmaPages); NmiEnabled = BusLocked = TestSignal = false;
         if (clearMemory) Memory.ClearRam();
     }
 
     /// <summary>4.772727 MHz CPU clock: the 8253 receives one pulse for every four T-states.</summary>
-    public void Clock() { if ((++CpuClocks & 3) == 0) TickPit(); }
+    public void Clock()
+    {
+        if ((++CpuClocks & 3) == 0) TickPit();
+        Cga.ClockMaster(); Cga.ClockMaster(); Cga.ClockMaster();
+    }
 
     public byte ReadMemory(uint address) => Memory.Read(address);
     public void WriteMemory(uint address, byte value) => Memory.Write(address, value);
@@ -45,6 +51,8 @@ public sealed class PcBus : I8088Bus
 
     public byte In(ushort port) => port switch
     {
+        >= 0x3D0 and <= 0x3DF => Cga.Read(port),
+        >= 0x3B0 and <= 0x3BF => 0xFF, // No MDA is installed alongside the CGA.
         0x20 => Pic.ReadCommand(), 0x21 => Pic.ReadData(),
         >= 0x40 and <= 0x42 => Pit.ReadCounter(port - 0x40),
         >= 0x80 and <= 0x83 or >= 0xA0 and <= 0xAF => 0xFF, // write-only board latches
@@ -55,6 +63,8 @@ public sealed class PcBus : I8088Bus
     {
         switch (port)
         {
+            case >= 0x3D0 and <= 0x3DF: Cga.Write(port, value); break;
+            case >= 0x3B0 and <= 0x3BF: break;
             case 0x20: Pic.WriteCommand(value); break;
             case 0x21: Pic.WriteData(value); break;
             case >= 0x40 and <= 0x42: Pit.WriteCounter(port - 0x40, value); break;

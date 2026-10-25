@@ -863,3 +863,16 @@ La precisión EU es nominal y tiene limitaciones explícitas en I8088.md: no se 
 como contraste ciclo a ciclo del hardware. El estado CPU 2 incluye cola, T y repetición;
 la lectura de versión 1 continúa disponible sin temporización. La carga valida antes
 de mutar registros y no toca el bus ni los dispositivos de la máquina.
+
+
+## D-057 — CGA/6845 en el bus PC parcial
+
+Cga6845 recibe tres pulsos de oscilador por T de PcBus. DE/VSYNC progresan desde los
+registros del controlador, sin alternar bits por lectura de puerto. La memoria CGA
+existente alimenta texto y gráficos RGBI. Fuente opcional aportada por el llamador,
+sin incorporar una ROM comercial. Los huecos MDA son una tarjeta ausente, no un
+controlador de vídeo alternativo.
+
+Se prueba el recorrido 8088 temporizado → PIT → PIC → salida de HLT → rutina de
+interrupción, manteniendo separado Instructions de T. El firmware libre avanza hasta
+el próximo dispositivo pendiente; no se interceptan sus servicios ni se omite POST.
