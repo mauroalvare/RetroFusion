@@ -3,7 +3,7 @@ using System.Security.Cryptography;
 namespace Retro.Systems.Pc;
 
 /// <summary>PC/XT physical memory with conventional RAM, 16 KB CGA RAM and a top-aligned system BIOS.</summary>
-public sealed class PcMemory
+public sealed partial class PcMemory
 {
     private readonly byte[] _ram, _video = new byte[0x4000], _bios;
     private readonly uint _biosStart;

@@ -55,4 +55,16 @@ public sealed class PpiTests
         Assert.That(k.Data, Is.EqualTo(0xAA));
         k.Reset(); Assert.That(k.Data, Is.Zero);
     }
+    [Test]
+    public void TypematicRepeatsHeldKeysAfterDelayAndStopsOnBreak()
+    {
+        var k = new PcKeyboard(); k.SetControl(0x40); k.SendKey(0x1E, true);
+        for (int i = 0; i < 4773; i++) k.Clock(); Assert.That(k.Data, Is.EqualTo(0x1E));
+        k.SetControl(0xC0); k.SetControl(0x40);
+        for (int i = 0; i < 2_386_364; i++) k.Clock(); Assert.That(k.Data, Is.EqualTo(0x1E));
+        k.SendKey(0x1E, false); k.SetControl(0xC0); k.SetControl(0x40);
+        for (int i = 0; i < 4773; i++) k.Clock(); Assert.That(k.Data, Is.EqualTo(0x9E));
+        k.SetControl(0xC0); k.SetControl(0x40); for (int i = 0; i < 400000; i++) k.Clock(); Assert.That(k.Data, Is.Zero);
+    }
+
 }

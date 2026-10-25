@@ -3,7 +3,7 @@ using Retro.Core;
 namespace Retro.Systems.Pc;
 
 /// <summary>CGA RGBI output and MC6845 registers. ClockMaster receives the 14.31818 MHz oscillator.</summary>
-public sealed class Cga6845
+public sealed partial class Cga6845
 {
     public static readonly int[] Palette =
     [0x000000, 0x0000AA, 0x00AA00, 0x00AAAA, 0xAA0000, 0xAA00AA, 0xAA5500, 0xAAAAAA,

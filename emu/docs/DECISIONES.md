@@ -916,3 +916,18 @@ FloppyDiskImage copia e identifica los bytes aportados y guarda solo cambios por
 sector. LoadOverlay valida identidad, índices y contenido antes de reemplazar la capa.
 No escribe la fuente. Las limitaciones de formato y densidad están en PCXT.md.
 Las pruebas reales de sistema operativo quedan en evidencia privada y no se empaquetan.
+
+
+## D-061 — PcXt y estado de placa completo
+
+PcXt implementa IMachine e IMemoryView de 20 bits. Runtime es dueño de placa, CPU,
+presentación y callbacks del audio: restaurar no deja eventos ligados al runtime viejo.
+Los dispositivos cargan campos sin disparar eventos; las líneas PIC/DMA y los latches
+ya representan los niveles guardados. Se publica el nuevo runtime solo tras validar
+todo, incluida coincidencia de reloj CPU/placa, longitud e integridad SHA.
+
+RETRO-PCXT 1 incluye medio por SHA y overlay, firmware/modelo/RAM, CPU y componentes,
+prelectura y transferencias parciales, sonido y teclas físicas. Al cargar se liberan las
+teclas físicas y se cancela la secuencia pendiente de entrada. Reset conserva el disco.
+La memoria no implementa un watch de 16 bits: no se truncan direcciones físicas para
+fingir compatibilidad con ese contrato anterior de ingeniería inversa.

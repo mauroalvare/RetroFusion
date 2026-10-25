@@ -1,7 +1,7 @@
 namespace Retro.Systems.Pc;
 
 /// <summary>uPD765 command/execution/result phases, sector-level MFM and DMA/non-DMA byte transfer.</summary>
-public sealed class Fdc765
+public sealed partial class Fdc765
 {
     private readonly List<byte> _command = [];
     private readonly Queue<byte> _result = new();
@@ -117,12 +117,18 @@ public sealed class Fdc765
             default: _result.Enqueue(0x80); break;
         }
     }
+    private void QueueSense(byte status, byte cylinder)
+    {
+        var others = _sense.Where(s => (s.Status & 3) != (status & 3)).ToArray();
+        _sense.Clear(); foreach (var entry in others) _sense.Enqueue(entry);
+        _sense.Enqueue((status, cylinder));
+    }
     public void Clock()
     {
         for (int i = 0; i < 4; i++)
         {
             if (_seekTimer[i] <= 0 || --_seekTimer[i] != 0) continue;
-            _cylinder[i] = _seekTarget[i]; _sense.Enqueue(((byte)((Ready(i) ? 0x20 : 0x68) | i), (byte)_cylinder[i])); SetIrq(true);
+            _cylinder[i] = _seekTarget[i]; QueueSense((byte)((Ready(i) ? 0x20 : 0x68) | i), (byte)_cylinder[i]); SetIrq(true);
         }
         if (_timer <= 0 || --_timer != 0) return;
         if (!_executing) { if (_sense.Count > 0) SetIrq(true); return; }

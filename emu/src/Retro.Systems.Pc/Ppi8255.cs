@@ -1,7 +1,7 @@
 namespace Retro.Systems.Pc;
 
 /// <summary>8255 mode 0, with independent input/output directions and bit set/reset for port C.</summary>
-public sealed class Ppi8255
+public sealed partial class Ppi8255
 {
     private byte _a, _b, _c, _control = 0x9B;
     public Func<byte>? InputA { get; set; }

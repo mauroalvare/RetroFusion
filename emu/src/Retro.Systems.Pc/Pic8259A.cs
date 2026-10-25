@@ -6,7 +6,7 @@ namespace Retro.Systems.Pc;
 /// One functional 8259A in 8086 mode, single controller, edge-triggered inputs.
 /// Acknowledge combines the two INTA pulses; no pin timing, cascade or level mode.
 /// </summary>
-public sealed class Pic8259A : I8088InterruptSource
+public sealed partial class Pic8259A : I8088InterruptSource
 {
     private byte _inputs, _requests, _service, _mask = 0xFF;
     private int _initStep, _lowest = 7, _polledLine;

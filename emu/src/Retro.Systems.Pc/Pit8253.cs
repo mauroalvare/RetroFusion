@@ -5,7 +5,7 @@ namespace Retro.Systems.Pc;
 /// Tick supplies a complete external CLK pulse; it is not a CPU instruction or cycle.
 /// Gate and I/O changes occur between pulses; electrical setup/hold timing is not modeled.
 /// </summary>
-public sealed class Pit8253
+public sealed partial class Pit8253
 {
     private sealed class Channel
     {

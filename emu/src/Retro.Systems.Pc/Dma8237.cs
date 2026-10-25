@@ -1,7 +1,7 @@
 namespace Retro.Systems.Pc;
 
 /// <summary>Four-channel 8237A, normal timing. Clock receives one T-state and an explicit bus grant.</summary>
-public sealed class Dma8237
+public sealed partial class Dma8237
 {
     private readonly ushort[] _address = new ushort[4], _count = new ushort[4], _baseAddress = new ushort[4], _baseCount = new ushort[4];
     private readonly byte[] _mode = new byte[4];

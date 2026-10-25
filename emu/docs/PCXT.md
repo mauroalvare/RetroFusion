@@ -107,3 +107,19 @@ El arranque comprobado usa BIOS libre, FreeDOS y comandos enviados como códigos
 teclado; no intercepta INT 13/16 ni sustituye el cargador o el kernel. Es una prueba de
 placa, todavía no una declaración de compatibilidad de juegos DOS.
 Referencia: [documentación NEC uPD765](https://www.cpctech.cpcwiki.de/docs/upd765a/necfdc.htm).
+
+
+## Máquina y estados completos
+
+PcXt ofrece IMachine con memoria física de 20 bits, desensamblado, entradas de código,
+83 teclas set-1 y repetición del teclado. El altavoz sale de PB1 y PIT2, con salida mono
+a 44,1 kHz. El cuadro presentado duplica las líneas CGA para facilitar la lectura.
+El BIOS identifica el cableado 5150/5160 mediante su byte de modelo; se puede elegir
+explícitamente por API. El selector de la app se integra por separado.
+
+RETRO-PCXT versión 1 identifica firmware, imagen, modelo y RAM, y protege el contenido
+con SHA-256. Guarda CPU, prelectura, memoria, todos los dispositivos, fases de sonido
+y capa de disquete. La carga reconstruye un runtime completo antes de sustituir el
+activo. Un archivo truncado, dañado o de otro medio no modifica la partida actual.
+También se prueba reanudar una lectura de sector en curso y el audio del altavoz.
+Reiniciar conserva las escrituras privadas del disco; guardar una partida las incluye.

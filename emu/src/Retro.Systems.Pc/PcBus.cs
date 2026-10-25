@@ -3,7 +3,7 @@ using Retro.Cpu.I8088;
 namespace Retro.Systems.Pc;
 
 /// <summary>PC/XT board bus. Unpopulated I/O slots read open bus; device functions reject unsupported modes.</summary>
-public sealed class PcBus : I8088Bus
+public sealed partial class PcBus : I8088Bus
 {
     private readonly bool _pc5150;
     private bool _busGranted;
@@ -21,6 +21,8 @@ public sealed class PcBus : I8088Bus
     public bool NmiEnabled { get; private set; }
     public bool BusLocked { get; private set; }
     public bool TestSignal { get; set; }
+    public event Action? Clocked;
+    public bool SpeakerOutput => (Ppi.PortB & 2) != 0 && Pit.GetOutput(2);
     public long CpuClocks { get; private set; }
     public ReadOnlySpan<byte> DmaPageRegisters => _dmaPages;
 
@@ -58,7 +60,7 @@ public sealed class PcBus : I8088Bus
     {
         if ((++CpuClocks & 3) == 0) TickPit();
         Cga.ClockMaster(); Cga.ClockMaster(); Cga.ClockMaster(); Keyboard.Clock();
-        Fdc.Clock(); Dma.Clock(_busGranted && !BusLocked);
+        Fdc.Clock(); Dma.Clock(_busGranted && !BusLocked); Clocked?.Invoke();
     }
 
     // One floppy drive, no 8087, CGA 80-column display. Switches describe installed RAM.
