@@ -79,8 +79,11 @@ public sealed partial class Pit8253
         {
             1 => value, 2 => (ushort)(value << 8), _ => (ushort)(counter.Low | (value << 8))
         };
-        if ((counter.Mode == 2 && reload == 1) || (counter.Mode == 3 && reload is 1 or 3))
-            throw new NotSupportedException("8253: divisor 1 y divisor 3 en modo 3 pendientes de contraste de silicio.");
+        // The nominally invalid value 1 has an observed effective load of 2 (mode 2)
+        // or 0/65536 (mode 3). Keep software writes working instead of stopping the CPU.
+        if (reload == 1 && counter.Mode is 2 or 3) reload = counter.Mode == 2 ? (ushort)2 : (ushort)0;
+        if (counter.Mode == 3 && reload == 3)
+            throw new NotSupportedException("8253: divisor 3 en modo 3 pendiente de contraste de silicio.");
         counter.WriteHigh = false;
         counter.Reload = reload; counter.HasReload = true;
         if (counter.Mode == 0 || !counter.Loaded) counter.LoadPending = true;

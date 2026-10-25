@@ -302,7 +302,7 @@ public class PitTests
         Clocks(pit, 4); Assert.That(pit.GetOutput(0), Is.True);
     }
 
-    [TestCase(2,1)] [TestCase(3,1)] [TestCase(3,3)]
+    [TestCase(3,3)]
     public void UnsupportedDivisorsDoNotReplaceTheOldRunningPeriod(int mode, int invalid)
     {
         var pit = Ready(mode, 8);
@@ -360,4 +360,14 @@ public class PitTests
         Assert.Throws<ArgumentOutOfRangeException>(() => pit.WriteCounter(channel, 0));
         Assert.That(Count(pit), Is.EqualTo(4));
     }
+    [TestCase(2, 2)] [TestCase(3, 0)]
+    public void CountOneUsesTheEffectiveReloadObservedOnHardware(int mode, int effective)
+    {
+        var pit = Ready(mode, 1); Assert.That(Count(pit), Is.EqualTo(effective));
+        if (mode == 2)
+        { pit.Tick(0); Assert.That(pit.GetOutput(0), Is.False); pit.Tick(0); Assert.That(pit.GetOutput(0), Is.True); }
+        else
+        { Clocks(pit, 32767); Assert.That(pit.GetOutput(0), Is.True); pit.Tick(0); Assert.That(pit.GetOutput(0), Is.False); }
+    }
+
 }

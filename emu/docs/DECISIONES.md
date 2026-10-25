@@ -931,3 +931,12 @@ prelectura y transferencias parciales, sonido y teclas físicas. Al cargar se li
 teclas físicas y se cancela la secuencia pendiente de entrada. Reset conserva el disco.
 La memoria no implementa un watch de 16 bits: no se truncan direcciones físicas para
 fingir compatibilidad con ese contrato anterior de ingeniería inversa.
+
+
+## D-062 — Carga efectiva de uno en PIT
+
+Una partida real programa PIT2 en modo 3 con cuenta 1. Rechazarla abortaba el juego.
+Se acepta la escritura y se usa carga efectiva 0 en modo 3 y 2 en modo 2, según las
+observaciones de hardware documentadas en la implementación MAME. El registro de
+carga no es legible directamente; lecturas, GATE y recargas ven el contador efectivo.
+El caso 3 del 8253 y las variantes no contrastadas mantienen su límite explícito.
