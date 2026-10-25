@@ -10,7 +10,7 @@ sistema operativo son etapas distintas. Implementar el 8088 no incorpora BIOS ni
 - `PcMemory`: RAM configurable de 16 a 640 KB y una copia protegida del BIOS de
   8, 16, 32 o 64 KB, al final del espacio de 1 MB. El firmware se identifica por SHA-256.
 - `PcBus`: conecta esa memoria con el 8259A, el 8253, el registro de habilitación NMI
-  y los registros de página DMA. Aún no implementa el motor DMA ni fuentes NMI.
+  y el DMA 8237. Las fuentes NMI externas siguen pendientes.
 - `Cga6845`: registros MC6845, cursor, RGBI de texto de 40/80 columnas y gráficos de
   320/640 puntos. El oscilador de vídeo recibe tres pulsos por T de CPU; el estado
   de borrado/retrazo depende de ese reloj y no de cuántas veces se lee el puerto.
@@ -40,7 +40,7 @@ eléctricas y la secuencia exacta de silicio siguen pendientes. No se incluye fi
 
 1. Reloj del 8088 y acoplamiento de los dispositivos, con evidencia independiente de
    instrucciones, transferencias y tiempos.
-2. Completar integración CGA/teclado, DMA 8237 y conexiones de placa.
+2. Completar integración CGA/teclado y conexiones restantes de placa.
 3. Completar el POST, la comprobación de encendido, con firmware libre aportado por
    separado. Las pruebas deben usar el comportamiento real de los dispositivos.
 4. Controladora de disquetes, carga de imágenes y sistema operativo libre; estados,
@@ -71,3 +71,19 @@ rechazan. PcBus permite elegir cableado 5150 o 5160, con una unidad de disquete,
 CGA de 80 columnas y sin coprocesador. El modo 5150 expresa RAM adicional en bloques
 de 32 KB por SW2. Los contadores de entrada de teclado aproximan la transmisión y
 BAT; no modelan flancos individuales del cable ni teclas repetidas por hardware.
+
+
+## DMA y concesión del bus
+
+Dma8237 implementa registros base/actuales por canal, flip-flop común, máscara,
+solicitudes, prioridad fija/rotatoria, verify, lectura/escritura, contador terminal,
+autoinicio y dirección creciente/decreciente. Cada byte consume cuatro T con concesión
+explícita del bus. Single libera al menos un ciclo para la CPU; demand/block conservan
+su contrato de solicitud. La página permanece fija al cruzar 64 KB.
+
+I8088Bus.SetBusGranted reconoce HOLD entre transferencias completas. La DMA no opera
+mientras el procesador usa el bus o mantiene LOCK. PIT1 solicita refresco por canal0;
+la lectura recorre la RAM sin inventar datos ni usar el contador de instrucciones.
+Sin memoria a memoria, cascada, polaridades invertidas, READY ni señales eléctricas.
+El 8259A admite ICW4 buffered en un controlador individual; esa configuración del
+transceptor no altera los vectores ni el contrato de EOI, y no agrega cascada.

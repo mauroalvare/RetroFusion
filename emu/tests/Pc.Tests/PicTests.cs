@@ -34,13 +34,22 @@ public class PicTests
         Assert.That(pic.Acknowledge(), Is.EqualTo(10));
     }
 
-    [TestCase(0)] [TestCase(9)] [TestCase(0x11)]
+    [TestCase(0)] [TestCase(0x11)]
     public void UnsupportedIcw4DoesNotCompleteInitialization(int word)
     {
         var pic = new Pic8259A(); pic.WriteCommand(0x13); pic.WriteData(8);
         Assert.Throws<NotSupportedException>(() => pic.WriteData((byte)word));
         Assert.That(pic.Initialized, Is.False);
         pic.WriteData(1); Assert.That(pic.Initialized, Is.True);
+    }
+
+    [TestCase(9, false)] [TestCase(13, true)]
+    public void BufferedSingleControllerKeepsTheSameVectorAndEoiContract(int icw, bool master)
+    {
+        var pic = new Pic8259A(); pic.WriteCommand(0x13); pic.WriteData(8); pic.WriteData((byte)icw);
+        Assert.That(pic.BufferedMode, Is.True); Assert.That(pic.BufferedMaster, Is.EqualTo(master));
+        pic.SetLine(2, true); Assert.That(pic.Acknowledge(), Is.EqualTo(10));
+        Assert.That(pic.InServiceRegister, Is.EqualTo(4)); pic.WriteCommand(0x20); Assert.That(pic.InServiceRegister, Is.Zero);
     }
 
     [Test]

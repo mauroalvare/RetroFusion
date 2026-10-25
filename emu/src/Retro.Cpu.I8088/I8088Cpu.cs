@@ -49,7 +49,7 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
         CS = 0xFFFF; IP = 0; Flags = 0;
         Halted = false; Instructions = 0;
         _interruptShadow = _segmentShadow = _nmi = _trapPending = _waitingForTest = false; _irq = null;
-        _busLocked = false; bus.SetLock(false);
+        _busLocked = false; bus.SetLock(false); bus.SetBusGranted(false);
         _cycles = 0; _timingStep = _replaying = _repeatAgain = false; _repeatCode.Clear(); FlushQueue();
     }
 
@@ -264,7 +264,7 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
         if (Flag(InterruptEnable) && !inhibit && interrupts?.InterruptRequested == true)
         { EnterInterrupt(interrupts.Acknowledge(), true); return true; }
         // HLT finishes only after an enabled external interrupt; its trap waits until then.
-        if (Halted) { if (TimingEnabled) Clock(); return false; }
+        if (Halted) { if (TimingEnabled) { bus.SetBusGranted(bus.HoldRequested); Clock(); } return false; }
         // The original 8088 gives external interrupts priority over the pending trap.
         // Keep it pending across their entry, so it nests before the first ISR instruction.
         if (_trapPending && !inhibitNmi) { _trapPending = false; EnterInterrupt(1, true); return true; }

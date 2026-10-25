@@ -27,7 +27,9 @@ public sealed partial class I8088Cpu
         if (!TimingEnabled) return;
         for (int n = 0; n < count; n++)
         {
-            if (_prefetchTicks == 0 && _queueCount < 4 && !bus.HoldRequested) _prefetchTicks = 1;
+            bool grant = _prefetchTicks == 0 && bus.HoldRequested && !_busLocked;
+            bus.SetBusGranted(grant);
+            if (_prefetchTicks == 0 && _queueCount < 4 && !grant) _prefetchTicks = 1;
             Clock();
             if (_prefetchTicks == 0) continue;
             if (_prefetchTicks++ < 4) continue;
@@ -40,7 +42,8 @@ public sealed partial class I8088Cpu
         if (!TimingEnabled) return;
         // A pending EU transfer wins over the next prefetch, after an active cycle finishes.
         while (_prefetchTicks != 0) IdleClocks(1);
-        while (bus.HoldRequested && !_busLocked) Clock();
+        while (bus.HoldRequested && !_busLocked) { bus.SetBusGranted(true); Clock(); }
+        bus.SetBusGranted(false);
         for (int n = 0; n < 4; n++) Clock();
     }
     private byte FetchTimed()

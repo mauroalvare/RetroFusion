@@ -12,6 +12,8 @@ public sealed class Pic8259A : I8088InterruptSource
     private int _initStep, _lowest = 7, _polledLine;
     private bool _autoEoi, _rotateAuto, _specialMask, _readService, _poll;
 
+    public bool BufferedMode { get; private set; }
+    public bool BufferedMaster { get; private set; }
     public bool Initialized { get; private set; }
     public byte VectorBase { get; private set; }
     public byte RequestRegister => _requests;
@@ -25,7 +27,7 @@ public sealed class Pic8259A : I8088InterruptSource
         _inputs = _requests = _service = 0; _mask = 0xFF;
         _initStep = 0; _lowest = 7; _polledLine = -1;
         _autoEoi = _rotateAuto = _specialMask = _readService = _poll = Initialized = false;
-        VectorBase = 0;
+        BufferedMode = BufferedMaster = false; VectorBase = 0;
     }
 
     /// <summary>Keep an input asserted through acknowledge; electrical short-pulse timing is not modeled.</summary>
@@ -65,7 +67,7 @@ public sealed class Pic8259A : I8088InterruptSource
                 throw new NotSupportedException("8259A: se admite un solo controlador, por flancos y con ICW4.");
             _requests = _service = _mask = 0; _lowest = 7;
             _autoEoi = _rotateAuto = _specialMask = _readService = _poll = Initialized = false;
-            VectorBase = 0; _initStep = 2;
+            BufferedMode = BufferedMaster = false; VectorBase = 0; _initStep = 2;
             // Preserve the physical input levels: a held-high edge does not retrigger after ICW1.
             return;
         }
@@ -98,8 +100,9 @@ public sealed class Pic8259A : I8088InterruptSource
         if (_initStep == 2) { VectorBase = (byte)(value & 0xF8); _initStep = 4; return; }
         if (_initStep == 4)
         {
-            if ((value & 1) == 0 || (value & 0xF8) != 0)
-                throw new NotSupportedException("8259A: se admite modo 8086 sin buffer ni anidación de cascada.");
+            if ((value & 1) == 0 || (value & 0xF0) != 0)
+                throw new NotSupportedException("8259A: se admite modo 8086 sin anidación de cascada.");
+            BufferedMode = (value & 8) != 0; BufferedMaster = BufferedMode && (value & 4) != 0;
             _autoEoi = (value & 2) != 0;
             _initStep = 0; Initialized = true; return;
         }

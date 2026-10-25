@@ -11,6 +11,8 @@ public interface I8088Bus
     void Clock() { }
     /// <summary>DMA bus request; waits between completed bus cycles, except while LOCK is active.</summary>
     bool HoldRequested => false;
+    /// <summary>CPU acknowledges HOLD only between completed bus cycles.</summary>
+    void SetBusGranted(bool granted) { }
     byte ReadMemory(uint address);
     void WriteMemory(uint address, byte value);
     byte In(ushort port);

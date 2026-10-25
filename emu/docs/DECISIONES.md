@@ -889,3 +889,16 @@ PcKeyboard recibe bytes set-1 aportados por el host. La transmisión consume rel
 el latch bloquea el siguiente byte y un inhibit prolongado inicia BAT del teclado.
 No hay respuestas condicionadas a una dirección BIOS. El firmware real avanza hasta
 DMA pendiente, sin saltarse comprobaciones ni interceptar servicios.
+
+
+## D-059 — DMA 8237 con concesión de bus
+
+SetBusGranted en I8088Bus separa petición HOLD de HLDA: Dma8237 no transfiere durante
+un ciclo activo de CPU ni LOCK. PcBus concede con reloj T y mantiene la página externa
+al envolver el contador de 16 bits. PIT1 pide refresco por canal0; el reconocimiento
+limpia ese pedido de placa. Los periféricos conectan bytes y TC por callbacks.
+
+La emulación conserva registros y modos reales, sin saltarse pruebas del firmware.
+Memoria a memoria, cascada y variantes de señales/timing no implementadas se rechazan.
+ICW4 buffered del PIC individual controla sus propiedades de transceptor; el resto
+de la lógica sigue siendo un solo controlador por flancos, sin SP/EN temporizados.
