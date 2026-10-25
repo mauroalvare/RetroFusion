@@ -64,31 +64,31 @@ public sealed partial class NesCartridge
         int mapper = (f6 >> 4) | (junkTail ? 0 : f7 & 0xF0);
         if (nes2) mapper |= (data[8] & 0x0F) << 8;
         if (!SupportedMappers.Contains(mapper))
-            throw new InvalidDataException($"Mapper {mapper} no soportado todavÃ­a (por ahora: 0 NROM, 1 MMC1, 2 UxROM, 3 CNROM, 4 MMC3 y 7 AxROM).");
+            throw new InvalidDataException($"Mapper {mapper} no soportado todavía (por ahora: 0 NROM, 1 MMC1, 2 UxROM, 3 CNROM, 4 MMC3 y 7 AxROM).");
         if (prgUnits == 0) throw new InvalidDataException("La imagen dice que no tiene PRG ROM.");
         if (nes2 && data[9] != 0)
-            throw new InvalidDataException("Los tamaÃ±os ampliados de NES 2.0 todavÃ­a no estÃ¡n implementados.");
+            throw new InvalidDataException("Los tamaños ampliados de NES 2.0 todavía no están implementados.");
         if (mapper is 0 or 3 && prgUnits > 2 || mapper == 7 && (prgUnits < 2 || prgUnits % 2 != 0))
-            throw new InvalidDataException("El tamaÃ±o de PRG ROM no corresponde a este mapper.");
+            throw new InvalidDataException("El tamaño de PRG ROM no corresponde a este mapper.");
         if (mapper == 1)
         {
             int submapper = nes2 ? data[8] >> 4 : 0;
             int ram = nes2 ? RamSize(data[10] & 15) + RamSize(data[10] >> 4) : (junkTail || data[8] == 0 ? 1 : data[8]) * 8192;
             if (submapper is not (0 or 5) || ram > 8192 || chrUnits > 16 || prgUnits > 32 ||
                 prgUnits > 16 && chrUnits != 0 || submapper == 5 && prgUnits != 2 || (f6 & 8) != 0)
-                throw new InvalidDataException("Esta variante de placa MMC1 todavÃ­a no estÃ¡ soportada (RAM ampliada, submapper o tamaÃ±o de ROM).");
+                throw new InvalidDataException("Esta variante de placa MMC1 todavía no está soportada (RAM ampliada, submapper o tamaño de ROM).");
         }
         if (mapper == 4)
         {
             int submapper = nes2 ? data[8] >> 4 : 0;
             int ram = nes2 ? RamSize(data[10] & 15) + RamSize(data[10] >> 4) : (junkTail || data[8] == 0 ? 1 : data[8]) * 8192;
             if (submapper != 0 || ram > 8192 || prgUnits > 32 || prgUnits < 2 || chrUnits > 32)
-                throw new InvalidDataException("Esta variante MMC3 todavÃ­a no estÃ¡ soportada (MMC6, RAM ampliada o tamaÃ±os de ROM).");
+                throw new InvalidDataException("Esta variante MMC3 todavía no está soportada (MMC6, RAM ampliada o tamaños de ROM).");
         }
         int offset = HeaderSize + ((f6 & 0x04) != 0 ? TrainerSize : 0);
         int prgSize = prgUnits * PrgUnit, chrSize = chrUnits * ChrUnit;
         if (data.Length < offset + prgSize + chrSize)
-            throw new InvalidDataException($"La imagen estÃ¡ cortada: el encabezado pide {prgSize + chrSize} bytes de ROM y hay {data.Length - offset}.");
+            throw new InvalidDataException($"La imagen está cortada: el encabezado pide {prgSize + chrSize} bytes de ROM y hay {data.Length - offset}.");
         var mirroring = (f6 & 8) != 0 ? NesMirroring.FourScreen : (f6 & 1) != 0 ? NesMirroring.Vertical : NesMirroring.Horizontal;
         return new(mapper, offset, prgSize, chrSize, mirroring, (f6 & 2) != 0);
     }
@@ -170,7 +170,7 @@ public sealed partial class NesCartridge
     public void Load(BinaryReader r)
     {
         int bank = r.ReadInt32();
-        if (bank < 0 || bank >= _chr.Length / ChrUnit) throw new InvalidDataException("El banco CHR del estado no es vÃ¡lido.");
+        if (bank < 0 || bank >= _chr.Length / ChrUnit) throw new InvalidDataException("El banco CHR del estado no es válido.");
         byte[]? chr = ChrIsRam ? r.ReadBytes(_chr.Length) : null;
         if (chr != null && chr.Length != _chr.Length) throw new EndOfStreamException();
         int prg = 0; var mirroring = _initialMirroring;
@@ -179,7 +179,7 @@ public sealed partial class NesCartridge
             prg = r.ReadInt32(); mirroring = (NesMirroring)r.ReadInt32();
             if (prg < 0 || prg >= _prg.Length / (Mapper == 7 ? 0x8000 : PrgUnit) ||
                 (Mapper == 7 ? mirroring is not (NesMirroring.SingleLower or NesMirroring.SingleUpper) : mirroring != _initialMirroring))
-                throw new InvalidDataException("El banco PRG del estado no es vÃ¡lido.");
+                throw new InvalidDataException("El banco PRG del estado no es válido.");
         }
         if (Mapper == 1) LoadMmc1(r);
         if (Mapper == 4) LoadMmc3(r);
@@ -201,5 +201,5 @@ public sealed partial class NesCartridge
         $"Cartucho NES: mapper {Mapper} ({(Mapper switch { 0 => "NROM", 1 => "MMC1", 2 => "UxROM", 3 => "CNROM", 4 => "MMC3", 7 => "AxROM", _ => "desconocido" })}), PRG {PrgSize / 1024} KB, " +
         (ChrIsRam ? "CHR RAM 8 KB" : $"CHR ROM {ChrSize / 1024} KB") +
         $", espejado {(Mirroring switch { NesMirroring.Horizontal => "horizontal", NesMirroring.Vertical => "vertical", NesMirroring.SingleLower => "una pantalla inferior", NesMirroring.SingleUpper => "una pantalla superior", _ => "de 4 pantallas" })}" +
-        (HasBattery ? ", con baterÃ­a" : "");
+        (HasBattery ? ", con batería" : "");
 }

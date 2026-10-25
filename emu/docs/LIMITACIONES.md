@@ -401,6 +401,8 @@ por cautela, las ediciones de Cheril, Phantomasa, Sila Tsikl y Nanako Descends t
   al abrir, conservando el original en la biblioteca.
 
 
-El bus PC/XT conecta memoria, 8259A y 8253 con reloj externo, más registros NMI y
-páginas DMA. Todavía faltan dispositivos y reloj de CPU para completar el POST.
-La RAM CGA aún no dibuja vídeo; no hay una máquina PC jugable. Ver [PCXT.md](PCXT.md).
+La placa PC/XT ya conecta reloj/prelectura 8088, 8259A, 8253, 8255/teclado, DMA8237,
+CGA y disquete765. Arranca DOS por API, sin interceptar servicios BIOS. Falta su
+integración en el selector, estados completos de máquina y prueba de partidas.
+El reloj EU es aproximado; no hay alta densidad, disco duro, serial, LPT ni FPU.
+Ver [PCXT.md](PCXT.md).

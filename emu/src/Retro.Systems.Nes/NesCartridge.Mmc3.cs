@@ -86,7 +86,7 @@ public sealed partial class NesCartridge
         long dots = r.ReadInt64(), low = r.ReadInt64();
         if (dots < 0 || low < -10 || low > dots || irq && !enabled ||
             (_initialMirroring == NesMirroring.FourScreen ? mirroring != NesMirroring.FourScreen : mirroring is not (NesMirroring.Vertical or NesMirroring.Horizontal)))
-            throw new InvalidDataException("Los registros MMC3 del estado no son vÃ¡lidos.");
+            throw new InvalidDataException("Los registros MMC3 del estado no son válidos.");
         banks.CopyTo(_mmc3Banks, 0); _mmc3Select = select; _mmc3Ram = ram; Mirroring = mirroring;
         _mmc3Latch = latch; _mmc3Counter = counter; _mmc3Reload = reload; _mmc3Enabled = enabled; _mmc3Irq = irq;
         _mmc3A12 = a12; _mmc3Dots = dots; _mmc3LowSince = low;

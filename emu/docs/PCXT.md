@@ -1,6 +1,6 @@
 # PC/XT: estado de la implementación
 
-El PC/XT todavía no está disponible para jugar. La CPU, la placa, el firmware y el
+La placa PC/XT ya arranca un sistema DOS por API; su integración en la app está en curso. La CPU, la placa, el firmware y el
 sistema operativo son etapas distintas. Implementar el 8088 no incorpora BIOS ni DOS.
 
 ## Componentes actuales
@@ -29,11 +29,11 @@ sistema operativo son etapas distintas. Implementar el 8088 no incorpora BIOS ni
 | Final del espacio hasta FFFFF, según el tamaño del BIOS | ROM; escrituras ignoradas |
 | Regiones sin memoria instalada | Lectura FF; escrituras ignoradas |
 
-La RAM de vídeo ya produce un cuadro CGA por API. Los puertos pendientes fallan con
-su dirección para localizar el trabajo restante. Ese comportamiento sirve para diagnóstico;
-la placa sigue incompleta. El teclado tiene recepción por API; faltan discos,
-arranque DOS e integración en el
-selector de máquinas. El reloj y la cola de prelectura tienen un modo funcional temporizado; las señales
+La RAM de vídeo ya produce un cuadro CGA por API. Las tarjetas no instaladas leen
+bus abierto FF; un modo de un dispositivo existente que falte se rechaza explícitamente.
+el selector de máquinas todavía no ofrece esta placa.
+Se comprobó un arranque DOS por API con firmware y sistema operativo libres aportados
+por separado, con entrada real por teclado y lectura de comandos. El reloj y la cola de prelectura tienen un modo funcional temporizado; las señales
 eléctricas y la secuencia exacta de silicio siguen pendientes. No se incluye firmware nuevo en el paquete.
 
 ## Orden de trabajo pendiente
@@ -87,3 +87,23 @@ la lectura recorre la RAM sin inventar datos ni usar el contador de instruccione
 Sin memoria a memoria, cascada, polaridades invertidas, READY ni señales eléctricas.
 El 8259A admite ICW4 buffered en un controlador individual; esa configuración del
 transceptor no altera los vectores ni el contrato de EOI, y no agrega cascada.
+
+
+## Disquetes y sistema operativo
+
+Fdc765 implementa Specify, Sense Drive/Interrupt, Seek/Recalibrate, Read ID y lectura /
+escritura MFM de sectores de 512 bytes. Conecta DRQ al canal DMA2 e IRQ6 al PIC. Cada
+byte tiene tiempo de servicio; omitirlo produce overrun. El contador terminal puede
+terminar una lectura justo en EOT o después del ID inicial, incluso si ese ID supera
+EOT. El estado busy de un seek permanece hasta Sense Interrupt Status.
+
+FloppyDiskImage reconoce geometrías de 160–1440 KB; la controladora XT actual acepta
+160–720 KB a 250 kbit/s. Las escrituras se guardan en una capa privada por sector:
+no cambian el archivo original. Esa capa se puede guardar/cargar por identidad SHA.
+No hay disco duro, controladora AT de alta densidad, formato de pistas, protecciones
+con sectores irregulares ni emulación magnética de CRC, rotación o transiciones de flujo.
+
+El arranque comprobado usa BIOS libre, FreeDOS y comandos enviados como códigos de
+teclado; no intercepta INT 13/16 ni sustituye el cargador o el kernel. Es una prueba de
+placa, todavía no una declaración de compatibilidad de juegos DOS.
+Referencia: [documentación NEC uPD765](https://www.cpctech.cpcwiki.de/docs/upd765a/necfdc.htm).

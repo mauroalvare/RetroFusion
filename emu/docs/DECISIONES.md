@@ -902,3 +902,17 @@ La emulación conserva registros y modos reales, sin saltarse pruebas del firmwa
 Memoria a memoria, cascada y variantes de señales/timing no implementadas se rechazan.
 ICW4 buffered del PIC individual controla sus propiedades de transceptor; el resto
 de la lógica sigue siendo un solo controlador por flancos, sin SP/EN temporizados.
+
+
+## D-060 — Disquete MFM y capa de escritura privada
+
+Fdc765 conecta fases de comando, ejecución y resultado, DRQ/DMA2 e IRQ6 sin servicios
+BIOS interceptados. Los puertos de adaptadores que no están instalados leen FF; las
+funciones faltantes de dispositivos sí presentes fallan de forma explícita.
+La placa usa el cableado XT de READY, con un reporte de reset, sin polling de una
+controladora AT. Los seeks conservan busy hasta Sense Interrupt Status.
+
+FloppyDiskImage copia e identifica los bytes aportados y guarda solo cambios por
+sector. LoadOverlay valida identidad, índices y contenido antes de reemplazar la capa.
+No escribe la fuente. Las limitaciones de formato y densidad están en PCXT.md.
+Las pruebas reales de sistema operativo quedan en evidencia privada y no se empaquetan.
