@@ -24,7 +24,7 @@ public static class CodeExplainer
         - summary: qué hace la rutina y para qué la usa el juego, en 1 a 3 oraciones.
         - pseudocode: la rutina traducida a pseudocódigo tipo C, legible, usando los nombres de
           variables conocidas cuando la rutina las toca.
-        - comments: comentarios para las líneas importantes (dirección en hexadecimal de 4 dígitos
+        - comments: comentarios para las líneas importantes (dirección física en hexadecimal, con todos sus dígitos
           y texto corto).
         No inventes lo que no está en el código: si algo es una suposición, decilo.
         """;

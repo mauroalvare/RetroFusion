@@ -5,6 +5,7 @@ using Retro.Fusion;
 using Retro.Machines;
 using Retro.Systems.Arcade;
 using Retro.Systems.C64;
+using Retro.Systems.Pc;
 using Retro.Systems.Spectrum;
 
 namespace Retro.App;
@@ -39,7 +40,7 @@ public sealed class EmulatorHost
         DiscardQuickState();
         Fusion = session;
         foreach (var slot in session.Slots)
-            slot.Machine.ExecutedMap ??= new bool[0x10000];   // the code view sees what each game ran
+            slot.Machine.ExecutedMap ??= new bool[1 << Math.Clamp(slot.Machine.Memory.AddressBits, 1, 20)];   // the code view sees what each game ran
         FusionFocus = session.Slots[0].Id;
         Paused = false;
         _audio.Clear();
@@ -59,6 +60,7 @@ public sealed class EmulatorHost
     public Spectrum48? Zx => Machine as Spectrum48;
     public SpaceInvaders? Invaders => Machine as SpaceInvaders;
     public C64? C64 => Machine as C64;
+    public PcXt? Pc => Machine as PcXt;
     public Retro.Systems.Nes.Nes? Nes => Machine as Retro.Systems.Nes.Nes;
     public DebugController Debug { get; } = new();
     public bool Paused { get; set; }
@@ -88,7 +90,7 @@ public sealed class EmulatorHost
     private long _speedFrames;
     private byte[]? _quickState;
     private int[]? _quickPixels;
-    private ushort? _runToAddress;
+    private uint? _runToAddress;
 
     public AudioQueue Audio => _audio;
     public bool IsFastForwarding => Machine != null && (Turbo || (TurboWhileLoading && Zx != null && Zx.Tape.IsPlaying));
@@ -117,6 +119,11 @@ public sealed class EmulatorHost
                 Status = $"{info.Name} encendido ({c64.FirmwareDescription}).";
                 break;
             }
+            case "pcxt":
+            {
+                var pc = new PcXt(PcFirmware.Read(romDirectory)); SetMachine(pc, info, pc.Board.Memory.BiosIdentity);
+                Status = "PC/XT encendido. Abrí un disquete de arranque para iniciar el sistema."; break;
+            }
             case "invaders":
                 throw new InvalidOperationException("Space Invaders necesita la ROM del juego: abrí invaders.zip (MAME).");
             default:
@@ -133,6 +140,14 @@ public sealed class EmulatorHost
         _loadedFiles = [file];
         LoadedProfile = ProfileLibrary.ForFiles([file]);
         Status = $"{file.Name}: {cart.Describe()}. Mando: flechas, Z = B, X = A, Enter = Start, Shift derecho = Select.";
+    }
+
+    public void StartPc(MachineInfo info, MediaFile file, string firmwareDirectory)
+    {
+        var launched = MachineLauncher.Launch("pcxt", [file], file, firmwareDirectory);
+        var pc = (PcXt)launched.Machine; SetMachine(pc, info, pc.Board.Memory.BiosIdentity);
+        LoadedMedia = file.Name; _loadedFiles = [file]; LoadedProfile = ProfileLibrary.ForFiles([file]);
+        Status = "PC/XT con CGA. El disquete se inicia desde su propio sistema; F1–F10 llegan al PC. Atajos del emulador: Ctrl + tecla de función.";
     }
 
     /// <summary>Starts the Space Invaders board with the game ROM from the user's files.</summary>
@@ -183,7 +198,7 @@ public sealed class EmulatorHost
         MediaRevision++;
         DiscardQuickState();
         Fusion = null;
-        m.ExecutedMap = new bool[0x10000];   // the code view sees everything the game ran
+        m.ExecutedMap = new bool[1 << Math.Clamp(m.Memory.AddressBits, 1, 20)];   // the code view sees everything the game ran
         Machine = m;
         FirmwareIdentity = firmware;
         Info = info;
@@ -306,7 +321,7 @@ public sealed class EmulatorHost
         BeforeFrame?.Invoke(m);
         Debug.Temporary = _runToAddress;
         var reason = m.RunFrame(Debug.Enabled ? Debug : null);
-        if (_runToAddress is ushort target && reason == RunStopReason.Breakpoint && m.Cpu.ProgramCounter == target)
+        if (_runToAddress is uint target && reason == RunStopReason.Breakpoint && m.Cpu.ProgramCounter == target)
         {
             _runToAddress = null;
             Debug.Temporary = null;
@@ -372,10 +387,10 @@ public sealed class EmulatorHost
             StepInto();
             return;
         }
-        RunTo((ushort)(m.Cpu.ProgramCounter + ins.Length));
+        RunTo(m.Flow.Analyze(m.Memory.Peek, m.Cpu.ProgramCounter).Next ?? ((m.Cpu.ProgramCounter + (uint)ins.Length) & ((1u << m.Memory.AddressBits) - 1)));
     }
 
-    public void RunTo(ushort address)
+    public void RunTo(uint address)
     {
         if (Machine == null)
             return;
@@ -498,17 +513,20 @@ public sealed class EmulatorHost
     }
 
     /// <summary>Loads raw bytes at an address and points PC there (test programs).</summary>
-    public void LoadBinary(byte[] data, ushort address, bool setPc)
+    public void LoadBinary(byte[] data, uint address, bool setPc)
     {
         var m = Machine;
         if (m == null)
             return;
-        for (int i = 0; i < data.Length && address + i < 0x10000; i++)
+        uint end = 1u << m.Memory.AddressBits;
+        if (address >= end || data.Length > end - address)
+            throw new InvalidDataException("El programa no entra en el espacio de memoria de esta máquina.");
+        for (int i = 0; i < data.Length; i++)
             m.Memory.Poke((uint)(address + i), data[i]);
         if (setPc)
             m.Cpu.ProgramCounter = address;
         Paused = true;
-        Status = $"{data.Length} bytes cargados en ${address:X4}" + (setPc ? ", PC apunta ahí. Usá Paso (F10) o Continuar." : ".");
+        Status = $"{data.Length} bytes cargados en ${address:X4}" + (setPc ? ", PC apunta ahí. Usá Paso o Continuar." : ".");
     }
 }
 

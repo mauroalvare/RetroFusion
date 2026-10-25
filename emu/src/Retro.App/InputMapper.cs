@@ -82,10 +82,51 @@ public sealed class InputMapper
             UpdateSpectrum(zx, keyboardEnabled);
         else if (machine is Retro.Systems.C64.C64 c64)
             UpdateC64(c64, keyboardEnabled);
+        else if (machine is Retro.Systems.Pc.PcXt)
+            Apply(machine, CollectPcKeys(key => Raylib.IsKeyDown(key), keyboardEnabled));
         else if (machine is Retro.Systems.Nes.Nes nes)
             UpdateNes(nes, keyboardEnabled);
         else
             UpdateArcade(machine, keyboardEnabled);
+    }
+
+    private static readonly (KeyboardKey Key, string Name)[] PcKeyMap = BuildPcKeyMap();
+    private static (KeyboardKey, string)[] BuildPcKeyMap()
+    {
+        var map = new List<(KeyboardKey, string)>();
+        for (char c = 'A'; c <= 'Z'; c++) map.Add((Enum.Parse<KeyboardKey>(c.ToString()), c.ToString()));
+        string[] digits = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
+        for (int i = 0; i < 10; i++) map.Add((Enum.Parse<KeyboardKey>(digits[i]), i.ToString()));
+        for (int i = 1; i <= 10; i++) map.Add((Enum.Parse<KeyboardKey>("F" + i), "F" + i));
+        map.AddRange(new (KeyboardKey, string)[]
+        {
+            (KeyboardKey.Escape,"ESC"), (KeyboardKey.Space,"SPACE"), (KeyboardKey.Enter,"ENTER"), (KeyboardKey.KpEnter,"ENTER"),
+            (KeyboardKey.Backspace,"BACKSPACE"), (KeyboardKey.Tab,"TAB"), (KeyboardKey.LeftShift,"LSHIFT"), (KeyboardKey.RightShift,"RSHIFT"),
+            (KeyboardKey.LeftControl,"CTRL"), (KeyboardKey.RightControl,"CTRL"), (KeyboardKey.LeftAlt,"ALT"), (KeyboardKey.RightAlt,"ALT"),
+            (KeyboardKey.Minus,"-"), (KeyboardKey.Equal,"="), (KeyboardKey.LeftBracket,"["), (KeyboardKey.RightBracket,"]"),
+            (KeyboardKey.Semicolon,";"), (KeyboardKey.Apostrophe,"APOSTROPHE"), (KeyboardKey.Grave,"GRAVE"), (KeyboardKey.Backslash,"BACKSLASH"),
+            (KeyboardKey.Comma,","), (KeyboardKey.Period,"."), (KeyboardKey.Slash,"/"), (KeyboardKey.CapsLock,"CAPS LOCK"),
+            (KeyboardKey.NumLock,"NUM LOCK"), (KeyboardKey.ScrollLock,"SCROLL LOCK"), (KeyboardKey.Home,"HOME"), (KeyboardKey.Up,"UP"),
+            (KeyboardKey.PageUp,"PAGE UP"), (KeyboardKey.Left,"LEFT"), (KeyboardKey.Right,"RIGHT"), (KeyboardKey.End,"END"),
+            (KeyboardKey.Down,"DOWN"), (KeyboardKey.PageDown,"PAGE DOWN"), (KeyboardKey.Insert,"INSERT"), (KeyboardKey.Delete,"DELETE"),
+            (KeyboardKey.Kp7,"HOME"), (KeyboardKey.Kp8,"UP"), (KeyboardKey.Kp9,"PAGE UP"), (KeyboardKey.Kp4,"LEFT"), (KeyboardKey.Kp5,"KP5"),
+            (KeyboardKey.Kp6,"RIGHT"), (KeyboardKey.Kp1,"END"), (KeyboardKey.Kp2,"DOWN"), (KeyboardKey.Kp3,"PAGE DOWN"),
+            (KeyboardKey.Kp0,"INSERT"), (KeyboardKey.KpDecimal,"DELETE"), (KeyboardKey.KpMultiply,"KP*"), (KeyboardKey.KpAdd,"KP+"), (KeyboardKey.KpSubtract,"KP-")
+        });
+        return map.ToArray();
+    }
+    private static readonly KeyboardKey[] HostFunctionKeys = [KeyboardKey.F2, KeyboardKey.F4, KeyboardKey.F5, KeyboardKey.F8, KeyboardKey.F9, KeyboardKey.F10];
+    private static readonly KeyboardKey[] HostToolKeys = [KeyboardKey.O, KeyboardKey.K, KeyboardKey.L, KeyboardKey.M];
+    public static HashSet<string> CollectPcKeys(Func<KeyboardKey, bool> down, bool enabled)
+    {
+        var now = new HashSet<string>();
+        if (!enabled) return now;
+        bool ctrl = down(KeyboardKey.LeftControl) || down(KeyboardKey.RightControl);
+        if (ctrl && HostFunctionKeys.Any(down)) return now;
+        bool shift = down(KeyboardKey.LeftShift) || down(KeyboardKey.RightShift);
+        if (ctrl && shift && HostToolKeys.Any(down)) return now;
+        foreach (var (key, name) in PcKeyMap) if (down(key)) now.Add(name);
+        return now;
     }
 
     /// <summary>Control port that the arrows and the gamepad drive on the C64 (most games read port 2).</summary>

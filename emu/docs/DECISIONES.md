@@ -940,3 +940,19 @@ Se acepta la escritura y se usa carga efectiva 0 en modo 3 y 2 en modo 2, según
 observaciones de hardware documentadas en la implementación MAME. El registro de
 carga no es legible directamente; lecturas, GATE y recargas ven el contador efectivo.
 El caso 3 del 8253 y las variantes no contrastadas mantienen su límite explícito.
+
+
+## D-063 — PC/XT en biblioteca y direcciones de depuración
+
+MachineLauncher habilita pcxt con BIOS aportado en firmware/pcxt/pcxt-bios.rom
+(también acepta el nombre en la raíz del firmware) y disquetes IMG/IMA de 160–720 KB.
+Reconocer EXE/COM no equivale a cargarlos: necesitan un disco con DOS y el programa.
+Cada apertura crea una máquina y vincula los estados al disco y al firmware por SHA.
+
+El host, los mapas de ejecución, las vistas y los parches usan AddressBits; RunTo acepta
+uint y StepOver respeta FlowInfo.Next. Los perfiles y observadores de variables actuales
+siguen limitados a 16 bits: PC no se ofrece en Preparar ni en el catálogo de fusiones,
+y el análisis de variables se bloquea antes de llamar a un proveedor. El código y la
+memoria de PC sí son accesibles. No se truncan direcciones para salvar ese límite.
+F1–F10 llegan a PC; Ctrl+Fn controla el host y Ctrl+Shift+O/L/M/K abre herramientas.
+Los parches NOP usan el opcode de la CPU: 00 en Z80/8080, EA en 6502 y 90 en 8088.

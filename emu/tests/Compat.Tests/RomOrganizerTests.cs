@@ -139,6 +139,8 @@ public sealed class RomOrganizerTests
         string path = Write("Programa.exe", dos);
         var result = RomOrganizer.Organize(_root);
         Assert.That(result.Moved.Single().To, Is.EqualTo(Path.Combine(_root, "PC - DOS", "Programa.exe")));
-        Assert.That(MachineCatalog.Get("pcxt").Status, Is.EqualTo(MachineStatus.Planned));
+        Assert.That(MachineCatalog.Get("pcxt").Status, Is.EqualTo(MachineStatus.Available));
+        var candidate = MachineCatalog.Identify(new Retro.Core.MediaFile("Programa.exe", dos, path)).First(c => c.Machine.Id == "pcxt");
+        Assert.That(MachineCatalog.NotLoadableYet(candidate), Does.Contain("DOS"));
     }
 }

@@ -199,6 +199,9 @@ public static class GamePreparer
         ["invaders"] = new[] { "COIN", "P1 START", "P1 FIRE" },
     };
 
+    /// <summary>Machines supported by the current 16-bit profile and observation tools.</summary>
+    public static bool CanPrepare(string machine) => StartKeys.ContainsKey(machine);
+
     private const int EffectFrames = 180;
 
     /// <summary>The machine and file of a set of files (the best implemented one), or the reason there is none.</summary>
@@ -208,7 +211,7 @@ public static class GamePreparer
             return (board.Machine.Id, files[0], board.Reason);
         var best = files
             .SelectMany(MachineCatalog.Identify)
-            .Where(c => c.Confidence >= 50 && MachineLauncher.IsImplemented(c.Machine.Id) && MachineCatalog.NotLoadableYet(c) == null)
+            .Where(c => c.Confidence >= 50 && CanPrepare(c.Machine.Id) && MachineCatalog.NotLoadableYet(c) == null)
             .OrderByDescending(c => c.Confidence)
             .ThenBy(c => MediaArchive.DumpScore(c.File.Name))
             .FirstOrDefault();

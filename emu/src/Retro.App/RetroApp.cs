@@ -494,6 +494,7 @@ public sealed partial class RetroApp
                 _input.ReleaseAll(_host.Machine);
             if (c.Machine.Id == "nes")
                 _host.StartNes(c.Machine, c.File);     // a cartridge: a fresh machine for each game
+            else if (c.Machine.Id == "pcxt") _host.StartPc(c.Machine, c.File, _romDir);
             else
             {
                 if (_host.Info?.Id != c.Machine.Id || _host.Fusion != null)
@@ -542,22 +543,24 @@ public sealed partial class RetroApp
         if (Raylib.IsKeyPressed(KeyboardKey.F11))
             Raylib.ToggleFullscreen();
         bool ctrl = Raylib.IsKeyDown(KeyboardKey.LeftControl) || Raylib.IsKeyDown(KeyboardKey.RightControl);
-        if (ctrl && Raylib.IsKeyPressed(KeyboardKey.O)) _browser.Open();
-        if (ctrl && Raylib.IsKeyPressed(KeyboardKey.K) && _host.Machine != null)
+        bool toolModifier = ctrl && (_host.Pc == null || Raylib.IsKeyDown(KeyboardKey.LeftShift) || Raylib.IsKeyDown(KeyboardKey.RightShift));
+        if (toolModifier && Raylib.IsKeyPressed(KeyboardKey.O)) _browser.Open();
+        if (toolModifier && Raylib.IsKeyPressed(KeyboardKey.K) && _host.Machine != null)
         {
             CloseEditors(); _home.Close();
             _code.Open();
         }
-        if (ctrl && Raylib.IsKeyPressed(KeyboardKey.L)) { CloseEditors(); _home.Open(); }
-        if (ctrl && Raylib.IsKeyPressed(KeyboardKey.M) && _host.Machine != null) OpenModifications();
+        if (toolModifier && Raylib.IsKeyPressed(KeyboardKey.L)) { CloseEditors(); _home.Open(); }
+        if (toolModifier && Raylib.IsKeyPressed(KeyboardKey.M) && _host.Machine != null) OpenModifications();
         if (_home.IsOpen) return;
         if (_host.Machine == null)
             return;
         // the C64 has its own F1 F3 F5 F7 keys (games say "press F1"): there quick load is
         // F4 and reset is in the Machine menu
+        if (_host.Pc != null && _host.Fusion == null && !ctrl) return;
         bool machineFKeys = _host.C64 != null && _host.Fusion == null;
         if (Raylib.IsKeyPressed(KeyboardKey.F2)) _host.QuickSave();
-        if (Raylib.IsKeyPressed(KeyboardKey.F4) || (!machineFKeys && Raylib.IsKeyPressed(KeyboardKey.F3))) _host.QuickLoad();
+        if (Raylib.IsKeyPressed(KeyboardKey.F4) || (!machineFKeys && _host.Pc == null && Raylib.IsKeyPressed(KeyboardKey.F3))) _host.QuickLoad();
         if (!machineFKeys && Raylib.IsKeyPressed(KeyboardKey.F5)) _host.Reset(Raylib.IsKeyDown(KeyboardKey.LeftShift));
         if (Raylib.IsKeyPressed(KeyboardKey.F6)) ToggleTape();
         if (Raylib.IsKeyPressed(KeyboardKey.F7)) _host.Zx?.Tape.Rewind();
@@ -584,13 +587,17 @@ public sealed partial class RetroApp
     }
 
     // ------------------------------------------------------------------ menu
+    private string ToolShortcut(string key) => (_host.Pc != null ? "Ctrl+Shift+" : "Ctrl+") + key;
+    private string Shortcut(string key) => _host.Pc != null && _host.Fusion == null ? "Ctrl+" + key :
+        _host.C64 != null && key is "F5" or "Shift+F5" ? "" : key;
+
     private void DrawMenu()
     {
         if (!ImGui.BeginMainMenuBar()) return;
         if (ImGui.MenuItem("Biblioteca")) { CloseEditors(); _home.Open(); }
         if (ImGui.BeginMenu("Juego"))
         {
-            if (ImGui.MenuItem("Abrir juego o programa...", "Ctrl+O")) _browser.Open();
+            if (ImGui.MenuItem("Abrir juego o programa...", ToolShortcut("O"))) _browser.Open();
             if (ImGui.BeginMenu("Otras versiones del último juego", _versions.Count > 1))
             {
                 ImGui.TextDisabled("La primera es el volcado más limpio. [a] alternativa, [h] hack, [t] trucos, [cr] crackeado.");
@@ -600,17 +607,17 @@ public sealed partial class RetroApp
                 ImGui.EndMenu();
             }
             ImGui.Separator();
-            if (ImGui.MenuItem("Guardar estado rápido", "F2", false, _host.CanUseStates)) _host.QuickSave();
-            if (ImGui.MenuItem("Cargar estado rápido", _host.C64 != null ? "F4" : "F3", false, _host.CanUseStates)) _host.QuickLoad();
+            if (ImGui.MenuItem("Guardar estado rápido", Shortcut("F2"), false, _host.CanUseStates)) _host.QuickSave();
+            if (ImGui.MenuItem("Cargar estado rápido", _host.Pc != null ? Shortcut("F4") : _host.C64 != null ? "F4" : "F3", false, _host.CanUseStates)) _host.QuickLoad();
             if (ImGui.MenuItem("Partidas guardadas...", "", false, _host.CanUseStates)) OpenStateWindow();
             ImGui.Separator();
             ImGui.BeginDisabled(_host.Machine == null);
-            if (ImGui.MenuItem(_host.Paused ? "Continuar" : "Pausa", "F9", false, !_home.IsOpen))
+            if (ImGui.MenuItem(_host.Paused ? "Continuar" : "Pausa", Shortcut("F9"), false, !_home.IsOpen))
             { if (_host.Paused) _host.Continue(); else _host.Pause("Pausa"); }
-            if (ImGui.MenuItem("Reiniciar", "F5")) _host.Reset(false);
-            if (ImGui.MenuItem("Reinicio total (borra RAM)", "Shift+F5")) _host.Reset(true);
+            if (ImGui.MenuItem("Reiniciar", Shortcut("F5"))) _host.Reset(false);
+            if (ImGui.MenuItem("Reinicio total (borra RAM)", Shortcut("Shift+F5"))) _host.Reset(true);
             bool turbo = _host.Turbo;
-            if (ImGui.MenuItem("Turbo", "F8", ref turbo)) _host.Turbo = turbo;
+            if (ImGui.MenuItem("Turbo", Shortcut("F8"), ref turbo)) _host.Turbo = turbo;
             if (ImGui.MenuItem("Detener fusión o creación", "", false, _host.Fusion != null)) _host.StopFusion();
             if (ImGui.BeginMenu("Controles y hardware"))
             {
@@ -700,11 +707,11 @@ public sealed partial class RetroApp
         }
         if (ImGui.BeginMenu("Herramientas", _host.Machine != null))
         {
-            if (ImGui.MenuItem("Modificar y analizar...", "Ctrl+M")) OpenModifications();
+            if (ImGui.MenuItem("Modificar y analizar...", ToolShortcut("M"))) OpenModifications();
             ImGui.Separator();
             if (ImGui.MenuItem("Modo depurador", "F12", _debugMode)) _debugMode = !_debugMode;
-            if (ImGui.MenuItem("Paso (una instrucción)", "F10")) { _host.StepInto(); _debugMode = true; }
-            if (ImGui.MenuItem("Paso por encima (CALL, bucles)", "Shift+F10")) { _host.StepOver(); _debugMode = true; }
+            if (ImGui.MenuItem("Paso (una instrucción)", Shortcut("F10"))) { _host.StepInto(); _debugMode = true; }
+            if (ImGui.MenuItem("Paso por encima (CALL, bucles)", Shortcut("Shift+F10"))) { _host.StepOver(); _debugMode = true; }
             if (ImGui.MenuItem("Avanzar un cuadro")) { _host.StepFrame(); _debugMode = true; }
             if (ImGui.MenuItem("Borrar todos los breakpoints")) _host.Debug.Clear();
             ImGui.EndMenu();
@@ -744,11 +751,12 @@ public sealed partial class RetroApp
             }
             if (ImGui.BeginMenu("Atajos"))
             {
-                ImGui.TextUnformatted("Ctrl+L: biblioteca    Ctrl+M: modificar");
+                ImGui.TextUnformatted($"{ToolShortcut("L")}: biblioteca    {ToolShortcut("M")}: modificar");
                 ImGui.TextUnformatted(_host.Fusion != null ? "Los estados guardados están disponibles en originales."
+                    : _host.Pc != null ? "Ctrl+F2: guardar estado    Ctrl+F4: cargar estado"
                     : _host.C64 != null ? "F2: guardar estado    F4: cargar estado" : "F2: guardar estado    F3: cargar estado");
-                ImGui.TextUnformatted("F8: turbo    F9: pausa    F11: pantalla completa");
-                ImGui.TextUnformatted("Ctrl+K: código    F10: paso    F12: depurador");
+                ImGui.TextUnformatted($"{Shortcut("F8")}: turbo    {Shortcut("F9")}: pausa    F11: pantalla completa");
+                ImGui.TextUnformatted($"{ToolShortcut("K")}: código    {Shortcut("F10")}: paso    F12: depurador");
                 ImGui.EndMenu();
             }
             ImGui.EndMenu();
@@ -775,6 +783,11 @@ public sealed partial class RetroApp
                 ImGui.TextUnformatted("Si no responde, cambiá el puerto en Juego > Controles y hardware.");
                 ImGui.TextUnformatted("Esc: RUN/STOP    RePág: RESTORE    Ctrl izquierdo: C=    Tab: CTRL");
                 ImGui.TextUnformatted("F1, F3, F5 y F7 son las teclas del C64.");
+                break;
+            case "pcxt":
+                ImGui.TextUnformatted("Teclado de PC de 83 teclas, con distribución estadounidense.");
+                ImGui.TextUnformatted("F1–F10 llegan al PC. Ctrl + tecla de función controla el emulador.");
+                ImGui.TextUnformatted("Ctrl+Shift+O/L/M/K: abrir, biblioteca, modificar y código.");
                 break;
             case "nes":
                 ImGui.TextUnformatted("Flechas: mover    X: A    Z: B");
@@ -932,7 +945,7 @@ public sealed partial class RetroApp
         ImGui.SetNextWindowSize(new Vector2(280, 440), ImGuiCond.FirstUseEver);
         ImGui.Begin("CPU###cpu");
         ImGui.TextUnformatted(cpu.CpuName);
-        if (ImGui.Button(_host.Paused ? "Continuar (F9)" : "Pausa (F9)"))
+        if (ImGui.Button((_host.Paused ? "Continuar (" : "Pausa (") + Shortcut("F9") + ")"))
         {
             if (_host.Paused) _host.Continue(); else _host.Pause("Pausa");
         }
@@ -958,7 +971,7 @@ public sealed partial class RetroApp
                     if (!_regEdit.TryGetValue(r.Name, out var text))
                         text = fmt;
                     ImGui.SetNextItemWidth(70);
-                    if (ImGui.InputText("##" + r.Name, ref text, 4, ImGuiInputTextFlags.CharsHexadecimal | ImGuiInputTextFlags.EnterReturnsTrue))
+                    if (ImGui.InputText("##" + r.Name, ref text, (uint)((r.Bits + 3) / 4), ImGuiInputTextFlags.CharsHexadecimal | ImGuiInputTextFlags.EnterReturnsTrue))
                     {
                         if (uint.TryParse(text, NumberStyles.HexNumber, null, out var v))
                             cpu.TrySetRegister(r.Name, v);
@@ -1002,18 +1015,18 @@ public sealed partial class RetroApp
         // Find an address before PC whose decoding lands exactly on PC.
         for (int back = 24; back > 0; back--)
         {
-            uint a = (uint)((pc - back) & 0xFFFF);
+            uint a = (uint)((pc - back) & ((1u << m.Memory.AddressBits) - 1));
             int guard = 0;
             while (a != pc && guard++ < 30)
             {
                 var ins = m.Disassembler.Disassemble(x => m.Memory.Peek(x), a);
-                uint next = (uint)((a + ins.Length) & 0xFFFF);
-                if (((pc - a) & 0xFFFF) < ((next - a) & 0xFFFF))
+                uint next = (uint)((a + ins.Length) & ((1u << m.Memory.AddressBits) - 1));
+                if (((pc - a) & ((1u << m.Memory.AddressBits) - 1)) < ((next - a) & ((1u << m.Memory.AddressBits) - 1)))
                     break;
                 a = next;
             }
             if (a == pc)
-                return (uint)((pc - back) & 0xFFFF);
+                return (uint)((pc - back) & ((1u << m.Memory.AddressBits) - 1));
         }
         return pc;
     }
@@ -1026,7 +1039,7 @@ public sealed partial class RetroApp
         ImGui.Checkbox("Seguir PC", ref _followPc);
         ImGui.SameLine();
         ImGui.SetNextItemWidth(70);
-        if (ImGui.InputText("Ir a##dis", ref _disasmAddr, 4, ImGuiInputTextFlags.CharsHexadecimal | ImGuiInputTextFlags.EnterReturnsTrue))
+        if (ImGui.InputText("Ir a##dis", ref _disasmAddr, (uint)((m.Memory.AddressBits + 3) / 4), ImGuiInputTextFlags.CharsHexadecimal | ImGuiInputTextFlags.EnterReturnsTrue))
             _followPc = false;
         uint pc = m.Cpu.ProgramCounter;
         uint addr = _followPc ? DisassemblyStart(m, pc) : uint.TryParse(_disasmAddr, NumberStyles.HexNumber, null, out var a0) ? a0 : 0;
@@ -1058,13 +1071,13 @@ public sealed partial class RetroApp
                 ImGui.PopStyleColor();
             if (ImGui.BeginPopupContextItem("ctx"))
             {
-                if (ImGui.MenuItem("Ejecutar hasta aquí")) _host.RunTo((ushort)addr);
+                if (ImGui.MenuItem("Ejecutar hasta aquí")) _host.RunTo(addr);
                 if (ImGui.MenuItem("Mover PC aquí")) m.Cpu.ProgramCounter = addr;
-                if (ImGui.MenuItem("Ver en memoria")) { _memStart = addr & 0xFFF0; _memAddr = _memStart.ToString("X4"); }
+                if (ImGui.MenuItem("Ver en memoria")) { _memStart = addr & (((1u << m.Memory.AddressBits) - 1) & ~15u); _memAddr = _memStart.ToString("X4"); }
                 ImGui.EndPopup();
             }
             ImGui.PopID();
-            addr = (uint)((addr + ins.Length) & 0xFFFF);
+            addr = (uint)((addr + ins.Length) & ((1u << m.Memory.AddressBits) - 1));
         }
         ImGui.EndChild();
         ImGui.End();
@@ -1076,29 +1089,29 @@ public sealed partial class RetroApp
         ImGui.SetNextWindowSize(new Vector2(720, 330), ImGuiCond.FirstUseEver);
         ImGui.Begin("Memoria");
         ImGui.SetNextItemWidth(70);
-        if (ImGui.InputText("Dirección", ref _memAddr, 4, ImGuiInputTextFlags.CharsHexadecimal | ImGuiInputTextFlags.EnterReturnsTrue)
+        if (ImGui.InputText("Dirección", ref _memAddr, (uint)((m.Memory.AddressBits + 3) / 4), ImGuiInputTextFlags.CharsHexadecimal | ImGuiInputTextFlags.EnterReturnsTrue)
             && uint.TryParse(_memAddr, NumberStyles.HexNumber, null, out var a))
-            _memStart = a & 0xFFF0;
+            _memStart = a & (((1u << m.Memory.AddressBits) - 1) & ~15u);
         ImGui.SameLine();
-        if (ImGui.Button("< página")) _memStart = (_memStart - 0x100) & 0xFFFF;
+        if (ImGui.Button("< página")) _memStart = (_memStart - 0x100) & ((1u << m.Memory.AddressBits) - 1);
         ImGui.SameLine();
-        if (ImGui.Button("página >")) _memStart = (_memStart + 0x100) & 0xFFFF;
+        if (ImGui.Button("página >")) _memStart = (_memStart + 0x100) & ((1u << m.Memory.AddressBits) - 1);
         ImGui.SameLine();
-        if (ImGui.Button("PC")) _memStart = m.Cpu.ProgramCounter & 0xFFF0;
+        if (ImGui.Button("PC")) _memStart = m.Cpu.ProgramCounter & (((1u << m.Memory.AddressBits) - 1) & ~15u);
         ImGui.SameLine();
-        if (ImGui.Button("SP")) _memStart = m.Cpu.StackPointer & 0xFFF0;
+        if (ImGui.Button("SP")) _memStart = m.Cpu.StackPointer & (((1u << m.Memory.AddressBits) - 1) & ~15u);
         ImGui.SameLine();
-        if (ImGui.Button("Video")) _memStart = m.Id == "invaders" ? 0x2400u : 0x4000u;
+        if (ImGui.Button("Video")) _memStart = m.Id == "pcxt" ? 0xB8000u : m.Id == "invaders" ? 0x2400u : 0x4000u;
         ImGui.TextDisabled(m.MemoryMapDescription + ". Clic en un byte para editarlo.");
         ImGui.BeginChild("memgrid");
         uint pc = m.Cpu.ProgramCounter, sp = m.Cpu.StackPointer;
         for (int row = 0; row < 16; row++)
         {
-            uint rowAddr = (uint)((_memStart + row * 16) & 0xFFFF);
+            uint rowAddr = (uint)((_memStart + row * 16) & ((1u << m.Memory.AddressBits) - 1));
             ImGui.TextUnformatted($"{rowAddr:X4} ");
             for (int col = 0; col < 16; col++)
             {
-                uint ad = (uint)((rowAddr + col) & 0xFFFF);
+                uint ad = (uint)((rowAddr + col) & ((1u << m.Memory.AddressBits) - 1));
                 byte v = m.Memory.Peek(ad);
                 ImGui.SameLine();
                 bool highlight = ad == pc || ad == sp;
@@ -1130,7 +1143,7 @@ public sealed partial class RetroApp
             var chars = new char[16];
             for (int col = 0; col < 16; col++)
             {
-                byte v = m.Memory.Peek((uint)((rowAddr + col) & 0xFFFF));
+                byte v = m.Memory.Peek((uint)((rowAddr + col) & ((1u << m.Memory.AddressBits) - 1)));
                 chars[col] = v is >= 32 and < 127 ? (char)v : '.';
             }
             ImGui.TextUnformatted(" " + new string(chars));
@@ -1147,8 +1160,8 @@ public sealed partial class RetroApp
         uint sp = m.Cpu.StackPointer;
         for (int i = 0; i < 14; i++)
         {
-            uint a = (uint)((sp + i * 2) & 0xFFFF);
-            uint v = (uint)(m.Memory.Peek(a) | (m.Memory.Peek((a + 1) & 0xFFFF) << 8));
+            uint a = (uint)((sp + i * 2) & ((1u << m.Memory.AddressBits) - 1));
+            uint v = (uint)(m.Memory.Peek(a) | (m.Memory.Peek((a + 1) & ((1u << m.Memory.AddressBits) - 1)) << 8));
             string? sym = m.SymbolFor(v);
             ImGui.TextUnformatted($"{(i == 0 ? "SP>" : "   ")} {a:X4}: {v:X4}{(sym != null ? "  " + sym : "")}");
         }
@@ -1187,10 +1200,10 @@ public sealed partial class RetroApp
         ImGui.Begin("Programa de prueba");
         ImGui.TextWrapped($"Cargá bytes de {m.Cpu.CpuName} o un .bin en memoria para estudiar su ejecución paso a paso.");
         ImGui.SetNextItemWidth(70);
-        ImGui.InputText("Dirección##test", ref _testAddr, 4, ImGuiInputTextFlags.CharsHexadecimal);
+        ImGui.InputText("Dirección##test", ref _testAddr, (uint)((m.Memory.AddressBits + 3) / 4), ImGuiInputTextFlags.CharsHexadecimal);
         ImGui.Checkbox("Poner PC en esa dirección", ref _testSetPc);
         ImGui.InputText("Bytes (hex)", ref _testHex, 512);
-        ushort addr = ushort.TryParse(_testAddr, NumberStyles.HexNumber, null, out var ta) ? ta : (ushort)0x8000;
+        uint addr = uint.TryParse(_testAddr, NumberStyles.HexNumber, null, out var ta) ? ta & ((1u << m.Memory.AddressBits) - 1) : 0x8000;
         if (ImGui.Button("Cargar bytes"))
         {
             try

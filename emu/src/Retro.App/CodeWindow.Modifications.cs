@@ -40,7 +40,7 @@ public sealed partial class CodeWindow
     private void OpenPage(ToolPage page)
     {
         _open = true; _requestedPage = page;
-        if (_host.Machine is { } machine) machine.ExecutedMap ??= new bool[65536];
+        if (_host.Machine is { } machine) machine.ExecutedMap ??= new bool[1 << Math.Clamp(machine.Memory.AddressBits, 1, 20)];
     }
     public void Close() { _open = false; _modificationPanelLeft = null; StopObservation(); }
     public float RightReserve(float width) => _open && _modificationPanelLeft is float left && left >= 200 ? width - left : 0;
@@ -231,6 +231,7 @@ public sealed partial class CodeWindow
 
     private AiRequest PrepareAnalysis(string provider)
     {
+        if (_machine?.Memory.AddressBits > 16) throw new InvalidOperationException("El análisis de variables PC/XT todavía no está disponible.");
         _observation ??= new ModificationObservation(_machine!);
         _analysisSnapshot = _observation.Capture(_gameName, SessionProfile());
         _savedReport = false;

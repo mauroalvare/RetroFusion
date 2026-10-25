@@ -34,7 +34,8 @@ public static class MachineCatalog
         new("plus4", "Commodore Plus/4", "MOS 7501 (familia 6502)", MachineStatus.Planned, new[] { "plus4-kernal.rom" }, new[] { ".prg", ".tap", ".d64" }),
         new("nes", "Nintendo NES", "Ricoh 2A03 (familia 6502)", MachineStatus.Available, Array.Empty<string>(), new[] { ".nes" },
             "No necesita firmware. Juegos: cartuchos .nes (iNES) con mapper 0 (NROM), 1 (MMC1), 2 (UxROM), 3 (CNROM), 4 (MMC3) o 7 (AxROM)."),
-        new("pcxt", "IBM PC / XT", "Intel 8088", MachineStatus.Planned, new[] { "pcxt-bios.rom" }, new[] { ".exe", ".com", ".img", ".ima" }),
+        new("pcxt", "IBM PC / XT", "Intel 8088", MachineStatus.Available, new[] { "pcxt-bios.rom" }, new[] { ".exe", ".com", ".img", ".ima" },
+            "Requiere BIOS en firmware/pcxt/pcxt-bios.rom y disquetes de arranque (.img/.ima) de 160 a 720 KB. Los EXE/COM necesitan DOS."),
         new("atarist", "Atari ST", "Motorola 68000", MachineStatus.Planned, new[] { "tos.img" }, new[] { ".st", ".msa", ".stx" }),
         new("amiga500", "Amiga 500", "Motorola 68000", MachineStatus.Planned, new[] { "kick13.rom" }, new[] { ".adf", ".ipf" }),
     };
@@ -126,6 +127,9 @@ public static class MachineCatalog
         if (ext == ".com" && !Bytes(0xFF, 0xFF) && d.Length < 65280)
             Add("pcxt", 60, "programa de MS-DOS (.com)");
 
+        if (ext is ".img" or ".ima" && Retro.Systems.Pc.PcFirmware.IsSupportedDiskSize(d.Length))
+            Add("pcxt", d.Length >= 512 && d[510] == 0x55 && d[511] == 0xAA ? 90 : 70, "imagen de disquete de PC");
+
         // Apple II
         if (ext is ".dsk" or ".do" or ".po" && d.Length == 143360 && list.All(c => c.Machine.Id != "cpc"))
             Add("apple2", 85, "disco de 140 KB (Apple II)");
@@ -145,6 +149,8 @@ public static class MachineCatalog
     /// </summary>
     public static string? NotLoadableYet(Candidate c) => c.Machine.Id switch
     {
+        "pcxt" when c.File.Extension is ".exe" or ".com" => "el programa necesita DOS: abrí un disquete que incluya el sistema y el programa",
+        "pcxt" when c.File.Extension is ".img" or ".ima" && !Retro.Systems.Pc.PcFirmware.IsSupportedDiskSize(c.File.Data.Length) => "por ahora PC/XT admite disquetes de 160 a 720 KB",
         "nes" when NesMapperProblem(c.File.Data) is { } problem => problem,
         "c64" when c.File.Extension is ".d64" => "los discos .d64 del C64 llegan en la próxima etapa: buscá la versión .t64 o .prg del juego",
         "c64" when c.File.Extension is ".crt" => "los cartuchos .crt del C64 llegan en la próxima etapa: buscá la versión .t64 o .prg del juego",

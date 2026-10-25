@@ -53,6 +53,7 @@ public static class GameCatalog
                 identities.Apply(folder, path, profile);
                 ProfileLibrary.Remember(profile);
             }
+            if (!GamePreparer.CanPrepare(profile.Machine)) continue;
             if (ids.Add(profile.Id))
                 list.Add(new CatalogGame(path, new GameSource(profile, files, System.IO.Path.GetDirectoryName(path)), prepared));
         }

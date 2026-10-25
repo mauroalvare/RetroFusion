@@ -12,7 +12,7 @@ public static class MachineFactory
     public static IMachine Create(GameSource source, string romDirectory)
     {
         var m = CreateMachine(source, romDirectory);
-        m.ExecutedMap = new bool[0x10000];   // the code view sees everything the game ran, boot included
+        m.ExecutedMap = new bool[1 << Math.Clamp(m.Memory.AddressBits, 1, 20)];   // the code view sees everything the game ran, boot included
         return m;
     }
 

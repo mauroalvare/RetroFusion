@@ -21,7 +21,7 @@ public sealed partial class CodeWindow : IDisposable
     private static readonly Vector4 CommentColor = new(0.55f, 0.85f, 0.55f, 1);
     private static readonly Vector4 DimColor = new(0.55f, 0.55f, 0.6f, 1);
     private static readonly Vector4 ErrorColor = new(1, 0.5f, 0.4f, 1);
-    private static readonly Regex AddressToken = new(@"\$([0-9A-F]{4})", RegexOptions.Compiled);
+    private static readonly Regex AddressToken = new(@"\$([0-9A-F]{4,5})(?![0-9A-F])", RegexOptions.Compiled);
 
     private readonly EmulatorHost _host;
     private readonly AiSettings _ai;
@@ -85,7 +85,7 @@ public sealed partial class CodeWindow : IDisposable
             SwitchGame(m);
         PollExplain(m);
         PollModificationAdvice();
-        if (_open && _host.Fusion == null) _observation ??= new ModificationObservation(m);
+        if (_open && _host.Fusion == null && m.Memory.AddressBits <= 16) _observation ??= new ModificationObservation(m);
         else StopObservation();
     }
 
@@ -119,9 +119,13 @@ public sealed partial class CodeWindow : IDisposable
             Page("Código", ToolPage.Code);
             ImGui.EndTable();
         }
-        DrawHistoryOptions();
+        if (machine.Memory.AddressBits <= 16) DrawHistoryOptions();
         ImGui.Separator();
-        switch (_activePage)
+        if (machine.Memory.AddressBits > 16 && _activePage != ToolPage.Code)
+        {
+            AiPicker.Hint("En PC/XT todavía no está disponible el análisis de variables. Podés consultar el código y usar el visor de memoria del depurador.");
+        }
+        else switch (_activePage)
         {
             case ToolPage.Changes: DrawModifications(machine); break;
             case ToolPage.Analysis: DrawModificationAnalysis(machine); break;
@@ -152,7 +156,7 @@ public sealed partial class CodeWindow : IDisposable
         if (!ImGui.BeginTabBar("herramientas-tecnicas")) return;
         if (ImGui.BeginTabItem("Rutinas")) { DrawRoutines(machine); ImGui.EndTabItem(); }
         if (ImGui.BeginTabItem("Parches")) { DrawPatches(machine); ImGui.EndTabItem(); }
-        if (ImGui.BeginTabItem("Perfil y controles")) { DrawVariables(machine); ImGui.EndTabItem(); }
+        if (machine.Memory.AddressBits <= 16 && ImGui.BeginTabItem("Perfil y controles")) { DrawVariables(machine); ImGui.EndTabItem(); }
         ImGui.EndTabBar();
     }
 
@@ -191,7 +195,7 @@ public sealed partial class CodeWindow : IDisposable
         _status = "";
         LoadModificationHistory();
         if (_open)
-            m.ExecutedMap ??= new bool[0x10000];
+            m.ExecutedMap ??= new bool[1 << Math.Clamp(m.Memory.AddressBits, 1, 20)];
     }
 
     private (string id, string name, GameProfile? profile) Identify(IMachine m)
@@ -239,7 +243,7 @@ public sealed partial class CodeWindow : IDisposable
     // ------------------------------------------------------------------ analysis
     private void Analyze(IMachine m)
     {
-        m.ExecutedMap ??= new bool[0x10000];
+        m.ExecutedMap ??= new bool[1 << Math.Clamp(m.Memory.AddressBits, 1, 20)];
         var entries = m.CodeEntryPoints.Append(m.Cpu.ProgramCounter);
         int firstGame = -1; // Add an observed game entry separately from ROM fall-through.
         for (int address = (int)SystemRomEnd(m); address < m.ExecutedMap.Length; address++)
@@ -437,7 +441,7 @@ public sealed partial class CodeWindow : IDisposable
             if (expected is uint e && e != a)
                 ImGui.TextDisabled("        ...");
             var ins = m.Disassembler.Disassemble(x => m.Memory.Peek(x), a);
-            expected = (a + (uint)ins.Length) & 0xFFFF;
+            expected = (a + (uint)ins.Length) & ((1u << m.Memory.AddressBits) - 1);
             string? label = _notes.Label(a) ?? m.SymbolFor(a) ?? (a == r.Start ? $"sub_{a:X4}" : null);
             if (a == r.Start || label != null)
                 ImGui.TextColored(LabelColor, (a == r.Start ? Name(m, a) : label) + ":");
@@ -485,7 +489,7 @@ public sealed partial class CodeWindow : IDisposable
         if (ImGui.Button("Anular (NOP)"))
         {
             var ins = m.Disassembler.Disassemble(x => m.Memory.Peek(x), a);
-            Patch(m, a, string.Join(" ", Enumerable.Repeat("00", ins.Length)));
+            Patch(m, a, string.Join(" ", Enumerable.Repeat(m.Cpu is Retro.Cpu.M6502.M6502 ? "EA" : m.Cpu is Retro.Cpu.I8088.I8088Cpu ? "90" : "00", ins.Length)));
         }
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip("Reemplaza la instrucción por NOP: la CPU deja de ejecutar esa operación.");
@@ -509,7 +513,7 @@ public sealed partial class CodeWindow : IDisposable
             bytes = hex.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(h => byte.Parse(h, NumberStyles.HexNumber)).ToArray();
         }
-        catch (FormatException)
+        catch (Exception e) when (e is FormatException or OverflowException)
         {
             _status = "Bytes inválidos: usá pares hexadecimales separados por espacios (ej. 3E 05).";
             return;
@@ -534,7 +538,7 @@ public sealed partial class CodeWindow : IDisposable
     {
         for (int i = 0; i < bytes.Length; i++)
         {
-            uint ad = (uint)((a + i) & 0xFFFF);
+            uint ad = (uint)((a + i) & ((1u << m.Memory.AddressBits) - 1));
             if (m is ICodePatch p)
                 p.PatchCode(ad, bytes[i]);
             else
@@ -888,7 +892,7 @@ public sealed partial class CodeWindow : IDisposable
                 var ins = m.Disassembler.Disassemble(x => m.Memory.Peek(x), a);
                 if (expected is uint e && e != a)
                     sb.AppendLine("        ; ...");
-                expected = (a + (uint)ins.Length) & 0xFFFF;
+                expected = (a + (uint)ins.Length) & ((1u << m.Memory.AddressBits) - 1);
                 if (a == r.Start || _notes.Label(a) != null)
                     sb.AppendLine(Name(m, a) + ":");
                 string comment = _notes.Comment(a) is { } c ? "  ; " + c : "";
