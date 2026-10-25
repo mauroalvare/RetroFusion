@@ -7,6 +7,10 @@ public interface I8088Bus
     bool TestSignal => false;
     /// <summary>Logical bus ownership during LOCK or a memory XCHG, not a cycle-accurate signal.</summary>
     void SetLock(bool locked) { }
+    /// <summary>One CPU T-state. Only the clocked execution mode calls this.</summary>
+    void Clock() { }
+    /// <summary>DMA bus request; waits between completed bus cycles, except while LOCK is active.</summary>
+    bool HoldRequested => false;
     byte ReadMemory(uint address);
     void WriteMemory(uint address, byte value);
     byte In(ushort port);

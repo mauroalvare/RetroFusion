@@ -12,7 +12,8 @@ sistema operativo son etapas distintas. Implementar el 8088 no incorpora BIOS ni
 - `PcBus`: conecta esa memoria con el 8259A, el 8253, el registro de habilitación NMI
   y los registros de página DMA. Aún no implementa el motor DMA ni fuentes NMI.
 - El canal 0 del PIT entrega flancos a IRQ0. `TickPit` recibe un pulso externo por canal;
-  las instrucciones no se convierten en pulsos del temporizador.
+  el modo CPU temporizado entrega además un pulso cada cuatro T. El contador
+  de instrucciones sigue siendo independiente del reloj.
 
 | Región física | Acceso actual |
 | --- | --- |
@@ -25,8 +26,8 @@ sistema operativo son etapas distintas. Implementar el 8088 no incorpora BIOS ni
 La RAM de vídeo todavía no dibuja una pantalla CGA. Los puertos pendientes fallan con
 su dirección para localizar el trabajo restante. Ese comportamiento sirve para diagnóstico;
 la placa sigue incompleta. No hay teclado, discos, arranque DOS ni integración en el
-selector de máquinas. El reloj, las señales de bus y la prelectura del 8088 siguen
-pendientes. No se incluye firmware nuevo en el paquete.
+selector de máquinas. El reloj y la cola de prelectura tienen un modo funcional temporizado; las señales
+eléctricas y la secuencia exacta de silicio siguen pendientes. No se incluye firmware nuevo en el paquete.
 
 ## Orden de trabajo pendiente
 

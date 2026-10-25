@@ -5,7 +5,7 @@ namespace Retro.Cpu.I8088;
 /// integer ALU including multiply/divide, shifts/rotates, control flow, stack, strings,
 /// I/O, decimal adjustments and interrupts. Single stepping uses a pending type-1 boundary.
 /// The 8087 remains unsupported.
-/// No prefetch queue or cycle counts: do not use this core to time peripherals yet.
+/// Optional clocked bus/prefetch mode advances peripherals; EU timing is approximate.
 /// </summary>
 public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interrupts)
 {
@@ -50,20 +50,21 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
         Halted = false; Instructions = 0;
         _interruptShadow = _segmentShadow = _nmi = _trapPending = _waitingForTest = false; _irq = null;
         _busLocked = false; bus.SetLock(false);
+        _cycles = 0; _timingStep = _replaying = _repeatAgain = false; _repeatCode.Clear(); FlushQueue();
     }
 
     /// <summary>Latched diagnostic vector, retained while IF is clear. Devices use I8088InterruptSource.</summary>
     public void RequestInterrupt(byte vector) => _irq = vector;
     public void RequestNmi() => _nmi = true;
 
-    public byte ReadByte(ushort segment, ushort offset) => bus.ReadMemory(Physical(segment, offset));
+    public byte ReadByte(ushort segment, ushort offset) { DataBusCycle(); return bus.ReadMemory(Physical(segment, offset)); }
     public ushort ReadWord(ushort segment, ushort offset) => (ushort)(ReadByte(segment, offset) | ReadByte(segment, (ushort)(offset + 1)) << 8);
-    public void WriteByte(ushort segment, ushort offset, byte value) => bus.WriteMemory(Physical(segment, offset), value);
+    public void WriteByte(ushort segment, ushort offset, byte value) { DataBusCycle(); bus.WriteMemory(Physical(segment, offset), value); }
     public void WriteWord(ushort segment, ushort offset, ushort value)
     {
         WriteByte(segment, offset, (byte)value); WriteByte(segment, (ushort)(offset + 1), (byte)(value >> 8));
     }
-    private byte Fetch() { byte value = ReadByte(CS, IP); IP++; return value; }
+    private byte Fetch() { if (TimingEnabled) return FetchTimed(); byte value = ReadByte(CS, IP); IP++; return value; }
     private ushort FetchWord() { int low = Fetch(); return (ushort)(low | Fetch() << 8); }
     private void Push(ushort value) { SP -= 2; WriteWord(SS, SP, value); }
     private ushort Pop() { ushort value = ReadWord(SS, SP); SP += 2; return value; }
@@ -78,7 +79,8 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
     private readonly record struct Operand(int Register, ushort Segment, ushort Offset);
     private (int Reg, Operand Rm) Decode()
     {
-        byte code = Fetch(); int mod = code >> 6, rm = code & 7;
+        byte code = Fetch(); _modRm = code; int mod = code >> 6, rm = code & 7;
+        if (mod != 3) _eaClocks += mod == 0 && rm == 6 ? 6 : (rm is 0 or 3 ? 7 : rm is 1 or 2 ? 8 : 5) + (mod == 0 ? 0 : 4);
         if (mod == 3) return ((code >> 3) & 7, new Operand(rm, 0, 0));
         bool bp = rm is 2 or 3 || rm == 6 && mod != 0;
         int address = rm switch { 0 => BX + SI, 1 => BX + DI, 2 => BP + SI, 3 => BP + DI,
@@ -239,11 +241,14 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
         12 => Flag(Sign) != Flag(Overflow), 13 => Flag(Sign) == Flag(Overflow),
         14 => Flag(Zero) || Flag(Sign) != Flag(Overflow), _ => !Flag(Zero) && Flag(Sign) == Flag(Overflow)
     };
-    private void EnterInterrupt(byte vector)
+    private void EnterInterrupt(byte vector, bool hardware = false)
     {
+        _repeatCode.Clear();
+        if (hardware) { DataBusCycle(); DataBusCycle(); }
         Push(Flags); Push(CS); Push(IP);
         SetFlag(InterruptEnable, false); SetFlag(Trap, false); Halted = _waitingForTest = false;
         IP = ReadWord(0, (ushort)(vector * 4)); CS = ReadWord(0, (ushort)(vector * 4 + 2));
+        FlushQueue(); IdleClocks(hardware ? 13 : 31);
     }
     private NotSupportedException Unsupported(byte opcode, string? detail = null) =>
         new($"8088: instrucción {opcode:X2} en {_startCs:X4}:{_startIp:X4} todavía no implementada{(detail == null ? "." : " (" + detail + ").")}");
@@ -253,17 +258,18 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
     {
         bool inhibit = _interruptShadow, inhibitNmi = _segmentShadow;
         _interruptShadow = _segmentShadow = false;
-        if (_nmi && !inhibitNmi) { _nmi = false; EnterInterrupt(2); return true; }
+        if (_nmi && !inhibitNmi) { _nmi = false; EnterInterrupt(2, true); return true; }
         if (_irq is { } vector && Flag(InterruptEnable) && !inhibit)
-        { _irq = null; EnterInterrupt(vector); return true; }
+        { _irq = null; EnterInterrupt(vector, true); return true; }
         if (Flag(InterruptEnable) && !inhibit && interrupts?.InterruptRequested == true)
-        { EnterInterrupt(interrupts.Acknowledge()); return true; }
+        { EnterInterrupt(interrupts.Acknowledge(), true); return true; }
         // HLT finishes only after an enabled external interrupt; its trap waits until then.
-        if (Halted) return false;
+        if (Halted) { if (TimingEnabled) Clock(); return false; }
         // The original 8088 gives external interrupts priority over the pending trap.
         // Keep it pending across their entry, so it nests before the first ISR instruction.
-        if (_trapPending && !inhibitNmi) { _trapPending = false; EnterInterrupt(1); return true; }
+        if (_trapPending && !inhibitNmi) { _trapPending = false; EnterInterrupt(1, true); return true; }
         bool trap = Flag(Trap);
+        ushort timingFlags = Flags, timingCx = CX; StartTimingStep();
         _startCs = CS; _startIp = IP; _segmentOverride = -1;
         byte opcode, repeat = 0; bool locked = false;
         _waitingForTest = false; int prefixes = 0;
@@ -282,6 +288,7 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
             Execute(opcode, repeat);
         }
         finally { if (_busLocked) { _busLocked = false; bus.SetLock(false); } }
+        EndTimingStep(opcode, repeat, prefixes, timingFlags, timingCx);
         Instructions++;
         // POPF/IRET changes apply to the next instruction; clearing TF still traps this one.
         _trapPending = trap && !_segmentShadow && !_waitingForTest;
@@ -356,7 +363,7 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
             case 0x9A: { ushort target = FetchWord(), segment = FetchWord(); Push(CS); Push(IP); CS = segment; IP = target; break; }
             case 0x9B:
                 _waitingForTest = bus.TestSignal;
-                if (_waitingForTest) IP = _startIp;
+                if (_waitingForTest) { IP = _startIp; _repeatAgain = true; }
                 break;
             case 0x9C: Push(Flags); break;
             case 0x9D: Flags = Pop(); break;
@@ -472,12 +479,15 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
         int delta = (word ? 2 : 1) * (Flag(Direction) ? -1 : 1);
         if (kind is 0xA4 or 0xA6 or 0xAC) SI = (ushort)(SI + delta);
         if (kind is 0xA4 or 0xA6 or 0xAA or 0xAE) DI = (ushort)(DI + delta);
-        if (repeat != 0 && --CX != 0 && (kind is not (0xA6 or 0xAE) || Flag(Zero) == (repeat == 0xF3))) IP = _startIp;
+        if (repeat != 0 && --CX != 0 && (kind is not (0xA6 or 0xAE) || Flag(Zero) == (repeat == 0xF3)))
+        { IP = _startIp; _repeatAgain = true; }
     }
 
+    private void PortOut(ushort port, byte value) { DataBusCycle(); bus.Out(port, value); }
+    private byte PortIn(ushort port) { DataBusCycle(); return bus.In(port); }
     private void Io(ushort port, bool word, bool output)
     {
-        if (output) { bus.Out(port, (byte)AX); if (word) bus.Out((ushort)(port + 1), (byte)(AX >> 8)); }
-        else { int low = bus.In(port); SetReg(0, word, word ? low | bus.In((ushort)(port + 1)) << 8 : low); }
+        if (output) { PortOut(port, (byte)AX); if (word) PortOut((ushort)(port + 1), (byte)(AX >> 8)); }
+        else { int low = PortIn(port); SetReg(0, word, word ? low | PortIn((ushort)(port + 1)) << 8 : low); }
     }
 }

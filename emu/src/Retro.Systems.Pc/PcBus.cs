@@ -12,6 +12,7 @@ public sealed class PcBus : I8088Bus
     public bool NmiEnabled { get; private set; }
     public bool BusLocked { get; private set; }
     public bool TestSignal { get; set; }
+    public long CpuClocks { get; private set; }
     public ReadOnlySpan<byte> DmaPageRegisters => _dmaPages;
 
     public PcBus(PcMemory memory)
@@ -23,11 +24,14 @@ public sealed class PcBus : I8088Bus
 
     public void Reset(bool clearMemory)
     {
-        Pit.Reset(); Pic.Reset();
+        CpuClocks = 0; Pit.Reset(); Pic.Reset();
         Pit.SetGate(0, true); Pit.SetGate(1, true);
         Array.Clear(_dmaPages); NmiEnabled = BusLocked = TestSignal = false;
         if (clearMemory) Memory.ClearRam();
     }
+
+    /// <summary>4.772727 MHz CPU clock: the 8253 receives one pulse for every four T-states.</summary>
+    public void Clock() { if ((++CpuClocks & 3) == 0) TickPit(); }
 
     public byte ReadMemory(uint address) => Memory.Read(address);
     public void WriteMemory(uint address, byte value) => Memory.Write(address, value);

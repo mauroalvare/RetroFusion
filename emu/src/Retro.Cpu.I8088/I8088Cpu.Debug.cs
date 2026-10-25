@@ -5,8 +5,8 @@ namespace Retro.Cpu.I8088;
 public sealed partial class I8088Cpu : ICpuDebugView
 {
     public string CpuName => "Intel 8088";
-    public bool HasCycleTiming => false;
-    public long Cycles => 0;
+    public bool HasCycleTiming => TimingEnabled;
+    public long Cycles => TimingEnabled ? _cycles : 0;
     public uint ProgramCounter
     {
         get => PhysicalPC;
@@ -68,24 +68,26 @@ public sealed partial class I8088Cpu : ICpuDebugView
         $"IF={(Flag(InterruptEnable) ? 1 : 0)} · TF={(Flag(Trap) ? 1 : 0)} · NMI={(_nmi ? "pendiente" : "-")}",
         $"IRQ={(_irq is byte vector ? vector.ToString("X2") : "-")} · sombra={(_interruptShadow || _segmentShadow ? "activa" : "-")}",
         Halted ? "CPU detenida en HLT" : _waitingForTest ? "WAIT: espera TEST" : "CPU ejecutando",
-        $"Instrucciones/iteraciones: {Instructions:N0}. Reloj todavía sin temporización."
+        $"Instrucciones/iteraciones: {Instructions:N0}. " + (TimingEnabled ? $"Reloj: {_cycles:N0} T; modelo EU aproximado." : "Modo funcional sin reloj.")
     ];
 
     /// <summary>CPU-only snapshot at an instruction boundary. Memory and devices belong to the machine.</summary>
     public void Save(BinaryWriter writer)
     {
-        writer.Write("RETRO-8088"); writer.Write(1);
+        writer.Write("RETRO-8088"); writer.Write(2);
         foreach (ushort value in _r) writer.Write(value);
         foreach (ushort value in _s) writer.Write(value);
         writer.Write(IP); writer.Write(Flags); writer.Write(Halted); writer.Write(Instructions);
         writer.Write(_interruptShadow); writer.Write(_segmentShadow); writer.Write(_nmi); writer.Write(_trapPending);
         writer.Write(_irq.HasValue); if (_irq is byte vector) writer.Write(vector);
         writer.Write(_waitingForTest);
+        SaveTiming(writer);
     }
     public void Load(BinaryReader reader)
     {
-        if (reader.ReadString() != "RETRO-8088" || reader.ReadInt32() != 1)
-            throw new InvalidDataException("No es un estado de CPU 8088 compatible.");
+        if (reader.ReadString() != "RETRO-8088") throw new InvalidDataException("No es un estado de CPU 8088 compatible.");
+        int version = reader.ReadInt32();
+        if (version is not (1 or 2)) throw new InvalidDataException("No es un estado de CPU 8088 compatible.");
         // Parse and validate before mutating any live state.
         ushort[] registers = new ushort[8], segments = new ushort[4];
         for (int i = 0; i < registers.Length; i++) registers[i] = reader.ReadUInt16();
@@ -95,6 +97,7 @@ public sealed partial class I8088Cpu : ICpuDebugView
         bool shadow = reader.ReadBoolean(), segmentShadow = reader.ReadBoolean(), nmi = reader.ReadBoolean(), trap = reader.ReadBoolean();
         byte? irq = reader.ReadBoolean() ? reader.ReadByte() : null;
         bool waiting = reader.ReadBoolean();
+        var timing = version == 2 ? ReadTiming(reader) : null;
         if (instructions < 0 || (flags & 0xF02A) != 0xF002) throw new InvalidDataException("El estado 8088 tiene datos inválidos.");
         registers.CopyTo(_r, 0); segments.CopyTo(_s, 0);
         IP = ip; Flags = flags; Halted = halted; Instructions = instructions;
@@ -102,5 +105,7 @@ public sealed partial class I8088Cpu : ICpuDebugView
         _waitingForTest = waiting; _segmentOverride = -1;
         _startCs = CS; _startIp = IP;
         _busLocked = false; bus.SetLock(false);
+        if (timing != null) RestoreTiming(timing);
+        else { TimingEnabled = false; _cycles = 0; _repeatCode.Clear(); FlushQueue(); }
     }
 }

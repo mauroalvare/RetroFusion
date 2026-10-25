@@ -850,3 +850,16 @@ en versiones anteriores. Los estados previos de los otros mappers conservan sus 
 Se rechazan submappers y RAM no implementados, sin asumir que MMC6 equivale a MMC3.
 Referencias: [MMC3](https://www.nesdev.org/wiki/MMC3) y
 [Programación MMC3](https://www.nesdev.org/wiki/Programming_MMC3).
+
+
+## D-056 — Reloj 8088 optativo y estado CPU 2
+
+TimingEnabled activa contador T, byte bus, cola de cuatro bytes y Clock/HoldRequested
+en I8088Bus. Por defecto sigue desactivado para el verificador funcional y sus buses.
+HasCycleTiming informa esa selección; Instructions conserva su contrato independiente.
+PcBus divide T por cuatro para alimentar el PIT sin usar Instructions como reloj.
+
+La precisión EU es nominal y tiene limitaciones explícitas en I8088.md: no se presenta
+como contraste ciclo a ciclo del hardware. El estado CPU 2 incluye cola, T y repetición;
+la lectura de versión 1 continúa disponible sin temporización. La carga valida antes
+de mutar registros y no toca el bus ni los dispositivos de la máquina.
