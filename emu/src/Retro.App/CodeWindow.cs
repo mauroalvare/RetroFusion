@@ -489,11 +489,13 @@ public sealed partial class CodeWindow : IDisposable
         if (ImGui.Button("Anular (NOP)"))
         {
             var ins = m.Disassembler.Disassemble(x => m.Memory.Peek(x), a);
-            Patch(m, a, string.Join(" ", Enumerable.Repeat(m.Cpu is Retro.Cpu.M6502.M6502 ? "EA" : m.Cpu is Retro.Cpu.I8088.I8088Cpu ? "90" : "00", ins.Length)));
+            Patch(m, a, string.Join(" ", Enumerable.Repeat(NopOpcode(m).ToString("X2"), ins.Length)));
         }
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip("Reemplaza la instrucción por NOP: la CPU deja de ejecutar esa operación.");
     }
+
+    private static byte NopOpcode(IMachine m) => m.Cpu is Retro.Cpu.M6502.M6502 ? (byte)0xEA : m.Cpu is Retro.Cpu.I8088.I8088Cpu ? (byte)0x90 : (byte)0x00;
 
     private void SetComment(uint a, string text)
     {

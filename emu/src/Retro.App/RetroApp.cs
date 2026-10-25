@@ -318,6 +318,12 @@ public sealed partial class RetroApp
             _testAddr = "C000";
             _testHex = "EE 20 D0 4C 00 C0";           // INC $D020 / JMP $C000: border colour loop
         }
+        else if (m.Id == "pcxt")
+        {
+            _memStart = 0xB8000;
+            _testAddr = "10000";
+            _testHex = "B8 01 00 40 EB FD";           // MOV AX,1 / INC AX / JMP back
+        }
         else if (m.Id == "nes")
         {
             _memStart = 0x0000;                       // the 2 KB of RAM
@@ -924,6 +930,7 @@ public sealed partial class RetroApp
         ImGui.SetNextWindowPos(new Vector2(10, 30), ImGuiCond.FirstUseEver);
         ImGui.SetNextWindowSize(new Vector2(720, 640), ImGuiCond.FirstUseEver);
         ImGui.Begin("Pantalla");
+        WorkspaceLayout.KeepOnScreen();
         if (_texW != 0)
         {
             var avail = ImGui.GetContentRegionAvail();
@@ -944,6 +951,7 @@ public sealed partial class RetroApp
         ImGui.SetNextWindowPos(new Vector2(740, 30), ImGuiCond.FirstUseEver);
         ImGui.SetNextWindowSize(new Vector2(280, 440), ImGuiCond.FirstUseEver);
         ImGui.Begin("CPU###cpu");
+        WorkspaceLayout.KeepOnScreen();
         ImGui.TextUnformatted(cpu.CpuName);
         if (ImGui.Button((_host.Paused ? "Continuar (" : "Pausa (") + Shortcut("F9") + ")"))
         {
@@ -1036,6 +1044,7 @@ public sealed partial class RetroApp
         ImGui.SetNextWindowPos(new Vector2(1030, 30), ImGuiCond.FirstUseEver);
         ImGui.SetNextWindowSize(new Vector2(420, 640), ImGuiCond.FirstUseEver);
         ImGui.Begin("Desensamblado");
+        WorkspaceLayout.KeepOnScreen();
         ImGui.Checkbox("Seguir PC", ref _followPc);
         ImGui.SameLine();
         ImGui.SetNextItemWidth(70);
@@ -1088,6 +1097,7 @@ public sealed partial class RetroApp
         ImGui.SetNextWindowPos(new Vector2(10, 680), ImGuiCond.FirstUseEver);
         ImGui.SetNextWindowSize(new Vector2(720, 330), ImGuiCond.FirstUseEver);
         ImGui.Begin("Memoria");
+        WorkspaceLayout.KeepOnScreen();
         ImGui.SetNextItemWidth(70);
         if (ImGui.InputText("Dirección", ref _memAddr, (uint)((m.Memory.AddressBits + 3) / 4), ImGuiInputTextFlags.CharsHexadecimal | ImGuiInputTextFlags.EnterReturnsTrue)
             && uint.TryParse(_memAddr, NumberStyles.HexNumber, null, out var a))
@@ -1103,7 +1113,7 @@ public sealed partial class RetroApp
         ImGui.SameLine();
         if (ImGui.Button("Video")) _memStart = m.Id == "pcxt" ? 0xB8000u : m.Id == "invaders" ? 0x2400u : 0x4000u;
         ImGui.TextDisabled(m.MemoryMapDescription + ". Clic en un byte para editarlo.");
-        ImGui.BeginChild("memgrid");
+        ImGui.BeginChild("memgrid", Vector2.Zero, ImGuiChildFlags.None, ImGuiWindowFlags.HorizontalScrollbar);
         uint pc = m.Cpu.ProgramCounter, sp = m.Cpu.StackPointer;
         for (int row = 0; row < 16; row++)
         {
@@ -1157,6 +1167,7 @@ public sealed partial class RetroApp
         ImGui.SetNextWindowPos(new Vector2(740, 480), ImGuiCond.FirstUseEver);
         ImGui.SetNextWindowSize(new Vector2(280, 240), ImGuiCond.FirstUseEver);
         ImGui.Begin("Pila");
+        WorkspaceLayout.KeepOnScreen();
         uint sp = m.Cpu.StackPointer;
         for (int i = 0; i < 14; i++)
         {
@@ -1174,6 +1185,7 @@ public sealed partial class RetroApp
         ImGui.SetNextWindowPos(new Vector2(740, 730), ImGuiCond.FirstUseEver);
         ImGui.SetNextWindowSize(new Vector2(420, 280), ImGuiCond.FirstUseEver);
         ImGui.Begin("Cinta");
+        WorkspaceLayout.KeepOnScreen();
         var tape = zx.Tape;
         if (!tape.IsLoaded)
         {
@@ -1198,6 +1210,7 @@ public sealed partial class RetroApp
         ImGui.SetNextWindowPos(new Vector2(1170, 680), ImGuiCond.FirstUseEver);
         ImGui.SetNextWindowSize(new Vector2(330, 250), ImGuiCond.FirstUseEver);
         ImGui.Begin("Programa de prueba");
+        WorkspaceLayout.KeepOnScreen();
         ImGui.TextWrapped($"Cargá bytes de {m.Cpu.CpuName} o un .bin en memoria para estudiar su ejecución paso a paso.");
         ImGui.SetNextItemWidth(70);
         ImGui.InputText("Dirección##test", ref _testAddr, (uint)((m.Memory.AddressBits + 3) / 4), ImGuiInputTextFlags.CharsHexadecimal);

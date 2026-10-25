@@ -94,6 +94,17 @@ desde los pendientes del estudio o del creador con su último código y sus edic
 | ![Rutinas y depurador de Tormenta en C64](emu/docs/img/interfaz/codigo.png) | ![Cave corriendo en la máquina NES](emu/docs/img/interfaz/nes.png) |
 | Estudiá rutinas, registros y memoria mientras el programa corre. | Juegos originales con CPU, video, sonido y controles emulados. |
 
+## Novedades de la 0.3.0
+
+- **PC/XT con DOS y CGA:** 8088, teclado, altavoz y disquetes de arranque. BIOS y sistema
+  operativo aparte; [preparación y alcance](emu/docs/PC-DOS.md).
+- **Más cartuchos de NES:** mappers 0/1/2/3/4/7, bancos de memoria y temporización de
+  interrupciones MMC3. La compatibilidad depende de la placa del cartucho.
+- **Partidas por juego:** cinco ranuras con fecha, separadas por edición y firmware.
+  Los guardados anteriores se pueden cargar sin sobrescribirlos.
+- **Depuración de PC:** direcciones físicas de 20 bits, registros, memoria y código.
+  El análisis de variables y las fusiones de PC quedan para una ampliación posterior.
+
 ## Usarlo
 
 1. Bajá el paquete de **Releases** (Windows o Linux) y descomprimilo. No hace falta

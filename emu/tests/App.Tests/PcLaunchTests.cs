@@ -129,4 +129,24 @@ public sealed class PcLaunchTests
         var failure = Assert.Throws<System.Reflection.TargetInvocationException>(() => prepare.Invoke(window, ["IA simulada"]));
         Assert.That(failure!.InnerException, Is.TypeOf<InvalidOperationException>());
     }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public void NopPatchContinuesExecutionWithoutChangingStackOrAccumulator(bool pc)
+    {
+        IMachine machine;
+        if (pc) machine = Host().Machine!;
+        else
+        {
+            byte[] image = new byte[16 + 16384]; "NES\x1A"u8.CopyTo(image); image[4] = 1;
+            machine = new Retro.Systems.Nes.Nes(Retro.Systems.Nes.NesCartridge.Load(image));
+        }
+        var opcode = (byte)typeof(CodeWindow).GetMethod("NopOpcode", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!.Invoke(null, [machine])!;
+        machine.Memory.Poke(0x100, opcode); machine.Cpu.ProgramCounter = 0x100;
+        string accumulator = pc ? "AX" : "A"; machine.Cpu.TrySetRegister(accumulator, 55);
+        uint stack = machine.Cpu.StackPointer; machine.StepInstruction();
+        Assert.That(machine.Cpu.ProgramCounter, Is.EqualTo(0x101u));
+        Assert.That(machine.Cpu.StackPointer, Is.EqualTo(stack));
+        Assert.That(machine.Cpu.GetRegisters().Single(r => r.Name == accumulator).Value, Is.EqualTo(55));
+    }
 }

@@ -131,17 +131,20 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 
 ## Máquinas
 
-### IBM PC/XT (T-038)
+### IBM PC/XT
 
-- Hay un núcleo 8088 parcial accesible por `cpu8088 demo`; todavía no hay máquina PC,
-  BIOS/DOS ni juegos compatibles. Faltan instrucciones, desensamblador, prelectura y
-  temporización del bus. No se verificó con una suite de hardware externa. Cobertura
-  observada y próximos pasos en [I8088.md](I8088.md). El 8253 tiene modos binarios 0/2/3,
-  reloj externo y latch; quedan modos 1/4/5, BCD, divisores límite y sincronización de
-  placa pendientes ([PIT8253.md](PIT8253.md)). TF y el 8259A individual ya tienen
-  pruebas funcionales, incluidos programas por puertos; no aportan el reloj de PC ni
-  forman una placa completa con PIT, PPI, CGA, discos y BIOS. Cascada, disparo por
-  nivel y tiempos eléctricos del 8259A se rechazan o quedan pendientes, según el contrato.
+- Disponible en app y CLI con BIOS externo y disquetes de arranque IMG/IMA de 160–720 KB.
+  No se incluyen BIOS de PC ni DOS. Un EXE/COM suelto no arranca sin un sistema operativo.
+- 8088 con prelectura y reloj T; los tiempos internos EU son aproximados. El contraste
+  externo comprobó estado funcional, sin validar trazas de ciclos. Sin 8086/8087/AT.
+- CGA RGBI, 83 teclas, altavoz y capa privada de disco incluida en guardados completos.
+  Sin EGA/VGA, disco duro, AdLib, Sound Blaster, serie ni impresora. Los caracteres
+  extendidos necesitan una fuente completa aportada por API.
+- PIT binario 0/2/3; siguen pendientes 1/4/5, BCD y el caso 3 en modo 3 del 8253.
+  PIC individual por flancos y DMA básico; faltan cascada y varios modos opcionales.
+- Código, memoria y puntos de interrupción usan direcciones físicas de 20 bits. Los
+  perfiles y el análisis de variables siguen siendo de 16 bits: PC no se ofrece todavía
+  para preparar o fusionar. [Detalle de placa](PCXT.md), [uso](PC-DOS.md).
 
 ### ZX Spectrum
 
@@ -401,8 +404,5 @@ por cautela, las ediciones de Cheril, Phantomasa, Sila Tsikl y Nanako Descends t
   al abrir, conservando el original en la biblioteca.
 
 
-La placa PC/XT ya conecta reloj/prelectura 8088, 8259A, 8253, 8255/teclado, DMA8237,
-CGA y disquete765. Arranca DOS por API, sin interceptar servicios BIOS. Falta su
-integración en el selector, estados completos de máquina y prueba de partidas.
-El reloj EU es aproximado; no hay alta densidad, disco duro, serial, LPT ni FPU.
-Ver [PCXT.md](PCXT.md).
+PC/XT ejecuta firmware y DOS mediante los dispositivos, sin interceptar servicios BIOS.
+Las limitaciones y modos pendientes se detallan en [PCXT.md](PCXT.md).

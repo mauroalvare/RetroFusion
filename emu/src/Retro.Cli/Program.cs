@@ -46,10 +46,11 @@ static int Usage()
                     elegida en la app), encuentra y verifica sus variables y guarda un perfil por hash
 
         Máquinas: ZX Spectrum 48K (.tap .tzx .z80 .sna), Space Invaders (invaders.zip de MAME),
-        Commodore 64 (.t64 .prg) y NES (.nes con mapper 0 o 3; teclas P1_A, P1_START...).
+        Commodore 64 (.t64 .prg), NES (.nes mappers 0/1/2/3/4/7) y PC/XT (.img .ima).
 
         Opciones de run:
           --rom <ruta>             ROM del Spectrum 48K (por defecto roms/48.rom)
+          --bios <ruta>            BIOS PC/XT; requiere un disquete con sistema de arranque
           --frames <n>             cuadros a emular. Por defecto 500
           --autoload               (Spectrum) escribe LOAD "" ENTER al arrancar
           --until-tape-end         (Spectrum) sigue hasta que la cinta termina (+ --frames extra)
@@ -155,7 +156,9 @@ if (command == "info")
         string what = score > 0 ? $"ZX Spectrum (confianza {score})"
             : c64Score > 0 ? $"Commodore 64 (confianza {c64Score})"
             : Retro.Systems.Nes.NesCartridge.IsINes(c.f.Data) ? NesInfo(c.f.Data)
-            : isInvaders ? "chip de Space Invaders" : "no reconocido por las máquinas disponibles";
+            : isInvaders ? "chip de Space Invaders" : Retro.Machines.MachineCatalog.Identify(c.f).FirstOrDefault() is { } candidate
+                ? candidate.Machine.Name + ": " + candidate.Reason + (Retro.Machines.MachineCatalog.NotLoadableYet(candidate) is { } why ? "; " + why : "")
+                : "no reconocido por las máquinas disponibles";
         Console.WriteLine($"[{c.i}] {c.f.Name} ({c.f.Data.Length} bytes) -> {what}");
     }
     return 0;
@@ -168,6 +171,7 @@ Spectrum48? zx = null;
 bool isTape = false;
 var c64Media = files.Where(f => Retro.Systems.C64.C64Media.Probe(f) > 0).OrderBy(f => MediaArchive.DumpScore(f.Name)).FirstOrDefault();
 var nesMedia = files.Where(f => Retro.Systems.Nes.NesCartridge.IsINes(f.Data)).OrderBy(f => MediaArchive.DumpScore(f.Name)).FirstOrDefault();
+var pcMedia = files.SelectMany(Retro.Machines.MachineCatalog.Identify).Where(c => c.Machine.Id == "pcxt" && c.Confidence >= 50).OrderByDescending(c => c.Confidence).FirstOrDefault();
 if (nesMedia != null && !isInvaders)
 {
     Retro.Systems.Nes.NesCartridge cart;
@@ -181,6 +185,19 @@ if (nesMedia != null && !isInvaders)
     Console.WriteLine($"Máquina: {machine.DisplayName}");
     Console.WriteLine($"Archivo: {nesMedia.Name}");
     Console.WriteLine(cart.Describe());
+}
+else if (pcMedia != null && !isInvaders)
+{
+    try
+    {
+        if (Retro.Machines.MachineCatalog.NotLoadableYet(pcMedia) is { } problem) throw new InvalidDataException(problem);
+        string bios = Opt("bios") ?? FindPcBios();
+        machine = new Retro.Systems.Pc.PcXt(File.ReadAllBytes(bios), pcMedia.File.Data);
+        Console.WriteLine($"Máquina: {machine.DisplayName}; CGA, teclado y altavoz");
+        Console.WriteLine($"Disquete: {pcMedia.File.Name}; BIOS: {bios}");
+    }
+    catch (Exception e) when (e is IOException or ArgumentException or NotSupportedException)
+    { Console.Error.WriteLine("No se pudo cargar PC/XT: " + e.Message); return 3; }
 }
 else if (c64Media != null && !isInvaders)
 {
@@ -887,6 +904,16 @@ static void WriteWav(string path, List<short> samples, int rate)
     w.Write(samples.Count * 2);
     foreach (var s in samples)
         w.Write(s);
+}
+
+static string FindPcBios()
+{
+    try { return FindRom("pcxt/pcxt-bios.rom"); }
+    catch (FileNotFoundException)
+    {
+        try { return FindRom("pcxt-bios.rom"); }
+        catch (FileNotFoundException) { throw new FileNotFoundException("Falta firmware/pcxt/pcxt-bios.rom. Pasá --bios <ruta>."); }
+    }
 }
 
 static string FindRom(string name)

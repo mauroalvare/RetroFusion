@@ -956,3 +956,6 @@ y el análisis de variables se bloquea antes de llamar a un proveedor. El códig
 memoria de PC sí son accesibles. No se truncan direcciones para salvar ese límite.
 F1–F10 llegan a PC; Ctrl+Fn controla el host y Ctrl+Shift+O/L/M/K abre herramientas.
 Los parches NOP usan el opcode de la CPU: 00 en Z80/8080, EA en 6502 y 90 en 8088.
+
+El CLI run reconoce IMG/IMA y acepta --bios <ruta>; sin esa opción busca el BIOS
+en las carpetas de firmware habituales. info distingue reconocimiento de carga.

@@ -379,6 +379,8 @@ public sealed class EmulatorHost
         string cpuName = m.Cpu.CpuName;
         bool over = cpuName.Contains("Z80")
             ? mnemonic is "CALL" or "RST" or "DJNZ" or "LDIR" or "LDDR" or "CPIR" or "CPDR" or "INIR" or "INDR" or "OTIR" or "OTDR" or "HALT"
+            : cpuName.Contains("8088")
+                ? mnemonic is "CALL" or "LOOP" or "LOOPE" or "LOOPNE" or "REP" or "REPE" or "REPNE" or "HLT"
             : cpuName.Contains("65")
                 ? mnemonic is "JSR"
                 : mnemonic is "CALL" or "CNZ" or "CZ" or "CNC" or "CC" or "CPO" or "CPE" or "CP" or "CM" or "RST" or "HLT";

@@ -5,7 +5,7 @@ param(
     [ValidatePattern('^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$')]
     [string[]]$Runtimes = @("win-x64", "linux-x64"),
     [ValidatePattern('^\d+\.\d+\.\d+$')]
-    [string]$Version = "0.2.9"
+    [string]$Version = "0.3.0"
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
@@ -41,11 +41,18 @@ foreach ($rid in $Runtimes) {
         New-Item -ItemType Directory -Force $library | Out-Null
         Copy-Item -LiteralPath (Join-Path $root "docs/paquete/$folder.txt") -Destination (Join-Path $library 'LEEME.txt')
     }
+    $pcFirmware = Join-Path $out 'firmware/pcxt'
+    New-Item -ItemType Directory -Force $pcFirmware | Out-Null
+    Copy-Item -LiteralPath (Join-Path $root 'docs/paquete/PCXT.txt') -Destination (Join-Path $pcFirmware 'LEEME.txt')
     Copy-Item -LiteralPath (Join-Path $root 'docs/paquete/ACTUALIZAR.txt') -Destination (Join-Path $out 'ACTUALIZAR.txt')
     Copy-Item (Join-Path $root "README.md") (Join-Path $out "README.md")
     $playerDocs = Join-Path $out "docs"
     New-Item -ItemType Directory -Force $playerDocs | Out-Null
     Copy-Item (Join-Path $root "docs/MODIFICACIONES.md") (Join-Path $playerDocs "MODIFICACIONES.md")
+    Copy-Item (Join-Path $root "docs/PC-DOS.md") (Join-Path $playerDocs "PC-DOS.md")
+    Copy-Item (Join-Path $root "docs/PCXT.md") (Join-Path $playerDocs "PCXT.md")
+    Copy-Item (Join-Path $root "docs/I8088.md") (Join-Path $playerDocs "I8088.md")
+    Copy-Item (Join-Path $root "docs/PIT8253.md") (Join-Path $playerDocs "PIT8253.md")
     Copy-Item (Join-Path $root "docs/CONECTAR-IA.md") (Join-Path $playerDocs "CONECTAR-IA.md")
     $playerImages = Join-Path $playerDocs "img/interfaz"
     New-Item -ItemType Directory -Force $playerImages | Out-Null
@@ -63,6 +70,9 @@ c64/: Open ROMs (KERNAL, BASIC y juego de caracteres libres para el Commodore 64
 (c) Paul Gardner-Stephen y Roman Standzikowski, licencia GNU LGPL 3 (ver los textos
 de la licencia en la misma carpeta). Si tenés las ROMs originales del C64 (kernal.rom,
 basic.rom, chargen.rom), ponelas en esa carpeta y el emulador las prefiere.
+
+PC/XT: agregá tu BIOS como pcxt/pcxt-bios.rom. No se incluyen BIOS de PC ni DOS.
+Ver docs/PC-DOS.md.
 
 Los juegos no se incluyen.
 "@ | Set-Content (Join-Path $out "firmware/LEEME.txt") -Encoding utf8

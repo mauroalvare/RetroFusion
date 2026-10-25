@@ -1,0 +1,4 @@
+PC/XT necesita un BIOS compatible aportado por vos.
+Guardalo en esta carpeta con el nombre pcxt-bios.rom.
+Los disquetes de arranque IMG/IMA (160-720 KB) van en ROMs.
+BIOS, DOS y juegos no se incluyen. Pasos y límites: docs/PC-DOS.md junto al programa.

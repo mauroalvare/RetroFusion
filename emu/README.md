@@ -49,6 +49,7 @@ muestra las teclas del juego o sistema activo. También se puede usar un mando.
 
 Las cintas pueden tardar en cargar. Si el joystick del C64 no responde,
 cambiá el puerto en **Juego > Controles y hardware**.
+**Juego > Partidas guardadas** ofrece cinco ranuras por juego y edición, con fecha.
 Los estados guardados están disponibles en originales. Si un estado está dañado,
 la partida actual se conserva.
 
@@ -93,11 +94,16 @@ La reaplicación al reiniciar o abrir el juego se activa por separado.
 | ZX Spectrum 48K | TAP, TZX, Z80, SNA |
 | Commodore 64 | T64, PRG |
 | NES | NES, mappers 0/1/2/3/4/7 |
+| IBM PC / XT | Disquetes de arranque IMG/IMA de 160–720 KB; BIOS y DOS aparte |
 | Space Invaders | Conjunto de ROMs de la placa en ZIP |
 
 También se aceptan archivos ZIP. La compatibilidad depende de la edición del juego.
 El paquete incluye el firmware redistribuible del Spectrum y Open ROMs para C64,
 con sus licencias en **firmware**.
+
+En PC/XT, F1–F10 llegan al juego: los atajos del emulador usan Ctrl+Fn y los de
+herramientas Ctrl+Shift+letra. [Preparar PC y DOS](docs/PC-DOS.md). El análisis de
+variables y las fusiones de PC todavía no están disponibles.
 
 El visor de código está en la misma ventana de modificaciones. El depurador se abre
 desde **Herramientas** o con **F12**.

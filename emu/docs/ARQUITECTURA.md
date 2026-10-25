@@ -55,8 +55,8 @@ src/
                            video, audio, breakpoints, apertura de archivos (.zip), PNG.
   Retro.Cpu.Z80            Núcleo Z80 + desensamblador. No sabe nada del Spectrum.
   Retro.Cpu.I8080          Núcleo Intel 8080 + desensamblador.
-  Retro.Cpu.I8088          Núcleo8088 parcial: TF, INTR y aceptación de vectores; sin ciclos.
-  Retro.Systems.Pc         Componentes de PC: 8259A y 8253 binario con reloj externo. Máquina pendiente.
+  Retro.Cpu.I8088          8088 funcional, prelectura y reloj optativo; EU aproximado.
+  Retro.Systems.Pc         PC/XT: CGA, PIC/PIT/PPI, teclado, DMA, disquete y altavoz.
   Retro.Cpu.M6502          Núcleo MOS 6502/6510 (NMOS, con los opcodes no documentados)
                            + desensamblador.
   Retro.Systems.Spectrum   ZX Spectrum 48K: memoria, ULA, cinta, snapshots, símbolos.
@@ -171,32 +171,26 @@ instrucción del manual de Intel: CALL condicional 17 si salta y 11 si no, RET c
 `EI` habilita las interrupciones recién después de la instrucción siguiente. Al aceptar
 una interrupción se ejecuta la instrucción que la placa pone en el bus de datos: un RST.
 
-## Intel 8088: primer hito funcional
+## Intel 8088 y PC/XT
 
-Existe un intérprete parcial con registros, segmentación de 20 bits, ModR/M, ALU,
-rotaciones/desplazamientos, pila, saltos, interrupciones, cadenas y E/S de byte. CL
-conserva los ocho bits de conteo del 8088. El comando `cpu8088 demo` ejecuta
-una suma propia y llega a HLT. No hay aún prelectura ni tiempo por ciclo: no permite
-sincronizar periféricos con el reloj de PC ni implementa `ICpuDebugView`.
-El controlador de interrupciones sí puede comprobarse funcionalmente sin ese reloj. No cambia
-las CPUs actuales ni habilita PC/XT en el lanzador. La cobertura exacta, pruebas y
-siguientes pasos están en [I8088.md](I8088.md).
+El núcleo ofrece segmentación de 20 bits, conjunto documentado sin coprocesador,
+interrupciones, depuración y estados. La comparación externa selecciona instrucciones
+y flags definidos; no usa resultados indefinidos como oráculo. [I8088.md](I8088.md).
 
-El 8088 consulta `I8088InterruptSource` al aceptar INTR; el 8259A decide entonces el
-vector. TF conserva una trampa pendiente con prioridad posterior a las interrupciones
-externas. `Retro.Systems.Pc/Pic8259A` implementa el controlador individual por flancos;
-`cpu8088 irq-demo` configura sus puertos y ejecuta manejadores propios. Aún no hay
-reloj de PC, BIOS ni máquina registrada: no se sincronizan periféricos con Instructions.
-Contratos funcionales y límites: D-040/D-041 e [I8088.md](I8088.md).
+El modo funcional conserva Cycles=0. TimingEnabled activa reloj T, transferencias de
+un byte, cola de cuatro bytes y arbitraje con DMA. Instructions cuenta instrucciones o
+iteraciones de REP; no sustituye ese reloj. La temporización EU sigue siendo aproximada.
 
-Pit8253 agrega tres contadores binarios independientes en modos 0/2/3, lectura con
-latch, recarga y GATE. Tick recibe un pulso externo de un canal; OutputChanged comunica
-sus transiciones incluso durante programación o cambios de GATE. La placa decide
-relojes y conexiones. No se deriva tiempo de Instructions. Contrato, fuentes y
-límites pendientes en D-042 y [PIT8253.md](PIT8253.md). El diagnóstico `cpu8088 timer-demo`
-conecta OUT0 con IRQ0, configura los puertos 40h/43h y 20h/21h desde código invitado, espera HLT y
-atiende tres interrupciones con EOI/IRET. Solo recibe pulsos mientras espera; ése es
-un cronograma de diagnóstico, no una relación de ciclos CPU/PIT.
+PcXt implementa IMachine con PcBus, CGA, PIC/PIT/PPI, teclado, DMA, FDC y altavoz.
+Cada T del 8088 avanza dispositivos; el PIT recibe un pulso cada cuatro T y CGA tres
+oscilaciones por T. HLT mantiene el reloj. No se interceptan servicios BIOS o DOS.
+Los diagnósticos históricos irq-demo/timer-demo conservan su cronograma controlado;
+timed-demo prueba el reloj integrado. [Mapa y alcance de placa](PCXT.md).
+
+App y MachineLauncher crean el PC con BIOS y disquete aportados por el usuario. Cada
+estado valida medio y firmware antes de restaurar la placa completa, incluida la capa
+privada de disco. El depurador usa 20 bits; los observadores y perfiles actuales siguen
+limitados a 16 bits, por lo que PC no se ofrece todavía al estudio de fusiones.
 
 ## Placa de Space Invaders (Taito/Midway 8080)
 
@@ -289,7 +283,9 @@ bus) y la suite funcional de Klaus Dormann.
   izquierda, derecha; con el strobe en alto se relee A; después del octavo bit, 1.
   Teclas de la máquina: `P1 A`, `P1 START`, `P2 LEFT`...
 - **Cartucho:** sin firmware; `NesCartridge` lee iNES y NES 2.0 y hace el espejado de las
-  nametables. Los estados guardados incluyen la CHR RAM y el banco CNROM.
+  nametables. Mappers 0/1/2/3/4/7; los estados incluyen bancos, RAM e IRQ.
+  MMC3 recibe flancos A12 del calendario de fetches PPU, sin efectos de las lecturas
+  del depurador. El filtro temporal aproxima M2; no reproduce su fase exacta.
 
 ## Compatibilidad reproducible (Retro.Compat)
 
@@ -775,7 +771,8 @@ La próxima ampliación prioriza los juegos de PC DOS, en este orden:
 | 3 | Intel 80386, después diferencias del 80486 | PC DOS con VGA y sonido AdLib/Sound Blaster |
 | 4 | Motorola 68000 | Primero Atari ST; después Amiga 500 con sus chips OCS |
 
-PC/XT tiene iniciado el núcleo funcional; las máquinas siguen pendientes. Cada una
+PC/XT ya tiene una placa integrada con DOS y CGA; las ampliaciones posteriores
+siguen pendientes. Cada máquina
 requiere pruebas de CPU y periféricos, integración en
 app y CLI, y juegos con arranque y controles comprobados por edición. Para usar un juego
 en fusiones también hace falta un perfil verificado. Reconocer un archivo o completar
@@ -796,7 +793,7 @@ registradas por separado.
 | 3 | 6502 / 6510 | Commodore 64 (.t64, .prg) | Hecha (Pac-Man, Ghostbusters, Spy vs Spy) |
 | 3n | 2A03 (6502) | NES (.nes, mappers 0/1/2/3/4/7) | Disponible, con sonido; compatibilidad según placa y periféricos |
 | 3b | 6502 | Discos .d64 y cartuchos del C64, Atari 800, Apple II | Pendiente |
-| 4 | 8086 / 8088 | IBM PC / XT con DOS | Núcleo 8088 parcial; máquina pendiente |
+| 4 | 8086 / 8088 | IBM PC / XT con DOS | Disponible con CGA, altavoz, BIOS externo y disquetes de arranque |
 | 4b | 80286 | PC AT con DOS y EGA | Pendiente, después de PC/XT |
 | 4c | 80386 / 80486 | PC DOS con VGA y sonido | Pendiente, después de PC AT |
 | 5 | 68000 | Atari ST, Amiga 500 | Pendiente |
@@ -841,6 +838,7 @@ Las carpetas automáticas de trabajos de agentes tienen un identificador único,
 en estudio como en el creador; una carpeta explícita conserva el comportamiento anterior.
 
 
-El trabajo de placa PC/XT está en Retro.Systems.Pc: PcMemory y PcBus conectan memoria,
-PIC y PIT sin registrar aún una máquina disponible. Alcance, mapa y pasos pendientes
-se mantienen en [PCXT.md](PCXT.md). Las instrucciones8088 no equivalen a ciclos de placa.
+Retro.Systems.Pc contiene la máquina PC/XT integrada; [PCXT.md](PCXT.md) mantiene
+sus contratos y límites. Hay cuatro núcleos de CPU implementados: Z80, 8080, 6502 y
+8088. 6510 y 2A03 reutilizan el 6502 con sus diferencias de máquina. 68000 y las
+familias x86 posteriores siguen pendientes; una nueva máquina puede reutilizar un núcleo.

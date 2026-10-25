@@ -119,8 +119,8 @@ dotnet run --project src/Retro.App -c Release -- --hidden --mute --mods-window -
 | `RetroEmu.slnx` | Solución con todos los proyectos |
 | `src/Retro.Core` | Interfaces (`IMachine`, `ICpuDebugView`, `IMemoryView`), medios y zips, `MemorySearch`, PNG, mapa de código |
 | `src/Retro.Cpu.Z80`, `Retro.Cpu.I8080`, `Retro.Cpu.M6502` | Núcleos de CPU con desensamblador |
-| `src/Retro.Cpu.I8088`, `tests/I8088.Tests` | Primer núcleo 8088 parcial y sus pruebas propias; todavía sin máquina PC/XT |
-| `src/Retro.Systems.Pc`, `tests/Pc.Tests` | Componentes PC: 8259A, 8253 binario con reloj externo y ejecución 8088; todavía sin máquina PC/XT |
+| `src/Retro.Cpu.I8088`, `tests/I8088.Tests` | 8088, segmentación, depuración, estados, reloj y prelectura optativos |
+| `src/Retro.Systems.Pc`, `tests/Pc.Tests` | PcXt: CGA, PIC/PIT/PPI, teclado, DMA/FDC, altavoz y estados completos |
 | `src/Retro.Systems.Spectrum`, `Retro.Systems.Arcade`, `Retro.Systems.C64`, `Retro.Systems.Nes` | Máquinas |
 | `src/Retro.Machines` | Catálogo de máquinas (qué máquina es cada archivo) y `MachineLauncher` (arranca una máquina con un juego); lo usan la app, el CLI, las fusiones y la compatibilidad |
 | `src/Retro.Compat` | Matriz de compatibilidad: guiones por juego, ejecutor sin ventana con sonda de controles, informe JSON y Markdown, descubrimiento de guiones |
@@ -280,6 +280,9 @@ en AppData/RetroEmu/states/<identidad>/slotN.rfstate. StateSlotStore.cs resuelve
 fechas; RetroApp.States.cs dibuja el panel. El guardado rápido es temporal.
 
 
-El trabajo de placa PC/XT está en Retro.Systems.Pc: PcMemory y PcBus conectan memoria,
-PIC y PIT sin registrar aún una máquina disponible. Alcance, mapa y pasos pendientes
-se mantienen en [PCXT.md](PCXT.md). Las instrucciones8088 no equivalen a ciclos de placa.
+PC/XT se abre desde la biblioteca con un IMG/IMA de arranque y BIOS externo.
+Guía del jugador: [PC-DOS.md](PC-DOS.md). Desde emu:
+`dotnet run --project src/Retro.Cli -c Release -- run disco.img --bios ruta/al/bios.rom --frames 2400 --screenshot out/pc.png`.
+`PcLaunchTests` comprueba carga, identidad de guardados y direcciones por encima de 64 KB.
+`PCXT.md` detalla modos implementados y pendientes. La cuenta de instrucciones y el
+reloj de placa son independientes.

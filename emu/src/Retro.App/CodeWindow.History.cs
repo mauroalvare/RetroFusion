@@ -85,7 +85,7 @@ public sealed partial class CodeWindow
 
     private void LoadModificationHistory()
     {
-        _historyKey = _host.Fusion == null ? ModificationHistory.Key(_machine!.Id, _host.LoadedMediaHashes, _host.FirmwareIdentity) : null;
+        _historyKey = _host.Fusion == null && _machine!.Memory.AddressBits == 16 ? ModificationHistory.Key(_machine!.Id, _host.LoadedMediaHashes, _host.FirmwareIdentity) : null;
         _rememberModifications = _reapplyModifications = _savedReport = false;
         _historyProblem = ""; _reports.Clear(); _rememberedChanges = [];
         if (_historyKey == null) return;

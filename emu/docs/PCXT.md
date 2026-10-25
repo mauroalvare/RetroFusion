@@ -1,7 +1,9 @@
 # PC/XT: estado de la implementación
 
-La placa PC/XT ya arranca un sistema DOS por API; su integración en la app está en curso. La CPU, la placa, el firmware y el
-sistema operativo son etapas distintas. Implementar el 8088 no incorpora BIOS ni DOS.
+La placa PC/XT está disponible en la biblioteca y el CLI: 8088, hasta 640 KB, CGA,
+teclado, altavoz y disquete. BIOS y sistema operativo se aportan por separado.
+Para empezar, consultá [PC y DOS](PC-DOS.md). La compatibilidad depende del hardware
+y los modos que requiere cada programa.
 
 ## Componentes actuales
 
@@ -29,22 +31,18 @@ sistema operativo son etapas distintas. Implementar el 8088 no incorpora BIOS ni
 | Final del espacio hasta FFFFF, según el tamaño del BIOS | ROM; escrituras ignoradas |
 | Regiones sin memoria instalada | Lectura FF; escrituras ignoradas |
 
-La RAM de vídeo ya produce un cuadro CGA por API. Las tarjetas no instaladas leen
-bus abierto FF; un modo de un dispositivo existente que falte se rechaza explícitamente.
-el selector de máquinas todavía no ofrece esta placa.
-Se comprobó un arranque DOS por API con firmware y sistema operativo libres aportados
+Las tarjetas no instaladas leen bus abierto FF; un modo no implementado de un
+dispositivo existente se rechaza explícitamente.
+Se comprobó un arranque DOS con firmware y sistema operativo libres aportados
 por separado, con entrada real por teclado y lectura de comandos. El reloj y la cola de prelectura tienen un modo funcional temporizado; las señales
 eléctricas y la secuencia exacta de silicio siguen pendientes. No se incluye firmware nuevo en el paquete.
 
-## Orden de trabajo pendiente
+## Mejoras de precisión pendientes
 
-1. Reloj del 8088 y acoplamiento de los dispositivos, con evidencia independiente de
-   instrucciones, transferencias y tiempos.
-2. Completar integración CGA/teclado y conexiones restantes de placa.
-3. Completar el POST, la comprobación de encendido, con firmware libre aportado por
-   separado. Las pruebas deben usar el comportamiento real de los dispositivos.
-4. Controladora de disquetes, carga de imágenes y sistema operativo libre; estados,
-   controles e integración en app y CLI. Comprobar partidas antes de anunciar jugabilidad.
+1. Contrastar tiempos y fases de bus contra trazas externas de hardware.
+2. Completar modos del PIT y particularidades de CGA y teclado.
+3. Ampliar controladora, geometrías y periféricos con pruebas por modo.
+4. Extender observadores y perfiles de ingeniería inversa a direcciones de 20 bits.
 
 Referencias: [IBM 5150, mapa de E/S y NMI](https://www.minuszerodegrees.net/manuals/IBM_5150_Technical_Reference_6322507_APR84.pdf),
 [implementación CGA de MAME](https://github.com/mamedev/mame/blob/master/src/devices/bus/isa/cga.cpp).
@@ -63,14 +61,14 @@ No se incorporó una ROM de caracteres nueva al paquete.
 
 Limitaciones: cuadro RGBI completo, sin señal compuesta, nieve, interlace, efectos
 por cambios de registros dentro de una línea ni lápiz óptico externo. El estrobo por
-puerto conserva su latch. No equivale todavía a una máquina PC lista para jugar.
+puerto conserva su latch. La compatibilidad no incluye programas que dependan de esos efectos.
 
 
 El 8255 admite direcciones independientes de A/B/C y BSR; los modos con handshake se
 rechazan. PcBus permite elegir cableado 5150 o 5160, con una unidad de disquete,
 CGA de 80 columnas y sin coprocesador. El modo 5150 expresa RAM adicional en bloques
 de 32 KB por SW2. Los contadores de entrada de teclado aproximan la transmisión y
-BAT; no modelan flancos individuales del cable ni teclas repetidas por hardware.
+BAT; hay repetición a 30 Hz tras 500 ms, sin modelar flancos individuales del cable.
 
 
 ## DMA y concesión del bus
@@ -104,8 +102,8 @@ No hay disco duro, controladora AT de alta densidad, formato de pistas, protecci
 con sectores irregulares ni emulación magnética de CRC, rotación o transiciones de flujo.
 
 El arranque comprobado usa BIOS libre, FreeDOS y comandos enviados como códigos de
-teclado; no intercepta INT 13/16 ni sustituye el cargador o el kernel. Es una prueba de
-placa, todavía no una declaración de compatibilidad de juegos DOS.
+teclado; no intercepta INT 13/16 ni sustituye el cargador o el kernel. Se comprobó una partida con entrada y disparo. Esto no implica compatibilidad con
+todos los juegos DOS.
 Referencia: [documentación NEC uPD765](https://www.cpctech.cpcwiki.de/docs/upd765a/necfdc.htm).
 
 
@@ -115,7 +113,7 @@ PcXt ofrece IMachine con memoria física de 20 bits, desensamblado, entradas de 
 83 teclas set-1 y repetición del teclado. El altavoz sale de PB1 y PIT2, con salida mono
 a 44,1 kHz. El cuadro presentado duplica las líneas CGA para facilitar la lectura.
 El BIOS identifica el cableado 5150/5160 mediante su byte de modelo; se puede elegir
-explícitamente por API. El selector de la app se integra por separado.
+explícitamente por API. App y CLI usan el mismo hardware.
 
 RETRO-PCXT versión 1 identifica firmware, imagen, modelo y RAM, y protege el contenido
 con SHA-256. Guarda CPU, prelectura, memoria, todos los dispositivos, fases de sonido
