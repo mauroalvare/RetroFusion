@@ -116,8 +116,8 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
 
     public Action<ushort, byte, ushort>? WriteWatch { get; set; }
 
-    /// <summary>The APU's frame counter and DMC (mappers with IRQ come later).</summary>
-    public bool IrqLine => Apu.Irq;
+    /// <summary>The APU and cartridge share the CPU IRQ line.</summary>
+    public bool IrqLine => Apu.Irq || Cartridge.Irq;
     public bool NmiLine => Ppu.Nmi;
 
     private void Tick()
@@ -175,7 +175,7 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         else if (a == 0x4016) WriteStrobe(v);
         else if (a < 0x4018) Apu.Write(a, v);
         else if (a < 0x6000) { }                       // test registers and expansion
-        else if (a < 0x8000) { if (Cartridge.PrgRamEnabled) _prgRam[a & 0x1FFF] = v; }
+        else if (a < 0x8000) { if (Cartridge.PrgRamWritable) _prgRam[a & 0x1FFF] = v; }
         else Cartridge.CpuWrite(a, v, _cpu.CycleCount);
     }
 

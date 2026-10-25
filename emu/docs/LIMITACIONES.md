@@ -195,12 +195,17 @@ arreglar algo, se borra la entrada y se menciona en el commit.
   de cuadros y no hay filtros de salida aparte del pasa altos (el sonido es algo más
   brillante que en una consola). Los estados guardados de la versión sin sonido no se
   pueden cargar (formato 2).
-- Mappers 0/1/2/3/7: NROM, MMC1, UxROM, CNROM y AxROM. Los demás se reconocen y se
+- Mappers 0/1/2/3/4/7: NROM, MMC1, UxROM, CNROM, MMC3 y AxROM. Los demás se reconocen y se
   explica por qué no cargan. MMC1 admite bancos PRG/CHR, puerto serie, espejado,
   PRG RAM de 8 KB y la selección exterior SUROM. No admite MMC1A, EEPROM ni RAM mayor;
   la selección exterior con registros CHR divergentes en modo 4 KB todavía no se sigue
   por acceso PPU. El control adicional de RAM de SNROM no está modelado. Los tamaños
   ampliados NES2 y submappers MMC1 ajenos a 0/5 se rechazan.
+- MMC3 (mapper 4, submapper 0): bancos PRG de 8 KB, CHR de 1/2 KB, espejado,
+  protección de RAM e IRQ por flancos A12 del bus PPU. El calendario de lecturas es
+  independiente del dibujo por línea; los accesos del depurador no generan IRQ.
+  El filtro aproxima tres flancos M2 con diez puntos PPU: no reproduce la fase exacta
+  CPU/PPU ni la revisión MMC3A. MMC6 y las placas con RAM ampliada se rechazan.
 - La RAM de cartuchos con batería se conserva en estados guardados, sin archivo de
   batería independiente entre sesiones todavía.
 - Sin segundo jugador en la app (el mando 2 existe para el CLI y las fusiones) ni Zapper.

@@ -93,7 +93,7 @@ public class CartridgeTests
     public void BadImages_SayWhy()
     {
         Assert.That(() => NesCartridge.Load(new byte[40]), Throws.TypeOf<InvalidDataException>().With.Message.Contains("firma"));
-        Assert.That(() => NesCartridge.Load(Image(1, 1, flags6: 0x40)), Throws.TypeOf<InvalidDataException>().With.Message.Contains("Mapper 4"));
+        Assert.That(() => NesCartridge.Load(Image(1, 1, flags6: 0x50)), Throws.TypeOf<InvalidDataException>().With.Message.Contains("Mapper 5"));
         var cut = Image(2, 1)[..20000];
         Assert.That(() => NesCartridge.Load(cut), Throws.TypeOf<InvalidDataException>().With.Message.Contains("cortada"));
     }

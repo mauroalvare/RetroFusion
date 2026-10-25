@@ -10,7 +10,7 @@ namespace Retro.Systems.Nes;
 /// Each visible line is drawn at its dot 1 from the scroll state of that moment, so splits
 /// written during horizontal blank work; changes in the middle of a line do not.
 /// </summary>
-public sealed class Ppu
+public sealed partial class Ppu
 {
     public const int Width = 256, Height = 240, DotsPerLine = 341, LinesPerFrame = 262;
     public const int VblankLine = 241, PreRenderLine = 261;
@@ -88,6 +88,7 @@ public sealed class Ppu
                 return _openBus;
             case 7:
                 int a = _v & 0x3FFF;
+                _cart.ObservePpuAddress((ushort)a);
                 byte result;
                 if (a >= 0x3F00)
                 {
@@ -144,17 +145,23 @@ public sealed class Ppu
                 {
                     _t = _t & 0x7F00 | value;
                     _v = _t;
+                    _cart.ObservePpuAddress((ushort)(_v & 0x3FFF));
                 }
                 _w = !_w;
                 break;
             case 7:
+                _cart.ObservePpuAddress((ushort)(_v & 0x3FFF));
                 Write((ushort)(_v & 0x3FFF), value);
                 IncrementV();
                 break;
         }
     }
 
-    private void IncrementV() => _v = (_v + ((_ctrl & 0x04) != 0 ? 32 : 1)) & 0x7FFF;
+    private void IncrementV()
+    {
+        _v = (_v + ((_ctrl & 0x04) != 0 ? 32 : 1)) & 0x7FFF;
+        _cart.ObservePpuAddress((ushort)(_v & 0x3FFF));
+    }
 
     // ---------------------------------------------------------------- PPU bus
 
@@ -189,7 +196,9 @@ public sealed class Ppu
     /// <summary>Advances one dot.</summary>
     public void Step()
     {
+        _cart.ClockPpuDot();
         bool rendering = RenderingEnabled;
+        if (rendering && (Line < Height || Line == PreRenderLine)) ClockFetchAddress();
         if (Line < Height)
         {
             if (Dot == 1)

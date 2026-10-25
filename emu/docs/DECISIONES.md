@@ -834,3 +834,19 @@ TickPit es un pulso externo, independiente del contador de instrucciones. No se
 registró una máquina jugable ni se incluyó firmware en la distribución. Los puertos
 pendientes fallan explícitamente durante el diagnóstico. Alcance y orden restante en
 [PCXT.md](PCXT.md);no implica POST completo, DOS ni temporización validada.
+
+
+## D-055 — MMC3 e interrupciones desde el bus PPU
+
+Mapper 4 implementa MMC3B/C, selección de bancos PRG/CHR, WRAM protegible y espejado
+con cuatro pantallas respetadas. La IRQ comparte la línea de CPU con la APU.
+ClockPpuDot avanza tiempo incluso en blanking; ObservePpuAddress recibe los cambios
+de dirección del calendario de fetches y de los registros CPU. Leer patrones para
+renderizar una línea o inspeccionarlos no debe generar flancos adicionales.
+El filtro temporal se aproxima en puntos PPU; sus límites están en LIMITACIONES.
+
+El formato NES 3 incorpora registros y filtro solo para mapper 4, que no era cargable
+en versiones anteriores. Los estados previos de los otros mappers conservan sus bytes.
+Se rechazan submappers y RAM no implementados, sin asumir que MMC6 equivale a MMC3.
+Referencias: [MMC3](https://www.nesdev.org/wiki/MMC3) y
+[Programación MMC3](https://www.nesdev.org/wiki/Programming_MMC3).

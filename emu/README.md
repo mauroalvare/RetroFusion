@@ -92,7 +92,7 @@ La reaplicación al reiniciar o abrir el juego se activa por separado.
 |---|---|
 | ZX Spectrum 48K | TAP, TZX, Z80, SNA |
 | Commodore 64 | T64, PRG |
-| NES | NES, mappers 0 y 3 |
+| NES | NES, mappers 0/1/2/3/4/7 |
 | Space Invaders | Conjunto de ROMs de la placa en ZIP |
 
 También se aceptan archivos ZIP. La compatibilidad depende de la edición del juego.

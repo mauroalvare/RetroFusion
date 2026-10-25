@@ -63,8 +63,8 @@ src/
   Retro.Systems.Arcade     Placa Taito/Midway de Space Invaders: video, shifter, sonido.
   Retro.Systems.C64        Commodore 64: VIC-II, SID, dos CIA 6526, bancos del 6510,
                            cintas .t64 y programas .prg, compatibilidad con Open ROMs.
-  Retro.Systems.Nes        Nintendo NES: CPU 2A03, PPU 2C02, APU, cartuchos iNES (mappers 0
-                           y 3), OAM DMA y mandos.
+  Retro.Systems.Nes        Nintendo NES: CPU 2A03, PPU 2C02, APU, cartuchos iNES (mappers
+                           0/1/2/3/4/7), OAM DMA y mandos.
   Retro.Machines           Catálogo de máquinas y formatos, y el lanzador común que arranca una
                            máquina con un juego (app, CLI, fusiones y compatibilidad).
   Retro.Compat             Matriz de compatibilidad reproducible: guiones, ejecutor sin ventana,
@@ -794,7 +794,7 @@ registradas por separado.
 | 2 | Intel 8080 | Placa arcade de Space Invaders | Hecha (probada con la ROM real) |
 | F | - | Fusiones, IA y visor de código | Hecha para Spectrum 48K y Space Invaders |
 | 3 | 6502 / 6510 | Commodore 64 (.t64, .prg) | Hecha (Pac-Man, Ghostbusters, Spy vs Spy) |
-| 3n | 2A03 (6502) | NES (.nes, mappers 0 y 3) | Hecha, con sonido (4 homebrew de Mojon Twins llegan al juego) |
+| 3n | 2A03 (6502) | NES (.nes, mappers 0/1/2/3/4/7) | Disponible, con sonido; compatibilidad según placa y periféricos |
 | 3b | 6502 | Discos .d64 y cartuchos del C64, Atari 800, Apple II | Pendiente |
 | 4 | 8086 / 8088 | IBM PC / XT con DOS | Núcleo 8088 parcial; máquina pendiente |
 | 4b | 80286 | PC AT con DOS y EGA | Pendiente, después de PC/XT |
