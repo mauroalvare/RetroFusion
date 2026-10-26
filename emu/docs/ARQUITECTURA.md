@@ -369,32 +369,51 @@ Pac-Man de C64 (vidas $001A). La hipótesis histórica de posición $003C/$003F 
 describía correctamente su sprite: el perfil actual lee el sprite 4 del VIC, con los
 9 bits de X, y ofrece pacman() para convertir su caja a la imagen activa. D-033.
 
-## Preparar cualquier juego para las fusiones (GamePreparer)
+## Preparación de originales para una idea de fusión
 
-`GameCatalog` recorre la carpeta del usuario y devuelve cada juego que una máquina
-implementada puede correr. El que no tiene perfil verificado recibe uno básico en el
-momento (máquina, controles y arranque, sin variables), con el mismo id que le daría
-"Preparar"; así cualquier juego se puede fusionar con controles compartidos.
+GameCatalog ofrece los originales de los sistemas compatibles con preparación de
+perfiles de 16 bits. Cuando no hay perfil persistido, crea uno básico con máquina,
+controles iniciales y huella de edición. Eso permite seleccionar el original, pero no
+demuestra que ya tenga datos para implementar cualquier interacción.
 
-`GamePreparer` hace el perfil completo, por rondas sobre la máquina real (las pruebas
-corren en una máquina gemela para que la real solo vea el arranque):
+GamePreparer arranca una máquina aislada y busca una partida controlable. Primero
+prueba teclas habituales con KeyTrialAdvisor; cuando hace falta consulta AiPlayAdvisor
+o FolderPlayAdvisor. PlayDetector contrasta entradas con corridas de referencia.
+No necesita que el jugador complete primero una partida en la ventana principal.
 
-1. `PlayDetector` decide si ya es la partida: izquierda y derecha (o arriba y abajo),
-   mantenidas 40 y 80 cuadros, llevan una dirección de RAM en sentidos opuestos, más lejos
-   cuanto más se mantienen, y dejan pantallas distintas. Prueba los joysticks y teclados
-   de cada máquina.
-2. Si no, un asesor decide qué apretar: primero `KeyTrialAdvisor` (las teclas habituales,
-   eligiendo la que lleva a una pantalla nueva por similitud de texto o dibujo); después la
-   IA del usuario (`AiPlayAdvisor`, con esquema JSON) o un agente por archivos
-   (`FolderPlayAdvisor`: `ronda-NN.md` y `.png`, respuesta en `respuesta-NN.json`). La IA
-   recibe el texto de la pantalla, un dibujo aproximado, el efecto de cada tecla y lo ya
-   hecho.
-3. En la partida corre el laboratorio, una partida al azar fija para el puntaje (y las
-   vidas, que mueren más jugando que quietas) y la verificación.
-4. El perfil lleva solo las variables verificadas (las posiciones que el juego recalcula,
-   de solo lectura), el arranque como pasos `wait`/`press`, los controles y la huella
-   SHA-256 de la copia. Antes de guardarlo, una máquina nueva repite el arranque y tiene
-   que llegar a la partida.
+PrepareOptions.Goal lleva el propósito y los datos faltantes de la idea a navegación,
+investigación y nombres. MemoryLab observa y contrasta cambios; en NES, NesActionProbe
+relaciona movimientos de RAM y OAM con entradas horizontales y acciones, admitiendo
+un retardo estable de cero o un cuadro. Una relación de pantalla no identifica por sí
+sola la coordenada de mundo, la cámara ni una caja física.
+
+Si el asesor implementa IPreparationExperimentAdvisor, propone un plan declarativo:
+hasta 3 experimentos de 30–900 cuadros, con hasta 24 pulsaciones por prueba y teclas permitidas.
+PreparationExperiments vuelve a validar sus límites en el host. LabExperiments compara
+cada ejecución con otra sin entradas, y Verifier contrasta los candidatos en máquinas
+de ensayo. No se acepta código, comandos de host ni direcciones aportadas como órdenes.
+
+BuildProfile reúne datos con evidencia, controles, arranque y SHA256 de la edición;
+conserva los datos previos comprobados. Los candidatos recalculados pueden ser de solo
+lectura. El nombre sugerido por IA sigue siendo una interpretación que necesita respaldo.
+Antes de guardar, el arranque se repite en una máquina nueva y se comprueban controles.
+PrepareResult.Ok acredita ese arranque/perfil reproducible, no todos los requisitos:
+CheckedData y UnresolvedData separan lo comprobado de lo que sigue abierto.
+
+En StudioWindow, una idea con MissingData ofrece **Preparar y crear esta fusión**.
+FusionPreparationWorkflow hace una pasada acotada de preparación de sus originales,
+actualiza perfiles y ranuras y llama a StudioDesigner.ReassessConceptAsync con la misma
+idea, pedido, modalidad y base. La revisión usa una instantánea de perfiles y exige
+referencias a capacidades existentes; no vuelve a proponer otro juego para quitar
+los faltantes. ROMs, perfiles o configuración cambiados invalidan resultados en curso.
+
+Con proveedor automático, navegación, experimentos, revisión y escritura comparten
+un AiOperation con presupuesto acotado. Si la revisión deja MissingData vacío con
+respaldo, el estudio continúa por WriteAsync y StudioValidator. Si sigue incompleta,
+conserva la idea y los datos que faltan y ofrece otro intento explícito, sin un ciclo
+automático infinito. Cancelar no fuerza una creación ni elimina las guardas.
+En intercambio manual o por carpeta, la revisión final usa una consigna con la evidencia
+actual y la respuesta del chat/agente; no se simula una respuesta automática.
 
 ## Cinta: señal, no atajos
 
@@ -745,7 +764,8 @@ guarda el pedido inicial; Request, el último cambio. Los esquemas piden metadat
 detallado separado. Las carpetas para agentes incluyen el mismo contrato y dejan de
 entregar un juego completo como molde. Las correcciones manuales conservan el pedido
 inicial y la última versión; `StudioWorkspace.Read` también importa su diseño.
-Si missingData declara un dato indispensable ausente o se repite un guion fallido,
+Si missingData declara un dato indispensable ausente, se prepara y reevalúa la misma
+idea antes de escribir; un resultado parcial conserva ese bloqueo. Si se repite un guion fallido,
 se detiene la generación y queda su motivo. No se omiten validaciones para ahorrar contexto.
 
 **Juegos creados (`CreatedGames`, en Retro.Ai):** cada juego es una carpeta en

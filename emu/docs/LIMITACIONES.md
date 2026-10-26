@@ -245,9 +245,15 @@ se trata de una limitación deducida que todavía necesita una prueba específic
 
 ### Laboratorio de ingeniería inversa
 
-- El puntaje, el nivel y los objetos necesitan un experimento que los haga cambiar (en el
-  guion, o la partida al azar de "Preparar"); un juego que no suma puntos jugando al azar
-  queda sin puntaje.
+- El puntaje, el nivel y los objetos necesitan una acción que los haga cambiar.
+  Preparar puede usar la partida de ensayo y experimentos de controles dirigidos al
+  objetivo. Si no provocan el cambio necesario, ese dato queda sin identificar.
+- Los experimentos de IA son planes de teclas con límites de cantidad y cuadros, no
+  programas ni escrituras libres. Sus resultados son candidatos que deben contrastarse.
+  Una escritura con efecto no demuestra el significado de una variable.
+- El sondeo de acciones NES busca relaciones observables entre RAM, OAM y controles,
+  incluso salto o segunda acción. Puede no hallar una relación estable. Encontrarla
+  no acredita una entidad física, coordenadas de mundo ni colisiones del original.
 - Los nombres son hipótesis aunque la variable esté verificada: un contador de tiempo
   puede confundirse con vidas porque ambos bajan de a uno. La verificación prueba que
   el juego usa el valor, no qué significa.
@@ -279,11 +285,19 @@ se trata de una limitación deducida que todavía necesita una prueba específic
 - Los perfiles incluidos (`Retro.Fusion/Profiles`) se asocian por nombre de archivo; los
   que hace "Preparar" van por la huella SHA-256 de la copia (otra edición necesita su
   propio perfil). T-053.
-- Los juegos sin preparar se fusionan sin arranque: empiezan en su título o menú y el
-  jugador o el guion los lleva a la partida; el guion todavía no conoce sus variables.
-- "Preparar" sin IA solo prueba arranques simples. Intros, configuración o pasos
-  específicos de una edición pueden necesitar instrucciones y un agente configurado.
-  La disponibilidad del CLI depende de la instalación y sesión del jugador.
+- Un perfil básico no prueba que existan los datos para la idea. **Preparar y crear
+  esta fusión** puede arrancar y jugar los originales, probar entradas y actualizar sus
+  perfiles sin exigir una partida manual previa. Un perfil parcial también puede
+  revisarse; no basta con que ya exista en el catálogo.
+- La preparación hace una pasada acotada. Puede no atravesar una intro, completar
+  una secuencia o descubrir datos útiles. Sin un proveedor automático, usa las pruebas
+  disponibles y la revisión final se intercambia con el chat o agente configurado.
+  La disponibilidad del CLI depende de su instalación y sesión.
+- La revisión conserva idea, base y pedido. Solo continúa la creación si se respaldan
+  los requisitos; si falta algo, mantiene el motivo y permite reintentar. No garantiza
+  descubrir mapas, cajas de choque, cámara, daño, progresión ni todas las reglas.
+  Cambiar originales, perfiles, selección o configuración durante el trabajo puede
+  invalidarlo; cancelar no habilita la creación ni provoca reintentos por sí solo.
 - El detector de partida puede confundir un cursor de menú que se mueve con una entidad
   jugable. La IA o una comprobación manual deben confirmar que llegó a la partida.
 - Los perfiles solo describen variables, controles y recursos que se comprobaron;

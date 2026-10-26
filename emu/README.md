@@ -39,6 +39,10 @@ la instalación automática. Si venís de una versión anterior, seguí **ACTUAL
 
 ![Inicio con selector de máquinas](docs/img/interfaz/biblioteca.png)
 
+Cuando una propuesta de fusión necesita datos, **Preparar y crear esta fusión**
+ejecuta controles y pruebas y vuelve a revisarla. Continúa si alcanza la evidencia;
+si quedan requisitos sin resolver, los muestra y permite reintentar.
+
 ## Durante la partida
 
 Hacé clic en la pantalla para usar el teclado. **Ayuda > Controles de la partida**

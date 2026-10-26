@@ -25,6 +25,8 @@ public sealed class StudioWindow
     private readonly EmulatorHost _host;
     private readonly string _romDir;
     private readonly AiSettings _ai;
+    private readonly FusionPreparationWorkflow _preparationWorkflow;
+    private readonly Func<IAiProvider?> _preparationProvider;
     private bool _open;
     private bool _libraryChanged;
     private string _folder;
@@ -33,6 +35,13 @@ public sealed class StudioWindow
     private readonly Dictionary<string, string> _unprepared = new();
     private readonly Dictionary<string, string> _labels = new();
     private Task<Retro.Compat.PrepareResult>? _prepareTask;
+    private readonly Dictionary<string, string> _originalPaths = new();
+    private Task<FusionPreparationResult>? _fusionPrepareTask;
+    private AiOperation? _fusionPrepareAi;
+    private string? _fusionPrepareContext;
+    private GameConcept? _fusionPrepareConcept;
+    private GameConcept? _writingConcept;
+    private string _preparationSummary = "";
     private CancellationTokenSource? _prepareCts;
     private string _preparing = "";
     private volatile string _prepareProgress = "";
@@ -73,12 +82,15 @@ public sealed class StudioWindow
     private int _seenEvents;
     private readonly List<FusionEvent> _toasts = new();
 
-    public StudioWindow(EmulatorHost host, string romDir, string gamesFolder, AiSettings ai)
+    public StudioWindow(EmulatorHost host, string romDir, string gamesFolder, AiSettings ai,
+        FusionPreparationWorkflow? preparationWorkflow = null, Func<IAiProvider?>? preparationProvider = null)
     {
         _host = host;
         _romDir = romDir;
         _folder = gamesFolder;
         _ai = ai;
+        _preparationWorkflow = preparationWorkflow ?? new FusionPreparationWorkflow();
+        _preparationProvider = preparationProvider ?? ai.CreateProvider;
     }
 
     public void Open(bool inspired = false)
@@ -126,6 +138,7 @@ public sealed class StudioWindow
         _libraryChanged = false;
         _games.Clear();
         _unprepared.Clear();
+        _originalPaths.Clear();
         _labels.Clear();
         if (!Directory.Exists(_folder))
         {
@@ -137,6 +150,7 @@ public sealed class StudioWindow
         foreach (var g in catalog)
         {
             _games.Add(g.Source);
+            _originalPaths[g.Profile.Id] = g.Path;
             if (!g.Prepared)
                 _unprepared[g.Profile.Id] = g.Path;
             bool twin = twins[g.Profile.Name] > 1;
@@ -161,11 +175,11 @@ public sealed class StudioWindow
     private bool _focusWork;
     public void ShowWork() { _open = true; _focusWork = true; }
 
-    private bool Busy => _prepareTask != null || _conceptTask != null || _designTask != null || _referenceTask != null || _validateTask != null || _startTask != null;
+    private bool Busy => _fusionPrepareTask != null || _prepareTask != null || _conceptTask != null || _designTask != null || _referenceTask != null || _validateTask != null || _startTask != null;
     public Task CancelWork()
     {
         _cts?.Cancel(); _prepareCts?.Cancel();
-        return Task.WhenAll(new Task?[] { _prepareTask, _conceptTask, _designTask, _referenceTask, _validateTask, _startTask }.OfType<Task>());
+        return Task.WhenAll(new Task?[] { _fusionPrepareTask, _prepareTask, _conceptTask, _designTask, _referenceTask, _validateTask, _startTask }.OfType<Task>());
     }
 
     // ------------------------------------------------------------------ drawing
@@ -187,7 +201,7 @@ public sealed class StudioWindow
             _panelLeft = null;
             return;
         }
-        if (_libraryChanged && !Busy) Scan();
+        if (_libraryChanged && !Busy && _manual == null) Scan();
         var vp = ImGui.GetMainViewport();
         ImGui.SetNextWindowPos(new Vector2(vp.Pos.X + vp.Size.X - 540, vp.Pos.Y + 30), ImGuiCond.FirstUseEver);
         ImGui.SetNextWindowSize(new Vector2(530, Math.Min(760, vp.Size.Y - 70)), ImGuiCond.FirstUseEver);
@@ -271,7 +285,9 @@ public sealed class StudioWindow
         ImGui.SetNextItemWidth(-1);
         ImGui.InputTextWithHint("##buscar-juego", "Buscar por nombre o máquina", ref _gameSearch, 150);
         var matches = _games.Where(g => _labels.GetValueOrDefault(g.Profile.Id, g.Profile.Name).Contains(_gameSearch.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
-        ImGui.BeginChild("elegir-juegos", new Vector2(0, Math.Min(Math.Clamp(ImGui.GetWindowHeight() * 0.28f, 110, 200), Math.Max(74, matches.Count * 30 + 12))), ImGuiChildFlags.Borders);
+        float listHeight = Math.Min(Math.Clamp(ImGui.GetWindowHeight() * 0.28f, 110, 200),
+            Math.Max(74, matches.Count * ImGui.GetFrameHeightWithSpacing() + 2 * ImGui.GetStyle().WindowPadding.Y));
+        ImGui.BeginChild("elegir-juegos", new Vector2(0, listHeight), ImGuiChildFlags.Borders);
         if (matches.Count == 0) ImGui.TextWrapped("No encontré juegos con ese nombre. Probá otra búsqueda.");
         foreach (var g in matches)
         {
@@ -344,19 +360,33 @@ public sealed class StudioWindow
         {
             ImGui.Separator();
             ImGui.TextColored(Gold, "Elegí una propuesta");
-            foreach (var concept in _concepts)
+            for (int conceptIndex = 0; conceptIndex < _concepts.Count; conceptIndex++)
             {
-                ImGui.PushID(concept.Title);
+                var concept = _concepts[conceptIndex];
+                ImGui.PushID(conceptIndex);
                 ImGui.TextColored(Gold, concept.Title);
                 ImGui.TextWrapped(concept.Pitch);
                 AiPicker.Hint(concept.HowToPlay);
                 if (concept.Design.Length > 0 && ImGui.TreeNode("Detalles del diseño"))
                 { ImGui.TextWrapped(concept.Design); ImGui.TreePop(); }
-                if (!string.IsNullOrWhiteSpace(concept.MissingData))
-                    ImGui.TextWrapped(StudioDesigner.MissingDataPrefix + concept.MissingData);
-                ImGui.BeginDisabled(Busy || !string.IsNullOrWhiteSpace(concept.MissingData));
-                if (ImGui.Button(_inspiredMode ? "Crear este juego" : "Crear esta fusión")) Write(concept);
+                bool needsData = !string.IsNullOrWhiteSpace(concept.MissingData);
+                if (needsData)
+                {
+                    AiPicker.Hint("La idea necesita comprobar datos del original.");
+                    if (ImGui.TreeNode("Datos que se van a comprobar"))
+                    { ImGui.TextWrapped(concept.MissingData); ImGui.TreePop(); }
+                }
+                ImGui.BeginDisabled(Busy);
+                string action = needsData
+                    ? (_inspiredMode ? "Preparar y crear este juego" : "Preparar y crear esta fusión")
+                    : (_inspiredMode ? "Crear este juego" : "Crear esta fusión");
+                if (ImGui.Button(action))
+                {
+                    if (needsData) PrepareConcept(concept);
+                    else Write(concept);
+                }
                 ImGui.EndDisabled();
+                if (needsData) AiPicker.Hint("El emulador juega y prueba datos; si alcanza, continúa con la creación.");
                 ImGui.Spacing(); ImGui.PopID();
             }
         }
@@ -547,17 +577,24 @@ public sealed class StudioWindow
             ImGui.TextWrapped(_progress);
             ImGui.PopStyleColor();
         }
-        if (_cts != null && (_conceptTask != null || _designTask != null || _referenceTask != null))
+        if (_cts != null && (_fusionPrepareTask != null || _conceptTask != null || _designTask != null || _referenceTask != null))
         {
             if (ImGui.SmallButton("Cancelar"))
                 _cts.Cancel();
         }
-        _build.Draw(_conceptTask != null || _designTask != null, _progress, _cts);
+        _build.Draw(_fusionPrepareTask != null || _conceptTask != null || _designTask != null, _progress, _cts);
+        if (_preparationSummary.Length > 0 && ImGui.TreeNode("Datos comprobados en la preparación"))
+        {
+            ImGui.TextWrapped(_preparationSummary);
+            if (ImGui.SmallButton("Copiar informe de preparación")) ImGui.SetClipboardText(_preparationSummary);
+            ImGui.TreePop();
+        }
         if (_problem != null)
         {
             ImGui.PushStyleColor(ImGuiCol.Text, Red);
             ImGui.TextWrapped(_problem);
             ImGui.PopStyleColor();
+            if (ImGui.SmallButton("Copiar aviso")) ImGui.SetClipboardText(_problem);
             if (_problemDetail != null && ImGui.TreeNode("Informe de la prueba"))
             {
                 ImGui.TextWrapped(_problemDetail);
@@ -681,7 +718,122 @@ public sealed class StudioWindow
         _conceptTask = Task.Run(() => new StudioDesigner().ConceptsAsync(ai, slots, ProfileLibrary.Find, wish, token, direction));
     }
 
-    private void Write(GameConcept concept)
+    private string PreparationContext()
+    {
+        string model = _ai.SessionModel ?? (_ai.Provider switch
+        {
+            "claude" => _ai.ClaudeModel, "openai" => _ai.OpenAiModel, "gemini" => _ai.GeminiModel,
+            "ollama" => _ai.OllamaModel, _ => _ai.CliModels.GetValueOrDefault(_ai.Provider, ""),
+        });
+        return string.Join("\n", _folder, string.Join("|", _chosen), _baseProfile, _inspiredMode, _wish,
+            _ai.Provider, model, _ai.CliEfforts.GetValueOrDefault(_ai.Provider, ""),
+            _ai.Economic, _ai.TextLimitThousands, _ai.OllamaUrl,
+            _ai.CliPaths.GetValueOrDefault(_ai.Provider, ""));
+    }
+
+    private void PrepareConcept(GameConcept concept)
+    {
+        if (Busy) return;
+        ClearProblem(); _manual = null; _preparationSummary = "";
+        var slots = Slots();
+        var originalConcept = concept;
+        concept = concept with { Direction = SelectedDirection() };
+        var targets = new List<FusionPreparationTarget>();
+        foreach (string id in _chosen)
+        {
+            if (!_originalPaths.TryGetValue(id, out string? path) || _games.FirstOrDefault(g => g.Profile.Id == id) is not { } source)
+            { Problem("No se encontró uno de los originales. Actualizá la carpeta y elegí la idea de nuevo."); return; }
+            targets.Add(new(path, source, source.Profile.Helpers.Count == 0));
+        }
+        if (targets.All(target => !target.NeedsPreparation))
+        {
+            string? baseProfile = slots.FirstOrDefault(slot => slot.Slot == concept.Direction?.Resolve(slots))?.Profile;
+            int index = Math.Max(0, targets.FindIndex(target => target.Source.Profile.Id == baseProfile));
+            targets[index] = targets[index] with { NeedsPreparation = true };
+        }
+        var provider = _preparationProvider();
+        // Navigation, experiments, review and writing share one bounded operation.
+        _fusionPrepareAi = provider == null ? null : _ai.Operation(provider,
+            calls: _chosen.Count * (_ai.Economic ? 6 : 8) + 1 + _ai.DesignAttempts);
+        Retro.Compat.IPlayAdvisor? advisor = _fusionPrepareAi != null ? new AiPlayAdvisor(_fusionPrepareAi)
+            : _ai.Provider == "agent" ? new FolderPlayAdvisor(Path.Combine(Path.GetTempPath(), "RetroEmu-preparar", Guid.NewGuid().ToString("N")))
+            : null;
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+        _fusionPrepareContext = PreparationContext();
+        _fusionPrepareConcept = originalConcept;
+        _progress = "Preparando los originales para esta idea. El emulador juega y realiza las comprobaciones.";
+        _focusWork = true;
+        var ai = _fusionPrepareAi;
+        if (ai != null) _build.Start(ai, "preparación de idea");
+        bool economic = _ai.Economic;
+        _fusionPrepareTask = Task.Run(() => _preparationWorkflow.RunAsync(concept, slots, targets, _romDir, advisor,
+            ai == null ? null : (idea, freshSlots, find, ct) => new StudioDesigner().ReassessConceptAsync(ai, freshSlots, find, idea, ct),
+            economic, line => _progress = line, token), token);
+    }
+
+    private void CompletePreparation(FusionPreparationResult result)
+    {
+        result.EnsureOriginalsUnchanged();
+        Scan();
+        _chosen.Clear(); _chosen.AddRange(result.Slots.Select(slot => slot.Profile));
+        foreach (var source in result.Sources.Values)
+        {
+            int i = _games.FindIndex(g => g.Profile.Id == source.Profile.Id);
+            if (i >= 0) _games[i] = source;
+        }
+        string? baseSlot = result.Concept.Direction?.Resolve(result.Slots);
+        _baseProfile = result.Slots.FirstOrDefault(slot => slot.Slot == baseSlot)?.Profile;
+        var original = _fusionPrepareConcept;
+        void ReplaceIdea(GameConcept reviewed)
+        {
+            if (_concepts != null && original != null)
+            {
+                int index = _concepts.FindIndex(idea => ReferenceEquals(idea, original) || idea == original);
+                if (index >= 0) _concepts[index] = reviewed;
+            }
+        }
+        _preparationSummary = result.Summary;
+        if (result.Preparations.Any(r => !r.Ok || r.Profile == null))
+        { _build.Stop(false); Problem(result.Summary); return; }
+        if (_fusionPrepareAi == null)
+        {
+            var snapshot = PreparationContext();
+            string ProfileStamp() => string.Join("\n", result.Slots.Select(slot =>
+                System.Text.Json.JsonSerializer.Serialize(ProfileLibrary.Find(slot.Profile), GameProfile.Json)));
+            string profileStamp = ProfileStamp();
+            _manual = new ManualStep("Revisar la idea con los datos comprobados",
+                StudioDesigner.ManualReassessPrompt(result.Slots, ProfileLibrary.Find, result.Concept),
+                answer =>
+                {
+                    try { result.EnsureOriginalsUnchanged(); }
+                    catch (Exception error) when (error is IOException or InvalidDataException)
+                    { _manual = null; Problem("Los originales o perfiles cambiaron. Volvé a preparar la idea. " + error.Message); return; }
+                    if (profileStamp != ProfileStamp())
+                    { _manual = null; Problem("Los datos de los originales cambiaron. Volvé a revisar la idea."); return; }
+                    if (snapshot != PreparationContext()) { _manual = null; Problem("Cambió la selección o la configuración. La idea anterior se conserva."); return; }
+                    var reviewed = StudioDesigner.ParseReassessment(answer, result.Slots, ProfileLibrary.Find, result.Concept);
+                    ReplaceIdea(reviewed); _manual = null;
+                    if (!string.IsNullOrWhiteSpace(reviewed.MissingData))
+                        Problem("La preparación fue parcial. Todavía falta comprobar: " + reviewed.MissingData);
+                    else Write(reviewed);
+                });
+            _progress = "El jugador automático terminó. Revisá la evidencia con tu chat o agente para continuar.";
+            return;
+        }
+        ReplaceIdea(result.Concept);
+        if (!string.IsNullOrWhiteSpace(result.Concept.MissingData))
+        {
+            _build.Stop(false);
+            Problem("La preparación fue parcial. Todavía falta comprobar: " + result.Concept.MissingData);
+            return;
+        }
+        _build.Stop(true);
+        _progress = "Datos comprobados. Continuando con la creación de la misma idea...";
+        Write(result.Concept, _fusionPrepareAi);
+    }
+
+    private void Write(GameConcept concept, IAiProvider? operation = null)
     {
         ClearProblem();
         _activeWork = null;
@@ -693,6 +845,7 @@ public sealed class StudioWindow
         _manual = null;
         var slots = Slots();
         concept = concept with { Direction = SelectedDirection() };
+        _writingConcept = concept;
         var template = new StudioGame
         {
             Kind = _inspiredMode ? "inspired" : "fusion",
@@ -709,8 +862,22 @@ public sealed class StudioWindow
             Author = AiPicker.ShortName(_ai.Provider),
         };
         string provider = _ai.Provider;
-        var ai = provider is "manual" or "agent" ? null : _ai.Operation(_ai.CreateProvider()!);
+        var ai = provider is "manual" or "agent" ? null : operation ?? _ai.Operation(_ai.CreateProvider()!);
         PrepareReferences(template, references => WriteReady(concept, template, provider, ai, references));
+    }
+
+    private void OfferPreparation(string? error)
+    {
+        if (_writingConcept == null || error?.StartsWith(StudioDesigner.MissingDataPrefix, StringComparison.Ordinal) != true) return;
+        var blocked = _writingConcept with
+        {
+            Title = string.IsNullOrWhiteSpace(_writingConcept.Title) ? "Tu propuesta" : _writingConcept.Title,
+            MissingData = error[StudioDesigner.MissingDataPrefix.Length..],
+        };
+        _concepts ??= [];
+        int index = _concepts.FindIndex(idea => ReferenceEquals(idea, _writingConcept) || idea == _writingConcept);
+        if (index >= 0) _concepts[index] = blocked;
+        else _concepts.Add(blocked);
     }
 
     private void WriteReady(GameConcept concept, StudioGame template, string provider, IAiProvider? ai, OriginalReferences references)
@@ -980,6 +1147,24 @@ public sealed class StudioWindow
     // ------------------------------------------------------------------ background work
     private void Poll()
     {
+        if (_fusionPrepareTask is { IsCompleted: false } && _fusionPrepareContext != PreparationContext())
+            _cts?.Cancel();
+        if (_fusionPrepareTask is { IsCompleted: true } prepared)
+        {
+            _fusionPrepareTask = null;
+            if (_cts?.IsCancellationRequested == true || prepared.IsCanceled)
+            { _build.Stop(false); _progress = "Preparación cancelada. La idea anterior se conserva."; }
+            else if (_fusionPrepareContext != PreparationContext())
+            { _build.Stop(false); Problem("Cambió la selección o la configuración. No se creó una fusión con datos anteriores."); }
+            else if (prepared.IsFaulted)
+            { _build.Stop(false); Problem(Failure(prepared.Exception)); }
+            else
+            {
+                try { CompletePreparation(prepared.Result); }
+                catch (Exception error) when (error is IOException or InvalidDataException or ArgumentException or AiException)
+                { _build.Stop(false); Problem("No se pudo continuar con los datos preparados: " + error.Message); }
+            }
+        }
         if (_referenceTask is { IsCompleted: true } rt)
         {
             _referenceTask = null;
@@ -1001,8 +1186,8 @@ public sealed class StudioWindow
             else if (pt.Result is { Ok: true } r)
             {
                 Scan();
-                _status = $"{_preparing} quedó preparado: {r.Profile!.Variables.Count(v => !v.Value.ReadOnly)} variables verificadas " +
-                          $"({string.Join(", ", r.Profile.Variables.Keys)}). Ya aparece en la lista.";
+                _status = $"{_preparing}: arranque comprobado y {r.Profile!.Variables.Count(v => !v.Value.ReadOnly)} variables con pruebas de escritura.";
+                _preparationSummary = string.Join("\n", r.CheckedData.Concat(r.UnresolvedData));
             }
             else
                 _status = $"No se pudo preparar {_preparing}: {pt.Result.Problem}";
@@ -1039,6 +1224,7 @@ public sealed class StudioWindow
             else
             {
                 _activeWork = null;
+                OfferPreparation(dt.Result.Error);
                 Problem(dt.Result.Error ?? "El juego necesita otra corrección. El trabajo sigue guardado.", dt.Result.Report);
             }
         }

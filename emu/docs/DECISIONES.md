@@ -1007,3 +1007,19 @@ publicar una entrega. Crear o modificar un release, subir o reemplazar sus archi
 publicar sus etiquetas requiere que el usuario lo indique expresamente para esa entrega.
 El permiso de una versión anterior no se hereda. Hasta entonces se informa qué quedó
 preparado y se conserva el candidato verificable, sin alterar la entrega pública vigente.
+
+## D-068 — Preparación dirigida y revisión de una idea con datos actuales
+
+Una propuesta con missingData ofrece preparación automática en lugar de una acción
+deshabilitada. El objetivo llega al arranque, a la observación y al asesor opcional de
+experimentos; los planes declarativos se limitan a controles y duraciones comprobables.
+Goal y las listas de datos comprobados/pendientes son campos opcionales compatibles
+con el recorrido previo. Un arranque correcto no certifica todas las capacidades.
+
+La revisión conserva idea, pedido, modalidad y ranuras, y recibe los perfiles actuales.
+Las citas comprueban que el recurso existe; su interpretación requiere evidencia y el
+validador normal. Escritura, revisión y preparación comparten un presupuesto acotado.
+Si falta respaldo, se conserva el requisito y no se escribe un sustituto genérico.
+Cambios de originales, perfiles o configuración invalidan resultados en curso; cancelar
+no crea una fusión. Los perfiles parciales de la edición exacta pueden enriquecerse;
+los ayudantes útiles de los aportantes se conservan. No se modifica el formato de juego.

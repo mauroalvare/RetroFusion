@@ -24,6 +24,10 @@ Con **Fusionar juegos** elegís los originales, la base y los aportes. El guion 
 conservar la imagen nativa de esa base; no se admiten pantallas independientes pegadas.
 Las instrucciones priorizan que los aportes tengan comportamiento y consecuencias en
 el mundo conservado, sin añadir el mismo menú, HUD o estética a todas las combinaciones.
+
+Si una idea necesita datos del original, **Preparar y crear esta fusión** ejecuta
+controles y pruebas, y revisa la misma idea con lo comprobado. Si alcanza, continúa
+con la creación; si quedan requisitos sin resolver, los muestra y permite reintentar.
 El alcance comprobado del motor está en [Pruebas de fusión](emu/docs/PRUEBAS-FUSION.md).
 
 ### Una fusión incluida
