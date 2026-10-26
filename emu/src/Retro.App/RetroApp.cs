@@ -204,6 +204,14 @@ public sealed partial class RetroApp
         Raylib.UnloadAudioStream(_stream);
     }
 
+    private bool CaptureGuiKeyboard()
+    {
+        var io = ImGui.GetIO();
+        // The focused debugger screen is itself an ImGui window, but owns game input.
+        return io.WantTextInput || _home.IsOpen
+            || (io.WantCaptureKeyboard && !(_debugMode && _screenFocused));
+    }
+
     // ------------------------------------------------------------------ frame
     public void Frame(float dt)
     {
@@ -216,7 +224,7 @@ public sealed partial class RetroApp
             _libraryRevision = _library.Revision;
             _studio.NotifyLibraryChanged(_library.Folder);
         }
-        bool imguiKeyboard = ImGui.GetIO().WantCaptureKeyboard || ImGui.GetIO().WantTextInput || _home.IsOpen;
+        bool imguiKeyboard = CaptureGuiKeyboard();
         if (!_updates.Blocking) HandleHotkeys(ImGui.GetIO().WantTextInput);
         _code.Update();
         _studio.Update(); _creator.Update();
