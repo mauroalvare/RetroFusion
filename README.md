@@ -81,7 +81,9 @@ El selector muestra el hardware de cada máquina y las capturas o carátulas loc
 de los juegos. Una imagen PNG o JPG con el mismo nombre junto al juego sirve como miniatura.
 **Biblioteca** o **Ctrl+L** vuelve al selector y conserva la partida. **Crear** reúne las
 fusiones y los juegos nuevos; **Herramientas** reúne modificaciones, código y depurador.
-**Opciones** contiene la conexión de IA, sonido y pantalla.
+**Opciones** contiene la conexión de IA y los menús de sonido y pantalla.
+**Sonido > Volumen y opciones** permite ajustar volumen, silencio de fondo y margen
+de audio. [Opciones de sonido](emu/docs/SONIDO.md).
 
 | Estudio de fusiones | Creador de juegos de 8 bits |
 |---|---|

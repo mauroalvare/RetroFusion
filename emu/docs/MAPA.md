@@ -15,7 +15,7 @@ propias. No aparece una ventana flotante.
 Elegir una máquina filtra la biblioteca sin reiniciar la partida; abrir un juego
 comienza la partida elegida. Las fusiones y los juegos creados se actualizan al entrar
 o pulsar Actualizar. **Herramientas > Modificar y analizar** reúne cambios, IA, búsqueda y código;
-**Herramientas > Modo depurador** conserva las herramientas técnicas y sus atajos. `HomeScreen` ocupa el espacio entre menú y barra de estado;
+**Herramientas > Depuración > Mostrar depurador** conserva las herramientas técnicas y sus atajos. `HomeScreen` ocupa el espacio entre menú y barra de estado;
 el video y las herramientas quedan ocultos mientras se muestra. La disposición se adapta
 al tamaño de ventana; no se guarda como posición de una ventana flotante en imgui.ini.
 
@@ -89,6 +89,18 @@ con esa herramienta/modelo, esfuerzo y tipo de operación. `AiTiming` usa reloj 
 y recuperación se estiman por separado en estudio y creador. Fallos/cancelaciones no
 entrenan; al superar el intervalo se muestra un aviso sin un contador clavado en cero.
 `AiOperation.cs` concentra medición y límites; el estudio los conserva al continuar.
+
+## Sonido y presentación
+
+**Opciones > Sonido** permite silenciar o abrir volumen y preferencias. SoundSettings
+conserva sonido.json por cuenta; las pruebas automáticas usan opciones solo en memoria.
+AudioOutput aplica el volumen con transición corta; AudioQueue copia por bloques y
+conserva su FIFO acotado y el desvanecimiento al agotarse. AudioBufferFrames ajusta
+el margen del host sin cambiar los relojes de las máquinas. [Guía de sonido](SONIDO.md).
+
+VideoUploadCache convierte ARGB a RGBA por vectores cuando están disponibles y evita
+subir imágenes iguales. Compara contenido para detectar también restauraciones y
+ediciones durante pausa; el cambio de textura invalida la caché.
 
 ## Modificar una partida
 

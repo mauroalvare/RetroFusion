@@ -393,6 +393,14 @@ se trata de una limitación deducida que todavía necesita una prueba específic
 - `retrofusion/` (kit Python inicial) no tiene su punto de entrada `retro.py`: no se puede
   correr tal cual.
 
+## Salida de sonido
+
+- La salida actual es mono a 44,1 kHz y usa el dispositivo predeterminado del sistema.
+  Volumen y margen no agregan canales ni dispositivos a las máquinas emuladas.
+- Un margen amplio puede reducir cortes por pausas breves, a cambio de más demora.
+  No compensa un equipo que no sostenga la emulación.
+- El silencio al perder el foco no pausa la partida. [Opciones de sonido](SONIDO.md).
+
 ## Interfaz y apertura
 
 - La tipografía usa fuentes instaladas o la incorporada de ImGui; puede variar entre sistemas.

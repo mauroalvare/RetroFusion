@@ -911,3 +911,19 @@ ShowWork reabre el recorrido existente sin comenzar otro pedido. El progreso del
 y creador aparece antes del formulario. El teclado capturado por ImGui no llega al juego.
 Las ranuras ocupadas requieren confirmación; la confirmación vuelve a comprobar juego,
 firmware y revisión de sesión antes de escribir.
+
+## Salida de audio y actualización de pantalla
+
+AudioQueue conserva una cola PCM mono acotada entre host y callback, con copias de
+Span por bloques, descarte de muestras antiguas y el mismo desvanecimiento al faltar
+datos. AudioOutput aplica ganancia entre cero y uno con rampa sin asignaciones por
+callback. SoundSettings persiste únicamente preferencias de salida en sonido.json.
+El modo automático silenciado fuerza salida cero sin guardar preferencias reales.
+
+VideoUploadCache compara el contenido ARGB antes de actualizar, invalida al cambiar
+textura/dimensiones y usa Vector<int> con cola escalar para convertir a RGBA. No
+depende solo de FrameCount: también detecta restauraciones y ediciones pausadas.
+
+StepOver usa FlowKind.Call/CallIf para todas las CPUs, incluidos 2A03 y8086, y conserva
+los casos de bucles/repetición. Los editores rechazan registros/PC fuera del ancho
+expuesto, sin truncar ni acceder al bus. No cambia las instrucciones ni sus ciclos.

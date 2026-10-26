@@ -1055,3 +1055,21 @@ Separa casos sin pares de intervalos; entradas vacías/inválidas no pasan. No v
 el reloj absoluto, prelectura, INTA, señales eléctricas ni estado final. Las diferencias
 internas de lectura/modificación/escritura se conservan explícitas, sin declararlas
 resueltas por coincidir valores o por pasar la batería funcional.
+
+## D-071 — Opciones de salida y depuración coherente para 0.3.2
+
+Las preferencias de sonido tienen documento versión1 propio: volumen0–100, silencio,
+silencio al perder el foco y margen de1/2/4 cuadros. Se guardan atómicamente al cambiar
+opciones; un archivo ilegible se conserva y los cambios quedan en la sesión. Autotest
+no lee ni escribe preferencias reales y --mute fuerza salida cero en ese inicio.
+El callback siempre consume la cola; volumen y silencio usan transición corta.
+La reserva cambia el pacing del host, no las instrucciones o relojes de las máquinas.
+
+La cola copia tramos contiguos preservando FIFO, capacidad, descarte y fade previo.
+La caché de vídeo compara contenido y usa conversión vectorial/escalar equivalente;
+una textura nueva invalida la caché. Ninguna omite restauraciones por fiarse de FrameCount.
+
+El editor valida anchos8/16/20bits y rechaza desbordes antes de mutar registros o bus.
+StepOver clasifica llamadas con IFlowAnalyzer, sin inferir la arquitectura por el
+nombre visible. El paquete local se numera0.3.2; el release público sigue0.3.1 hasta
+que el usuario indique publicarlo. La preparación de paquetes no es una autorización.

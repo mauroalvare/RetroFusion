@@ -43,6 +43,13 @@ Cuando una propuesta de fusión necesita datos, **Preparar y crear esta fusión*
 ejecuta controles y pruebas y vuelve a revisarla. Continúa si alcanza la evidencia;
 si quedan requisitos sin resolver, los muestra y permite reintentar.
 
+## Sonido y pantalla
+
+En **Opciones > Sonido > Volumen y opciones** ajustás volumen, silencio al cambiar
+de ventana y margen de audio. Los cambios se conservan al cerrar.
+**Opciones > Pantalla** reúne pantalla completa y escala entera.
+[Opciones de sonido](docs/SONIDO.md) · [Novedades de 0.3.2](docs/NOVEDADES-0.3.2.md).
+
 ## Durante la partida
 
 Hacé clic en la pantalla para usar el teclado. **Ayuda > Controles de la partida**

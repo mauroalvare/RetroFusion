@@ -5,7 +5,7 @@ param(
     [ValidatePattern('^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$')]
     [string[]]$Runtimes = @("win-x64", "linux-x64"),
     [ValidatePattern('^\d+\.\d+\.\d+$')]
-    [string]$Version = "0.3.1"
+    [string]$Version = "0.3.2"
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
@@ -49,6 +49,8 @@ foreach ($rid in $Runtimes) {
     $playerDocs = Join-Path $out "docs"
     New-Item -ItemType Directory -Force $playerDocs | Out-Null
     Copy-Item (Join-Path $root "docs/MODIFICACIONES.md") (Join-Path $playerDocs "MODIFICACIONES.md")
+    Copy-Item (Join-Path $root "docs/SONIDO.md") (Join-Path $playerDocs "SONIDO.md")
+    Copy-Item (Join-Path $root "docs/NOVEDADES-0.3.2.md") (Join-Path $playerDocs "NOVEDADES-0.3.2.md")
     Copy-Item (Join-Path $root "docs/PC-DOS.md") (Join-Path $playerDocs "PC-DOS.md")
     Copy-Item (Join-Path $root "docs/PCXT.md") (Join-Path $playerDocs "PCXT.md")
     Copy-Item (Join-Path $root "docs/I8088.md") (Join-Path $playerDocs "I8088.md")
