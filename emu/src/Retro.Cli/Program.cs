@@ -50,7 +50,7 @@ static int Usage()
 
         Opciones de run:
           --rom <ruta>             ROM del Spectrum 48K (por defecto roms/48.rom)
-          --bios <ruta>            BIOS PC/XT; requiere un disquete con sistema de arranque
+          --bios <ruta>            BIOS PC/XT opcional; se usa el libre incluido por defecto
           --frames <n>             cuadros a emular. Por defecto 500
           --autoload               (Spectrum) escribe LOAD "" ENTER al arrancar
           --until-tape-end         (Spectrum) sigue hasta que la cinta termina (+ --frames extra)
@@ -171,7 +171,7 @@ Spectrum48? zx = null;
 bool isTape = false;
 var c64Media = files.Where(f => Retro.Systems.C64.C64Media.Probe(f) > 0).OrderBy(f => MediaArchive.DumpScore(f.Name)).FirstOrDefault();
 var nesMedia = files.Where(f => Retro.Systems.Nes.NesCartridge.IsINes(f.Data)).OrderBy(f => MediaArchive.DumpScore(f.Name)).FirstOrDefault();
-var pcMedia = files.SelectMany(Retro.Machines.MachineCatalog.Identify).Where(c => c.Machine.Id == "pcxt" && c.Confidence >= 50).OrderByDescending(c => c.Confidence).FirstOrDefault();
+var pcMedia = files.SelectMany(Retro.Machines.MachineCatalog.Identify).Where(c => c.Machine.Id == "pcxt" && c.Confidence >= 50).OrderBy(c => Retro.Machines.PcDos.ProgramPriority(c.File.Name)).ThenByDescending(c => c.Confidence).FirstOrDefault();
 if (nesMedia != null && !isInvaders)
 {
     Retro.Systems.Nes.NesCartridge cart;
@@ -192,9 +192,11 @@ else if (pcMedia != null && !isInvaders)
     {
         if (Retro.Machines.MachineCatalog.NotLoadableYet(pcMedia) is { } problem) throw new InvalidDataException(problem);
         string bios = Opt("bios") ?? FindPcBios();
-        machine = new Retro.Systems.Pc.PcXt(File.ReadAllBytes(bios), pcMedia.File.Data);
+        bool program = pcMedia.File.Extension is ".exe" or ".com";
+        byte[] disk = program ? Retro.Machines.PcDos.Prepare(files, pcMedia.File) : pcMedia.File.Data;
+        machine = new Retro.Systems.Pc.PcXt(File.ReadAllBytes(bios), disk);
         Console.WriteLine($"Máquina: {machine.DisplayName}; CGA, teclado y altavoz");
-        Console.WriteLine($"Disquete: {pcMedia.File.Name}; BIOS: {bios}");
+        Console.WriteLine($"{(program ? "Programa con FreeDOS integrado" : "Disquete")}: {pcMedia.File.Name}; BIOS: {bios}");
     }
     catch (Exception e) when (e is IOException or ArgumentException or NotSupportedException)
     { Console.Error.WriteLine("No se pudo cargar PC/XT: " + e.Message); return 3; }
@@ -912,7 +914,7 @@ static string FindPcBios()
     catch (FileNotFoundException)
     {
         try { return FindRom("pcxt-bios.rom"); }
-        catch (FileNotFoundException) { throw new FileNotFoundException("Falta firmware/pcxt/pcxt-bios.rom. Pasá --bios <ruta>."); }
+        catch (FileNotFoundException) { return Retro.Systems.Pc.PcFirmware.FindPath(""); }
     }
 }
 

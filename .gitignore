@@ -31,3 +31,8 @@ emu/testdata/8080/CPUTEST.COM
 
 # --- Temporales
 *.tmp
+
+# Fuentes correspondientes de los componentes libres de PC (no juegos)
+!emu/runtime/pcxt/sources/kernel-source.zip
+!emu/runtime/pcxt/sources/freecom-source.zip
+!emu/runtime/pcxt/sources/glabios-source.zip

@@ -133,8 +133,11 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 
 ### IBM PC/XT
 
-- Disponible en app y CLI con BIOS externo y disquetes de arranque IMG/IMA de 160–720 KB.
-  No se incluyen BIOS de PC ni DOS. Un EXE/COM suelto no arranca sin un sistema operativo.
+- Disponible en app y CLI con BIOS libre y FreeDOS incluidos para EXE/COM y ZIP;
+  también admite IMG/IMA de 160–720 KB. El juego y sus datos, más DOS, deben entrar
+  en 720 KB. Los programas sueltos toman datos de su carpeta; si contiene muchos otros
+  programas, separá el juego en su propia carpeta o ZIP. Los nombres de datos deben
+  ser DOS 8.3; las carpetas largas reciben alias internos. No se ejecuta código en el host.
 - 8088 con prelectura y reloj T; los tiempos internos EU son aproximados. El contraste
   externo comprobó estado funcional, sin validar trazas de ciclos. Sin 8086/8087/AT.
 - CGA RGBI, 83 teclas, altavoz y capa privada de disco incluida en guardados completos.

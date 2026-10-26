@@ -71,8 +71,8 @@ c64/: Open ROMs (KERNAL, BASIC y juego de caracteres libres para el Commodore 64
 de la licencia en la misma carpeta). Si tenés las ROMs originales del C64 (kernal.rom,
 basic.rom, chargen.rom), ponelas en esa carpeta y el emulador las prefiere.
 
-PC/XT: agregá tu BIOS como pcxt/pcxt-bios.rom. No se incluyen BIOS de PC ni DOS.
-Ver docs/PC-DOS.md.
+PC/XT: incluye GLaBIOS y FreeDOS en system/pcxt, con licencias y fuentes.
+Para usar tu BIOS, agregalo como pcxt/pcxt-bios.rom. Ver docs/PC-DOS.md.
 
 Los juegos no se incluyen.
 "@ | Set-Content (Join-Path $out "firmware/LEEME.txt") -Encoding utf8

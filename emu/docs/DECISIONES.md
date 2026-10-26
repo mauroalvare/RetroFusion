@@ -973,3 +973,17 @@ ayudas usan texto sin formato y ancho limitado. El pie reabre trabajos existente
 progreso permanece al comienzo del recorrido. Mostrar trabajo no llama al proveedor.
 Guardar sobre una ranura requiere confirmación ligada a identidad/revisión actuales;
 no cambia el formato del estado ni sus rutas. La versión sigue siendo 0.3.0.
+
+
+## D-065 — Arranque libre y apertura directa de programas DOS
+
+Se incluyen GLaBIOS/FreeDOS/FreeCOM como componentes independientes ejecutados en el
+PC emulado, con fuentes y licencias en el mismo paquete. Los juegos permanecen externos.
+PcDos construye FAT12 privado y un cargador propio; no se interceptan servicios DOS.
+MediaArchive.Open agrega keepAuxiliary opcional (false conserva el recorrido anterior).
+StartPc acepta el conjunto de archivos opcional para conservar datos del ZIP. Los estados
+usan la identidad del disco generado; las imágenes de usuario mantienen su contrato previo.
+El BIOS aportado por el usuario prevalece sobre el incluido. El sistema incluido vive
+fuera de firmware/, que el actualizador protege como datos del jugador.
+La versión sigue en 0.3.0 por pedido expreso. Quien ya tenga esa versión descarga el
+paquete revisado manualmente; no se cambia el protocolo de versiones del actualizador.

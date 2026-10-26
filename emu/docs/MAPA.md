@@ -280,7 +280,7 @@ en AppData/RetroEmu/states/<identidad>/slotN.rfstate. StateSlotStore.cs resuelve
 fechas; RetroApp.States.cs dibuja el panel. El guardado rápido es temporal.
 
 
-PC/XT se abre desde la biblioteca con un IMG/IMA de arranque y BIOS externo.
+PC/XT abre EXE/COM y ZIP con GLaBIOS/FreeDOS incluidos, además de IMG/IMA de arranque.
 Guía del jugador: [PC-DOS.md](PC-DOS.md). Desde emu:
 `dotnet run --project src/Retro.Cli -c Release -- run disco.img --bios ruta/al/bios.rom --frames 2400 --screenshot out/pc.png`.
 `PcLaunchTests` comprueba carga, identidad de guardados y direcciones por encima de 64 KB.
@@ -293,3 +293,9 @@ usa los formatos de MachineCatalog. `FileBrowserTests` comprueba disquetes, bús
 navegación y selecciones que desaparecen. `StateSlotTests` comprueba la confirmación
 de reemplazo y rechaza confirmaciones de otra sesión. El pie de RetroApp permite
 recuperar trabajos activos sin iniciar una generación nueva.
+
+
+- Retro.Machines/PcDos.cs: preparación privada FAT12, arranque DOS y archivos asociados.
+- runtime/pcxt: GLaBIOS, kernel, shell, licencias, fuentes y procedencia con SHA.
+- App.Tests/PcDosTests.cs: datos INI en ZIP, DOS y teclado reales, identidad,
+  límites y fin de aceleración; sin juegos de terceros ni IA real.

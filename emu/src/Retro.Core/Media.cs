@@ -16,35 +16,35 @@ public static class MediaArchive
         ".txt", ".md", ".nfo", ".diz", ".url", ".htm", ".html", ".pdf", ".jpg", ".jpeg", ".png", ".gif", ".ini",
     };
 
-    public static List<MediaFile> Open(string path)
+    public static List<MediaFile> Open(string path, bool keepAuxiliary = false)
     {
         var data = File.ReadAllBytes(path);
-        return Open(data, Path.GetFileName(path), path);
+        return Open(data, Path.GetFileName(path), path, keepAuxiliary);
     }
 
     /// <summary>Reads bytes already held under a file lock, without reopening the source.</summary>
-    public static List<MediaFile> Open(byte[] data, string name, string source)
+    public static List<MediaFile> Open(byte[] data, string name, string source, bool keepAuxiliary = false)
     {
         var result = new List<MediaFile>();
         if (name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
         {
             long expanded = 0;
-            ExtractZip(data, source, result, 0, ref expanded);
+            ExtractZip(data, source, result, 0, ref expanded, keepAuxiliary);
         }
         else
             result.Add(new MediaFile(name, data, source));
         return result;
     }
 
-    private static void ExtractZip(byte[] zipData, string source, List<MediaFile> output, int depth, ref long expanded)
+    private static void ExtractZip(byte[] zipData, string source, List<MediaFile> output, int depth, ref long expanded, bool keepAuxiliary)
     {
         using var zip = new ZipArchive(new MemoryStream(zipData), ZipArchiveMode.Read);
         foreach (var entry in zip.Entries)
         {
-            if (entry.FullName.EndsWith('/') || entry.Length == 0)
+            if (entry.FullName.EndsWith('/') || entry.FullName.EndsWith('\\') || (entry.ExternalAttributes & 0x10) != 0 || (!keepAuxiliary && entry.Length == 0))
                 continue;
             string ext = Path.GetExtension(entry.Name);
-            if (Junk.Contains(ext))
+            if (!keepAuxiliary && Junk.Contains(ext))
                 continue;
             expanded += entry.Length;
             if (expanded > 256L * 1024 * 1024)
@@ -54,7 +54,7 @@ public static class MediaArchive
             s.CopyTo(ms);
             var bytes = ms.ToArray();
             if (ext.Equals(".zip", StringComparison.OrdinalIgnoreCase) && depth < 4)
-                ExtractZip(bytes, source + "!" + entry.FullName, output, depth + 1, ref expanded);
+                ExtractZip(bytes, source + "!" + entry.FullName, output, depth + 1, ref expanded, keepAuxiliary);
             else
                 output.Add(new MediaFile(entry.Name, bytes, source + "!" + entry.FullName));
         }

@@ -94,7 +94,7 @@ desde los pendientes del estudio o del creador con su último código y sus edic
 | ![Rutinas y depurador de Tormenta en C64](emu/docs/img/interfaz/codigo.png) | ![Cave corriendo en la máquina NES](emu/docs/img/interfaz/nes.png) |
 | Estudiá rutinas, registros y memoria mientras el programa corre. | Juegos originales con CPU, video, sonido y controles emulados. |
 
-| Biblioteca en una ventana chica | Archivos de PC y formatos pendientes |
+| Biblioteca en una ventana chica | Programas de PC con arranque incluido |
 |---|---|
 | ![Biblioteca compacta](emu/docs/img/interfaz/biblioteca-compacta.png) | ![Biblioteca de PC](emu/docs/img/interfaz/biblioteca-pc.png) |
 
@@ -105,8 +105,8 @@ desde los pendientes del estudio o del creador con su último código y sus edic
 - **Abrir archivos:** selección con un clic, búsqueda dentro de la carpeta y botón Abrir;
   incluye los disquetes de PC. **Ver trabajo en curso** recupera la actividad de creación
   o análisis aunque hayas cerrado su panel.
-- **PC/XT con DOS y CGA:** 8088, teclado, altavoz y disquetes de arranque. BIOS y sistema
-  operativo aparte; [preparación y alcance](emu/docs/PC-DOS.md).
+- **PC/XT con DOS y CGA:** 8088, teclado, altavoz y apertura de EXE/COM o ZIP con
+  BIOS libre y FreeDOS incluidos. También admite disquetes IMG/IMA; [uso y alcance](emu/docs/PC-DOS.md).
 - **Más cartuchos de NES:** mappers 0/1/2/3/4/7, bancos de memoria y temporización de
   interrupciones MMC3. La compatibilidad depende de la placa del cartucho.
 - **Partidas por juego:** cinco ranuras con fecha, separadas por edición y firmware.

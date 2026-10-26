@@ -409,6 +409,7 @@ public sealed partial class RetroApp
                 return;
             }
             var files = MediaArchive.Open(path);
+            _openedMedia = files;
             if (files.Count == 0)
             {
                 _errorPopup = $"{fileName} está vacío (o es un zip sin archivos).";
@@ -454,7 +455,8 @@ public sealed partial class RetroApp
             // the others stay in Archivo > Otras versiones.
             _versions = playable
                 .GroupBy(c => c.File.Name).Select(g => g.First())
-                .OrderBy(c => MediaArchive.DumpScore(c.File.Name))
+                .OrderBy(c => c.Machine.Id == "pcxt" ? PcDos.ProgramPriority(c.File.Name) : 0)
+                .ThenBy(c => MediaArchive.DumpScore(c.File.Name))
                 .ThenBy(c => FormatPreference(c.File.Extension))
                 .ToList();
             if (Launch(_versions[0])) _home.RecordOriginal(path, _versions[0].Machine.Id, files);
@@ -485,6 +487,8 @@ public sealed partial class RetroApp
     private void PlayFusion(string id) { CloseEditors(); _home.Close(); _studio.PlayById(id); _studio.Close(); }
     private void OpenModifications() { CloseEditors(); _home.Close(); _code.OpenModifications(); }
 
+    private IReadOnlyList<MediaFile> _openedMedia = [];
+
     private bool Launch(MachineCatalog.Candidate c)
     {
         _home.Close();
@@ -494,7 +498,7 @@ public sealed partial class RetroApp
                 _input.ReleaseAll(_host.Machine);
             if (c.Machine.Id == "nes")
                 _host.StartNes(c.Machine, c.File);     // a cartridge: a fresh machine for each game
-            else if (c.Machine.Id == "pcxt") _host.StartPc(c.Machine, c.File, _romDir);
+            else if (c.Machine.Id == "pcxt") _host.StartPc(c.Machine, c.File, _romDir, _openedMedia);
             else
             {
                 if (_host.Info?.Id != c.Machine.Id || _host.Fusion != null)

@@ -121,3 +121,15 @@ y capa de disquete. La carga reconstruye un runtime completo antes de sustituir 
 activo. Un archivo truncado, dañado o de otro medio no modifica la partida actual.
 También se prueba reanudar una lectura de sector en curso y el audio del altavoz.
 Reiniciar conserva las escrituras privadas del disco; guardar una partida las incluye.
+
+
+## Apertura directa con una base libre
+
+EXE/COM y ZIP se preparan con PcDos en un FAT12 privado de 720 KB. El paquete
+incluye GLaBIOS 0.4.2 8P, FreeDOS kernel 2043 y FreeCOM 0.86, con licencias y
+fuentes correspondientes en system/pcxt. Un BIOS del usuario sigue teniendo prioridad.
+El cargador propio usa lecturas BIOS CHS; el sistema ejecuta sus INT 21h de verdad.
+Los nombres y estructuras de datos DOS se conservan. No se ejecutan instaladores en el
+host ni se escribe en los archivos de origen. Los alias solo se usan en la copia privada.
+El espacio del sistema reduce la capacidad disponible para el juego. No implica soporte
+para otra generación de CPU, gráficos ni discos duros.

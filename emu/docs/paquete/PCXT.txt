@@ -1,4 +1,9 @@
-PC/XT necesita un BIOS compatible aportado por vos.
-Guardalo en esta carpeta con el nombre pcxt-bios.rom.
-Los disquetes de arranque IMG/IMA (160-720 KB) van en ROMs.
-BIOS, DOS y juegos no se incluyen. Pasos y límites: docs/PC-DOS.md junto al programa.
+PC/XT ya incluye GLaBIOS y FreeDOS como base libre de arranque.
+Abrí el ZIP del juego o un programa EXE/COM para PC/XT con CGA.
+Sus archivos de datos deben acompañarlo; las copias de trabajo quedan en memoria.
+También admite imágenes IMG/IMA de 160-720 KB con su propio arranque.
+
+Si preferís tu BIOS, guardalo aquí como pcxt-bios.rom.
+Tiene prioridad sobre el incluido. No se distribuye MS-DOS ni un BIOS de IBM.
+Licencias y fuentes: system/pcxt, junto al programa.
+Uso y límites: docs/PC-DOS.md. Los juegos se agregan por separado.

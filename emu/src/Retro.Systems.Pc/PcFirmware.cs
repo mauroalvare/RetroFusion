@@ -8,7 +8,9 @@ public static class PcFirmware
         string flat = Path.Combine(folder, "pcxt-bios.rom");
         if (File.Exists(nested)) return nested;
         if (File.Exists(flat)) return flat;
-        throw new FileNotFoundException("Falta el BIOS de PC. Guardá un BIOS compatible como firmware/pcxt/pcxt-bios.rom.");
+        string included = Path.Combine(AppContext.BaseDirectory, "system", "pcxt", "glabios.rom");
+        if (File.Exists(included)) return included;
+        throw new FileNotFoundException("Falta la base de PC incluida. Volvé a extraer el paquete completo, o agregá tu BIOS en firmware/pcxt/pcxt-bios.rom.");
     }
     public static byte[] Read(string folder) => File.ReadAllBytes(FindPath(folder));
     public static bool IsSupportedDiskSize(int size) => size is 163840 or 184320 or 327680 or 368640 or 737280;

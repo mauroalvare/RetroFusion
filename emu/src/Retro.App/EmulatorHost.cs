@@ -93,7 +93,10 @@ public sealed class EmulatorHost
     private uint? _runToAddress;
 
     public AudioQueue Audio => _audio;
-    public bool IsFastForwarding => Machine != null && (Turbo || (TurboWhileLoading && Zx != null && Zx.Tape.IsPlaying));
+    private bool _pcDosProgram, _pcDosBooting, _pcDosBootSeen;
+    private long _pcDosBootStart;
+    public bool IsFastForwarding => Machine != null && (Turbo || (TurboWhileLoading
+        && ((Zx != null && Zx.Tape.IsPlaying) || (_pcDosBooting && Fusion == null && Pc != null))));
 
     /// <summary>Starts a machine that has its firmware in the firmware folder (ZX Spectrum, Commodore 64).</summary>
     public void Start(MachineInfo info, string romDirectory)
@@ -142,12 +145,14 @@ public sealed class EmulatorHost
         Status = $"{file.Name}: {cart.Describe()}. Mando: flechas, Z = B, X = A, Enter = Start, Shift derecho = Select.";
     }
 
-    public void StartPc(MachineInfo info, MediaFile file, string firmwareDirectory)
+    public void StartPc(MachineInfo info, MediaFile file, string firmwareDirectory, IReadOnlyList<MediaFile>? files = null)
     {
-        var launched = MachineLauncher.Launch("pcxt", [file], file, firmwareDirectory);
+        var launched = MachineLauncher.Launch("pcxt", files ?? [file], file, firmwareDirectory);
         var pc = (PcXt)launched.Machine; SetMachine(pc, info, pc.Board.Memory.BiosIdentity);
-        LoadedMedia = file.Name; _loadedFiles = [file]; LoadedProfile = ProfileLibrary.ForFiles([file]);
-        Status = "PC/XT con CGA. El disquete se inicia desde su propio sistema; F1–F10 llegan al PC. Atajos del emulador: Ctrl + tecla de función.";
+        LoadedMedia = file.Name; _loadedFiles = [launched.Media]; LoadedProfile = ProfileLibrary.ForFiles([file]);
+        _pcDosProgram = _pcDosBooting = file.Extension is ".exe" or ".com";
+        _pcDosBootSeen = false; _pcDosBootStart = pc.FrameCount;
+        Status = (_pcDosBooting ? "Iniciando FreeDOS..." : launched.Description) + " F1–F10 llegan al PC. Atajos: Ctrl + tecla de función.";
     }
 
     /// <summary>Starts the Space Invaders board with the game ROM from the user's files.</summary>
@@ -200,6 +205,7 @@ public sealed class EmulatorHost
         Fusion = null;
         m.ExecutedMap = new bool[1 << Math.Clamp(m.Memory.AddressBits, 1, 20)];   // the code view sees everything the game ran
         Machine = m;
+        _pcDosProgram = _pcDosBooting = _pcDosBootSeen = false;
         FirmwareIdentity = firmware;
         Info = info;
         Paused = false;
@@ -279,7 +285,7 @@ public sealed class EmulatorHost
         {
             // Run as many frames as fit in ~12 ms; sound is skipped while fast-forwarding.
             var sw = Stopwatch.StartNew();
-            while (sw.Elapsed.TotalMilliseconds < 12 && !Paused)
+            while (sw.Elapsed.TotalMilliseconds < 12 && !Paused && IsFastForwarding)
             {
                 if (!RunOneFrame(m))
                     break;
@@ -321,6 +327,15 @@ public sealed class EmulatorHost
         BeforeFrame?.Invoke(m);
         Debug.Temporary = _runToAddress;
         var reason = m.RunFrame(Debug.Enabled ? Debug : null);
+        if (_pcDosBooting && Pc is { } pc)
+        {
+            _pcDosBootSeen |= PcDos.IsBootLoading(pc);
+            if ((_pcDosBootSeen && PcDos.IsBootReady(pc)) || pc.FrameCount - _pcDosBootStart >= 6000)
+            {
+                _pcDosBooting = false;
+                Status = PcDos.IsBootReady(pc) ? "FreeDOS listo. Iniciando el programa." : "El arranque de DOS demoró más de lo previsto. Revisá la pantalla.";
+            }
+        }
         if (_runToAddress is uint target && reason == RunStopReason.Breakpoint && m.Cpu.ProgramCounter == target)
         {
             _runToAddress = null;
@@ -417,6 +432,7 @@ public sealed class EmulatorHost
         SessionChanging?.Invoke();
         Machine?.Reset(hard);
         StateRestored();
+        _pcDosBooting = _pcDosProgram; _pcDosBootSeen = false; _pcDosBootStart = Machine?.FrameCount ?? 0;
         Status = hard ? "Reinicio total (memoria borrada)." : "Reinicio.";
     }
 
@@ -507,6 +523,7 @@ public sealed class EmulatorHost
     /// <summary>Invalidates game-bound work and clears sound/pacing after a state change.</summary>
     public void StateRestored()
     {
+        _pcDosBooting = _pcDosBootSeen = false; // A restored game must never resume boot acceleration.
         MediaRevision++;
         _accumulator = 0;
         _audio.Clear();

@@ -42,14 +42,15 @@ public sealed class PcLaunchTests
         Assert.That(launch.Machine.Cpu.ProgramCounter, Is.EqualTo(0xFFFF0u));
     }
     [Test]
-    public void MissingFirmwareAndStandaloneProgramsHaveActionableErrors()
+    public void ProgramsUseIncludedDosAndUserBiosOverridesTheIncludedBios()
     {
         var program = new MediaFile("programa.com", [0xCD, 0x20], "programa.com");
-        Assert.That(() => MachineLauncher.Launch("pcxt", [program], null, _folder),
-            Throws.TypeOf<InvalidDataException>().With.Message.Contains("DOS"));
+        var launch = MachineLauncher.Launch("pcxt", [program], null, _folder);
+        Assert.That(launch.Media.Data, Has.Length.EqualTo(737280));
+        Assert.That(launch.Media.Name, Is.EqualTo(program.Name));
+        Assert.That(PcFirmware.Read(_folder), Is.EqualTo(Bios()));
         File.Delete(Path.Combine(_folder, "pcxt", "pcxt-bios.rom"));
-        Assert.That(() => MachineLauncher.Launch("pcxt", [Disk()], null, _folder),
-            Throws.TypeOf<FileNotFoundException>().With.Message.Contains("firmware/pcxt/pcxt-bios.rom"));
+        Assert.That(PcFirmware.FindPath(_folder), Does.EndWith(Path.Combine("system", "pcxt", "glabios.rom")));
     }
     [Test]
     public void StepOverAndRunToKeepPhysicalAddressesAbove64K()

@@ -260,7 +260,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         {
             ImGui.TextWrapped(_machine switch
             {
-                "pcxt" => "Disquetes de arranque IMG/IMA de 160 a 720 KB. BIOS: firmware/pcxt/pcxt-bios.rom. Los EXE/COM necesitan DOS.",
+                "pcxt" => "FreeDOS y BIOS libres incluidos. Abrí un EXE, COM o ZIP para PC/XT, o un disquete IMG/IMA de 160 a 720 KB. Gráficos CGA.",
                 "zx48" => "Cintas TAP/TZX e instantáneas Z80/SNA.",
                 "c64" => "Programas PRG y cintas T64. Los discos D64 y cartuchos CRT siguen pendientes.",
                 "nes" => "Cartuchos NES. La compatibilidad depende de la placa del cartucho.",

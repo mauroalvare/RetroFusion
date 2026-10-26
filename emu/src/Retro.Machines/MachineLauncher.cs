@@ -66,12 +66,15 @@ public static class MachineLauncher
             }
             case "pcxt":
             {
-                media ??= files.Where(f => f.Extension is ".img" or ".ima").OrderBy(f => MediaArchive.DumpScore(f.Name)).FirstOrDefault()
-                    ?? throw new InvalidDataException("Abrí un disquete con arranque DOS (.img o .ima); los programas EXE/COM se ejecutan desde DOS.");
-                if (media.Extension is not (".img" or ".ima"))
-                    throw new InvalidDataException("Los programas EXE/COM necesitan DOS. Abrí una imagen de disquete que incluya el sistema y el programa.");
-                var m = new PcXt(PcFirmware.Read(firmwareDirectory), media.Data);
-                return new LaunchResult(m, media, "PC/XT con CGA y disquete; el arranque depende del sistema incluido en la imagen.", Array.Empty<string>(), false);
+                media ??= files.SelectMany(MachineCatalog.Identify).Where(c => c.Machine.Id == "pcxt" && c.Confidence >= 50)
+                    .OrderBy(c => PcDos.ProgramPriority(c.File.Name)).ThenBy(c => MediaArchive.DumpScore(c.File.Name))
+                    .Select(c => c.File).FirstOrDefault() ?? throw new InvalidDataException("No hay un programa DOS o disquete de PC que se pueda abrir.");
+                bool program = media.Extension is ".exe" or ".com";
+                byte[] disk = program ? PcDos.Prepare(files, media) : media.Data;
+                var m = new PcXt(PcFirmware.Read(firmwareDirectory), disk);
+                var identity = program ? media with { Data = disk } : media;
+                return new LaunchResult(m, identity, program ? "PC/XT con FreeDOS integrado; los archivos originales quedan intactos."
+                    : "PC/XT con CGA y disquete; el arranque depende del sistema incluido en la imagen.", Array.Empty<string>(), false);
             }
             case "nes":
             {

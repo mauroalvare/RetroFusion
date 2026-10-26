@@ -1,0 +1,45 @@
+{
+  "components": [
+    {
+      "name": "FreeDOS kernel",
+      "version": "2043",
+      "license": "GPL-2.0-or-later",
+      "binary": "kernel.sys",
+      "binary_url": "https://github.com/FDOS/kernel/releases/download/ke2043/ke2043_86f16.zip",
+      "sources": "sources/kernel-source.zip",
+      "source_url": "https://github.com/FDOS/kernel/releases/download/ke2043/ke2043s.zip"
+    },
+    {
+      "name": "FreeCOM",
+      "version": "0.86",
+      "license": "GPL-2.0-or-later",
+      "binary": "command.com",
+      "binary_url": "https://github.com/FDOS/freecom/releases/download/com086/command.zip",
+      "sources": "sources/freecom-source.zip",
+      "source_url": "https://github.com/FDOS/freecom/releases/download/com086/freecom-source.zip"
+    },
+    {
+      "name": "GLaBIOS",
+      "version": "0.4.2 8P",
+      "license": "GPL-3.0; font CC-BY-SA-4.0",
+      "binary": "glabios.rom",
+      "binary_url": "https://github.com/640-KB/GLaBIOS/releases/tag/v0.4.2",
+      "sources": "sources/glabios-source.zip",
+      "source_url": "https://api.github.com/repos/640-KB/GLaBIOS/zipball/v0.4.2",
+      "notes": "Corresponding src/ plus upstream README/LICENSE; screenshots and prebuilt flashing tool omitted. Font bitmap is inline in GLABIOS.ASM."
+    }
+  ],
+  "files": {
+    "command.com": "d33d3e0a3a0c02ef74d9b9e6d72a3adc7969630bacb7ec8e4e6a7cb197dcefb2",
+    "glabios.rom": "92679d9445f41ed5563b72844f16238d058c3b4efa93cd8e349645f2e3a70650",
+    "kernel.sys": "00339579bf8a1c9beb23217ad2cf95a3b3dc6df386e82fbe611f0af7bb4c60c3",
+    "licenses/font-CC-BY-SA-4.0.txt": "28a9529c7d0bb4dc51f4bf5c116a3d16ef247a052f7591466768ddf563fd1cf5",
+    "licenses/freecom-GPL-2.txt": "45ece956c40ccac10202a455c0841da8bf42b28412f8c992357da826bb107eae",
+    "licenses/glabios-GPL-3.txt": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+    "licenses/kernel-GPL-2.txt": "2ec21c4f10e9fc6bafbc619cf905424162a0b6443e482d599a6d0d7718e9ae58",
+    "NOTICE.md": "ad844bd3b50e001773cdf599c3e8031ef315880046b45a5c1d3f74d565622e54",
+    "sources/freecom-source.zip": "4d9365772efc54fe5bd4bc48a27bcbb7041e71791af36dd0621ef4c8a34cc1d3",
+    "sources/glabios-source.zip": "e5b70df55b65a0a9308ca7390cbe584a96b24033389d02e46fb12f0c7b73944e",
+    "sources/kernel-source.zip": "f6eea42ed25b2a5b7941846bbb5d99a823b434c3df7701beb336883e76e4af6e"
+  }
+}

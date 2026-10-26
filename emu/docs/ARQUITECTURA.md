@@ -187,7 +187,8 @@ oscilaciones por T. HLT mantiene el reloj. No se interceptan servicios BIOS o DO
 Los diagnósticos históricos irq-demo/timer-demo conservan su cronograma controlado;
 timed-demo prueba el reloj integrado. [Mapa y alcance de placa](PCXT.md).
 
-App y MachineLauncher crean el PC con BIOS y disquete aportados por el usuario. Cada
+App y MachineLauncher crean el PC con el BIOS libre incluido, salvo un BIOS propio
+aportado por el usuario. PcDos prepara los EXE/COM con FreeDOS; los IMG/IMA mantienen su arranque. Cada
 estado valida medio y firmware antes de restaurar la placa completa, incluida la capa
 privada de disco. El depurador usa 20 bits; los observadores y perfiles actuales siguen
 limitados a 16 bits, por lo que PC no se ofrece todavía al estudio de fusiones.
@@ -793,7 +794,7 @@ registradas por separado.
 | 3 | 6502 / 6510 | Commodore 64 (.t64, .prg) | Hecha (Pac-Man, Ghostbusters, Spy vs Spy) |
 | 3n | 2A03 (6502) | NES (.nes, mappers 0/1/2/3/4/7) | Disponible, con sonido; compatibilidad según placa y periféricos |
 | 3b | 6502 | Discos .d64 y cartuchos del C64, Atari 800, Apple II | Pendiente |
-| 4 | 8086 / 8088 | IBM PC / XT con DOS | Disponible con CGA, altavoz, BIOS externo y disquetes de arranque |
+| 4 | 8086 / 8088 | IBM PC / XT con DOS | Disponible con CGA, altavoz, BIOS/FreeDOS libres incluidos y disquetes de arranque |
 | 4b | 80286 | PC AT con DOS y EGA | Pendiente, después de PC/XT |
 | 4c | 80386 / 80486 | PC DOS con VGA y sonido | Pendiente, después de PC AT |
 | 5 | 68000 | Atari ST, Amiga 500 | Pendiente |
@@ -861,3 +862,17 @@ ShowWork reabre el recorrido existente sin comenzar otro pedido. El progreso del
 y creador aparece antes del formulario. El teclado capturado por ImGui no llega al juego.
 Las ranuras ocupadas requieren confirmación; la confirmación vuelve a comprobar juego,
 firmware y revisión de sesión antes de escribir.
+
+
+PcDos construye FAT12 de 720 KB, directorios, FAT duplicada, arranque y AUTOEXEC
+enteramente en memoria. KERNEL.SYS va primero y contiguo; el cargador propio se relocaliza
+antes de leerlo para no sobrescribirse. El kernel y FreeCOM se ejecutan en la CPU real
+emulada, sin interceptar INT 13/21 ni ejecutar programas DOS en el host. MediaArchive
+conserva datos auxiliares solo en el recorrido PC, incluidos INI y subdirectorios.
+
+El arranque incluido escribe señales BOOT/RFDO mediante código emulado y espera dos
+pulsos del reloj BIOS antes del juego. El host usa esa señal para terminar la aceleración;
+no modifica la partida. La carga de un estado desactiva la aceleración; reiniciar puede
+iniciar una carga nueva. La identidad del medio incluye sistema, juego y datos.
+Los componentes de terceros, sus licencias y fuentes completas viajan en system/pcxt.
+El firmware del usuario tiene prioridad; system se actualiza como parte del programa.

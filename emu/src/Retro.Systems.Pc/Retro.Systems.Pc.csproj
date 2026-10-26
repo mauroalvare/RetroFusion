@@ -5,6 +5,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="../../runtime/pcxt/**/*" Link="system/pcxt/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../Retro.Cpu.I8088/Retro.Cpu.I8088.csproj" />
   </ItemGroup>
 </Project>
