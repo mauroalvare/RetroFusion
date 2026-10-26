@@ -1,8 +1,8 @@
 # Limitaciones y errores conocidos
 
-Registro de lo que no funciona o funciona a medias. Cada entrada dice si es **observado**
-(se vio en una prueba) o **probable** (se deduce del código, falta comprobarlo). Al
-arreglar algo, se borra la entrada y se menciona en el commit.
+Alcance implementado y comportamientos pendientes. Las comprobaciones por edición
+de un juego no certifican compatibilidad universal. Cuando se indica **probable**,
+se trata de una limitación deducida que todavía necesita una prueba específica.
 
 ## Análisis y modificaciones de partidas
 
@@ -24,6 +24,27 @@ arreglar algo, se borra la entrada y se menciona en el commit.
   encuentren variables útiles ni valida semántica o calidad creativa de sus respuestas.
 - Las listas de proyectos se actualizan al abrir, guardar o pulsar Actualizar.
   Los cambios externos no se descubren leyendo todos sus archivos en cada cuadro.
+
+- El historial de modificaciones se conserva únicamente si se activa para el juego.
+  Guarda hasta doce informes y 256 variables/cambios por edición y firmware; no guarda
+  los estados de deshacer entre sesiones. No recupera análisis de versiones anteriores
+  que nunca se guardaron. Reaplicar es opcional y puede alterar el arranque si una variable
+  también se usa durante la carga; se puede desactivar y aplicar la selección manualmente.
+  Las hipótesis persistidas no se consideran perfiles verificados para fusión.
+
+- Las ideas de cambios se basan en variables ya conocidas; no equivalen a descubrir
+  automáticamente cualquier juego. Los efectos propuestos por IA requieren probarse.
+  La observación reúne un intervalo y un recorte acotado de escrituras/código; no registra
+  las acciones del jugador ni demuestra causalidad. Se prueba con IA simulada.
+- El punto de regreso completo se ofrece para originales. Los cambios avanzados sobre
+  una máquina de una fusión no restauran el guion JavaScript completo.
+- Un perfil genérico por nombre puede corresponder a otra edición; se prioriza el hash
+  cuando existe. Un perfil que enumera hashes ya no se reutiliza por nombre si no coincide.
+- En originales, el congelado repone los bits elegidos después de cada escritura de CPU,
+  antes de la siguiente lectura, y al empezar cada cuadro. No modifica ROM ni registros
+  de hardware. Una escritura aplicada no confirma el significado de una hipótesis ni
+  garantiza un efecto visible. El estudio comparte el congelado mediante g.freeze;
+  g.set sigue siendo una escritura puntual. No hay undo completo del guion.
 
 ## Tiempo de creación con IA
 
@@ -82,28 +103,13 @@ arreglar algo, se borra la entrada y se menciona en el commit.
   No se reordenan subcarpetas existentes ni se borran duplicados. Identificar un sistema
   todavía no implementado permite ordenarlo; no hace que sus juegos se puedan ejecutar.
 - Los archivos recientes o en uso se posponen. La detección espera unos segundos sin
-  cambios; si falta acceso, se pueden volver a buscar desde Inicio. Si el sistema no permite
+  cambios; si falta acceso, se pueden volver a buscar desde Biblioteca. Si el sistema no permite
   vigilar la carpeta, Actualizar sigue disponible. No hay descompresión de RAR/7z.
+- Los EXE/COM sueltos permanecen donde están para no separarlos de sus archivos de datos.
 - Si una colisión requiere cambiar un nombre, `.retroemu/identidades.json` conserva el
   identificador del perfil básico para las fusiones. Hay que conservar esa carpeta al
   trasladar la biblioteca. Las imágenes locales con el mismo nombre acompañan al juego
   cuando pueden moverse; una imagen bloqueada se conserva en su lugar.
-
-## Modificaciones de la partida
-
-- Las ideas de cambios se basan en variables ya conocidas; no equivalen a descubrir
-  automáticamente cualquier juego. Los efectos propuestos por IA requieren probarse.
-  La observación reúne un intervalo y un recorte acotado de escrituras/código; no registra
-  las acciones del jugador ni demuestra causalidad. Se prueba con IA simulada.
-- El punto de regreso completo se ofrece para originales. Los cambios avanzados sobre
-  una máquina de una fusión no restauran el guion JavaScript completo.
-- Un perfil genérico por nombre puede corresponder a otra edición; se prioriza el hash
-  cuando existe. Un perfil que enumera hashes ya no se reutiliza por nombre si no coincide.
-- En originales, el congelado repone los bits elegidos después de cada escritura de CPU,
-  antes de la siguiente lectura, y al empezar cada cuadro. No modifica ROM ni registros
-  de hardware. Una escritura aplicada no confirma el significado de una hipótesis ni
-  garantiza un efecto visible. El estudio comparte el congelado mediante g.freeze;
-  g.set sigue siendo una escritura puntual. No hay undo completo del guion.
 
 ## Recursos e identidad de las fusiones
 
@@ -122,7 +128,7 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 - Los casos manuales de [PRUEBAS-FUSION.md](PRUEBAS-FUSION.md) comprueban mecánicas,
   memoria e imagen con ambas bases y otro aportante; no son campañas terminadas ni
   generaciones nuevas de IA. Siguen pendientes las comparaciones creativas con varios
-  modelos y más datos de mapas/reglas para algunas fusiones de Spy vs Spy y Pac-Man.
+  modelos y más datos verificados de mapas y reglas para nuevas combinaciones.
 - Las referencias muestran el resultado del arranque configurado, que puede incluir una
   intro si el perfil está incompleto. No deducen automáticamente los mapas ni las reglas.
   Las CLI que admiten imágenes pueden leer los PNG; las API directas actuales solo reciben
@@ -151,20 +157,18 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 
 ### ZX Spectrum
 
-- Solo el modelo 48K. Los juegos 128K (4 de Mojon Twins en `descargados-autores\Spectrum-128K`)
-  dan corrupción gráfica o reinicio en el 48K (observado en la auditoría de ROMs). Tarea T-030.
-- Jet Set Willy pide la tarjeta de códigos (protección del juego, no fallo de carga).
-- Turrican y otros multicarga: solo se comprobó la primera carga.
+- Solo el modelo 48K. El software que necesita paginación de 128K o AY no es compatible
+  con este modelo. Spectrum 128K sigue previsto.
+- Una protección que pide códigos u otro material original no implica un fallo del cargador.
+- Reconocer una cinta multicarga no demuestra que todas sus partes hayan sido comprobadas.
 - La parada automática de la cinta (ver ARQUITECTURA, "Cinta") supone que un juego que
   no lee el puerto $FE durante un segundo y medio no está cargando. Un cargador propio que
   pase ese tiempo sin leer la cinta justo antes de un bloque de velocidad normal la
   encontraría detenida (no se vio en ninguna cinta de la carpeta). Con "pulse una tecla"
   la cinta sigue sonando, como en un casete real: si el juego pide la parte siguiente
   tarde, hay que rebobinar.
-- Karateka llega a su pedido de la parte siguiente ("Pulse PLAY y espacio") pero la matriz
-  todavía no lo hace avanzar: falta un guion curado con ESPACIO.
-- Columns y Uwol de Mojon Twins no responden a ninguna de las 29 teclas de la sonda en el
-  momento probado (están en una intro o esperan algo distinto): falta un guion curado.
+- Las cargas por partes, intros y controles no incluidos en la sonda necesitan un guion
+  curado. Un resultado sin respuesta no identifica por sí solo un fallo de emulación.
 
 ### Placa Space Invaders
 
@@ -176,8 +180,8 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 - Solo PAL. Carga `.t64` y `.prg`; los `.d64`, `.crt` y `.tap` de pulsos se reconocen y se
   explican, pero no cargan (T-032). Sin disquetera 1541.
 - Con Open ROMs, los juegos que llaman rutinas internas del KERNAL no cubiertas fallan;
-  la app lista esas direcciones en la barra de estado y en Máquina (observado: Pac-Man,
-  Ghostbusters y Spy vs Spy ya no tienen ninguna sin cubrir).
+  la barra de estado avisa y Juego > Controles y hardware lista las llamadas no cubiertas.
+  La cobertura comprobada depende de cada edición.
 - La VIC-II dibuja por línea completa: efectos que cambian registros a mitad de línea
   (FLI, apertura de bordes laterales, divisiones de color en la misma línea) no salen
   exactos (probable).
@@ -186,10 +190,10 @@ arreglar algo, se borra la entrada y se menciona en el commit.
   diferencia de timbre con el hardware).
 - CIA: sin puerto serie (registro SDR sin desplazamiento) ni entrada CNT (probable: afecta
   a muy pocos juegos).
-- Joystick: las flechas manejan un solo puerto (2 por defecto, 1 en el menú). Spy vs Spy
-  usa el puerto 1 para el jugador blanco.
-- Los juegos crackeados de la carpeta (Pac-Man y Ghostbusters) tienen menús de trainer
-  antes del juego: la secuencia de teclas está en `tests/C64.Tests/GameTests.cs`.
+- Joystick: las flechas manejan un solo puerto (2 por defecto); se puede elegir el puerto 1
+  en Juego > Controles y hardware. La elección depende del programa.
+- Las ediciones con intros o trainers pueden requerir pasos antes de la partida.
+  Sus secuencias de prueba no forman parte de un arranque universal.
 
 ### Nintendo NES (T-031)
 
@@ -215,8 +219,8 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 - La RAM de cartuchos con batería se conserva en estados guardados, sin archivo de
   batería independiente entre sesiones todavía.
 - Sin segundo jugador en la app (el mando 2 existe para el CLI y las fusiones) ni Zapper.
-- La matriz no ve respuesta en Cave con la sonda automática (sí con START a mano en el
-  CLI): falta un guion curado.
+- La sonda automática no sustituye un guion de arranque curado para intros, selección
+  de controles u otros menús del cartucho.
 - La DMA de OAM no se alinea con los ciclos de lectura y escritura del 2A03 al detalle
   (uno o dos ciclos de espera según la paridad del ciclo).
 - PPU: cada línea visible se dibuja entera en su punto 1 con el scroll de ese momento.
@@ -234,7 +238,7 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 ### Matriz de compatibilidad
 
 - Los guiones descubiertos automáticamente no tienen pasos ni comprobaciones: el nivel
-  "título" y "jugable" solo existen en los curados (6 hoy). "Responde a los controles"
+  "título" y "jugable" solo existen en los curados. "Responde a los controles"
   significa que alguna entrada cambió la imagen, no que el juego se pueda jugar.
 - La sonda prueba una lista fija de entradas por máquina; un juego que espera otra tecla
   figura como que no responde.
@@ -244,9 +248,9 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 - El puntaje, el nivel y los objetos necesitan un experimento que los haga cambiar (en el
   guion, o la partida al azar de "Preparar"); un juego que no suma puntos jugando al azar
   queda sin puntaje.
-- Los nombres son hipótesis aunque la variable esté verificada: en Spy vs Spy el minutero
-  del reloj sale como "vidas" (baja de a uno y recarga los segundos). La verificación
-  prueba que el juego usa el valor, no qué significa.
+- Los nombres son hipótesis aunque la variable esté verificada: un contador de tiempo
+  puede confundirse con vidas porque ambos bajan de a uno. La verificación prueba que
+  el juego usa el valor, no qué significa.
 - El ancho de un puntaje ASCII o de dígitos se confirma leyendo la pantalla; en máquinas
   sin texto legible (NES, arcade) se supone de 6 dígitos o de los bytes que cambiaron.
 - Las tablas de entidades donde todos los bytes se mueven (registros de solo X e Y) se
@@ -257,7 +261,7 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 ## Fusiones y estudio
 
 - Fusión y creación con originales tienen entradas y categorías separadas. Los juegos
-  anteriores con escena propia mantienen su categoría, incluido Manic Invaders. Esta
+  anteriores con escena propia mantienen su categoría. Esta
   separación no certifica que una generación nueva conserve la identidad o sea divertida.
 
 - El rango de tokens es orientativo y local; no incluye imágenes, salida ni el contexto
@@ -277,23 +281,13 @@ arreglar algo, se borra la entrada y se menciona en el commit.
   propio perfil). T-053.
 - Los juegos sin preparar se fusionan sin arranque: empiezan en su título o menú y el
   jugador o el guion los lleva a la partida; el guion todavía no conoce sus variables.
-- "Preparar" sin IA solo pasa arranques simples (una tecla para empezar). Los cracks de
-  C64 con intro, documentos y preguntas de trucos necesitan la IA o un agente; en esta PC
-  no hay ningún CLI de IA con sesión iniciada, así que la app usa la prueba de teclas o la
-  carpeta para agentes. Ghostbusters (C64) exige comprar trampas en la tienda y la maneja
-  con el joystick del puerto 1; Spy vs Spy, un jugador, con el del puerto 2.
-- El detector de partida acepta cualquier pantalla donde una dirección mueve algo cada vez más
-  lejos: un cursor de tienda o de menú también lo cumple. Con una IA al mando, la IA tiene que
-  confirmarlo; con la prueba de teclas sola, puede tomar un menú por la partida.
-- Con Antigravity, Ghostbusters no llegó a la partida en 24 rondas (se trabó en la tienda);
-  Codex y Claude sí. Cada consulta de Antigravity tarda hasta un minuto.
-- Los perfiles preparados de Spy vs Spy, Ghostbusters y Cheman tienen posición y tiempo o
-  vidas. Ghostbusters y Cheman quedaron sin puntaje (jugando al azar no suman puntos); el
-  "score" de Spy vs Spy ($B15C) subió una sola vez y puede no ser el puntaje.
-- Hay perfiles de Manic Miner (Spectrum), Space Invaders (arcade) y Pac-Man de C64 (vidas
-  verificadas; X/Y de solo lectura desde el sprite 4 del VIC, y pacman() devuelve su caja
-  completa con transparencia, no la caja de impacto). Pac-Man de Spectrum y los demás
-  juegos de C64 todavía no tienen perfil. T-022.
+- "Preparar" sin IA solo prueba arranques simples. Intros, configuración o pasos
+  específicos de una edición pueden necesitar instrucciones y un agente configurado.
+  La disponibilidad del CLI depende de la instalación y sesión del jugador.
+- El detector de partida puede confundir un cursor de menú que se mueve con una entidad
+  jugable. La IA o una comprobación manual deben confirmar que llegó a la partida.
+- Los perfiles solo describen variables, controles y recursos que se comprobaron;
+  no todos incluyen puntaje, posición o mapas. Un nombre genérico no prueba su semántica.
 - La fusión clásica y sus vistas superpuestas se retiraron. El modo predeterminado
   conserva un original base; `screen.base` solo admite su ranura declarada. La opción
   libre conserva el dibujo por sprites/tiles. `screen.game` sigue fallando, incluso con
@@ -302,10 +296,9 @@ arreglar algo, se borra la entrada y se menciona en el commit.
   detectan borrado general o una copia casi exacta de otro original; son un filtro técnico.
   Mantener o ampliar mapas necesita
   sus formatos y datos verificados; elegir una ROM no equivale a conocerlos.
-- Pac-Man en la Mina dejó de incluirse: usaba la pantalla entera de Pac-Man. Rehacerlo exige
-  extraer el laberinto y los gráficos del VIC y diseñar reglas propias; se priorizó el modelo
-  ya jugable de Manic Invaders. Se conservan los archivos guardados por el usuario; una copia
-  sin modificar del antiguo ejemplo no se ofrece en el menú.
+- Los ejemplos clásicos que pegaban pantallas completas ya no se ofrecen. Los archivos
+  guardados por el usuario se conservan; no se convierten automáticamente a una fusión
+  con integración de reglas o escena propia.
 - El modo base permite empezar jugando y no exige puntaje artificial. Consultar datos
   de todos los aportantes es una comprobación técnica mínima, no evidencia de que sus
   mecánicas estén bien integradas. Hay que comparar capturas y probar controles/objetivos.
@@ -332,13 +325,28 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 - La plantilla del C64 mueve el sprite solo en X de 0 a 255 (no usa el bit 9 de $D010).
 - Con copiar y pegar, la IA del chat no ve la imagen de la prueba (solo el informe en texto;
   el jugador ve la pantalla en el emulador).
-- El creador todavía no se probó con una IA real (sí con una simulada y con dos juegos
-  escritos siguiendo solo las guías), para no gastar el cupo del usuario.
+- Las pruebas automáticas del creador usan IA simulada y programas de referencia.
+  Esto no certifica la calidad de una generación real ni de todos los proveedores.
 - La prueba no juzga si el juego es divertido ni si cumple el pedido: mira que arranque,
   dibuje, responda a los controles y aguante 30 segundos de juego al azar. Un juego que se
   termina solo (sin controles) o que se maneja con teclas que el robot no conoce no pasa.
 - La guía del C64 pide no usar el KERNAL porque el emulador puede tener las Open ROMs; con
   las ROMs originales funcionaría, pero la prueba no lo sabe.
+
+## Favoritos y recientes
+
+- Se muestran juegos disponibles en las bibliotecas actuales. Un archivo abierto fuera
+  de ellas aparecerá al agregarlo a la biblioteca. No se guarda una copia del juego.
+- Recientes conserva 40 entradas y vuelve a cargar el juego; no reanuda una partida
+  guardada. Los favoritos admiten hasta 4096 marcas.
+- Mover o renombrar un original conserva su identidad si el contenido y sistema no
+  cambian. Reempaquetarlo en un ZIP de un solo juego también; agregar otras ediciones
+  al ZIP cambia su identidad. Las copias idénticas comparten la marca.
+- Creados anteriores sin WorkId se identifican por fecha de creación y sistema.
+  Editar esa fecha en sus metadatos puede cambiar la identidad.
+- Los datos son locales a la cuenta del sistema operativo. Un archivo ilegible o con
+  un formato futuro se conserva intacto y la app avisa que los cambios de esa sesión
+  no se guardarán. Si dos instancias escriben a la vez, prevalece la última.
 
 ## App, CLI y paquetes
 
@@ -357,7 +365,7 @@ arreglar algo, se borra la entrada y se menciona en el commit.
   trabajos completos comparables. Los modos manual y carpeta no tienen ese estimado.
 
 - En el C64, F1/F3/F5/F7 son teclas de la máquina: la carga rápida de estado pasa a F4 y
-  el reinicio queda en el menú Máquina.
+  el reinicio se hace desde Juego.
 - Los estados guardados de la app corresponden a originales. Una fusión necesita guardar
   también el guion y todas sus máquinas; hasta implementar ese formato, estas opciones
   están deshabilitadas durante una fusión. Se puede reiniciar desde el estudio.
@@ -366,59 +374,19 @@ arreglar algo, se borra la entrada y se menciona en el commit.
 - `retrofusion/` (kit Python inicial) no tiene su punto de entrada `retro.py`: no se puede
   correr tal cual.
 
-## Entorno de desarrollo
+## Interfaz y apertura
 
-- La copia vieja del proyecto en la carpeta temporal de la sesión de Claude
-  (`scratch-workspaces\...\RetroFusion`, commit d40a49b) no es la canónica.
-- La herramienta Bash de Claude Code convierte `\\` en `\` dentro de los heredocs.
-- `dotnet test` de toda la solución tarda unos 10 minutos (ZEXDOC/ZEXALL en Debug).
+- La tipografía usa fuentes instaladas o la incorporada de ImGui; puede variar entre sistemas.
+- El selector de archivos refresca su instantánea cada dos segundos mientras está abierto.
+  Conserva el filtro entre cuadros y dibuja solo las filas visibles; la velocidad también
+  depende del disco y del acceso a la carpeta.
+- La elección de ejecutable de PC se hace al abrir cada ZIP; no recuerda una selección
+  anterior. Conserva subcarpetas y datos, sujetos al límite de 720 KB junto con DOS.
+- En el CLI, --pick selecciona un archivo; una placa arcade que necesita varios chips
+  requiere el conjunto completo.
 
 ## Contenido excluido
 
 Por pedido del usuario no se usan: contenido pornográfico, *Fundamentally Loathsome* y,
 por cautela, las ediciones de Cheril, Phantomasa, Sila Tsikl y Nanako Descends to Hell
 (retiradas en la auditoría de ROMs del 18/10/2026).
-
-### Favoritos y recientes
-
-- Se muestran juegos disponibles en las bibliotecas actuales. Un archivo abierto fuera
-  de ellas aparecerá al agregarlo a la biblioteca. No se guarda una copia del juego.
-- Recientes conserva 40 entradas y vuelve a cargar el juego; no reanuda una partida
-  guardada. Los favoritos admiten hasta 4096 marcas.
-- Mover o renombrar un original conserva su identidad si el contenido y sistema no
-  cambian. Reempaquetarlo en un ZIP de un solo juego también; agregar otras ediciones
-  al ZIP cambia su identidad. Las copias idénticas comparten la marca.
-- Creados anteriores sin WorkId se identifican por fecha de creación y sistema.
-  Editar esa fecha en sus metadatos puede cambiar la identidad.
-- Los datos son locales a la cuenta del sistema operativo. Un archivo ilegible o con
-  un formato futuro se conserva intacto y la app avisa que los cambios de esa sesión
-  no se guardarán. Si dos instancias escriben a la vez, prevalece la última.
-
-- El historial de modificaciones se conserva únicamente si se activa para el juego.
-  Guarda hasta doce informes y 256 variables/cambios por edición y firmware; no guarda
-  los estados de deshacer entre sesiones. No recupera análisis de versiones anteriores
-  que nunca se guardaron. Reaplicar es opcional y puede alterar el arranque si una variable
-  también se usa durante la carga; se puede desactivar y aplicar la selección manualmente.
-  Las hipótesis persistidas no se consideran perfiles verificados para fusión.
-
-- La ampliación NES incorpora UxROM y AxROM. Sus bancos y espejado tienen pruebas de
-  componente y ejecución con cartuchos locales; esto no valida todas las revisiones
-  de placa ni los conflictos de bus. Los mappers que no están implementados se rechazan
-  al abrir, conservando el original en la biblioteca.
-
-
-PC/XT ejecuta firmware y DOS mediante los dispositivos, sin interceptar servicios BIOS.
-Las limitaciones y modos pendientes se detallan en [PCXT.md](PCXT.md).
-
-
-La tipografía usa fuentes instaladas y conserva la fuente incorporada como alternativa;
-puede variar entre sistemas. El selector de archivos actualiza su instantánea cada dos
-segundos mientras está abierto. La actividad de herramientas que no transmiten salida
-puede seguir sin texto nuevo hasta terminar; el acceso al trabajo no inventa progreso.
-
-El organizador conserva los EXE/COM sueltos en su ubicación para no separarlos de sus datos.
-
-La elección de ejecutable de PC se hace al abrir cada ZIP; no recuerda una selección
-anterior. Se conservan las subcarpetas y los datos del paquete, sujetos al límite de
-720 KB junto con DOS. En el CLI, --pick selecciona un archivo, no un chip aislado
-de una placa arcade que requiere el conjunto completo.

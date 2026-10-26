@@ -1,72 +1,54 @@
-# Ideas: qué más se puede hacer con un emulador real + IA
+# Líneas de mejora
 
-La base ya está: emulación exacta (cada juego corre su código original), fusiones por
-memoria, análisis del programa en rutinas, anotaciones por juego e IA conectable (Claude,
-Ollama, cualquier chat por copiar y pegar, agentes por carpeta). Sobre eso se puede
-construir lo de abajo. Cada idea dice qué existe ya y qué falta.
+Este documento reúne posibilidades de desarrollo. No es una lista de funciones
+prometidas ni fija el orden de implementación. El alcance disponible está en
+[LIMITACIONES.md](LIMITACIONES.md).
 
-## Ya funciona
+## Base disponible
 
-- **Juegos fusionados con IA:** la IA propone ideas, escribe un guion que mezcla los juegos
-  emulados en una sola pantalla, lo prueba con un jugador robot y lo corrige; el jugador
-  pide cambios y cada pedido es una versión nueva. Sigue un método escrito
-  (GUIA-FUSION.md) y una prueba de jugabilidad con tres robots. Incluye "Manic Invaders",
-  con las 20 cavernas originales de Manic Miner.
-- Usar la IA con la suscripción (Claude Code, Codex CLI, Antigravity CLI), sin pagar API.
-- Fusiones de 2 o 3 juegos con reglas por memoria, tres vistas y controles compartidos.
-- La IA diseña fusiones nuevas y el emulador las valida y le devuelve los errores.
-- Visor de código: rutinas, nombres, comentarios, explicación y pseudocódigo con IA,
-  cambios al código (NOP, bytes), variables congeladas, buscador de variables que crea
-  perfiles y exportación a `.asm`.
+- El estudio fusiona dos o tres originales: conserva una base y agrega comportamientos
+  de los demás en su mundo. Crear con ROMs es un recorrido aparte para una escena nueva.
+  Las vistas separadas y las recetas clásicas ya se retiraron.
+- El creador desde cero ensambla programas Z80 o 6502 para Spectrum 48K y C64, los
+  ejecuta y admite revisiones guiadas por pruebas.
+- El análisis de partidas propone variables y cambios; el usuario decide qué aplicar,
+  puede congelarlos, deshacerlos y conservar análisis y ajustes por edición del juego.
+  El análisis de variables de PC/XT todavía no está disponible.
+- Hay guardados, depurador, código y memoria. Las herramientas de IA se conectan por
+  CLI, API, chat manual o carpeta de agentes, según la operación.
 
-## Próximas (se apoyan en lo que ya hay)
+## Próximas evaluaciones
 
-1. **La IA aprende un juego sola.** Un agente con herramientas (apretar teclas, correr
-   cuadros, ver la pantalla, buscar en la memoria, leer variables) juega, encuentra las
-   vidas, el puntaje y la posición, y escribe el perfil. Cualquier juego de la carpeta
-   pasa a ser fusionable sin que el usuario busque nada. Ya están el ejecutor sin ventana,
-   el buscador de memoria y las capturas; falta el bucle de herramientas (Claude con *tool
-   use* y visión, o un agente con la carpeta).
-2. **Mods pedidos en castellano.** "Que los invasores disparen el doble", "vidas
-   infinitas", "Willy salta más alto". La IA lee las rutinas ya explicadas, propone un
-   cambio de bytes, el emulador lo aplica en una copia, corre una prueba automática
-   (por ejemplo, cuenta disparos por segundo) y muestra el antes y el después.
-3. **Director de IA (modo caos).** Mientras se juega una fusión, una IA mira las
-   variables y los eventos cada pocos segundos y cambia las reglas en vivo: sube la
-   dificultad si vas bien, te salva si estás por perder, inventa eventos. Con Ollama no
-   cuesta nada.
-4. **Triatlón de 3 juegos.** Invaders, Manic Miner y Pac-Man: el juego del fondo cambia
-   cada 30 segundos (`swap`), el puntaje se acumula entre los tres y morir en uno castiga
-   a los otros. Las recetas ya soportan 3 ranuras; falta el perfil de Pac-Man (se crea
-   con el buscador de variables).
-5. **Rebobinar.** Un estado guardado por segundo en un anillo: mantener una tecla vuelve
-   el tiempo atrás. `SaveState`/`LoadState` ya existen en todas las máquinas.
-6. **Logros automáticos.** La IA lee el perfil y propone logros ("terminar la caverna sin
-   que el aire baje de la mitad"); el emulador los vigila con las mismas condiciones de
-   las reglas.
-7. **Compartir fusiones.** La receta es un JSON chico: se puede compartir como texto o
-   código QR, o en una galería de la comunidad. Quien la recibe necesita sus propios
-   juegos (las recetas no llevan ROMs).
+1. **Calidad de las fusiones.** Comparar varias propuestas sobre los mismos originales
+   y ambas orientaciones de base. Medir consecuencias mecánicas, identidad conservada,
+   controles y diferencias de diseño. Las pruebas automáticas no deciden si un juego
+   resulta divertido; hace falta jugarlo y revisar casos distintos.
+2. **Perfiles con evidencia.** Ampliar la detección de mapas, actores y reglas y verificar
+   cada dato contra la edición cargada. El análisis actual no convierte cualquier ROM
+   en una fuente lista para fusionar.
+3. **Referencias de código para crear.** Extraer rutinas acotadas y explicar sus técnicas
+   sin copiar bytes, listados ni recursos protegidos al juego nuevo. El ensamblador y el
+   bucle de creación ya existen; falta completar la extracción y el chequeo anti-copia.
+4. **Comprobar cambios de variables.** Comparar una partida antes y después de un cambio
+   con entradas repetibles. La escritura y el congelado ya funcionan; aún no prueban por
+   sí solos el efecto jugable que atribuye la IA.
+5. **Rebobinado.** Evaluar un historial acotado de estados para las máquinas que permiten
+   guardarlos. Requiere medir memoria, rendimiento y sincronización de audio y entrada.
+6. **Edición visual de recursos.** Ofrecer herramientas para inspeccionar mapas, sprites
+   y paletas y colocar aportes dentro de una base. Las capturas pequeñas del estudio
+   ya existen; no equivalen a conocer la estructura de mapas o colisiones.
+7. **Compartir trabajos.** Exportar guiones, metadatos y revisiones con sus requisitos y
+   huellas de originales, sin incorporar ROMs. Una galería o intercambio por red
+   necesitaría resolver validación, versiones y permisos de los recursos.
 
-## Grandes
+## Exploraciones posteriores
 
-8. **Hacer un juego nuevo con la base de ROMs.** Con cientos de juegos analizados, las
-   rutinas explicadas (dibujar sprites, leer el teclado, hacer sonar el beeper, imprimir
-   texto) forman una biblioteca. Le pedís a la IA "un juego de plataformas donde un
-   invasor rescata a Willy": escribe ensamblador Z80 reutilizando esas rutinas, un
-   ensamblador incluido en el emulador lo arma, corre en el Spectrum emulado, y la IA ve
-   la pantalla y los errores y corrige hasta que se puede jugar. Falta el ensamblador Z80
-   y el bucle de iteración.
-9. **Trasplante de gráficos.** Un visor que muestra la memoria como mapas de bits
-   encuentra los sprites; la IA los etiqueta ("Willy caminando", "invasor tipo 2"), y se
-   pueden cambiar entre juegos: el cañón de Invaders con la cara de Willy.
-10. **Traducir juegos.** Encontrar los textos (ASCII o fuente propia del juego) y
-    traducirlos con IA respetando el largo: Manic Miner en castellano.
-11. **Del ensamblador a C legible.** Unir el pseudocódigo de todas las rutinas en un
-    programa C que compile contra una biblioteca de hardware emulado. Sirve para estudiar
-    el juego o portarlo.
-12. **Fusión en red.** Cada jugador corre un juego en su PC y las reglas viajan por la
-    red: lo que hacés en Invaders le pasa a tu amigo en Manic Miner.
-13. **Mapa de calor de memoria.** Ver en vivo qué bytes lee y escribe el juego y poner
-    *watchpoints* ("parar cuando alguien escriba en las vidas"). Es la herramienta que
-    más acelera encontrar variables y entender rutinas, para personas y para la IA.
+- Objetivos y logros observables, basados en variables verificadas de cada edición.
+- Traducción de textos y fuentes respetando codificación, espacio y límites del original.
+- Navegación de rutinas y visualización de accesos a memoria sobre las observaciones
+  que ya recoge el analizador.
+- Reglas adaptativas durante la partida, con límites explícitos y control del usuario.
+- Colaboración en red, con sincronización y costes medidos antes de ofrecerla.
+
+Cada mejora necesita una implementación accesible y pruebas proporcionales antes de
+presentarse como disponible.

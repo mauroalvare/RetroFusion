@@ -1,6 +1,7 @@
 # Mapa del repositorio y comandos
 
-Fuente única de rutas y comandos de desarrollo. El diseño interno está en
+Mapa de rutas y comandos de desarrollo. Los ejemplos usan carpetas de la instalación
+o rutas que debés adaptar a tus archivos. El diseño interno está en
 [ARQUITECTURA.md](ARQUITECTURA.md).
 
 ## Entrada para jugar
@@ -10,7 +11,7 @@ máquinas disponibles, sus juegos y **Todos los juegos**, con búsqueda por nomb
 **Todos los juegos** reúne originales, creados y fusiones; cada máquina lista originales
 y creaciones para ese sistema. **Fusionados** y **Creados** tienen también secciones
 propias. No aparece una ventana flotante.
-**Biblioteca** o Ctrl+L pausa la partida; **Volver a la partida** restaura la pausa previa.
+**Biblioteca** o Ctrl+L (Ctrl+Shift+L en PC) pausa la partida; **Volver a la partida** restaura la pausa previa.
 Elegir una máquina filtra la biblioteca sin reiniciar la partida; abrir un juego
 comienza la partida elegida. Las fusiones y los juegos creados se actualizan al entrar
 o pulsar Actualizar. **Herramientas > Modificar y analizar** reúne cambios, IA, búsqueda y código;
@@ -47,9 +48,15 @@ fusionados, vN.png. Las imágenes de la documentación se actualizan desde captu
 inspeccionadas, sin añadir ROMs. El aviso del decodificador está en docs/TERCEROS.md.
 
 El estudio limita la lista de selección a una zona con desplazamiento y búsqueda.
-En **Máquina**, los originales, las fusiones y cada sistema abren su biblioteca con
-un clic. Las listas de juegos no se despliegan al pasar el mouse. **Encender sin juego**
-conserva el inicio de las computadoras sin un medio cargado.
+**Biblioteca** reúne originales, fusiones, creados y filtros por máquina. El menú
+**Juego** concentra apertura, partidas, pausa, reinicio, controles y **Encender sin juego**.
+No despliega bibliotecas de juegos al pasar el mouse.
+
+`FileBrowser` filtra una instantánea de carpeta, la actualiza cada dos segundos y dibuja
+solo las filas visibles. Un clic selecciona; **Abrir** o **Enter** abre y **Esc** cancela.
+Los ZIP de PC con varios ejecutables muestran rutas de carpeta para elegir; **Juego >
+Programas del archivo** permite cambiar después. Cancelar devuelve la pausa previa;
+una apertura rechazada conserva las opciones del medio anterior.
 Las ayudas para jugar están en **Ayuda > Abrir y jugar**, **Controles de la partida**
 y **Atajos**. Los controles corresponden al sistema o a la fusión activos. El README
 del paquete es una guía breve; los contratos para agentes se entregan por separado.
@@ -101,7 +108,7 @@ reiniciar. `ModificationHistory.cs` guarda por edición exacta en
 # Interfaz nativa con una cinta/perfil generados, sin juegos del usuario ni pedidos de IA
 pwsh tools/test-modifications.ps1
 # Abrir el panel al cargar una copia propia; captura relativa al directorio actual
-dotnet run --project src/Retro.App -c Release -- --hidden --mute --mods-window --autotest 5 out/modificar.png <juego>
+dotnet run --project src/Retro.App -c Release -- --hidden --mute --no-organize --no-update --mods-window --autotest 5 out/modificar.png 'RUTA-AL-JUEGO'
 ```
 
 ## Raíz
@@ -127,13 +134,16 @@ dotnet run --project src/Retro.App -c Release -- --hidden --mute --mods-window -
 | `src/Retro.Fusion` | Perfiles (`Profiles/*.json`), `MachineFactory`, `IFusionRun` y ranuras del estudio |
 | `src/Retro.Studio` | Juegos fusionados con guion JS: sesión, validador, diseñador IA, `Docs/GUIA-FUSION.md` y `Docs/API.md`, juegos incluidos en `Games/` |
 | `src/Retro.Ai` | Proveedores de IA (CLIs por suscripción, APIs, Ollama), carpeta para agentes |
-| `src/Retro.App` | App de escritorio (raylib + Dear ImGui): `RetroApp`, `EmulatorHost`, `InputMapper`, `MachineCatalog`, ventanas de código, estudio (incluye Preparar) y creador |
+| `src/Retro.App` | App de escritorio (raylib + Dear ImGui): `RetroApp`, `EmulatorHost`, `InputMapper`, biblioteca, ventanas de código, estudio (incluye Preparar) y creador |
 | `src/Retro.Asm` | Ensambladores 6502 y Z80 (núcleo común de dos pasadas), plantillas de juego y guías del hardware por máquina (`Templates/*.s` y `*.md`) y la cinta `.tap` con cargador BASIC (`SpectrumTap`) |
 | `src/Retro.Cli` | `retro-cli`: ejecución sin ventana |
-| `tests/*` | NUnit: `Retro.Cpu.Z80.Tests`, `I8080.Tests`, `M6502.Tests`, `Zx.Tests`, `Arcade.Tests`, `C64.Tests`, `Compat.Tests`, `Fusion.Tests`, `Studio.Tests`, `Asm.Tests` |
-| `compat/juegos/*.json` | Un guion de compatibilidad por archivo de juego (106 hoy; los curados tienen `"curated": true`) |
+| `src/Retro.Update`, `tests/Update.Tests` | Paquetes verificados, actualización en sitio, reversión y limpieza |
+| `tests/App.Tests` | Explorador, carga DOS, estados y herramientas de la aplicación |
+| `runtime/pcxt/` | BIOS libre, kernel, shell, licencias, fuentes y procedencia; se copian a `system/pcxt` al compilar |
+| `tests/*` | NUnit: núcleos, máquinas, compatibilidad, fusión, estudio, ensambladores, app y actualizador |
+| `compat/juegos/*.json` | Un guion de compatibilidad por archivo de juego (los curados tienen `"curated": true`) |
 | `lab/*.json` | Hallazgos del laboratorio de ingeniería inversa por juego (hipótesis, evidencia, confianza, quién escribe) |
-| `compat/resultados.json` | Último resultado de la matriz con toda la evidencia (lo genera `retro-cli compat`) |
+| `out/compat/` | Informes privados de compatibilidad con evidencias, generados por `retro-cli compat` |
 | `testdata/` | Suites de CPU (FUSE, ZEX, 8080; las grandes de 6502 se bajan aparte) |
 | `roms/` | Firmware redistribuible: `48.rom`, `c64/` (Open ROMs + licencia) |
 | `tools/` | `publish.ps1` (paquetes), `make_tar.py`, `bajar-pruebas-6502.py` |
@@ -145,52 +155,57 @@ dotnet run --project src/Retro.App -c Release -- --hidden --mute --mods-window -
 
 Desde `emu/` salvo que se indique otra cosa.
 
-```bash
-# compilar y probar
-dotnet build RetroEmu.slnx
-dotnet test RetroEmu.slnx -c Release --filter "TestCategory!=Long"   # rápido: sin ZEXDOC/ZEXALL ni 8080EXM
-dotnet test RetroEmu.slnx                                    # todo (~10 min en Debug; ZEXALL ~45 s en Release)
-dotnet test tests/C64.Tests                                  # un proyecto
-dotnet test tests/Retro.Cpu.Z80.Tests -c Release --filter "TestCategory=Long"   # solo ZEXDOC/ZEXALL
+```powershell
+# Compilar y probar desde emu.
+dotnet build RetroEmu.slnx -c Release
+dotnet test RetroEmu.slnx -c Release --filter "TestCategory!=Long"
+dotnet test RetroEmu.slnx -c Release                      # incluye las pruebas largas
+dotnet test tests/C64.Tests -c Release                    # un proyecto
+dotnet test tests/Retro.Cpu.Z80.Tests -c Release --filter "TestCategory=Long"
 
-# la app (sin ventana ni sonido para pruebas automáticas; la captura va relativa al directorio actual)
-dotnet run --project src/Retro.App -- --hidden --mute --autotest 10 out/prueba.png <juego>
-dotnet run --project src/Retro.App -- --hidden --mute --crear-window --autotest 12 out/crear.png   # ventana Crear
-src/Retro.App/bin/Debug/net10.0/RetroEmu.exe                 # con ventana, para el usuario
+# Pruebas de interfaz: ventana oculta, sin audio, organización ni red.
+# Las capturas usan rutas relativas al directorio actual.
+dotnet run --project src/Retro.App -c Release -- --hidden --mute --no-organize --no-update --autotest 10 out/prueba.png
+dotnet run --project src/Retro.App -c Release -- --hidden --mute --no-organize --no-update --crear-window --autotest 10 out/crear.png
+dotnet run --project src/Retro.App -c Release -- --hidden --mute --no-organize --no-update --studio-window --autotest 10 out/estudio.png
 
-# retro-cli (C=src/Retro.Cli/bin/Debug/net10.0/retro-cli.exe)
-$C info <archivo|zip>                                        # qué máquina reconoce
-$C run juego.nes --frames 900 --press 300:P1_START:10 --screenshot out/nes.png   # NES sin ventana
-$C run <archivo|zip> --frames 3000 --press 400:SPACE:6 --shot-every 300 --shot-prefix out/x
-$C run <c64.t64> --frames 2000 --text --disasm C000:20 --dump 0400:40
-$C studio manic-invaders --games <carpeta-juegos> --shots out/s
+# CLI compilado. Reemplazá las rutas de medios por tus archivos.
+$Cli = './src/Retro.Cli/bin/Release/net10.0/retro-cli.exe'
+$Juegos = 'RUTA-A-TUS-JUEGOS'
+& $Cli info "$Juegos/juego.zip"
+& $Cli run "$Juegos/juego.zip" --pick 0 --frames 900 --screenshot out/juego.png
+& $Cli run "$Juegos/juego.nes" --frames 900 --press 300:P1_START:10 --screenshot out/nes.png
+& $Cli run "$Juegos/juego.t64" --frames 2000 --text --disasm C000:20 --dump 0400:40
+& $Cli run "$Juegos/programa.com" --frames 2400 --screenshot out/pc.png
+& $Cli run "$Juegos/disco.img" --bios 'RUTA-A-TU-BIOS' --frames 2400 --screenshot out/disco.png
 
-# matriz de compatibilidad (Release es mucho más rápido: la matriz entera tarda ~75 s)
-$C compat compat/juegos --juegos C:/Users/mauro/Downloads/ROMs --salida compat/resultados.json --md docs/COMPATIBILIDAD.md --capturas out/compat --dos-veces
-$C compat compat/juegos --juegos C:/Users/mauro/Downloads/ROMs --descubrir --solo nada   # solo crea guiones para archivos nuevos
-$C compat compat/juegos --solo c64-pac --juegos ... --salida compat/resultados.json       # unos pocos, fusionando con el resultado anterior
+# Compatibilidad y laboratorio. Usar un guion del sistema/edición correspondiente.
+& $Cli compat out/compat/guiones --juegos $Juegos --descubrir --solo nada
+& $Cli compat out/compat/guiones --juegos $Juegos --salida out/compat/resultados.json --md out/compat/informe.md --capturas out/compat/capturas --dos-veces
+& $Cli lab 'RUTA-AL-GUION.json' --juegos $Juegos --cuadros 12000 --salida out/hallazgos.json
 
-# laboratorio de ingeniería inversa: llega al juego con un guion y busca vidas, tiempo y posiciones
-$C lab compat/juegos/zx48-manicminer.json --cuadros 12000 --salida lab/zx48-manicminer.json
+# Perfiles, estudio y creación sin consumir una IA real.
+& $Cli juegos $Juegos
+& $Cli preparar "$Juegos/juego.zip" --ia ninguna --perfiles out/perfiles
+& $Cli studio 'RUTA-AL-JUEGO.js' --games $Juegos --shots out/estudio
+& $Cli crear c64 out/juego.s
+& $Cli asm out/zx.s --cpu z80 --salida out/zx.tap --lista
+& $Cli probar out/juego.s
+& $Cli crear c64 out/tarea --ia agent --pedido "Pedido del juego"
 
-# fusiones con cualquier juego de la carpeta: ids para el estudio, y preparar uno (partida, variables verificadas, perfil por hash)
-$C juegos C:/Users/mauro/Downloads/ROMs
-$C preparar C:/Users/mauro/Downloads/ROMs/Spy_vs_Spy_C64_EN.zip --ia agent --carpeta out/agente   # o --ia sub-claude, o --ia ninguna
-
-# juegos de 8 bits desde cero: plantilla por máquina, ensamblador y cinta que arranca sola
-$C crear c64 out/juego.s                                     # deja out/juego.s y out/juego.prg
-$C asm out/zx.s --cpu z80 --salida out/zx.tap --lista
-$C crear zx48 out/nuevo.s --ia sub-codex --pedido "..."      # la IA lo escribe, se prueba con el robot y se corrige
-$C probar out/juego.s                                        # la misma prueba para un juego editado a mano
-$C crear c64 out/tarea --ia agent --pedido "..."             # carpeta para un agente (TAREA.md, GUIA.md, juego.s)
-
-# paquetes autocontenidos (Windows y Linux) en emu/dist
-pwsh tools/publish.ps1 -Version 0.2.5
-
-# Actualizar la instalación local y el único acceso RetroEmu del escritorio.
-# Requiere cerrar la app; conserva juegos y firmware existente y guarda un respaldo.
-pwsh tools/update-local.ps1
+# Paquetes locales autocontenidos. Este paso no publica una entrega.
+pwsh tools/publish.ps1
 ```
+
+Las opciones `--ia sub-codex`, `sub-claude`, `sub-google`, APIs u Ollama generan pedidos
+al proveedor elegido: ejecutarlas requiere autorización para usar esa herramienta.
+El modo `agent` prepara archivos para que un agente continúe; no ejecuta por sí solo
+un CLI externo. En Linux se usa `retro-cli` sin `.exe`; desde código también puede
+ejecutarse `dotnet run --project src/Retro.Cli -c Release --` seguido de los argumentos.
+
+Para actualizar una instalación local se usa `tools/update-local.ps1` solo con destino
+confirmado, app cerrada y paquete verificado. No forma parte de una prueba de desarrollo
+normal: preserva datos del jugador y puede modificar la instalación real.
 
 Teclas de `--press`: las de cada máquina (`SPACE`, `ENTER`/`RETURN`, `CAPS SHIFT`,
 `KEMPSTON FIRE`, `JOY2 FIRE`, `RUN/STOP`, `F1`, `COIN`, `P1 START`...), unidas con `+`;
@@ -204,21 +219,24 @@ con contenido más cercana; una carpeta de solo ayuda no oculta otra superior ni
 biblioteca existente en `Documentos/RetroEmu`. Sin datos anteriores usa la carpeta
 portátil incluida; sin ella, creados y fusionados usan `Documentos/RetroEmu`.
 
-La instalación local de uso diario tiene un único acceso `RetroEmu`. Se inició en
-`Programa`; el updater actualiza sus archivos sin cambiar la carpeta.
-Jugar, fusionar, crear y modificar se abren dentro de esa misma app. Las actualizaciones
-locales usan `tools/update-local.ps1`, que sigue ese acceso cuando apunta a una carpeta
-activa dentro del espacio de trabajo; no se dejan copias o accesos por función.
-Las pruebas automáticas quedan en `out/`, sin accesos en el escritorio. Solo se prepara
-otra copia visible si el usuario la pide expresamente.
+La instalación puede conservar el nombre de una versión anterior: el actualizador
+reemplaza el programa en la carpeta en uso. Jugar, fusionar, crear y modificar se abren
+dentro de esa misma app. Las pruebas se hacen en `out/`, con datos propios y sin
+accesos nuevos en el escritorio.
 
-| Ruta | Qué es |
+| Ubicación | Contenido |
 |---|---|
-| `C:\Users\mauro\Desktop\RetroEmu\Programa` | Instalación única que usa el usuario, acceso `RetroEmu` en el escritorio; firmware en `Programa\firmware`, documentos en `Programa\docs` |
-| `C:\Users\mauro\Desktop\RetroEmu\Juegos fusionados` | Juegos fusionados del usuario (`<id>\vN.json` + `vN.js`) |
-| `C:\Users\mauro\Downloads\ROMs` | Juegos del usuario; `revision\` tiene el inventario con hashes (`inventario-roms.json`) y los informes de la auditoría de ROMs |
-| `C:\Users\mauro\Desktop\RetroEmu\ROMs` | Copia de los juegos que usa la app del Escritorio |
-| `%APPDATA%\RetroEmu` | Estados guardados, anotaciones de código y configuración de IA de la app |
+| Junto al ejecutable: `ROMs/` | Juegos originales del usuario |
+| `Juegos fusionados/` | Carpeta por fusión, con metadatos y guion de cada versión |
+| `Juegos creados/` | Juegos y trabajos de creación |
+| `firmware/` | Firmware aportado por el usuario; se conserva al actualizar |
+| `system/pcxt/` | Componentes libres incluidos; se actualizan con el programa |
+| `docs/` | Guías incluidas en el paquete |
+| `%APPDATA%/RetroEmu/` | Ajustes, anotaciones, actividad, historial de modificaciones y guardados en Windows |
+
+En otros sistemas, los datos de cuenta usan la carpeta `ApplicationData` que informa .NET.
+Las rutas personales de desarrollo e instalaciones del mantenedor no son parte del
+contrato del paquete. Verificarlas antes de abrir o reemplazar una instalación.
 
 ## Fusiones con base y creación con originales
 
@@ -240,7 +258,9 @@ etapa, el tiempo transcurrido, el estado del proceso CLI y su salida conforme ll
 Está disponible en el estudio y en el creador; permite cancelar y conserva en memoria
 los últimos 12.000 caracteres de esa construcción. Algunos CLI entregan el texto recién
 al terminar: que no haya texto todavía no significa que el proceso haya fallado.
-El contador mide tiempo transcurrido; la estimación del tiempo restante sigue pendiente.
+El tiempo transcurrido está siempre disponible; el intervalo restante aparece cuando
+hay tres trabajos satisfactorios comparables en el historial local. No se inventa
+un porcentaje ni una ETA cuando no hay datos suficientes.
 
 Las instrucciones para la IA sí forman parte del producto: `src/Retro.Studio/Docs/GUIA-FUSION.md`
 y `API.md` están versionadas y se incorporan a la app. Los archivos locales de coordinación
@@ -249,11 +269,11 @@ de agentes quedan fuera del repositorio.
 Comprobación de la ventana (sin molestar al jugador):
 
 ```powershell
-dotnet run --project src/Retro.App -c Release -- --hidden --mute --studio-window --autotest 10 out/estudio.png
+dotnet run --project src/Retro.App -c Release -- --hidden --mute --no-organize --no-update --studio-window --autotest 10 out/estudio.png
 ```
 
 Ya no existen FusionWindow, FusionDesigner, recetas clásicas ni vistas side/overlay/pip.
-Los ejemplos incluidos son Manic Invaders (estudio), Tormenta y Topos (creador).
+Los ejemplos incluidos se abren desde sus secciones del estudio o del creador.
 
 Diagnóstico de interrupciones 8088+8259A (programa propio, sin BIOS/DOS): desde emu,
 `dotnet run --project src/Retro.Cli -c Release -- cpu8088 irq-demo --steps 1000`.
@@ -280,28 +300,23 @@ en AppData/RetroEmu/states/<identidad>/slotN.rfstate. StateSlotStore.cs resuelve
 fechas; RetroApp.States.cs dibuja el panel. El guardado rápido es temporal.
 
 
+## PC/XT y base DOS
+
 PC/XT abre EXE/COM y ZIP con GLaBIOS/FreeDOS incluidos, además de IMG/IMA de arranque.
-Guía del jugador: [PC-DOS.md](PC-DOS.md). Desde emu:
-`dotnet run --project src/Retro.Cli -c Release -- run disco.img --bios ruta/al/bios.rom --frames 2400 --screenshot out/pc.png`.
-`PcLaunchTests` comprueba carga, identidad de guardados y direcciones por encima de 64 KB.
-`PCXT.md` detalla modos implementados y pendientes. La cuenta de instrucciones y el
-reloj de placa son independientes.
+[PC-DOS.md](PC-DOS.md) es la guía del jugador; [PCXT.md](PCXT.md) detalla placa y límites.
+La cuenta de instrucciones y el reloj de placa son independientes.
 
+- `Retro.Machines/PcDos.cs`: FAT12 privado, arranque DOS, alias y datos asociados.
+- `runtime/pcxt`: BIOS, kernel, shell, licencias, fuentes y procedencia con SHA.
+- `App.Tests/PcDosTests.cs`: datos INI, teclado DOS nativo, identidad, límites y fin de
+  aceleración; ejecutables homónimos con datos distintos en sus carpetas.
+- `App.Tests/PcLaunchTests.cs`: carga, identidad de estados y direcciones superiores a 64 KB.
+- `info` muestra las rutas internas; `run --pick N` respeta su índice para las máquinas
+  de archivo único. En arcade se necesita el conjunto de ROMs completo.
 
-Pulido de interfaz: `Retro.App/UiTheme.cs` centraliza la presentación; `FileBrowser.cs`
-usa los formatos de MachineCatalog. `FileBrowserTests` comprueba disquetes, búsquedas,
-navegación y selecciones que desaparecen. `StateSlotTests` comprueba la confirmación
-de reemplazo y rechaza confirmaciones de otra sesión. El pie de RetroApp permite
-recuperar trabajos activos sin iniciar una generación nueva.
+## Presentación y estados
 
-
-- Retro.Machines/PcDos.cs: preparación privada FAT12, arranque DOS y archivos asociados.
-- runtime/pcxt: GLaBIOS, kernel, shell, licencias, fuentes y procedencia con SHA.
-- App.Tests/PcDosTests.cs: datos INI en ZIP, DOS y teclado reales, identidad,
-  límites y fin de aceleración; sin juegos de terceros ni IA real.
-
-Desde 0.3.1, los ZIP de PC con varios programas ofrecen un selector al abrirse.
-Juego > Programas del archivo permite cambiar de ejecutable sin perder sus datos.
-En CLI, info muestra rutas internas y run --pick N respeta su índice para todas las
-máquinas de archivo único. FileBrowser filtra su instantánea y dibuja filas visibles;
-PcDosTests comprueba ejecutables homónimos con datos distintos en sus carpetas.
+`Retro.App/UiTheme.cs` centraliza colores y tipografía. `FileBrowserTests` comprueba
+disquetes, filtros, navegación y selecciones que desaparecen. `StateSlotTests` prueba
+confirmación de reemplazo y rechazo de confirmaciones de otra sesión. El pie de RetroApp
+recupera trabajos activos sin iniciar una generación nueva.

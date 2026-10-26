@@ -1,9 +1,11 @@
 # Arquitectura de RetroEmu
 
 RetroEmu ejecuta el software original (ROMs, cintas, discos, snapshots) sobre CPUs y
-hardware emulados. No hay recreaciones: cada instrucción del programa original se
-decodifica y ejecuta, y el programa se comunica con el hardware emulado igual que con
-el real (puertos, memoria de video, interrupciones, señal de cinta).
+hardware emulados: decodifica sus instrucciones y conecta memoria, puertos, video,
+interrupciones y medios. El estudio agrega una capa de guion para fusionar originales;
+el creador ensambla programas nuevos que vuelven a ejecutarse en esas máquinas.
+La precisión y los dispositivos disponibles dependen de cada núcleo y sistema;
+[LIMITACIONES.md](LIMITACIONES.md) registra el alcance actual.
 
 `AiTiming` y `AiDurationHistory` (Retro.Ai) miden las operaciones de construcción
 con reloj monótono e historial local acotado. AiBuildWindow muestra el intervalo y la
@@ -91,7 +93,8 @@ tests/
   Retro.Cpu.Z80.Tests      FUSE (1.356 casos) + ZEXDOC/ZEXALL.
   I8080.Tests              TST8080, 8080PRE, CPUTEST y 8080EXM con ciclos exactos.
   I8088.Tests              ALU, segmentos, pila, cadenas, TF y aceptación de interrupciones.
-  Pc.Tests                 8259A, ondas/recargas del 8253 y programas 8088 por puertos.
+  Pc.Tests                 Memoria, CGA, PIC/PIT/PPI, teclado, DMA/FDC, estado y PcXt.
+  App.Tests                Navegación, selección de archivos, DOS, herramientas y estados.
   M6502.Tests              SingleStepTests de Tom Harte (256.000 casos, cada ciclo de
                            bus) y la suite funcional de Klaus Dormann.
   C64.Tests                CIA, VIC-II, arranque, SYS, Open ROMs, estados guardados y
@@ -128,8 +131,8 @@ que ocurre en el chip real:
 | E/S | `PortTimingPre`, `ReadPort` / `WritePort`, `PortTimingPost` |
 
 Cada máquina implementa `IZ80Bus`. En una máquina sin contención todo devuelve 0 (o
-1 + 3 para los puertos). El Spectrum devuelve las demoras reales de la ULA. Así un mismo
-núcleo da el timing exacto en cualquier máquina.
+1 + 3 para los puertos). El Spectrum devuelve las demoras reales de la ULA. Cada
+máquina aporta sus demoras sin acoplar el núcleo a su hardware.
 
 Están implementados los comportamientos no documentados que usan los juegos: flags 3 y
 5, MEMPTR (WZ), el registro Q que afecta a SCF/CCF, IXH/IXL/IYH/IYL, SLL, las copias a
@@ -188,10 +191,23 @@ Los diagnósticos históricos irq-demo/timer-demo conservan su cronograma contro
 timed-demo prueba el reloj integrado. [Mapa y alcance de placa](PCXT.md).
 
 App y MachineLauncher crean el PC con el BIOS libre incluido, salvo un BIOS propio
-aportado por el usuario. PcDos prepara los EXE/COM con FreeDOS; los IMG/IMA mantienen su arranque. Cada
-estado valida medio y firmware antes de restaurar la placa completa, incluida la capa
-privada de disco. El depurador usa 20 bits; los observadores y perfiles actuales siguen
-limitados a 16 bits, por lo que PC no se ofrece todavía al estudio de fusiones.
+aportado por el usuario. PcDos prepara EXE/COM y ZIP con un FAT12 de 720 KB en memoria,
+directorios, FAT duplicada, arranque y AUTOEXEC. KERNEL.SYS va primero y contiguo; el
+cargador propio se relocaliza antes de leerlo. El kernel y FreeCOM se ejecutan en la CPU
+emulada, sin interceptar INT 13/21 ni ejecutar programas DOS en el host. MediaArchive
+conserva los datos auxiliares del recorrido PC, incluidos INI y subdirectorios; PcDos
+reserva los nombres originales antes de generar alias internos.
+
+El arranque escribe señales BOOT/RFDO mediante código emulado y espera dos pulsos
+del reloj BIOS antes del juego. El host usa esa señal para terminar la aceleración.
+Cargar un estado desactiva esa aceleración; reiniciar puede iniciar una carga nueva.
+La identidad incluye sistema, juego y datos. Los componentes, licencias y fuentes
+viajan en system/pcxt y se actualizan como programa; el firmware del usuario prevalece.
+
+IMG/IMA conservan su propio arranque. Cada estado valida medio y firmware antes de
+restaurar la placa completa, incluida la capa privada de disco. El depurador usa 20 bits;
+los observadores y perfiles actuales siguen limitados a 16 bits, por lo que PC no se ofrece
+todavía al estudio de fusiones.
 
 ## Placa de Space Invaders (Taito/Midway 8080)
 
@@ -763,7 +779,9 @@ copiar sus bytes, y plantillas para NES y Space Invaders.
 
 ## Prioridad de nuevas CPUs y computadoras
 
-La próxima ampliación prioriza los juegos de PC DOS, en este orden:
+Hay cuatro núcleos implementados: Z80, 8080, 6502 y 8088. El 6510 y el 2A03
+reutilizan el 6502 con sus diferencias de máquina. PC/XT con 8088 ya está integrado;
+la variante 8086 y las mejoras de precisión siguen pendientes. El orden de ampliación es:
 
 | Orden | CPU | Máquina y hardware objetivo |
 |---|---|---|
@@ -772,10 +790,8 @@ La próxima ampliación prioriza los juegos de PC DOS, en este orden:
 | 3 | Intel 80386, después diferencias del 80486 | PC DOS con VGA y sonido AdLib/Sound Blaster |
 | 4 | Motorola 68000 | Primero Atari ST; después Amiga 500 con sus chips OCS |
 
-PC/XT ya tiene una placa integrada con DOS y CGA; las ampliaciones posteriores
-siguen pendientes. Cada máquina
-requiere pruebas de CPU y periféricos, integración en
-app y CLI, y juegos con arranque y controles comprobados por edición. Para usar un juego
+Cada máquina requiere pruebas de CPU y periféricos, integración en app y CLI,
+y software con arranque y controles comprobados por edición. Para usar un juego
 en fusiones también hace falta un perfil verificado. Reconocer un archivo o completar
 la CPU no alcanza para declarar compatible la máquina.
 
@@ -787,14 +803,14 @@ registradas por separado.
 
 | Etapa | CPU | Sistemas | Estado |
 |---|---|---|---|
-| 1 | Z80 | ZX Spectrum 48K | Hecha |
+| 1 | Z80 | ZX Spectrum 48K | Disponible; límites de cinta y periféricos documentados |
 | 1b | Z80 | Spectrum 128K (AY, paginación), TK90X, MSX | Pendiente |
-| 2 | Intel 8080 | Placa arcade de Space Invaders | Hecha (probada con la ROM real) |
-| F | - | Fusiones, IA y visor de código | Hecha para Spectrum 48K y Space Invaders |
-| 3 | 6502 / 6510 | Commodore 64 (.t64, .prg) | Hecha (Pac-Man, Ghostbusters, Spy vs Spy) |
+| 2 | Intel 8080 | Placa arcade 8080 | Disponible; se emula la configuración soportada de placa |
+| F | - | Estudio, creación, análisis y visor de código | Disponibles; preparar y fusionar requiere perfiles y observadores compatibles de 16 bits |
+| 3 | 6502 / 6510 | Commodore 64 (.t64, .prg) | Disponible en PAL; otros formatos siguen pendientes |
 | 3n | 2A03 (6502) | NES (.nes, mappers 0/1/2/3/4/7) | Disponible, con sonido; compatibilidad según placa y periféricos |
 | 3b | 6502 | Discos .d64 y cartuchos del C64, Atari 800, Apple II | Pendiente |
-| 4 | 8086 / 8088 | IBM PC / XT con DOS | Disponible con CGA, altavoz, BIOS/FreeDOS libres incluidos y disquetes de arranque |
+| 4 | 8088 | IBM PC/XT con DOS | Disponible con CGA, altavoz, BIOS/FreeDOS libres y disquetes; 8086 y precisión de bus pendientes |
 | 4b | 80286 | PC AT con DOS y EGA | Pendiente, después de PC/XT |
 | 4c | 80386 / 80486 | PC DOS con VGA y sonido | Pendiente, después de PC AT |
 | 5 | 68000 | Atari ST, Amiga 500 | Pendiente |
@@ -839,12 +855,6 @@ Las carpetas automáticas de trabajos de agentes tienen un identificador único,
 en estudio como en el creador; una carpeta explícita conserva el comportamiento anterior.
 
 
-Retro.Systems.Pc contiene la máquina PC/XT integrada; [PCXT.md](PCXT.md) mantiene
-sus contratos y límites. Hay cuatro núcleos de CPU implementados: Z80, 8080, 6502 y
-8088. 6510 y 2A03 reutilizan el 6502 con sus diferencias de máquina. 68000 y las
-familias x86 posteriores siguen pendientes; una nueva máquina puede reutilizar un núcleo.
-
-
 ## Interfaz adaptable y trabajos activos
 
 UiTheme centraliza colores, espaciado y tipografía. Usa una fuente monoespaciada del
@@ -855,31 +865,18 @@ limitado. La imagen de los juegos mantiene su propio renderizado y escala.
 HomeScreen cambia la navegación lateral por un selector por debajo de 800 puntos.
 Las filas compactas integran sistema y avisos en la celda del título. FileBrowser deriva
 los formatos del catálogo, conserva una instantánea de carpeta y valida de nuevo la
-selección antes de abrir. Buscar o dibujar filas no recorre el disco en cada cuadro.
+selección antes de abrir. Actualiza esa instantánea cada dos segundos, conserva su filtro
+entre cuadros y usa ImGuiListClipper para dibujar filas visibles. Refrescar invalida el
+filtro y las selecciones que desaparecieron; buscar o dibujar no recorre el disco por cuadro.
+Enter abre la selección y Esc cierra el explorador.
+
+La apertura conserva los medios anteriores hasta cargar con éxito. Los ZIP de PC con
+varios programas usan una elección pendiente, con opciones por máquina y origen completo.
+Cancelar restaura la pausa previa; los controles y atajos no pasan al juego mientras se
+elige un archivo o programa. Se mantienen las carpetas de ejecutables homónimos.
 
 El pie informa trabajos de estudio, creador y análisis; si hay varios, permite elegir.
 ShowWork reabre el recorrido existente sin comenzar otro pedido. El progreso del estudio
 y creador aparece antes del formulario. El teclado capturado por ImGui no llega al juego.
 Las ranuras ocupadas requieren confirmación; la confirmación vuelve a comprobar juego,
 firmware y revisión de sesión antes de escribir.
-
-
-PcDos construye FAT12 de 720 KB, directorios, FAT duplicada, arranque y AUTOEXEC
-enteramente en memoria. KERNEL.SYS va primero y contiguo; el cargador propio se relocaliza
-antes de leerlo para no sobrescribirse. El kernel y FreeCOM se ejecutan en la CPU real
-emulada, sin interceptar INT 13/21 ni ejecutar programas DOS en el host. MediaArchive
-conserva datos auxiliares solo en el recorrido PC, incluidos INI y subdirectorios.
-
-El arranque incluido escribe señales BOOT/RFDO mediante código emulado y espera dos
-pulsos del reloj BIOS antes del juego. El host usa esa señal para terminar la aceleración;
-no modifica la partida. La carga de un estado desactiva la aceleración; reiniciar puede
-iniciar una carga nueva. La identidad del medio incluye sistema, juego y datos.
-Los componentes de terceros, sus licencias y fuentes completas viajan en system/pcxt.
-El firmware del usuario tiene prioridad; system se actualiza como parte del programa.
-
-La apertura conserva el conjunto de medios anterior hasta cargar con éxito. Los ZIP
-de PC con varios programas usan una elección pendiente; cancelar restaura la pausa
-previa. Las opciones se distinguen por máquina y origen completo, incluidos directorios.
-FileBrowser guarda también el filtro de su instantánea y usa ImGuiListClipper para
-dibujar filas visibles. Refrescar la carpeta invalida ese filtro y las selecciones borradas.
-PcDos reserva nombres DOS originales antes de generar alias para carpetas y ejecutables.

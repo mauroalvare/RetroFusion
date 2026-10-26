@@ -2,6 +2,8 @@
 
 Decisiones de arquitectura y de forma de trabajo, con su motivo. Una entrada nueva por
 decisión (no se reescriben las viejas: si cambia algo, se agrega otra que la reemplaza).
+Las entradas son históricas: D-065 reemplaza el requisito de aportar DOS de D-063;
+D-066 amplía la elección de archivos y D-067 fija la autorización para publicar.
 
 ## D-001 C# .NET 10 con raylib y Dear ImGui (2026-10)
 
@@ -997,3 +999,11 @@ rechaza índices inválidos con código 2. El conjunto original sigue disponible
 los datos DOS. La app pide elegir cuando un paquete de PC contiene varios programas,
 distingue opciones por máquina/origen y conserva el contexto anterior hasta una carga
 correcta. Cancelar restaura la pausa previa. No cambia formatos de perfiles o estados.
+
+## D-067 — Publicar requiere indicación expresa del usuario
+
+Preparar código, compilar, probar, escribir notas y generar paquetes locales no autoriza
+publicar una entrega. Crear o modificar un release, subir o reemplazar sus archivos y
+publicar sus etiquetas requiere que el usuario lo indique expresamente para esa entrega.
+El permiso de una versión anterior no se hereda. Hasta entonces se informa qué quedó
+preparado y se conserva el candidato verificable, sin alterar la entrega pública vigente.

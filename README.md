@@ -1,6 +1,6 @@
 # RetroFusion
 
-Emulador de computadoras y consolas de 8 bits (**RetroEmu**) que corre los juegos
+Emulador de computadoras y consolas clásicas (**RetroEmu**) que corre los juegos
 originales con emulación real de CPU y hardware, y los **fusiona** con IA: elegís una
 base y sumás mecánicas de otros juegos dentro de su mundo. El estudio propone aportes,
 escribe el guion, lo prueba con jugadores robot y saca
@@ -11,7 +11,7 @@ los prueba y quedan como un `.prg` o un `.tap` que corre en cualquier emulador.
 - Código del emulador y documentación completa: [emu/README.md](emu/README.md)
 - Arquitectura: [emu/docs/ARQUITECTURA.md](emu/docs/ARQUITECTURA.md)
 - El método para fusionar juegos: [emu/src/Retro.Studio/Docs/GUIA-FUSION.md](emu/src/Retro.Studio/Docs/GUIA-FUSION.md)
-- Qué juegos conseguir para probar cada máquina: [emu/docs/JUEGOS-PARA-PROBAR.md](emu/docs/JUEGOS-PARA-PROBAR.md)
+- Sistemas, formatos y requisitos: [emu/docs/JUEGOS-PARA-PROBAR.md](emu/docs/JUEGOS-PARA-PROBAR.md)
 
 ## Fusiones incluidas
 
@@ -91,7 +91,7 @@ desde los pendientes del estudio o del creador con su último código y sus edic
 
 | Código y depurador | Nintendo NES |
 |---|---|
-| ![Rutinas y depurador de Tormenta en C64](emu/docs/img/interfaz/codigo.png) | ![Cave corriendo en la máquina NES](emu/docs/img/interfaz/nes.png) |
+| ![Rutinas y depurador de Tormenta en C64](emu/docs/img/interfaz/codigo.png) | ![Un cartucho en la máquina NES](emu/docs/img/interfaz/nes.png) |
 | Estudiá rutinas, registros y memoria mientras el programa corre. | Juegos originales con CPU, video, sonido y controles emulados. |
 
 | Biblioteca en una ventana chica | Programas de PC con arranque incluido |
@@ -102,8 +102,8 @@ desde los pendientes del estudio o del creador con su último código y sus edic
 
 - **Elegir programas de PC:** al abrir un ZIP con varios ejecutables aparece un selector
   con sus carpetas. Podés cambiar después desde **Juego > Programas del archivo**.
-- **Archivos más ágiles:** las carpetas grandes dibujan solo las filas visibles; la búsqueda
-  conserva sus resultados entre cuadros. **Enter** abre la selección y **Esc** cierra el selector.
+- **Archivos más ágiles:** exploración más rápida de carpetas grandes.
+  **Enter** abre la selección y **Esc** cierra el selector.
 - **Carga más confiable:** se corrigen colisiones de nombres DOS y rutas con signos de
   exclamación. Cancelar o rechazar un archivo conserva las opciones del juego anterior.
 - Mantiene PC/XT con FreeDOS y CGA, NES con mappers 0/1/2/3/4/7 y cinco ranuras de
@@ -147,4 +147,6 @@ omiten.
 
 - Se incluye la ROM del ZX Spectrum 48K (Amstrad permite distribuirla con emuladores) y
   las Open ROMs del Commodore 64 (libres, LGPL 3, con su licencia).
-- No se incluye ningún juego ni otra ROM con copyright.
+- PC/XT incluye GLaBIOS, FreeDOS y FreeCOM, con licencias, procedencia y fuentes en
+  **system/pcxt**. [Componentes de terceros](emu/docs/TERCEROS.md).
+- No se incluyen juegos comerciales ni sus ROMs.

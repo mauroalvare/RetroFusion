@@ -13,7 +13,7 @@ juegos agregadas por el jugador conservan sus derechos y permanecen en su biblio
 
 ## Base de PC/XT
 
-Esta carpeta incluye componentes independientes que se ejecutan dentro del PC emulado.
+El paquete incluye componentes independientes en **system/pcxt** que se ejecutan dentro del PC emulado.
 RetroEmu no es autor de estos componentes. No se distribuye MS-DOS ni un BIOS de IBM.
 
 - **GLaBIOS 0.4.2, compilación 8P:** © 2022–2026 640KB y colaboradores, GPL versión 3.

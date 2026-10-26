@@ -1,7 +1,8 @@
 # PC/XT: estado de la implementación
 
 La placa PC/XT está disponible en la biblioteca y el CLI: 8088, hasta 640 KB, CGA,
-teclado, altavoz y disquete. BIOS y sistema operativo se aportan por separado.
+teclado, altavoz y disquete. El paquete incluye GLaBIOS, FreeDOS y FreeCOM, con sus
+licencias y fuentes; un BIOS del usuario tiene prioridad sobre el incluido.
 Para empezar, consultá [PC y DOS](PC-DOS.md). La compatibilidad depende del hardware
 y los modos que requiere cada programa.
 
@@ -33,9 +34,10 @@ y los modos que requiere cada programa.
 
 Las tarjetas no instaladas leen bus abierto FF; un modo no implementado de un
 dispositivo existente se rechaza explícitamente.
-Se comprobó un arranque DOS con firmware y sistema operativo libres aportados
-por separado, con entrada real por teclado y lectura de comandos. El reloj y la cola de prelectura tienen un modo funcional temporizado; las señales
-eléctricas y la secuencia exacta de silicio siguen pendientes. No se incluye firmware nuevo en el paquete.
+Se comprobó el arranque con la base libre incluida, entrada por teclado y lectura
+de archivos. El reloj y la cola de prelectura tienen un modo funcional temporizado;
+las señales eléctricas y la secuencia exacta de silicio siguen pendientes. Incluir
+el sistema operativo no amplía el hardware que puede emularse.
 
 ## Mejoras de precisión pendientes
 
@@ -57,7 +59,8 @@ y los registros de solo lectura del controlador.
 El dibujo usa la dirección inicial, atributos, cursor y bancos entrelazados de 8 KB.
 Acepta una fuente de 1024/2048 bytes aportada por el llamador. Sin ella usa los 128
 caracteres del BIOS compatible en FFA6E; los extendidos necesitan la fuente completa.
-No se incorporó una ROM de caracteres nueva al paquete.
+El paquete incluye la tipografía redistribuible que forma parte del BIOS libre;
+no agrega por separado una ROM de caracteres comercial.
 
 Limitaciones: cuadro RGBI completo, sin señal compuesta, nieve, interlace, efectos
 por cambios de registros dentro de una línea ni lápiz óptico externo. El estrobo por
@@ -101,9 +104,10 @@ no cambian el archivo original. Esa capa se puede guardar/cargar por identidad S
 No hay disco duro, controladora AT de alta densidad, formato de pistas, protecciones
 con sectores irregulares ni emulación magnética de CRC, rotación o transiciones de flujo.
 
-El arranque comprobado usa BIOS libre, FreeDOS y comandos enviados como códigos de
-teclado; no intercepta INT 13/16 ni sustituye el cargador o el kernel. Se comprobó una partida con entrada y disparo. Esto no implica compatibilidad con
-todos los juegos DOS.
+El arranque usa el BIOS libre y FreeDOS ejecutados en la CPU emulada; no intercepta
+INT 13/16 ni sustituye el cargador o el kernel. Las pruebas comprueban lectura de datos
+y teclado, además de partidas concretas. Esto no implica compatibilidad con todos
+los programas DOS.
 Referencia: [documentación NEC uPD765](https://www.cpctech.cpcwiki.de/docs/upd765a/necfdc.htm).
 
 
@@ -129,7 +133,15 @@ EXE/COM y ZIP se preparan con PcDos en un FAT12 privado de 720 KB. El paquete
 incluye GLaBIOS 0.4.2 8P, FreeDOS kernel 2043 y FreeCOM 0.86, con licencias y
 fuentes correspondientes en system/pcxt. Un BIOS del usuario sigue teniendo prioridad.
 El cargador propio usa lecturas BIOS CHS; el sistema ejecuta sus INT 21h de verdad.
-Los nombres y estructuras de datos DOS se conservan. No se ejecutan instaladores en el
-host ni se escribe en los archivos de origen. Los alias solo se usan en la copia privada.
+Los directorios y datos auxiliares se conservan. Los nombres DOS válidos se reservan
+antes de generar alias para carpetas largas y el ejecutable elegido; los archivos de
+datos con nombres largos no compatibles se rechazan. Los signos de exclamación literales
+no se confunden con los separadores internos de un ZIP. No se ejecutan programas DOS
+en el host ni se escribe en los archivos de origen; los alias pertenecen a la copia privada.
 El espacio del sistema reduce la capacidad disponible para el juego. No implica soporte
 para otra generación de CPU, gráficos ni discos duros.
+
+Los ZIP con varios programas ofrecen una elección por ruta de carpeta. Cancelar restaura
+la pausa previa y una apertura rechazada conserva el conjunto de medios anterior.
+La elección no se recuerda al reabrir el ZIP. En el CLI, `info` muestra esos archivos
+y `run --pick N` selecciona su índice, conservando el resto de los datos del paquete.

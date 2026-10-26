@@ -1,9 +1,10 @@
 # Juegos de PC
 
 RetroEmu incluye un BIOS libre y una base FreeDOS. Para PC/XT con gráficos CGA,
-abrí el **ZIP del juego**, su **EXE/COM** o una imagen **IMG/IMA de 160–720 KB**.
+abrí el **ZIP del juego**, su **EXE/COM** o una imagen **IMG/IMA de 160, 180, 320, 360 o 720 KB**.
 
-Si abrís un programa suelto, dejá sus archivos de datos en la misma carpeta.
+Si abrís un programa suelto, dejá sus archivos de datos en una carpeta propia del juego.
+El organizador conserva los EXE/COM en su ubicación para no separarlos de sus datos.
 Si el ZIP tiene varios ejecutables, el selector muestra sus carpetas y te deja elegir
 cuál iniciar. Podés cambiar después en **Juego > Programas del archivo**.
 El programa prepara el arranque en memoria y acelera la carga inicial. No instala
@@ -26,5 +27,3 @@ de arranque.
 
 Las licencias y fuentes de GLaBIOS, FreeDOS y FreeCOM están en **system/pcxt**.
 [Procedencia y licencias](TERCEROS.md). [Alcance técnico](PCXT.md).
-
-El organizador conserva los EXE/COM sueltos en su ubicación para no separarlos de sus datos.

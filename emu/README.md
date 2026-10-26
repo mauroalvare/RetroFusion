@@ -105,11 +105,12 @@ La reaplicación al reiniciar o abrir el juego se activa por separado.
 | Commodore 64 | T64, PRG |
 | NES | NES, mappers 0/1/2/3/4/7 |
 | IBM PC / XT | EXE/COM y ZIP con FreeDOS y BIOS libres incluidos; también IMG/IMA de 160–720 KB |
-| Space Invaders | Conjunto de ROMs de la placa en ZIP |
+| Placa arcade Taito/Midway 8080 | Conjunto de ROMs de la placa en ZIP |
 
 También se aceptan archivos ZIP. La compatibilidad depende de la edición del juego.
 El paquete incluye el firmware redistribuible del Spectrum y Open ROMs para C64,
-con sus licencias en **firmware**.
+con sus licencias en **firmware**. PC/XT incluye GLaBIOS, FreeDOS y FreeCOM,
+con licencias y fuentes en **system/pcxt**. [Procedencia](docs/TERCEROS.md).
 
 En PC/XT, F1–F10 llegan al juego: los atajos del emulador usan Ctrl+Fn y los de
 herramientas Ctrl+Shift+letra. [Preparar PC y DOS](docs/PC-DOS.md). El análisis de

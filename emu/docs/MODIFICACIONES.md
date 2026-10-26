@@ -2,6 +2,10 @@
 
 Abrí un original y usá **Herramientas > Modificar y analizar** o **Ctrl+M**.
 
+En PC/XT todavía no está disponible el análisis ni la edición de variables de este panel.
+Podés usar las herramientas de código, parches y depuración; los atajos de herramientas
+son **Ctrl+Shift+letra**.
+
 - **Cambios:** editá valores con Enter, congelalos o aplicá una propuesta.
 - **Analizar con IA:** elegí proveedor y modelo, escribí tu pregunta y pulsá **Analizar la partida**.
 - **Buscar variables:** compará la memoria mientras jugás y filtrá los resultados.

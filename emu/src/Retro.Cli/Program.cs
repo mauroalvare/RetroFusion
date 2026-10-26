@@ -20,7 +20,7 @@ static int Usage()
 
           retro-cli info <archivo>
           retro-cli cpu8088 verificar --suite <carpeta-v2> [--salida informe.json]
-          retro-cli cpu8088 <programa.bin|demo|irq-demo|timer-demo> [--steps n]   diagnóstico del núcleo; todavía sin PC/BIOS/DOS
+          retro-cli cpu8088 <programa.bin|demo|irq-demo|timer-demo> [--steps n]   diagnóstico del núcleo, separado del arranque de PC/XT
           retro-cli run <archivo> [opciones]
           retro-cli studio <juego.js|juego.json|id> --games <carpeta> [--seconds n] [--shots prefijo]
           retro-cli compat <carpeta-guiones|guion.json> --juegos <carpeta> [--salida r.json] [--md tabla.md]
@@ -46,7 +46,7 @@ static int Usage()
                     elegida en la app), encuentra y verifica sus variables y guarda un perfil por hash
 
         Máquinas: ZX Spectrum 48K (.tap .tzx .z80 .sna), Space Invaders (invaders.zip de MAME),
-        Commodore 64 (.t64 .prg), NES (.nes mappers 0/1/2/3/4/7) y PC/XT (.img .ima).
+        Commodore 64 (.t64 .prg), NES (.nes mappers 0/1/2/3/4/7) y PC/XT (.exe .com .zip con FreeDOS incluido, .img .ima de arranque).
 
         Opciones de run:
           --rom <ruta>             ROM del Spectrum 48K (por defecto roms/48.rom)
@@ -61,7 +61,7 @@ static int Usage()
           --wav <archivo>          guarda el audio emulado
           --samples <zip|carpeta>  (Space Invaders) sonidos grabados de MAME (samples/invaders.zip)
           --trace <n>              traza las primeras n instrucciones
-          --pick <n>               elige el archivo n dentro de un zip
+          --pick <n>               elige el índice n mostrado por info dentro de un ZIP
           --poke <c>:<hex>=<n>     en el cuadro c escribe el valor n en la dirección (probar hipótesis)
           --disasm <hex>:<n>       al final, desensambla n instrucciones desde la dirección
           --dump <hex>:<n>         al final, muestra n bytes de memoria
