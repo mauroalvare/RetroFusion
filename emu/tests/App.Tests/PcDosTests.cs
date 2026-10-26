@@ -64,14 +64,14 @@ public sealed class PcDosTests
     }
 
     // Reads DATA.INI with native DOS INT 21h, records its byte at 0050:0010, then waits
-    // for a key via DOS and records that key. No emulation shortcuts or mocks.
+    // for a BIOS key and records its character/scancode. No shortcuts or mocks.
     private static byte[] ReadingProgram()
     {
         var code = new List<byte>();
         void E(params byte[] bytes) => code.AddRange(bytes);
         E(0xBA, 0, 0, 0xB8, 0, 0x3D, 0xCD, 0x21, 0x89, 0xC3, 0xBA, 0, 0, 0xB9, 1, 0, 0xB4, 0x3F, 0xCD, 0x21);
         E(0xB8, 0x50, 0, 0x8E, 0xC0, 0xA0, 0, 0, 0x26, 0xA2, 0x10, 0);
-        E(0xB4, 8, 0xCD, 0x21, 0x26, 0xA2, 0x11, 0, 0xEB, 0xFE);
+        E(0x31, 0xC0, 0xCD, 0x16, 0x26, 0xA2, 0x11, 0, 0x26, 0x88, 0x26, 0x12, 0, 0xEB, 0xF1);
         int name = 0x100 + code.Count; code[1] = (byte)name; code[2] = (byte)(name >> 8);
         code.AddRange(Encoding.ASCII.GetBytes("DATA.INI\0"));
         int buffer = 0x100 + code.Count;
@@ -98,6 +98,9 @@ public sealed class PcDosTests
         Assert.That(pc.Peek(0x510), Is.EqualTo(73), "DOS must load the program, set its working directory and read the INI data.");
         pc.SetKey("A", true); Run(pc, 3); pc.ReleaseAllKeys(); Run(pc, 12);
         Assert.That(pc.Peek(0x511), Is.EqualTo((byte)'a'));
+        pc.SetKey("RIGHT", true); Run(pc, 4); pc.ReleaseAllKeys(); Run(pc, 12);
+        Assert.That(pc.Peek(0x511), Is.Zero, "A directional arrow must not become a numpad digit.");
+        Assert.That(pc.Peek(0x512), Is.EqualTo(0x4D));
         Assert.That(File.ReadAllBytes(path), Is.EqualTo(original));
     }
 

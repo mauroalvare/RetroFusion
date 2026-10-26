@@ -19,7 +19,7 @@ public static class PcDos
         var root = new Node("", null, null);
         byte[] kernel = ReadRuntime("kernel.sys");
         root.Add("KERNEL.SYS", kernel); root.Add("COMMAND.COM", ReadRuntime("command.com"));
-        root.Add("FDCONFIG.SYS", Encoding.ASCII.GetBytes("SHELL=\\COMMAND.COM /E:512 /P\r\nFILES=30\r\nBUFFERS=10\r\n"));
+        root.Add("FDCONFIG.SYS", Encoding.ASCII.GetBytes("SHELL=\\COMMAND.COM /E:512 /P\r\nFILES=30\r\nBUFFERS=10\r\nNUMLOCK=OFF\r\n"));
         // A native DOS program marks boot ready, then waits two BIOS ticks before the game starts.
         root.Add("RETRO.COM", Convert.FromHexString("B850008EC026C7060000524626C7060200444FB840008EC0268B1E6C00B90200263B1E6C0074F9268B1E6C00E2F2B8004CCD21"));
         var game = root.Add("GAME", null);
