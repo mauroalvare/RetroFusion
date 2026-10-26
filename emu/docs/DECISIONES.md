@@ -987,3 +987,5 @@ El BIOS aportado por el usuario prevalece sobre el incluido. El sistema incluido
 fuera de firmware/, que el actualizador protege como datos del jugador.
 La versión sigue en 0.3.0 por pedido expreso. Quien ya tenga esa versión descarga el
 paquete revisado manualmente; no se cambia el protocolo de versiones del actualizador.
+
+El organizador conserva los EXE/COM sueltos en su ubicación para no separarlos de sus datos.

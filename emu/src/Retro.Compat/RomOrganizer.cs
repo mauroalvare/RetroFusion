@@ -49,6 +49,10 @@ public static class RomOrganizer
                     var files = MediaArchive.Open(bytes, info.Name, source);
                     string? machine = Identify(files);
                     if (machine == null) { unknown++; continue; }
+                    // A loose DOS executable may depend on adjacent data or other programs.
+                    // Keep it in place rather than orphaning those files.
+                    if (machine == "pcxt" && (info.Extension.ToLowerInvariant() is ".exe" or ".com"))
+                    { deferred++; continue; }
                     string targetFolder = Path.Combine(root, FolderName(machine));
                     EnsureChild(root, targetFolder);
                     Directory.CreateDirectory(targetFolder);

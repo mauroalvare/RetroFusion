@@ -25,3 +25,5 @@ de arranque.
 
 Las licencias y fuentes de GLaBIOS, FreeDOS y FreeCOM están en **system/pcxt**.
 [Procedencia y licencias](TERCEROS.md). [Alcance técnico](PCXT.md).
+
+El organizador conserva los EXE/COM sueltos en su ubicación para no separarlos de sus datos.

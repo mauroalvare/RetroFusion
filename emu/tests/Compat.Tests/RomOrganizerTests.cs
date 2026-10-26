@@ -133,12 +133,16 @@ public sealed class RomOrganizerTests
     }
 
     [Test]
-    public void DosHeadersAreRecognizedForTheIncludedRuntime()
+    public void LooseDosProgramsStayWithTheirDataAndRemainRecognized()
     {
         byte[] dos = new byte[512]; dos[0] = 77; dos[1] = 90; dos[4] = 1; dos[8] = 2;
         string path = Write("Programa.exe", dos);
+        string data = Write("DATA.INI", [73]);
         var result = RomOrganizer.Organize(_root);
-        Assert.That(result.Moved.Single().To, Is.EqualTo(Path.Combine(_root, "PC - DOS", "Programa.exe")));
+        Assert.That(result.Moved, Is.Empty);
+        Assert.That(result.Deferred, Is.EqualTo(1));
+        Assert.That(File.ReadAllBytes(path), Is.EqualTo(dos));
+        Assert.That(File.ReadAllBytes(data), Is.EqualTo(new byte[] { 73 }));
         Assert.That(MachineCatalog.Get("pcxt").Status, Is.EqualTo(MachineStatus.Available));
         var candidate = MachineCatalog.Identify(new Retro.Core.MediaFile("Programa.exe", dos, path)).First(c => c.Machine.Id == "pcxt");
         Assert.That(MachineCatalog.NotLoadableYet(candidate), Is.Null);
