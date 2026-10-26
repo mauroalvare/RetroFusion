@@ -11,6 +11,27 @@ El guion es JavaScript estándar (ES2020, sin módulos ni `import`, sin acceso a
 a internet). Cada llamada a `tick` o `draw` tiene un límite de tiempo: nada de bucles
 infinitos.
 
+## Datos disponibles antes de escribir
+
+El guion usa los datos y capacidades presentes en los perfiles de sus originales.
+Si una idea requiere algo que falta, la respuesta de diseño debe indicarlo en
+missingData, con la comprobación concreta que permitiría investigarlo. Dejá el guion
+vacío si no se puede implementar la interacción central con lo que está respaldado.
+
+**Preparar y crear esta fusión** es una acción del estudio, no una función JavaScript.
+En creación con originales se llama **Preparar y crear este juego**. Los faltantes se
+consultan en **Datos que se van a comprobar**.
+El emulador arranca los originales y prueba controles y experimentos; después vuelve
+a evaluar la misma idea con los perfiles actualizados. Con un proveedor automático,
+continúa la escritura y el validador si los requisitos están respaldados. Si los datos
+siguen siendo parciales, conserva el motivo y permite volver a preparar.
+
+La revisión identifica evidencia por ranura y capacidad existente: variable, control,
+sprite, ayuda documentada o arranque comprobado. No agrega una API para adivinar memoria
+ni permite invocar las rutinas que la IA suponga. Una coordenada observada o una variable
+con escritura verificada no acreditan por sí solas mapa, colisiones, daño o reglas.
+Un dato de solo lectura sigue siendo de solo lectura.
+
 ## Ciclo de vida
 
 Definí estas funciones (todas opcionales):
@@ -42,7 +63,7 @@ Cada juego (por la ranura de la receta) es un objeto `g`:
 
 | Miembro | Qué hace |
 |---|---|
-| `g.name`, `g.profile`, `g.machine` | Nombre, id del perfil, máquina (`zx48`, `invaders`, `c64`) |
+| `g.name`, `g.profile`, `g.machine` | Nombre, id del perfil, máquina (`zx48`, `invaders`, `c64`, `nes`) |
 | `g.area` | `{x, y, w, h}`: dónde está la imagen del juego dentro de su cuadro (sin el borde del Spectrum ni del C64: en el C64 son los 320x200 del medio de un cuadro de 384x272). Las coordenadas de las ayudas del perfil son relativas a esta área. |
 | `g.control(nombre, apretado)` | Aprieta o suelta un control del perfil (`left`, `right`, `jump`, `fire`, `start`...) o una tecla de la máquina (`'P'`, `'SPACE'`, `'P1 FIRE'`...). Queda apretado hasta que lo sueltes. |
 | `g.tap(nombre, cuadros)` | Aprieta un control durante N cuadros del juego y lo suelta solo. |

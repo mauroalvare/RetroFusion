@@ -17,6 +17,31 @@ Buscá relaciones entre esas reglas, no solo parecidos visuales. Describí una c
 compartida: lo que hacés con una regla debe cambiar cómo tomás decisiones con la otra.
 Aplicá también el contrato común de diseño incluido en el pedido.
 
+### Datos que necesitan preparación
+
+Si una interacción central necesita información que no está respaldada, completá
+missingData con el dato concreto y la comprobación pendiente. Indicá qué acción normal
+del juego permitiría observarlo, con qué comparación se comprobaría y qué seguiría sin
+demostrarse. No mandes al jugador a jugar como condición previa: el estudio puede
+arrancar el original, probar controles y ejecutar experimentos acotados.
+
+La acción **Preparar y crear esta fusión** conserva los originales, el pedido, la base
+y la mecánica elegida. En creación se llama **Preparar y crear este juego**.
+El robot prepara datos de esa edición y la IA vuelve a evaluar
+la misma idea con los perfiles actuales. Si alcanza la evidencia, continúa la creación
+y sus validaciones; si es parcial, conserva los faltantes y permite reintentar.
+Un perfil existente o un arranque correcto no significan que todo esté resuelto.
+
+En esa revisión, citá las variables, controles, recursos o ayudas reales que respaldan
+cada requisito. Una posición en pantalla no acredita coordenadas de mundo, cámara,
+solidez, caja de choque, daño ni progreso. Que una escritura tenga efecto tampoco
+confirma su significado. No vacíes missingData para habilitar la creación, no rebajes
+los requisitos y no sustituyas la idea por otra más fácil.
+
+Los experimentos proponen entradas permitidas, no código de host ni direcciones
+adivinadas. Si un mapa o una regla no se pudo comprobar, mantenelo como faltante.
+Esto no autoriza pantallas pegadas, una base reemplazada ni una escena genérica.
+
 ## 2. Encontrar el punto de unión
 
 Proponé una **regla inseparable**: explicá cómo una acción procedente de un juego transforma
