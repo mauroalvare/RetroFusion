@@ -70,4 +70,22 @@ public sealed class FileBrowserTests
         string? picked = null; Call(browser, "OpenSelected", (Action<string>)(value => picked = value));
         Assert.That(picked, Is.EqualTo(path)); Assert.That(Get(browser, "_open"), Is.EqualTo(false));
     }
+
+    [Test]
+    public void RefreshUpdatesAnActiveFilterAndRemovesDeletedSelections()
+    {
+        string first = File("Coincide.tap");
+        var browser = new FileBrowser(_folder); browser.Open();
+        Set(browser, "_search", "Coincide");
+        Assert.That(Visible(browser), Is.EqualTo(new[] { first }));
+        string second = File("Coincide2.tap");
+        Set(browser, "_selected", first); System.IO.File.Delete(first);
+        Call(browser, "Refresh");
+        Assert.That(Visible(browser), Is.EqualTo(new[] { second }));
+        Assert.That(Get(browser, "_selected"), Is.Null);
+        Set(browser, "_search", "ausente");
+        Assert.That(Visible(browser), Is.Empty);
+        Set(browser, "_search", "");
+        Assert.That(Visible(browser), Is.EqualTo(new[] { second }));
+    }
 }

@@ -16,6 +16,10 @@ public sealed class FileBrowser
     private IReadOnlyList<Item> _items = [];
     private IReadOnlyList<string> _drives = [];
     private DateTime _refreshAt;
+    private Item[]? _visible;
+    private string _filter = "";
+    private bool _filterAll;
+    public bool IsOpen => _open;
 
     public FileBrowser(string startDir) { _dir = startDir; _pathInput = startDir; }
     public void Open()
@@ -44,6 +48,7 @@ public sealed class FileBrowser
     private void Refresh()
     {
         _refreshAt = DateTime.UtcNow.AddSeconds(2);
+        _visible = null;
         try
         {
             _items = new DirectoryInfo(_dir).EnumerateFileSystemInfos().Select(info =>
@@ -56,9 +61,18 @@ public sealed class FileBrowser
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         { _items = []; _selected = null; _problem = "No se puede leer la carpeta: " + e.Message; }
     }
-    private IEnumerable<Item> VisibleItems() => _items.Where(item =>
-        (_showAll || !item.Hidden && (item.Directory || Known.Contains(Path.GetExtension(item.Path)))) &&
-        item.Name.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase));
+    private Item[] VisibleItems()
+    {
+        string query = _search.Trim();
+        if (_visible == null || query != _filter || _showAll != _filterAll)
+        {
+            _filter = query; _filterAll = _showAll;
+            _visible = _items.Where(item =>
+                (_showAll || !item.Hidden && (item.Directory || Known.Contains(Path.GetExtension(item.Path)))) &&
+                item.Name.Contains(query, StringComparison.OrdinalIgnoreCase)).ToArray();
+        }
+        return _visible;
+    }
 
     private void OpenSelected(Action<string> onPick)
     {
@@ -68,7 +82,7 @@ public sealed class FileBrowser
         string path = _selected; _open = false; onPick(path);
     }
 
-    public void Draw(Action<string> onPick)
+    public unsafe void Draw(Action<string> onPick)
     {
         if (!_open) return;
         if (DateTime.UtcNow >= _refreshAt) Refresh();
@@ -97,27 +111,36 @@ public sealed class FileBrowser
             if (ImGui.SmallButton(drive)) Navigate(drive);
         }
         if (_problem.Length > 0) ImGui.TextWrapped(_problem);
-        var shown = VisibleItems().ToArray();
+        var shown = VisibleItems();
         if (ImGui.BeginTable("archivos", 2, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY | ImGuiTableFlags.BordersInnerH,
             new(0, Math.Max(60, ImGui.GetContentRegionAvail().Y - 100))))
         {
             ImGui.TableSetupColumn("Nombre", ImGuiTableColumnFlags.WidthStretch);
             ImGui.TableSetupColumn("Tamaño", ImGuiTableColumnFlags.WidthFixed, 85); ImGui.TableHeadersRow();
-            foreach (var item in shown)
+            var clipper = new ImGuiListClipperPtr(ImGuiNative.ImGuiListClipper_ImGuiListClipper());
+            try
             {
-                ImGui.TableNextRow(); ImGui.TableNextColumn(); ImGui.PushID(item.Path);
-                string label = (item.Directory ? "> " : "") + item.Name;
-                if (ImGui.Selectable(UiTheme.Fit(label, ImGui.GetContentRegionAvail().X) + "##archivo", _selected == item.Path,
-                    ImGuiSelectableFlags.AllowDoubleClick | ImGuiSelectableFlags.SpanAllColumns))
+                clipper.Begin(shown.Length);
+                while (_open && clipper.Step())
+                for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
                 {
-                    _selected = item.Path;
-                    if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left)) { OpenSelected(onPick); ImGui.PopID(); break; }
+                    var item = shown[i];
+                    ImGui.TableNextRow(); ImGui.TableNextColumn(); ImGui.PushID(item.Path);
+                    string label = (item.Directory ? "> " : "") + item.Name;
+                    if (ImGui.Selectable(UiTheme.Fit(label, ImGui.GetContentRegionAvail().X) + "##archivo", _selected == item.Path,
+                        ImGuiSelectableFlags.AllowDoubleClick | ImGuiSelectableFlags.SpanAllColumns))
+                    {
+                        _selected = item.Path;
+                        if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left)) { OpenSelected(onPick); ImGui.PopID(); break; }
+                    }
+                    if (ImGui.IsItemHovered()) UiTheme.Tooltip(item.Path);
+                    ImGui.TableNextColumn(); ImGui.TextDisabled(item.Directory ? "Carpeta" : item.Size >= 1024 * 1024
+                        ? $"{item.Size / (1024.0 * 1024):F1} MB" : $"{item.Size / 1024.0:F1} KB");
+                    ImGui.PopID();
                 }
-                if (ImGui.IsItemHovered()) UiTheme.Tooltip(item.Path);
-                ImGui.TableNextColumn(); ImGui.TextDisabled(item.Directory ? "Carpeta" : item.Size >= 1024 * 1024
-                    ? $"{item.Size / (1024.0 * 1024):F1} MB" : $"{item.Size / 1024.0:F1} KB");
-                ImGui.PopID();
+                clipper.End();
             }
+            finally { ImGuiNative.ImGuiListClipper_destroy(clipper.NativePtr); }
             if (shown.Length == 0) { ImGui.TableNextRow(); ImGui.TableNextColumn(); ImGui.TextDisabled("No hay archivos para mostrar."); }
             ImGui.EndTable();
         }
@@ -127,6 +150,11 @@ public sealed class FileBrowser
         ImGui.EndDisabled(); ImGui.SameLine();
         if (ImGui.Button("Cancelar", new(110, 0))) _open = false;
         ImGui.SameLine(); ImGui.TextDisabled($"{shown.Length} elementos");
+        if (ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows))
+        {
+            if (ImGui.IsKeyPressed(ImGuiKey.Escape)) _open = false;
+            else if (!ImGui.GetIO().WantTextInput && ImGui.IsKeyPressed(ImGuiKey.Enter)) OpenSelected(onPick);
+        }
         ImGui.End();
     }
 }
