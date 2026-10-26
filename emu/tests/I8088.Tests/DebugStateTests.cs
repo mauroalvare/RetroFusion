@@ -39,7 +39,7 @@ public sealed partial class CpuTests
         cpu.WriteWord(0, 0x80, 0x100); cpu.WriteWord(0, 0x82, 0x3000);
         cpu.RequestInterrupt(0x20); cpu.Step();
         byte[] state = Snapshot(cpu); var otherBus = new Bus(); bus.Memory.CopyTo(otherBus.Memory, 0);
-        var other = new I8088Cpu(otherBus); Restore(other, state);
+        var other = new I8088Cpu(otherBus, model); Restore(other, state);
         cpu.Step(); other.Step();
         Assert.That(cpu.CS, Is.EqualTo(0x1000), "The saved STI shadow must protect NOP.");
         Assert.That(Snapshot(other), Is.EqualTo(Snapshot(cpu)));
@@ -53,7 +53,7 @@ public sealed partial class CpuTests
     public void CpuStatePreservesHaltAndQueuedNmiAndRejectsTruncationWithoutMutation()
     {
         var (cpu, bus) = Program(0xF4); cpu.Step(); cpu.RequestNmi();
-        byte[] state = Snapshot(cpu); var other = new I8088Cpu(bus); Restore(other, state);
+        byte[] state = Snapshot(cpu); var other = new I8088Cpu(bus, model); Restore(other, state);
         Assert.That(other.Halted, Is.True);
         Assert.That(other.GetInterruptState().Any(s => s.Contains("NMI=pendiente")), Is.True);
         Assert.That(other.Step(), Is.True); Assert.That(other.Halted, Is.False);

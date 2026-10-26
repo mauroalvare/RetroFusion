@@ -12,10 +12,10 @@ public sealed partial class CpuTests
         public byte Acknowledge() { Accepted++; InterruptRequested = false; return Vector; }
     }
 
-    private static (I8088Cpu Cpu, Bus Bus, Source Source) Controlled(params byte[] code)
+    private (I8088Cpu Cpu, Bus Bus, Source Source) Controlled(params byte[] code)
     {
         var source = new Source(); var bus = new Bus();
-        var cpu = new I8088Cpu(bus, source) { CS = 0x1000, SS = 0x5000, SP = 0xFFFE };
+        var cpu = new I8088Cpu(bus, source, model) { CS = 0x1000, SS = 0x5000, SP = 0xFFFE };
         code.CopyTo(bus.Memory, 0x10000);
         Vector(cpu, bus, 8, 0x3000); Vector(cpu, bus, 0x0B, 0x4000);
         return (cpu, bus, source);

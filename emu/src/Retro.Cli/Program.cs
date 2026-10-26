@@ -20,7 +20,8 @@ static int Usage()
 
           retro-cli info <archivo>
           retro-cli cpu8088 verificar --suite <carpeta-v2> [--salida informe.json]
-          retro-cli cpu8088 <programa.bin|demo|irq-demo|timer-demo> [--steps n]   diagnóstico del núcleo, separado del arranque de PC/XT
+          retro-cli cpu8088 <programa.bin|demo|timed-demo|irq-demo|timer-demo> [--steps n]   diagnóstico del núcleo, separado del arranque de PC/XT
+          retro-cli cpu8086 <programa.bin|demo|timed-demo> [--steps n]   diagnóstico de CPU 8086, sin placa ni DOS
           retro-cli run <archivo> [opciones]
           retro-cli studio <juego.js|juego.json|id> --games <carpeta> [--seconds n] [--shots prefijo]
           retro-cli compat <carpeta-guiones|guion.json> --juegos <carpeta> [--salida r.json] [--md tabla.md]
@@ -91,8 +92,11 @@ string? Opt(string k) => opts.TryGetValue(k, out var v) ? v[^1] : null;
 if (Opt("modelo") is { } cliModel)
     Environment.SetEnvironmentVariable("RETROEMU_MODELO", cliModel);   // the model of the subscription tool, for this run
 
-if (command == "cpu8088")
-    return mediaPath == "verificar" ? I8088Verification.Run(Opt("suite") ?? "", Opt("salida")) : I8088Diagnostic.Run(mediaPath, Opt("steps"));
+if (command is "cpu8088" or "cpu8086")
+    return command == "cpu8088" && mediaPath == "verificar"
+        ? I8088Verification.Run(Opt("suite") ?? "", Opt("salida"))
+        : I8088Diagnostic.Run(mediaPath, Opt("steps"), command == "cpu8086"
+            ? Retro.Cpu.I8088.I8088Model.Intel8086 : Retro.Cpu.I8088.I8088Model.Intel8088);
 
 if (command == "studio")
     return RunStudio(mediaPath, Opt("games") ?? ".", Opt("seconds"), Opt("shots"));

@@ -1,15 +1,20 @@
 namespace Retro.Cpu.I8088;
 
 /// <summary>
-/// First functional 8088 milestone, not a timed PC/XT CPU yet. Executes data movement,
+/// Shared 8088/8086 instruction engine with model-specific bus transfers. Executes data movement,
 /// integer ALU including multiply/divide, shifts/rotates, control flow, stack, strings,
 /// I/O, decimal adjustments and interrupts. Single stepping uses a pending type-1 boundary.
 /// The 8087 remains unsupported.
 /// Optional clocked bus/prefetch mode advances peripherals; EU timing is approximate.
 /// </summary>
-public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interrupts)
+public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interrupts, I8088Model model)
 {
-    public I8088Cpu(I8088Bus bus) : this(bus, null) { }
+    public I8088Cpu(I8088Bus bus) : this(bus, null, I8088Model.Intel8088) { }
+    public I8088Cpu(I8088Bus bus, I8088InterruptSource? interrupts) : this(bus, interrupts, I8088Model.Intel8088) { }
+    public I8088Cpu(I8088Bus bus, I8088Model model) : this(bus, null, model) { }
+
+    public I8088Model Model { get; } = Enum.IsDefined(model) ? model : throw new ArgumentOutOfRangeException(nameof(model));
+    private bool WideBus => Model == I8088Model.Intel8086;
 
     public const ushort Carry = 0x0001, Parity = 0x0004, Auxiliary = 0x0010, Zero = 0x0040,
         Sign = 0x0080, Trap = 0x0100, InterruptEnable = 0x0200, Direction = 0x0400, Overflow = 0x0800;
@@ -58,11 +63,20 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
     public void RequestNmi() => _nmi = true;
 
     public byte ReadByte(ushort segment, ushort offset) { DataBusCycle(); return bus.ReadMemory(Physical(segment, offset)); }
-    public ushort ReadWord(ushort segment, ushort offset) => (ushort)(ReadByte(segment, offset) | ReadByte(segment, (ushort)(offset + 1)) << 8);
+    public ushort ReadWord(ushort segment, ushort offset)
+    {
+        DataBusCycle();
+        int low = bus.ReadMemory(Physical(segment, offset));
+        if (!WideBus || (offset & 1) != 0) DataBusCycle(continuation: WideBus);
+        return (ushort)(low | bus.ReadMemory(Physical(segment, (ushort)(offset + 1))) << 8);
+    }
     public void WriteByte(ushort segment, ushort offset, byte value) { DataBusCycle(); bus.WriteMemory(Physical(segment, offset), value); }
     public void WriteWord(ushort segment, ushort offset, ushort value)
     {
-        WriteByte(segment, offset, (byte)value); WriteByte(segment, (ushort)(offset + 1), (byte)(value >> 8));
+        DataBusCycle();
+        bus.WriteMemory(Physical(segment, offset), (byte)value);
+        if (!WideBus || (offset & 1) != 0) DataBusCycle(continuation: WideBus);
+        bus.WriteMemory(Physical(segment, (ushort)(offset + 1)), (byte)(value >> 8));
     }
     private byte Fetch() { if (TimingEnabled) return FetchTimed(); byte value = ReadByte(CS, IP); IP++; return value; }
     private ushort FetchWord() { int low = Fetch(); return (ushort)(low | Fetch() << 8); }
@@ -483,11 +497,17 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
         { IP = _startIp; _repeatAgain = true; }
     }
 
-    private void PortOut(ushort port, byte value) { DataBusCycle(); bus.Out(port, value); }
-    private byte PortIn(ushort port) { DataBusCycle(); return bus.In(port); }
     private void Io(ushort port, bool word, bool output)
     {
-        if (output) { PortOut(port, (byte)AX); if (word) PortOut((ushort)(port + 1), (byte)(AX >> 8)); }
-        else { int low = PortIn(port); SetReg(0, word, word ? low | PortIn((ushort)(port + 1)) << 8 : low); }
+        DataBusCycle();
+        int value = output ? AX : bus.In(port);
+        if (output) bus.Out(port, (byte)value);
+        if (word)
+        {
+            if (!WideBus || (port & 1) != 0) DataBusCycle(continuation: WideBus);
+            if (output) bus.Out((ushort)(port + 1), (byte)(value >> 8));
+            else value |= bus.In((ushort)(port + 1)) << 8;
+        }
+        if (!output) SetReg(0, word, value);
     }
 }

@@ -1023,3 +1023,17 @@ Si falta respaldo, se conserva el requisito y no se escribe un sustituto genéri
 Cambios de originales, perfiles o configuración invalidan resultados en curso; cancelar
 no crea una fusión. Los perfiles parciales de la edición exacta pueden enriquecerse;
 los ayudantes útiles de los aportantes se conservan. No se modifica el formato de juego.
+
+## D-069 — Variante 8086 explícita en el núcleo compartido
+
+I8088Cpu conserva los constructores de 8088 y añade I8088Model inmutable para elegir
+Intel8086. Se comparte el motor de instrucciones; la variante cambia el ancho de bus
+y la cola de prelectura. En 8086, palabras pares usan una transferencia y las impares
+dos, sin conceder HOLD entre sus mitades. El contrato de I8088Bus sigue siendo de byte:
+ambas mitades de una transferencia alineada se entregan al mismo reloj.
+
+Los estados 8088 mantienen firma/formato; el 8086 usa RETRO-8086 formato 2 y valida
+su cola de seis bytes. Cargar otra variante falla antes de mutar el estado. PC/XT sigue
+usando 8088 y conserva su formato de estado completo. cpu8086 expone solo diagnóstico
+de programas crudos; no cambia la máquina de run ni anuncia otra placa en la biblioteca.
+La temporización EU sigue aproximada y las trazas externas de 8088 no validan el 8086.

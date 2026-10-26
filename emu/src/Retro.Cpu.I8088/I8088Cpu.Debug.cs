@@ -4,7 +4,8 @@ namespace Retro.Cpu.I8088;
 
 public sealed partial class I8088Cpu : ICpuDebugView
 {
-    public string CpuName => "Intel 8088";
+    public string CpuName => WideBus ? "Intel 8086" : "Intel 8088";
+    private string StateSignature => WideBus ? "RETRO-8086" : "RETRO-8088";
     public bool HasCycleTiming => TimingEnabled;
     public long Cycles => TimingEnabled ? _cycles : 0;
     public uint ProgramCounter
@@ -74,7 +75,7 @@ public sealed partial class I8088Cpu : ICpuDebugView
     /// <summary>CPU-only snapshot at an instruction boundary. Memory and devices belong to the machine.</summary>
     public void Save(BinaryWriter writer)
     {
-        writer.Write("RETRO-8088"); writer.Write(2);
+        writer.Write(StateSignature); writer.Write(2);
         foreach (ushort value in _r) writer.Write(value);
         foreach (ushort value in _s) writer.Write(value);
         writer.Write(IP); writer.Write(Flags); writer.Write(Halted); writer.Write(Instructions);
@@ -85,9 +86,9 @@ public sealed partial class I8088Cpu : ICpuDebugView
     }
     public void Load(BinaryReader reader)
     {
-        if (reader.ReadString() != "RETRO-8088") throw new InvalidDataException("No es un estado de CPU 8088 compatible.");
+        if (reader.ReadString() != StateSignature) throw new InvalidDataException($"El estado no corresponde a la CPU {CpuName}.");
         int version = reader.ReadInt32();
-        if (version is not (1 or 2)) throw new InvalidDataException("No es un estado de CPU 8088 compatible.");
+        if (version != 2 && (WideBus || version != 1)) throw new InvalidDataException($"No es un estado de CPU {CpuName} compatible.");
         // Parse and validate before mutating any live state.
         ushort[] registers = new ushort[8], segments = new ushort[4];
         for (int i = 0; i < registers.Length; i++) registers[i] = reader.ReadUInt16();

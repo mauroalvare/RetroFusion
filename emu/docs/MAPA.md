@@ -126,7 +126,7 @@ dotnet run --project src/Retro.App -c Release -- --hidden --mute --no-organize -
 | `RetroEmu.slnx` | Solución con todos los proyectos |
 | `src/Retro.Core` | Interfaces (`IMachine`, `ICpuDebugView`, `IMemoryView`), medios y zips, `MemorySearch`, PNG, mapa de código |
 | `src/Retro.Cpu.Z80`, `Retro.Cpu.I8080`, `Retro.Cpu.M6502` | Núcleos de CPU con desensamblador |
-| `src/Retro.Cpu.I8088`, `tests/I8088.Tests` | 8088, segmentación, depuración, estados, reloj y prelectura optativos |
+| `src/Retro.Cpu.I8088`, `tests/I8088.Tests` | Núcleo 8088/8086, segmentación, depuración, estados, reloj y prelectura optativos; PC/XT conserva 8088 |
 | `src/Retro.Systems.Pc`, `tests/Pc.Tests` | PcXt: CGA, PIC/PIT/PPI, teclado, DMA/FDC, altavoz y estados completos |
 | `src/Retro.Systems.Spectrum`, `Retro.Systems.Arcade`, `Retro.Systems.C64`, `Retro.Systems.Nes` | Máquinas |
 | `src/Retro.Machines` | Catálogo de máquinas (qué máquina es cada archivo) y `MachineLauncher` (arranca una máquina con un juego); lo usan la app, el CLI, las fusiones y la compatibilidad |

@@ -57,7 +57,7 @@ src/
                            video, audio, breakpoints, apertura de archivos (.zip), PNG.
   Retro.Cpu.Z80            Núcleo Z80 + desensamblador. No sabe nada del Spectrum.
   Retro.Cpu.I8080          Núcleo Intel 8080 + desensamblador.
-  Retro.Cpu.I8088          8088 funcional, prelectura y reloj optativo; EU aproximado.
+  Retro.Cpu.I8088          8088/8086 funcionales, prelectura y reloj optativo; EU aproximado.
   Retro.Systems.Pc         PC/XT: CGA, PIC/PIT/PPI, teclado, DMA, disquete y altavoz.
   Retro.Cpu.M6502          Núcleo MOS 6502/6510 (NMOS, con los opcodes no documentados)
                            + desensamblador.
@@ -183,6 +183,13 @@ y flags definidos; no usa resultados indefinidos como oráculo. [I8088.md](I8088
 El modo funcional conserva Cycles=0. TimingEnabled activa reloj T, transferencias de
 un byte, cola de cuatro bytes y arbitraje con DMA. Instructions cuenta instrucciones o
 iteraciones de REP; no sustituye ese reloj. La temporización EU sigue siendo aproximada.
+
+I8088Model.Intel8086 selecciona el mismo motor con transferencias de palabra alineadas
+y cola de seis bytes; Intel8088 sigue siendo el predeterminado. El bus conserva callbacks
+de byte, simultáneos para una palabra alineada del 8086. Los estados CPU distinguen
+la variante y rechazan cruces sin modificar la ejecución. El diagnóstico cpu8086 es
+independiente de la placa PC/XT, que conserva su 8088. Falta contraste externo del 8086
+y una placa de 16 bits; no amplía las máquinas disponibles en la biblioteca.
 
 PcXt implementa IMachine con PcBus, CGA, PIC/PIT/PPI, teclado, DMA, FDC y altavoz.
 Cada T del 8088 avanza dispositivos; el PIT recibe un pulso cada cuatro T y CGA tres
@@ -830,7 +837,7 @@ registradas por separado.
 | 3 | 6502 / 6510 | Commodore 64 (.t64, .prg) | Disponible en PAL; otros formatos siguen pendientes |
 | 3n | 2A03 (6502) | NES (.nes, mappers 0/1/2/3/4/7) | Disponible, con sonido; compatibilidad según placa y periféricos |
 | 3b | 6502 | Discos .d64 y cartuchos del C64, Atari 800, Apple II | Pendiente |
-| 4 | 8088 | IBM PC/XT con DOS | Disponible con CGA, altavoz, BIOS/FreeDOS libres y disquetes; 8086 y precisión de bus pendientes |
+| 4 | 8088 | IBM PC/XT con DOS | PC/XT disponible con CGA, altavoz, BIOS/FreeDOS libres y disquetes; núcleo 8086 con diagnóstico propio, placa 8086 y precisión de bus pendientes |
 | 4b | 80286 | PC AT con DOS y EGA | Pendiente, después de PC/XT |
 | 4c | 80386 / 80486 | PC DOS con VGA y sonido | Pendiente, después de PC AT |
 | 5 | 68000 | Atari ST, Amiga 500 | Pendiente |

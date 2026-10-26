@@ -1,6 +1,9 @@
 namespace Retro.Cpu.I8088;
 
-/// <summary>8088 byte bus. Physical addresses are already wrapped to 20 bits by the CPU.</summary>
+/// <summary>
+/// Byte callbacks for the 8088/8086 bus. Both bytes of an aligned 8086 word transfer
+/// occur at the same clock, without an intervening HOLD grant. Addresses wrap to 20 bits.
+/// </summary>
 public interface I8088Bus
 {
     /// <summary>External TEST pin. High holds WAIT; inactive without a coprocessor.</summary>

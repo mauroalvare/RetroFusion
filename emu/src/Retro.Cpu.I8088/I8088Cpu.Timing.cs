@@ -3,13 +3,13 @@ namespace Retro.Cpu.I8088;
 public sealed partial class I8088Cpu
 {
     private bool _timingEnabled, _timingStep, _replaying, _repeatAgain;
-    private readonly byte[] _queue = new byte[4];
+    private readonly byte[] _queue = new byte[model == I8088Model.Intel8086 ? 6 : 4];
     private readonly List<byte> _repeatCode = [];
     private int _queueHead, _queueCount, _prefetchTicks, _replayIndex, _eaClocks, _modRm = -1;
     private ushort _queueCs, _queueIp, _fetchIp, _sequentialIp, _repeatCs, _repeatIp;
     private long _cycles;
 
-    /// <summary>Enables a clocked byte bus and four-byte prefetch queue. Not pin-exact microcode timing.</summary>
+    /// <summary>Enables the model's clocked bus and prefetch queue. Not pin-exact microcode timing.</summary>
     public bool TimingEnabled
     {
         get => _timingEnabled;
@@ -29,20 +29,23 @@ public sealed partial class I8088Cpu
         {
             bool grant = _prefetchTicks == 0 && bus.HoldRequested && !_busLocked;
             bus.SetBusGranted(grant);
-            if (_prefetchTicks == 0 && _queueCount < 4 && !grant) _prefetchTicks = 1;
+            if (_prefetchTicks == 0 && _queueCount <= _queue.Length - (WideBus ? 2 : 1) && !grant) _prefetchTicks = 1;
             Clock();
             if (_prefetchTicks == 0) continue;
             if (_prefetchTicks++ < 4) continue;
-            _queue[(_queueHead + _queueCount++) & 3] = bus.ReadMemory(Physical(_queueCs, _fetchIp++));
+            int width = WideBus && (_fetchIp & 1) == 0 ? 2 : 1;
+            for (int b = 0; b < width; b++)
+                _queue[(_queueHead + _queueCount++) % _queue.Length] = bus.ReadMemory(Physical(_queueCs, _fetchIp++));
             _prefetchTicks = 0;
         }
     }
-    private void DataBusCycle()
+    private void DataBusCycle(bool continuation = false)
     {
         if (!TimingEnabled) return;
         // A pending EU transfer wins over the next prefetch, after an active cycle finishes.
         while (_prefetchTicks != 0) IdleClocks(1);
-        while (bus.HoldRequested && !_busLocked) { bus.SetBusGranted(true); Clock(); }
+        // An 8086 split word keeps ownership until its high byte has transferred.
+        while (bus.HoldRequested && !_busLocked && !continuation) { bus.SetBusGranted(true); Clock(); }
         bus.SetBusGranted(false);
         for (int n = 0; n < 4; n++) Clock();
     }
@@ -55,7 +58,7 @@ public sealed partial class I8088Cpu
         }
         if (_queueCs != CS || _queueIp != IP) FlushQueue();
         while (_queueCount == 0) IdleClocks(1);
-        value = _queue[_queueHead]; _queueHead = (_queueHead + 1) & 3; _queueCount--; _queueIp++; IP++;
+        value = _queue[_queueHead]; _queueHead = (_queueHead + 1) % _queue.Length; _queueCount--; _queueIp++; IP++;
         _sequentialIp = IP;
         if (_timingStep) _repeatCode.Add(value);
         return value;
@@ -82,8 +85,8 @@ public sealed partial class I8088Cpu
         if (!_repeatAgain) _repeatCode.Clear();
     }
 
-    // EU work only: memory/port transfers add four clocks per BYTE and instruction
-    // fetches overlap this work. Variable multiply/divide use the documented upper bound.
+    // EU work only: transfers add four clocks per byte (8088) or aligned word (8086).
+    // Fetches overlap this work. Variable multiply/divide use a conservative upper bound.
     private int ExecutionClocks(byte op, byte repeat, ushort flags, ushort cx, bool jump)
     {
         bool memory = _modRm >= 0 && _modRm < 0xC0;
@@ -147,14 +150,15 @@ public sealed partial class I8088Cpu
         w.Write(_queueCs); w.Write(_queueIp); w.Write(_fetchIp); w.Write(_repeatCs); w.Write(_repeatIp);
         w.Write(_repeatCode.Count); w.Write(_repeatCode.ToArray());
     }
-    private static TimingState ReadTiming(BinaryReader r)
+    private TimingState ReadTiming(BinaryReader r)
     {
-        bool enabled = r.ReadBoolean(); long cycles = r.ReadInt64(); byte[] queue = r.ReadBytes(4);
+        bool enabled = r.ReadBoolean(); long cycles = r.ReadInt64(); byte[] queue = r.ReadBytes(_queue.Length);
         int head = r.ReadInt32(), count = r.ReadInt32(), pending = r.ReadInt32();
         ushort cs = r.ReadUInt16(), ip = r.ReadUInt16(), fetchIp = r.ReadUInt16(), repeatCs = r.ReadUInt16(), repeatIp = r.ReadUInt16();
         int length = r.ReadInt32();
-        if (queue.Length != 4 || cycles < 0 || head is < 0 or > 3 || count is < 0 or > 4 || pending is < 0 or > 4 ||
-            pending != 0 && count == 4 || (ushort)(ip + count) != fetchIp || length is < 0 or > 65536)
+        if (queue.Length != _queue.Length || cycles < 0 || head < 0 || head >= _queue.Length || count < 0 || count > _queue.Length ||
+            pending is < 0 or > 4 || pending != 0 && count > _queue.Length - (WideBus ? 2 : 1) ||
+            (ushort)(ip + count) != fetchIp || length is < 0 or > 65536)
             throw new InvalidDataException("El reloj o la cola 8088 del estado no son válidos.");
         byte[] code = r.ReadBytes(length); if (code.Length != length) throw new EndOfStreamException();
         return new(enabled, cycles, queue, head, count, pending, cs, ip, fetchIp, repeatCs, repeatIp, code);

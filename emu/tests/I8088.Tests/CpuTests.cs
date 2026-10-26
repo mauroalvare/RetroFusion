@@ -2,7 +2,9 @@ using Retro.Cpu.I8088;
 
 namespace I8088.Tests;
 
-public sealed partial class CpuTests
+[TestFixture(I8088Model.Intel8088)]
+[TestFixture(I8088Model.Intel8086)]
+public sealed partial class CpuTests(I8088Model model)
 {
     private sealed class Bus : I8088Bus
     {
@@ -18,9 +20,9 @@ public sealed partial class CpuTests
         public byte In(ushort port) => port == 0xFFFF ? (byte)0x12 : (byte)0x34;
         public void Out(ushort port, byte value) => Output.Add((port, value));
     }
-    private static (I8088Cpu Cpu, Bus Bus) Program(params byte[] code)
+    private (I8088Cpu Cpu, Bus Bus) Program(params byte[] code)
     {
-        var bus = new Bus(); var cpu = new I8088Cpu(bus) { CS = 0x1000, IP = 0, SS = 0x5000, SP = 0xFFFE };
+        var bus = new Bus(); var cpu = new I8088Cpu(bus, model) { CS = 0x1000, IP = 0, SS = 0x5000, SP = 0xFFFE };
         code.CopyTo(bus.Memory, 0x10000); return (cpu, bus);
     }
     private static void Run(I8088Cpu cpu, int limit = 200)
@@ -32,7 +34,7 @@ public sealed partial class CpuTests
     [Test]
     public void ResetFetchAndTwentyBitAddressWrap()
     {
-        var bus = new Bus(); var cpu = new I8088Cpu(bus);
+        var bus = new Bus(); var cpu = new I8088Cpu(bus, model);
         bus.Memory[0xFFFF0] = 0xEA; bus.Memory[0xFFFF1] = 0x10; bus.Memory[0xFFFF2] = 0;
         bus.Memory[0xFFFF3] = 0xFF; bus.Memory[0xFFFF4] = 0xFF;
         bus.Memory[0] = 0xB8; bus.Memory[1] = 0x34; bus.Memory[2] = 0x12; bus.Memory[3] = 0xF4;

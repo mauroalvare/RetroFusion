@@ -145,7 +145,9 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   programas, separá el juego en su propia carpeta o ZIP. Los nombres de datos deben
   ser DOS 8.3; las carpetas largas reciben alias internos. No se ejecuta código en el host.
 - 8088 con prelectura y reloj T; los tiempos internos EU son aproximados. El contraste
-  externo comprobó estado funcional, sin validar trazas de ciclos. Sin 8086/8087/AT.
+  externo comprobó estado funcional, sin validar trazas de ciclos. La variante 8086
+  existe como núcleo/API y diagnóstico, con bus de 16 bits y cola de seis bytes; aún
+  sin contraste externo propio ni placa 8086 en la biblioteca. PC/XT usa 8088; sin 8087/AT.
 - CGA RGBI, 83 teclas, altavoz y capa privada de disco incluida en guardados completos.
   Sin EGA/VGA, disco duro, AdLib, Sound Blaster, serie ni impresora. Los caracteres
   extendidos necesitan una fuente completa aportada por API.
