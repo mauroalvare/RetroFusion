@@ -1,0 +1,3 @@
+
+# Preserve redistributed files and their recorded hashes on every platform.
+emu/runtime/pcxt/** -text -whitespace
