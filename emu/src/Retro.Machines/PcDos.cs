@@ -25,10 +25,23 @@ public static class PcDos
         var game = root.Add("GAME", null);
         string? executable = null;
         int aliases = 0;
-        var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var file in input.OrderBy(f => f.Source, StringComparer.OrdinalIgnoreCase))
+        var entries = input.Select(file => (File: file, Path: DisplayPath(file))).OrderBy(entry => entry.Path, StringComparer.OrdinalIgnoreCase).ToList();
+        var reserved = entries.SelectMany(entry => entry.Path.Replace('\\', '/').Split('/'))
+            .Where(part => IsShortName(part)).Select(part => part.ToUpperInvariant()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        string selected = DisplayPath(program);
+        string Alias(string prefix, string extension = "")
         {
-            string path = Relative(file), selected = Relative(program);
+            string name;
+            do { name = prefix + (++aliases).ToString("D4") + extension; } while (!reserved.Add(name));
+            return name;
+        }
+        var originals = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var entry in entries)
+        {
+            var file = entry.File;
+            string path = entry.Path.Replace('\\', '/');
+            if (!originals.Add(path)) throw new InvalidDataException("Dos archivos del juego tienen el mismo nombre DOS: " + path);
             bool isProgram = path.Equals(selected, StringComparison.OrdinalIgnoreCase);
             string[] parts = path.Replace('\\', '/').Split('/');
             if (parts.Any(p => p is "" or "." or ".." || p.Contains(':')))
@@ -40,13 +53,13 @@ public static class PcDos
             {
                 var existing = folder.Children.FirstOrDefault(n => n.Original.Equals(part, StringComparison.OrdinalIgnoreCase) && n.Data == null);
                 if (existing != null) { folder = existing; continue; }
-                string alias = IsShortName(part, directory: true) ? part.ToUpperInvariant() : "DIR" + (++aliases).ToString("D4");
+                string alias = IsShortName(part) ? part.ToUpperInvariant() : Alias("DIR");
                 folder = folder.Add(alias, null, part);
             }
             string name = parts[^1].ToUpperInvariant();
             if (!IsShortName(name))
             {
-                if (isProgram) name = "PROGRAM" + program.Extension.ToUpperInvariant();
+                if (isProgram) name = Alias("RUN", program.Extension.ToUpperInvariant());
                 else if (Path.GetExtension(name).ToLowerInvariant() is ".txt" or ".md" or ".nfo" or ".diz" or ".jpg" or ".png" or ".pdf") continue;
                 else throw new InvalidDataException("Un archivo del juego no usa nombres DOS de 8.3 caracteres: " + parts[^1]);
             }
@@ -64,25 +77,36 @@ public static class PcDos
 
     public static bool IsBootLoading(Retro.Systems.Pc.PcXt pc) => Marker(pc, "BOOT");
     public static bool IsBootReady(Retro.Systems.Pc.PcXt pc) => Marker(pc, "RFDO");
-    private static bool Marker(Retro.Systems.Pc.PcXt pc, string value) =>
-        Enumerable.Range(0, 4).All(i => pc.Peek((uint)(0x500 + i)) == value[i]);
-
-    private static string Relative(MediaFile file)
+    private static bool Marker(Retro.Systems.Pc.PcXt pc, string value)
     {
-        int separator = file.Source.LastIndexOf('!');
-        return separator >= 0 ? file.Source[(separator + 1)..] : file.Name;
+        for (int i = 0; i < 4; i++) if (pc.Peek((uint)(0x500 + i)) != value[i]) return false;
+        return true;
+    }
+
+    private static int ArchiveSeparator(MediaFile file)
+    {
+        int position = file.Source.LastIndexOf(".zip!", StringComparison.OrdinalIgnoreCase);
+        return position < 0 || File.Exists(file.Source) ? -1 : position + 4;
+    }
+
+    /// <summary>Member path, including its directory; does not mistake a literal ! for an archive boundary.</summary>
+    public static string DisplayPath(MediaFile file)
+    {
+        int separator = ArchiveSeparator(file);
+        return (separator >= 0 ? file.Source[(separator + 1)..] : file.Name).Replace('\\', '/');
     }
 
     private static IReadOnlyList<MediaFile> Gather(IReadOnlyList<MediaFile> files, MediaFile program)
     {
-        int separator = program.Source.IndexOf('!');
+        int separator = ArchiveSeparator(program);
         if (separator >= 0)
         {
-            string archive = program.Source[..separator];
+            int outer = program.Source.IndexOf(".zip!", StringComparison.OrdinalIgnoreCase) + 4;
+            string archive = program.Source[..outer];
             if (File.Exists(archive)) files = MediaArchive.Open(archive, keepAuxiliary: true);
-            string parentArchive = program.Source[..(program.Source.LastIndexOf('!') + 1)];
+            string parentArchive = program.Source[..(separator + 1)];
             return files.Where(f => f.Source.StartsWith(parentArchive, StringComparison.OrdinalIgnoreCase)
-                && !f.Source[parentArchive.Length..].Contains('!')).ToArray();
+                && ArchiveSeparator(f) == separator).ToArray();
         }
         // A loose program may depend on data alongside it. Do not collect other game archives.
         if (files.Count > 1 || !File.Exists(program.Source)) return files;
@@ -108,10 +132,10 @@ public static class PcDos
         return File.ReadAllBytes(path);
     }
 
-    private static bool IsShortName(string name, bool directory = false)
+    private static bool IsShortName(string name)
     {
         string[] parts = name.Split('.');
-        return parts.Length <= (directory ? 1 : 2) && parts[0].Length is >= 1 and <= 8
+        return parts.Length <= 2 && parts[0].Length is >= 1 and <= 8
             && (parts.Length == 1 || parts[1].Length is >= 1 and <= 3)
             && name.All(c => char.IsAsciiLetterOrDigit(c) || c is '_' or '-' or '~' or '$' or '.' or '!');
     }

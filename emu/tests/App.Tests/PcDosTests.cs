@@ -124,4 +124,57 @@ public sealed class PcDosTests
         host.StartPc(MachineCatalog.Get("pcxt"), new("own.img", new byte[163840], "own.img"), _folder);
         Assert.That(host.IsFastForwarding, Is.False, "A user boot disk keeps its own timing.");
     }
+
+    [Test]
+    public void LiteralBangInLooseProgramFolderDoesNotBecomeAnArchiveBoundary()
+    {
+        string directory = Directory.CreateDirectory(Path.Combine(_folder, "Games!")).FullName;
+        string path = Path.Combine(directory, "OWN.COM"); File.WriteAllBytes(path, [0xCD, 0x20]);
+        var program = Program(path);
+        Assert.That(PcDos.DisplayPath(program), Is.EqualTo("OWN.COM"));
+        Assert.That(PcDos.Prepare([program], program), Has.Length.EqualTo(737280));
+    }
+
+    [Test]
+    public void LiteralBangInZipNameAndMemberFolderPreservesItsData()
+    {
+        string path = Path.Combine(_folder, "Games!.zip");
+        using (var zip = ZipFile.Open(path, ZipArchiveMode.Create))
+        {
+            using (var exe = zip.CreateEntry("My!Folder/OWN.COM").Open()) exe.Write([0xCD, 0x20]);
+            using (var data = zip.CreateEntry("My!Folder/DATA.INI").Open()) data.Write([73]);
+        }
+        var files = MediaArchive.Open(path);
+        Assert.That(PcDos.DisplayPath(files[0]), Is.EqualTo("My!Folder/OWN.COM"));
+        Assert.That(PcDos.Prepare(files, files[0]), Has.Length.EqualTo(737280));
+    }
+
+    [Test]
+    public void GeneratedDosAliasesDoNotCollideWithRealDirectoryOrFileNames()
+    {
+        var program = new MediaFile("A program with a long name.COM", [0xCD, 0x20], "own.zip!A very long directory/A program with a long name.COM");
+        MediaFile[] files = [program, new("DATA.DAT", [1], "own.zip!DIR0001/DATA.DAT"),
+            new("RUN0002.COM", [0xCD, 0x20], "own.zip!A very long directory/RUN0002.COM")];
+        Assert.That(PcDos.Prepare(files, program), Has.Length.EqualTo(737280));
+    }
+
+    [TestCase("A", 65)]
+    [TestCase("B", 90)]
+    public void SelectingSameNamedProgramsInDifferentFoldersReadsTheSelectedData(string folder, int value)
+    {
+        string path = Path.Combine(_folder, "programs.zip");
+        using (var zip = ZipFile.Open(path, ZipArchiveMode.Create))
+            foreach (string directory in new[] { "A", "B" })
+            {
+                using (var exe = zip.CreateEntry(directory + "/OWN.COM").Open()) exe.Write(ReadingProgram());
+                using (var data = zip.CreateEntry(directory + "/DATA.INI").Open()) data.Write([(byte)(directory == "A" ? 65 : 90)]);
+            }
+        var files = MediaArchive.Open(path);
+        Assert.That(files, Has.Count.EqualTo(2));
+        var chosen = files.Single(file => PcDos.DisplayPath(file) == folder + "/OWN.COM");
+        var launched = MachineLauncher.Launch("pcxt", files, chosen, _folder);
+        var pc = (PcXt)launched.Machine;
+        for (int n = 0; n < 3000 && pc.Peek(0x510) != value; n++) Run(pc, 1);
+        Assert.That(pc.Peek(0x510), Is.EqualTo(value));
+    }
 }
