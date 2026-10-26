@@ -159,19 +159,31 @@ if (command == "info")
             : isInvaders ? "chip de Space Invaders" : Retro.Machines.MachineCatalog.Identify(c.f).FirstOrDefault() is { } candidate
                 ? candidate.Machine.Name + ": " + candidate.Reason + (Retro.Machines.MachineCatalog.NotLoadableYet(candidate) is { } why ? "; " + why : "")
                 : "no reconocido por las máquinas disponibles";
-        Console.WriteLine($"[{c.i}] {c.f.Name} ({c.f.Data.Length} bytes) -> {what}");
+        Console.WriteLine($"[{c.i}] {Retro.Machines.PcDos.DisplayPath(c.f)} ({c.f.Data.Length} bytes) -> {what}");
     }
     return 0;
 }
 if (command != "run")
     return Usage();
 
+IReadOnlyList<MediaFile> selectedFiles = files;
+if (Opt("pick") is { } requestedPick)
+{
+    if (!int.TryParse(requestedPick, out int index) || index < 0 || index >= files.Count)
+    {
+        Console.Error.WriteLine("Índice --pick inválido. Usá info para ver los archivos disponibles.");
+        return 2;
+    }
+    selectedFiles = new[] { files[index] };
+    isInvaders = false;
+}
+
 IMachine machine;
 Spectrum48? zx = null;
 bool isTape = false;
-var c64Media = files.Where(f => Retro.Systems.C64.C64Media.Probe(f) > 0).OrderBy(f => MediaArchive.DumpScore(f.Name)).FirstOrDefault();
-var nesMedia = files.Where(f => Retro.Systems.Nes.NesCartridge.IsINes(f.Data)).OrderBy(f => MediaArchive.DumpScore(f.Name)).FirstOrDefault();
-var pcMedia = files.SelectMany(Retro.Machines.MachineCatalog.Identify).Where(c => c.Machine.Id == "pcxt" && c.Confidence >= 50).OrderBy(c => Retro.Machines.PcDos.ProgramPriority(c.File.Name)).ThenByDescending(c => c.Confidence).FirstOrDefault();
+var c64Media = selectedFiles.Where(f => Retro.Systems.C64.C64Media.Probe(f) > 0).OrderBy(f => MediaArchive.DumpScore(f.Name)).FirstOrDefault();
+var nesMedia = selectedFiles.Where(f => Retro.Systems.Nes.NesCartridge.IsINes(f.Data)).OrderBy(f => MediaArchive.DumpScore(f.Name)).FirstOrDefault();
+var pcMedia = selectedFiles.SelectMany(Retro.Machines.MachineCatalog.Identify).Where(c => c.Machine.Id == "pcxt" && c.Confidence >= 50).OrderBy(c => Retro.Machines.PcDos.ProgramPriority(c.File.Name)).ThenByDescending(c => c.Confidence).FirstOrDefault();
 if (nesMedia != null && !isInvaders)
 {
     Retro.Systems.Nes.NesCartridge cart;
@@ -196,7 +208,7 @@ else if (pcMedia != null && !isInvaders)
         byte[] disk = program ? Retro.Machines.PcDos.Prepare(files, pcMedia.File) : pcMedia.File.Data;
         machine = new Retro.Systems.Pc.PcXt(File.ReadAllBytes(bios), disk);
         Console.WriteLine($"Máquina: {machine.DisplayName}; CGA, teclado y altavoz");
-        Console.WriteLine($"{(program ? "Programa con FreeDOS integrado" : "Disquete")}: {pcMedia.File.Name}; BIOS: {bios}");
+        Console.WriteLine($"{(program ? "Programa con FreeDOS integrado" : "Disquete")}: {Retro.Machines.PcDos.DisplayPath(pcMedia.File)}; BIOS: {bios}");
     }
     catch (Exception e) when (e is IOException or ArgumentException or NotSupportedException)
     { Console.Error.WriteLine("No se pudo cargar PC/XT: " + e.Message); return 3; }
@@ -225,12 +237,10 @@ else if (isInvaders)
 }
 else
 {
-    var candidates = files.Select((f, i) => (f, i, score: SpectrumMedia.Probe(f)))
+    var candidates = selectedFiles.Select((f, i) => (f, i, score: SpectrumMedia.Probe(f)))
         .OrderByDescending(c => c.score).ThenBy(c => MediaArchive.DumpScore(c.f.Name)).ToList();
     MediaFile media;
-    if (Opt("pick") is { } pick)
-        media = files[int.Parse(pick)];
-    else if (candidates.Count > 0 && candidates[0].score > 0)
+    if (candidates.Count > 0 && candidates[0].score > 0)
         media = candidates[0].f;
     else
     {

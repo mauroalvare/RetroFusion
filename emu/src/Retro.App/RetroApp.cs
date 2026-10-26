@@ -41,7 +41,9 @@ public sealed partial class RetroApp
     private string _testHex = "3E 02 D3 FE 3C 18 FB";
     private bool _testSetPc = true;
     private string? _errorPopup;
-    private List<MachineCatalog.Candidate>? _choices;
+    private sealed record OpenRequest(string Path, IReadOnlyList<MediaFile> Files, List<MachineCatalog.Candidate> Versions);
+    private OpenRequest? _pendingOpen;
+    private bool _pausedBeforeChoice;
     private List<MachineCatalog.Candidate> _versions = new();   // versions of the last opened game
     private bool _autoType = true;
     private float _scale = 2;
@@ -208,7 +210,7 @@ public sealed partial class RetroApp
     {
         var io = ImGui.GetIO();
         // The focused debugger screen is itself an ImGui window, but owns game input.
-        return io.WantTextInput || _home.IsOpen
+        return io.WantTextInput || _home.IsOpen || _pendingOpen != null || _browser.IsOpen
             || (io.WantCaptureKeyboard && !(_debugMode && _screenFocused));
     }
 
@@ -217,7 +219,7 @@ public sealed partial class RetroApp
     {
         _updates.Poll();
         if (_updates.RestartRequested) QuitRequested = true;
-        if (!_updates.Blocking) HandleDroppedFiles();
+        if (!_updates.Blocking && _pendingOpen == null && !_browser.IsOpen) HandleDroppedFiles();
         _library.Poll();
         if (_libraryRevision != _library.Revision)
         {
@@ -225,7 +227,7 @@ public sealed partial class RetroApp
             _studio.NotifyLibraryChanged(_library.Folder);
         }
         bool imguiKeyboard = CaptureGuiKeyboard();
-        if (!_updates.Blocking) HandleHotkeys(ImGui.GetIO().WantTextInput);
+        if (!_updates.Blocking && _pendingOpen == null && !_browser.IsOpen) HandleHotkeys(ImGui.GetIO().WantTextInput);
         _code.Update();
         _studio.Update(); _creator.Update();
         if (_home.IsOpen) _host.Paused = true;
@@ -409,7 +411,6 @@ public sealed partial class RetroApp
                 return;
             }
             var files = MediaArchive.Open(path);
-            _openedMedia = files;
             if (files.Count == 0)
             {
                 _errorPopup = $"{fileName} está vacío (o es un zip sin archivos).";
@@ -428,7 +429,10 @@ public sealed partial class RetroApp
             if (MachineCatalog.IdentifySet(files) is { } board)
             {
                 if (LaunchArcade(board.Machine, files, Path.GetDirectoryName(path)))
+                {
+                    _versions = []; _openedMedia = files;
                     _home.RecordOriginal(path, board.Machine.Id, files);
+                }
                 return;
             }
             var candidates = files.SelectMany(MachineCatalog.Identify)
@@ -451,22 +455,42 @@ public sealed partial class RetroApp
                       "Este sistema todavía está en desarrollo. En Biblioteca podés ver las máquinas disponibles.";
                 return;
             }
-            // Several dumps or formats of the game: the cleanest dump starts right away and
-            // the others stay in Archivo > Otras versiones.
-            _versions = playable
-                .GroupBy(c => c.File.Name).Select(g => g.First())
+            var versions = playable
+                .GroupBy(c => (c.Machine.Id, c.File.Source)).Select(g => g.First())
                 .OrderBy(c => c.Machine.Id == "pcxt" ? PcDos.ProgramPriority(c.File.Name) : 0)
                 .ThenBy(c => MediaArchive.DumpScore(c.File.Name))
                 .ThenBy(c => FormatPreference(c.File.Extension))
                 .ToList();
-            if (Launch(_versions[0])) _home.RecordOriginal(path, _versions[0].Machine.Id, files);
-            if (_versions.Count > 1)
-                _host.Status += $"  |  Había {_versions.Count} versiones: cargué la recomendada (las otras, en Juego > Otras versiones).";
+            var request = new OpenRequest(path, files, versions);
+            if (versions.Count > 1 && versions.All(c => c.Machine.Id == "pcxt"))
+            {
+                _pausedBeforeChoice = _host.Paused;
+                _host.Paused = true;
+                _pendingOpen = request;
+                return;
+            }
+            CompleteOpen(request, versions[0]);
+
         }
         catch (Exception e)
         {
             _errorPopup = $"No se pudo abrir {fileName}: {e.Message}";
         }
+    }
+
+    private bool CompleteOpen(OpenRequest request, MachineCatalog.Candidate choice)
+    {
+        if (!Launch(choice, request.Files)) return false;
+        _versions = request.Versions;
+        _openedMedia = request.Files;
+        _home.RecordOriginal(request.Path, choice.Machine.Id, request.Files);
+        return true;
+    }
+
+    private void CancelOpen()
+    {
+        _pendingOpen = null;
+        _host.Paused = _pausedBeforeChoice;
     }
 
     /// <summary>Tapes load the way the original did; snapshots skip the loading.</summary>
@@ -489,7 +513,7 @@ public sealed partial class RetroApp
 
     private IReadOnlyList<MediaFile> _openedMedia = [];
 
-    private bool Launch(MachineCatalog.Candidate c)
+    private bool Launch(MachineCatalog.Candidate c, IReadOnlyList<MediaFile>? files = null)
     {
         _home.Close();
         try
@@ -498,7 +522,7 @@ public sealed partial class RetroApp
                 _input.ReleaseAll(_host.Machine);
             if (c.Machine.Id == "nes")
                 _host.StartNes(c.Machine, c.File);     // a cartridge: a fresh machine for each game
-            else if (c.Machine.Id == "pcxt") _host.StartPc(c.Machine, c.File, _romDir, _openedMedia);
+            else if (c.Machine.Id == "pcxt") _host.StartPc(c.Machine, c.File, _romDir, files ?? _openedMedia);
             else
             {
                 if (_host.Info?.Id != c.Machine.Id || _host.Fusion != null)
@@ -602,11 +626,11 @@ public sealed partial class RetroApp
         if (ImGui.BeginMenu("Juego"))
         {
             if (ImGui.MenuItem("Abrir juego o programa...", ToolShortcut("O"))) _browser.Open();
-            if (ImGui.BeginMenu("Otras versiones del último juego", _versions.Count > 1))
+            if (ImGui.BeginMenu(_versions.All(v => v.Machine.Id == "pcxt") ? "Programas del archivo" : "Otras versiones del último juego", _versions.Count > 1))
             {
-                ImGui.TextDisabled("La primera es el volcado más limpio. [a] alternativa, [h] hack, [t] trucos, [cr] crackeado.");
+                ImGui.TextDisabled("Elegí otro archivo del mismo paquete.");
                 foreach (var v in _versions)
-                    if (ImGui.MenuItem($"{Path.GetFileName(v.File.Name)}##{v.File.Name}"))
+                    if (ImGui.MenuItem($"{PcDos.DisplayPath(v.File)}##{v.File.Source}"))
                         Launch(v);
                 ImGui.EndMenu();
             }
@@ -906,37 +930,43 @@ public sealed partial class RetroApp
             if (!open)
                 _errorPopup = null;
         }
-        if (_choices != null)
+        if (_pendingOpen is { } request)
         {
-            ImGui.OpenPopup("Elegí qué cargar");
+            const string title = "Elegir programa";
+            ImGui.OpenPopup(title);
             bool open = true;
-            if (ImGui.BeginPopupModal("Elegí qué cargar", ref open, ImGuiWindowFlags.AlwaysAutoResize))
+            var viewport = ImGui.GetMainViewport();
+            ImGui.SetNextWindowSize(Vector2.Min(new(660, 430), viewport.WorkSize - new Vector2(24)), ImGuiCond.Always);
+            ImGui.SetNextWindowPos(viewport.WorkPos + viewport.WorkSize / 2, ImGuiCond.Appearing, new(0.5f));
+            if (ImGui.BeginPopupModal(title, ref open, ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoDocking))
             {
-                ImGui.TextUnformatted("El archivo trae varias versiones o formatos. La primera es el volcado más limpio:");
-                ImGui.TextDisabled("TZX/TAP cargan como la cinta original; Z80/SNA son instantáneas ya cargadas.");
-                ImGui.TextDisabled("[a] alternativa, [h] hack, [t] con trucos, [cr] crackeado.");
-                bool first = true;
-                foreach (var c in _choices.Take(30))
+                ImGui.TextUnformatted("El archivo contiene varios programas. Elegí cuál iniciar.");
+                ImGui.Separator();
+                if (ImGui.BeginChild("programas", new(0, -45), ImGuiChildFlags.Borders))
                 {
-                    string label = $"{c.File.Name}  ->  {c.Machine.Name}{(first ? "   (recomendado)" : "")}";
-                    first = false;
-                    if (ImGui.Selectable(label, false))
+                    foreach (var c in request.Versions)
                     {
-                        _choices = null;
+                        ImGui.PushID(c.File.Source);
+                        string path = PcDos.DisplayPath(c.File);
+                        bool picked = ImGui.Selectable(UiTheme.Fit(path, ImGui.GetContentRegionAvail().X) + "##programa");
+                        if (ImGui.IsItemHovered()) UiTheme.Tooltip(path);
+                        ImGui.PopID();
+                        if (!picked) continue;
+                        _pendingOpen = null;
                         ImGui.CloseCurrentPopup();
-                        Launch(c);
+                        if (!CompleteOpen(request, c)) _host.Paused = _pausedBeforeChoice;
                         break;
                     }
                 }
-                if (ImGui.Button("Cancelar"))
+                ImGui.EndChild();
+                if (ImGui.Button("Cancelar", new(110, 0)) || ImGui.IsKeyPressed(ImGuiKey.Escape))
                 {
-                    _choices = null;
+                    CancelOpen();
                     ImGui.CloseCurrentPopup();
                 }
                 ImGui.EndPopup();
             }
-            if (!open)
-                _choices = null;
+            if (!open && _pendingOpen != null) CancelOpen();
         }
     }
 
