@@ -7,6 +7,7 @@ public sealed partial class RetroApp
 {
     private readonly StateSlotStore _stateSlots;
     private bool _stateWindowOpen;
+    private (int Slot, string Key, long Revision)? _pendingStateSave;
     private long _stateListingRevision = -1;
     private string _stateKey = "", _stateMessage = "";
     private IReadOnlyList<StateSlotInfo> _savedSlots = [], _legacySlots = [];
@@ -14,7 +15,7 @@ public sealed partial class RetroApp
     private void OpenStateWindow()
     {
         CloseEditors(); _home.Close(); _stateWindowOpen = true;
-        _stateListingRevision = -1; _stateMessage = "";
+        _stateListingRevision = -1; _stateMessage = ""; _pendingStateSave = null;
     }
 
     private void RefreshStateSlots()
@@ -34,6 +35,7 @@ public sealed partial class RetroApp
         ImGui.SetNextWindowSizeConstraints(new(Math.Min(540, size.X), Math.Min(300, size.Y)), size);
         ImGui.SetNextWindowSize(new(Math.Min(650, size.X), Math.Min(420, size.Y)), ImGuiCond.FirstUseEver);
         if (!ImGui.Begin("Partidas guardadas", ref _stateWindowOpen)) { ImGui.End(); return; }
+        WorkspaceLayout.KeepOnScreen();
         try
         {
             if (!_host.CanUseStates)
@@ -52,15 +54,16 @@ public sealed partial class RetroApp
                 {
                     ImGui.PushID(slot.Number); ImGui.TableNextRow(); ImGui.TableNextColumn();
                     ImGui.TextUnformatted(slot.Number.ToString()); ImGui.TableNextColumn();
-                    ImGui.TextUnformatted(slot.Problem ?? slot.SavedAt?.ToString("dd/MM/yyyy HH:mm") ?? "Vacía");
+                    ImGui.TextWrapped(slot.Problem ?? slot.SavedAt?.ToString("dd/MM/yyyy HH:mm") ?? "Vacía");
                     ImGui.TableNextColumn();
-                    if (ImGui.SmallButton("Guardar")) RunStateSlot(slot.Number, save: true);
+                    if (ImGui.SmallButton("Guardar")) RequestStateSlotSave(slot.Number);
                     ImGui.SameLine(); ImGui.BeginDisabled(slot.SavedAt == null);
                     if (ImGui.SmallButton("Cargar")) RunStateSlot(slot.Number, save: false);
                     ImGui.EndDisabled(); ImGui.PopID();
                 }
                 ImGui.EndTable();
             }
+            DrawStateSaveConfirmation();
             if (_stateMessage.Length > 0) ImGui.TextWrapped(_stateMessage);
             ImGui.Spacing();
             if (_legacySlots.Any(s => s.SavedAt != null) && ImGui.CollapsingHeader("Guardados de versiones anteriores"))
@@ -85,6 +88,44 @@ public sealed partial class RetroApp
             if (ImGui.SmallButton("Actualizar lista")) RefreshStateSlots();
         }
         finally { ImGui.End(); }
+    }
+
+    private void RequestStateSlotSave(int slot)
+    {
+        if (!_host.CanUseStates) return;
+        RefreshStateSlots();
+        if (File.Exists(_stateSlots.PathFor(_stateKey, slot)))
+            _pendingStateSave = (slot, _stateKey, _host.MediaRevision);
+        else RunStateSlot(slot, save: true);
+    }
+
+    private void ConfirmStateSlotSave(bool replace)
+    {
+        var pending = _pendingStateSave; _pendingStateSave = null;
+        if (!replace || pending == null || !_host.CanUseStates) return;
+        RefreshStateSlots();
+        if (pending.Value.Key != _stateKey || pending.Value.Revision != _host.MediaRevision)
+        { _stateMessage = "La partida cambió. Elegí de nuevo dónde guardarla."; return; }
+        RunStateSlot(pending.Value.Slot, save: true);
+    }
+
+    private void DrawStateSaveConfirmation()
+    {
+        if (_pendingStateSave is not { } pending) return;
+        ImGui.OpenPopup("Reemplazar partida guardada");
+        float width = Math.Min(440, ImGui.GetMainViewport().WorkSize.X - 24);
+        ImGui.SetNextWindowSizeConstraints(new(width, 0), new(width, ImGui.GetMainViewport().WorkSize.Y - 24));
+        ImGui.SetNextWindowSize(new(width, 0), ImGuiCond.Appearing);
+        bool open = true;
+        if (ImGui.BeginPopupModal("Reemplazar partida guardada", ref open, ImGuiWindowFlags.AlwaysAutoResize))
+        {
+            ImGui.TextWrapped($"La ranura {pending.Slot} ya tiene una partida. ¿Querés reemplazarla por la actual?");
+            if (ImGui.Button("Reemplazar")) { ConfirmStateSlotSave(true); ImGui.CloseCurrentPopup(); }
+            ImGui.SameLine();
+            if (ImGui.Button("Cancelar")) { ConfirmStateSlotSave(false); ImGui.CloseCurrentPopup(); }
+            ImGui.EndPopup();
+        }
+        if (!open) ConfirmStateSlotSave(false);
     }
 
     private void RunStateSlot(int slot, bool save)

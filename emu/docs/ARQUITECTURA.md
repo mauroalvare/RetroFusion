@@ -842,3 +842,22 @@ Retro.Systems.Pc contiene la máquina PC/XT integrada; [PCXT.md](PCXT.md) mantie
 sus contratos y límites. Hay cuatro núcleos de CPU implementados: Z80, 8080, 6502 y
 8088. 6510 y 2A03 reutilizan el 6502 con sus diferencias de máquina. 68000 y las
 familias x86 posteriores siguen pendientes; una nueva máquina puede reutilizar un núcleo.
+
+
+## Interfaz adaptable y trabajos activos
+
+UiTheme centraliza colores, espaciado y tipografía. Usa una fuente monoespaciada del
+sistema cuando existe y la incorporada de ImGui en su ausencia; no distribuye fuentes
+externas. Los recortes conservan el texto completo en ayudas contextuales con ancho
+limitado. La imagen de los juegos mantiene su propio renderizado y escala.
+
+HomeScreen cambia la navegación lateral por un selector por debajo de 800 puntos.
+Las filas compactas integran sistema y avisos en la celda del título. FileBrowser deriva
+los formatos del catálogo, conserva una instantánea de carpeta y valida de nuevo la
+selección antes de abrir. Buscar o dibujar filas no recorre el disco en cada cuadro.
+
+El pie informa trabajos de estudio, creador y análisis; si hay varios, permite elegir.
+ShowWork reabre el recorrido existente sin comenzar otro pedido. El progreso del estudio
+y creador aparece antes del formulario. El teclado capturado por ImGui no llega al juego.
+Las ranuras ocupadas requieren confirmación; la confirmación vuelve a comprobar juego,
+firmware y revisión de sesión antes de escribir.

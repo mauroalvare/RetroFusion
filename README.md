@@ -94,8 +94,17 @@ desde los pendientes del estudio o del creador con su último código y sus edic
 | ![Rutinas y depurador de Tormenta en C64](emu/docs/img/interfaz/codigo.png) | ![Cave corriendo en la máquina NES](emu/docs/img/interfaz/nes.png) |
 | Estudiá rutinas, registros y memoria mientras el programa corre. | Juegos originales con CPU, video, sonido y controles emulados. |
 
+| Biblioteca en una ventana chica | Archivos de PC y formatos pendientes |
+|---|---|
+| ![Biblioteca compacta](emu/docs/img/interfaz/biblioteca-compacta.png) | ![Biblioteca de PC](emu/docs/img/interfaz/biblioteca-pc.png) |
+
 ## Novedades de la 0.3.0
 
+- **Interfaz más clara:** texto más legible, biblioteca adaptable a ventanas chicas,
+  búsqueda con limpieza rápida y avisos visibles de formatos pendientes.
+- **Abrir archivos:** selección con un clic, búsqueda dentro de la carpeta y botón Abrir;
+  incluye los disquetes de PC. **Ver trabajo en curso** recupera la actividad de creación
+  o análisis aunque hayas cerrado su panel.
 - **PC/XT con DOS y CGA:** 8088, teclado, altavoz y disquetes de arranque. BIOS y sistema
   operativo aparte; [preparación y alcance](emu/docs/PC-DOS.md).
 - **Más cartuchos de NES:** mappers 0/1/2/3/4/7, bancos de memoria y temporización de
@@ -124,6 +133,7 @@ Podés omitir la actualización o cambiar esa opción en **Ayuda > Actualizacion
 Para pasar desde una versión anterior, seguí `ACTUALIZAR.txt` del paquete.
 **Opciones > Conectar o configurar IA** muestra cómo instalar e iniciar sesión en cada herramienta,
 y consulta sus modelos y esfuerzos disponibles. [Guía de conexión](emu/docs/CONECTAR-IA.md).
+Al guardar sobre una ranura ocupada se pide confirmación.
 Los estados guardados se ofrecen en los originales; las fusiones se reinician desde el estudio.
 
 Para compilarlo desde el código hace falta el .NET SDK 10:

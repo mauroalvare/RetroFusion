@@ -406,3 +406,9 @@ por cautela, las ediciones de Cheril, Phantomasa, Sila Tsikl y Nanako Descends t
 
 PC/XT ejecuta firmware y DOS mediante los dispositivos, sin interceptar servicios BIOS.
 Las limitaciones y modos pendientes se detallan en [PCXT.md](PCXT.md).
+
+
+La tipografía usa fuentes instaladas y conserva la fuente incorporada como alternativa;
+puede variar entre sistemas. El selector de archivos actualiza su instantánea cada dos
+segundos mientras está abierto. La actividad de herramientas que no transmiten salida
+puede seguir sin texto nuevo hasta terminar; el acceso al trabajo no inventa progreso.

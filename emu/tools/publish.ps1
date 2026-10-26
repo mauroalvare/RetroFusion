@@ -56,7 +56,7 @@ foreach ($rid in $Runtimes) {
     Copy-Item (Join-Path $root "docs/CONECTAR-IA.md") (Join-Path $playerDocs "CONECTAR-IA.md")
     $playerImages = Join-Path $playerDocs "img/interfaz"
     New-Item -ItemType Directory -Force $playerImages | Out-Null
-    foreach ($image in "biblioteca.png", "modificaciones.png", "favoritos.png") {
+    foreach ($image in "biblioteca.png", "biblioteca-compacta.png", "biblioteca-pc.png", "modificaciones.png", "favoritos.png") {
         Copy-Item (Join-Path $root "docs/img/interfaz/$image") (Join-Path $playerImages $image)
     }
     Copy-Item (Join-Path $root "docs/ARQUITECTURA.md") (Join-Path $playerDocs "ARQUITECTURA.md")

@@ -17,6 +17,10 @@ El paquete trae estas carpetas junto al programa:
 | **Juegos creados** | Las carpetas completas de los juegos que creaste. |
 
 Los juegos se consiguen por separado. Los originales siguen disponibles después de crear una fusión.
+En una ventana chica, el selector superior reúne máquinas, favoritos, recientes y
+juegos nuevos. Los títulos conservan espacio para leerse y los formatos pendientes
+indican qué falta para abrirlos.
+
 La estrella junto a cada juego lo agrega a **Favoritos**. **Recientes** muestra los
 últimos juegos abiertos disponibles en tu biblioteca; podés vaciar la lista sin borrar
 juegos ni favoritos. Se conservan al cerrar o actualizar el programa.
@@ -50,6 +54,7 @@ muestra las teclas del juego o sistema activo. También se puede usar un mando.
 Las cintas pueden tardar en cargar. Si el joystick del C64 no responde,
 cambiá el puerto en **Juego > Controles y hardware**.
 **Juego > Partidas guardadas** ofrece cinco ranuras por juego y edición, con fecha.
+Al guardar sobre una ranura ocupada, confirmá si querés reemplazarla.
 Los estados guardados están disponibles en originales. Si un estado está dañado,
 la partida actual se conserva.
 
@@ -67,6 +72,7 @@ condiciones y cargos. Las herramientas instaladas usan los límites de tu cuenta
 **Opciones > Conectar o configurar IA** guía la instalación y el acceso; después muestra los modelos
 y esfuerzos que publica cada herramienta. [Ver los pasos](docs/CONECTAR-IA.md).
 
+Si cerraste el panel durante un pedido, **Ver trabajo en curso** permite volver a él.
 Durante un pedido, **Abrir construcción** muestra la actividad disponible y permite cancelar.
 El progreso muestra el tiempo transcurrido y un estimado orientativo cuando hay historial suficiente.
 **Uso de IA** permite ajustar los intentos y el tope de texto. Los trabajos interrumpidos

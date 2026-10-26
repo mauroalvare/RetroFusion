@@ -157,6 +157,10 @@ public sealed class StudioWindow
     private List<RecipeGame> Slots() =>
         _chosen.Select((id, i) => new RecipeGame { Slot = SlotNames[i], Profile = id }).ToList();
 
+    public bool IsWorking => Busy || _manual != null || _agentDir != null;
+    private bool _focusWork;
+    public void ShowWork() { _open = true; _focusWork = true; }
+
     private bool Busy => _prepareTask != null || _conceptTask != null || _designTask != null || _referenceTask != null || _validateTask != null || _startTask != null;
     public Task CancelWork()
     {
@@ -196,7 +200,10 @@ public sealed class StudioWindow
             return;
         }
         _panelLeft = ImGui.GetWindowPos().X - vp.Pos.X;
+        if (_focusWork) { ImGui.SetScrollY(0); _focusWork = false; }
         DrawPendingWork();
+        DrawProgress();
+        if (_prepareTask != null) DrawPreparation();
         if (_host.Fusion is StudioSession session && session.Game.IsInspired == _inspiredMode)
             DrawPlaying(session);
         else
@@ -301,7 +308,7 @@ public sealed class StudioWindow
             if (ImGui.SmallButton("Limpiar selección")) { _chosen.Clear(); _concepts = null; }
             ImGui.EndDisabled();
         }
-        DrawPreparation();
+        if (_prepareTask == null) DrawPreparation();
         if (_chosen.Count < 2)
         {
             ImGui.Spacing();
@@ -353,7 +360,6 @@ public sealed class StudioWindow
                 ImGui.Spacing(); ImGui.PopID();
             }
         }
-        DrawProgress();
     }
 
     private FusionDirection SelectedDirection()
@@ -493,7 +499,6 @@ public sealed class StudioWindow
         if (ImGui.Button("Hacer versión nueva"))
             Revise(g, _request.Trim());
         ImGui.EndDisabled();
-        DrawProgress();
 
         ImGui.Separator();
         if (ImGui.CollapsingHeader("Ver y editar el guion (JavaScript)"))

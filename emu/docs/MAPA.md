@@ -286,3 +286,10 @@ Guía del jugador: [PC-DOS.md](PC-DOS.md). Desde emu:
 `PcLaunchTests` comprueba carga, identidad de guardados y direcciones por encima de 64 KB.
 `PCXT.md` detalla modos implementados y pendientes. La cuenta de instrucciones y el
 reloj de placa son independientes.
+
+
+Pulido de interfaz: `Retro.App/UiTheme.cs` centraliza la presentación; `FileBrowser.cs`
+usa los formatos de MachineCatalog. `FileBrowserTests` comprueba disquetes, búsquedas,
+navegación y selecciones que desaparecen. `StateSlotTests` comprueba la confirmación
+de reemplazo y rechaza confirmaciones de otra sesión. El pie de RetroApp permite
+recuperar trabajos activos sin iniciar una generación nueva.

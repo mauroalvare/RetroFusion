@@ -142,17 +142,7 @@ public sealed partial class RetroApp
     /// <summary>The user's game folder ("ROMs", exact case: "roms" holds the firmware).</summary>
     private static string? FindGamesFolder() => PlayerFolders.Find("ROMs");
 
-    private static void ConfigureStyle()
-    {
-        var style = ImGui.GetStyle();
-        style.WindowRounding = 5; style.FrameRounding = 4; style.PopupRounding = 4;
-        style.GrabRounding = 4; style.TabRounding = 4;
-        style.WindowPadding = new Vector2(12, 12);
-        style.FramePadding = new Vector2(7, 4);
-        style.ItemSpacing = new Vector2(8, 7);
-        style.Colors[(int)ImGuiCol.WindowBg] = new Vector4(0.065f, 0.07f, 0.085f, 1);
-        ImGui.GetIO().FontGlobalScale = 1.1f;
-    }
+    private static void ConfigureStyle() => UiTheme.Apply();
 
     private void ShowInDebugger(uint address)
     {
@@ -226,7 +216,7 @@ public sealed partial class RetroApp
             _libraryRevision = _library.Revision;
             _studio.NotifyLibraryChanged(_library.Folder);
         }
-        bool imguiKeyboard = ImGui.GetIO().WantTextInput || _home.IsOpen;
+        bool imguiKeyboard = ImGui.GetIO().WantCaptureKeyboard || ImGui.GetIO().WantTextInput || _home.IsOpen;
         if (!_updates.Blocking) HandleHotkeys(ImGui.GetIO().WantTextInput);
         _code.Update();
         _studio.Update(); _creator.Update();
@@ -439,10 +429,7 @@ public sealed partial class RetroApp
                 .ToList();
             if (candidates.Count == 0)
             {
-                string inside = files.Count > 1 ? $" Adentro hay: {string.Join(", ", files.Take(8).Select(f => Path.GetFileName(f.Name)))}." : "";
-                _errorPopup = $"No reconozco {fileName}: no coincide con el formato de ninguna máquina que conozco.{inside}\n" +
-                              "Formatos que reconozco: Spectrum (.tap .tzx .z80 .sna), arcade (zip de MAME), C64 (.t64 .prg .d64 .crt), " +
-                              "Atari 8 bits (.atr .xex), Apple II (.dsk .woz), Amstrad CPC, PC-88 (.d88), DOS (.exe .com), Atari ST (.st .msa), Amiga (.adf).";
+                _errorPopup = $"No se reconoce el formato de {fileName}.\nAbrí el archivo del juego o su ZIP. En Biblioteca se indican los formatos de cada máquina.";
                 return;
             }
             var playable = candidates.Where(c => c.Machine.Status == MachineStatus.Available && c.Confidence >= 50 && MachineCatalog.NotLoadableYet(c) == null).ToList();
@@ -450,10 +437,9 @@ public sealed partial class RetroApp
             {
                 var best = candidates[0];
                 _errorPopup = MachineCatalog.NotLoadableYet(best) is { } notYet
-                    ? $"{fileName} es para {best.Machine.Name} (CPU {best.Machine.Cpu}): {best.Reason}.\nEsa máquina ya anda, pero {notYet}."
+                    ? $"{fileName}: {best.Machine.Name}.\nNo se puede abrir todavía: {notYet}."
                     : $"{fileName} es para {best.Machine.Name} (CPU {best.Machine.Cpu}): {best.Reason}.\n" +
-                      "Esa máquina todavía no está implementada; está en el plan de trabajo (siguen Atari 800 y Apple II, con la misma CPU 6502).\n" +
-                      "En Máquina vas a ver qué juegos de tu carpeta corren hoy.";
+                      "Este sistema todavía está en desarrollo. En Biblioteca podés ver las máquinas disponibles.";
                 return;
             }
             // Several dumps or formats of the game: the cleanest dump starts right away and
@@ -734,7 +720,7 @@ public sealed partial class RetroApp
                 foreach (var info in MachineCatalog.All)
                 {
                     ImGui.TextUnformatted(info.Name + (info.Status == MachineStatus.Available ? " · disponible" : " · en desarrollo"));
-                    if (ImGui.IsItemHovered()) ImGui.SetTooltip(info.Cpu + "\n" + info.Needs);
+                    if (ImGui.IsItemHovered()) UiTheme.Tooltip(info.Cpu + "\n" + info.Needs);
                 }
                 ImGui.EndMenu();
             }
@@ -829,30 +815,57 @@ public sealed partial class RetroApp
         { _errorPopup = "No se pudo guardar o cargar el estado: " + error.Message; }
     }
 
+    private void RevealCurrentWork()
+    {
+        CloseEditors(); _home.Close();
+        if (_studio.IsWorking) _studio.ShowWork();
+        else if (_creator.IsWorking) _creator.ShowWork();
+        else if (_code.IsWorking) _code.ShowWork();
+    }
+
     private void DrawStatusBar()
     {
         var vp = ImGui.GetMainViewport();
-        ImGui.SetNextWindowPos(new Vector2(vp.Pos.X, vp.Pos.Y + vp.Size.Y - 24));
-        ImGui.SetNextWindowSize(new Vector2(vp.Size.X, 24));
-        ImGui.Begin("##status", ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoFocusOnAppearing);
-        if (_home.IsOpen)
+        ImGui.SetNextWindowPos(new(vp.Pos.X, vp.Pos.Y + vp.Size.Y - 24));
+        ImGui.SetNextWindowSize(new(vp.Size.X, 24));
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(8, 3));
+        ImGui.Begin("##status", ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoSavedSettings
+            | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoScrollbar);
+        string status;
+        if (_home.IsOpen) status = _library.Scanning ? "Buscando juegos..." : $"{_home.GameCount} juegos en la biblioteca";
+        else
         {
-            ImGui.TextUnformatted(_library.Scanning ? "Buscando juegos..." : $"{_home.GameCount} juegos en la biblioteca");
-            ImGui.End();
-            return;
+            var m = _host.Machine;
+            string speed = m == null ? "" : _host.Paused ? "Pausa" : _host.IsFastForwarding ? $"Rápido x{_host.EffectiveSpeed:F0}" : $"{_host.EffectiveSpeed * 100:F0}%";
+            string extra = _host.Zx is { } zx ? !zx.Tape.IsLoaded ? " · Sin cinta" : zx.Tape.IsPlaying
+                ? $" · Cargando cinta ({zx.Tape.Progress * 100:F0}%)" : zx.Tape.AtEnd ? " · Cinta al final" : " · Cinta detenida" : "";
+            if (_host.C64 is { OpenRoms: true } c64 && c64.UnhandledKernalCalls.Count > 0) extra = " · Requiere revisar el firmware";
+            string title = _host.Fusion?.Title ?? _host.Info?.Name ?? "Sin máquina";
+            status = $"{title} · {speed}{extra} · {_host.Status}";
         }
-        var m = _host.Machine;
-        string speed = m == null ? "" : _host.Paused ? "PAUSA" : _host.IsFastForwarding ? $"rápido x{_host.EffectiveSpeed:F0}" : $"{_host.EffectiveSpeed * 100:F0}%";
-        string extra = "";
-        if (_host.Zx is { } zx)
-            extra = !zx.Tape.IsLoaded ? "  |  sin cinta" : zx.Tape.IsPlaying ? $"  |  cinta en marcha, bloque {zx.Tape.CurrentBlock} ({zx.Tape.Progress * 100:F0}%)" : zx.Tape.AtEnd ? "  |  cinta al final" : "  |  cinta detenida";
-        if (_host.C64 is { OpenRoms: true } c64 && c64.UnhandledKernalCalls.Count > 0)
-            extra = $"  |  usa rutinas internas del KERNAL original ({c64.UnhandledKernalCalls.Count}): si falla, poné las ROMs originales en firmware/c64";
-        string title = _host.Fusion is { } f ? $"{(f is Retro.Studio.StudioSession { Game.IsInspired: true } ? "Juego creado" : "Fusión")}: {f.Title} (depurador en {_host.Machine?.DisplayName})" : _host.Info?.Name ?? "Sin máquina";
-        if (_host.Fusion != null)
-            extra = "";
-        ImGui.TextUnformatted($"{title}  |  {speed}{extra}  |  {_host.Status}");
-        ImGui.End();
+        int jobs = (_studio.IsWorking ? 1 : 0) + (_creator.IsWorking ? 1 : 0) + (_code.IsWorking ? 1 : 0);
+        bool work = jobs > 0;
+        string workLabel = jobs > 1 ? $"{jobs} trabajos en curso" : "Ver trabajo en curso";
+        float buttonWidth = ImGui.CalcTextSize(workLabel).X + 18;
+        ImGui.TextUnformatted(UiTheme.Fit(status, ImGui.GetContentRegionAvail().X - (work ? buttonWidth + 12 : 0)));
+        if (ImGui.IsItemHovered()) UiTheme.Tooltip(status);
+        if (work)
+        {
+            ImGui.SameLine(Math.Max(ImGui.GetCursorPosX(), ImGui.GetWindowWidth() - buttonWidth - 8));
+            if (ImGui.SmallButton(workLabel))
+            { if (jobs == 1) RevealCurrentWork(); else ImGui.OpenPopup("trabajos-activos"); }
+            if (ImGui.BeginPopup("trabajos-activos"))
+            {
+                if (_studio.IsWorking && ImGui.Selectable("Fusión o creación con originales"))
+                { CloseEditors(); _home.Close(); _studio.ShowWork(); }
+                if (_creator.IsWorking && ImGui.Selectable("Juego nuevo desde cero"))
+                { CloseEditors(); _home.Close(); _creator.ShowWork(); }
+                if (_code.IsWorking && ImGui.Selectable("Análisis y modificaciones"))
+                { CloseEditors(); _home.Close(); _code.ShowWork(); }
+                ImGui.EndPopup();
+            }
+        }
+        ImGui.End(); ImGui.PopStyleVar();
     }
 
     private void DrawPopups()
@@ -861,9 +874,16 @@ public sealed partial class RetroApp
         {
             ImGui.OpenPopup("Aviso");
             bool open = true;
+            var area = ImGui.GetMainViewport().WorkSize;
+            float width = Math.Min(620, area.X - 24);
+            ImGui.SetNextWindowSizeConstraints(new(width, 100), new(width, area.Y - 32));
+            ImGui.SetNextWindowSize(new(width, 0), ImGuiCond.Appearing);
             if (ImGui.BeginPopupModal("Aviso", ref open, ImGuiWindowFlags.AlwaysAutoResize))
             {
-                ImGui.TextUnformatted(_errorPopup);
+                float height = Math.Clamp(ImGui.CalcTextSize(_errorPopup, false, ImGui.GetContentRegionAvail().X).Y + 12, 55, Math.Max(55, area.Y - 160));
+                ImGui.BeginChild("mensaje-aviso", new(0, height)); ImGui.TextWrapped(_errorPopup); ImGui.EndChild();
+                if (ImGui.Button("Copiar mensaje")) ImGui.SetClipboardText(_errorPopup);
+                ImGui.SameLine();
                 if (ImGui.Button("Aceptar"))
                 {
                     _errorPopup = null;
@@ -1007,7 +1027,7 @@ public sealed partial class RetroApp
             if (ImGui.Checkbox(f.Name + "##flag", ref set) && _host.Paused)
                 cpu.TrySetFlag(f.Name, set);
             if (ImGui.IsItemHovered())
-                ImGui.SetTooltip(f.Description);
+                UiTheme.Tooltip(f.Description);
         }
         ImGui.Separator();
         foreach (var line in cpu.GetInterruptState())

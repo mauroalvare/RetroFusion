@@ -959,3 +959,17 @@ Los parches NOP usan el opcode de la CPU: 00 en Z80/8080, EA en 6502 y 90 en 808
 
 El CLI run reconoce IMG/IMA y acepta --bios <ruta>; sin esa opción busca el BIOS
 en las carpetas de firmware habituales. info distingue reconocimiento de carga.
+
+
+## D-064 — Pulido de la interfaz en 0.3.0
+
+La biblioteca conserva las mismas secciones y acciones en diseño ancho y compacto.
+Los avisos de formatos pendientes forman parte de la fila. FileBrowser toma extensiones
+del catálogo, separa selección/apertura y comprueba existencia al confirmar. No carga ni
+mueve archivos al seleccionarlos. La instantánea evita enumeraciones por cuadro.
+
+La tipografía procede del sistema o de ImGui, sin incorporar fuentes al paquete. Las
+ayudas usan texto sin formato y ancho limitado. El pie reabre trabajos existentes y el
+progreso permanece al comienzo del recorrido. Mostrar trabajo no llama al proveedor.
+Guardar sobre una ranura requiere confirmación ligada a identidad/revisión actuales;
+no cambia el formato del estado ni sus rutas. La versión sigue siendo 0.3.0.

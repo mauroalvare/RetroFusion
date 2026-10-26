@@ -74,6 +74,9 @@ public sealed partial class CodeWindow : IDisposable
         _host.SessionChanging += LeaveModificationSession;
     }
 
+    public bool IsWorking => _explainTask != null || _modificationTask != null || _manualModification || _manualExplanation;
+    public void ShowWork() => OpenPage(_explainTask != null || _manualExplanation ? ToolPage.Code : ToolPage.Analysis);
+
     public void Open() => OpenPage(ToolPage.Code);
 
     public void Update()
@@ -111,19 +114,21 @@ public sealed partial class CodeWindow : IDisposable
             if (ImGui.SmallButton("Copiar mensaje")) ImGui.SetClipboardText(_status);
         }
         if (_requestedPage is { } requested) { _activePage = requested; _requestedPage = null; }
-        if (ImGui.BeginTable("navegacion-herramientas", ImGui.GetContentRegionAvail().X < 500 ? 2 : 4, ImGuiTableFlags.SizingStretchSame))
+        bool variablesSupported = machine.Memory.AddressBits <= 16;
+        if (variablesSupported && ImGui.BeginTable("navegacion-herramientas", ImGui.GetContentRegionAvail().X < 660 ? 2 : 4, ImGuiTableFlags.SizingStretchSame))
         {
             Page("Cambios", ToolPage.Changes);
-            Page("Analizar con IA", ToolPage.Analysis);
+            Page("Análisis con IA", ToolPage.Analysis);
             Page("Buscar variables", ToolPage.Search);
             Page("Código", ToolPage.Code);
             ImGui.EndTable();
         }
-        if (machine.Memory.AddressBits <= 16) DrawHistoryOptions();
+        if (variablesSupported) DrawHistoryOptions();
         ImGui.Separator();
-        if (machine.Memory.AddressBits > 16 && _activePage != ToolPage.Code)
+        if (!variablesSupported)
         {
-            AiPicker.Hint("En PC/XT todavía no está disponible el análisis de variables. Podés consultar el código y usar el visor de memoria del depurador.");
+            AiPicker.Hint("En PC/XT están disponibles el código, los parches y el depurador. El análisis de variables sigue pendiente.");
+            DrawCodeTools(machine);
         }
         else switch (_activePage)
         {
@@ -138,7 +143,7 @@ public sealed partial class CodeWindow : IDisposable
         void Page(string label, ToolPage page)
         {
             ImGui.TableNextColumn();
-            if (ImGui.Selectable(label, _activePage == page, ImGuiSelectableFlags.None, new Vector2(0, 28))) _activePage = page;
+            if (ImGui.Selectable(label, _activePage == page, ImGuiSelectableFlags.None, new Vector2(0, 30))) _activePage = page;
         }
     }
 
@@ -331,7 +336,7 @@ public sealed partial class CodeWindow : IDisposable
                 Select(r.Start);
             ImGui.PopStyleColor();
             if (ImGui.IsItemHovered() && _notes.Summaries.TryGetValue(CodeAnnotations.Key(r.Start), out var sum))
-                ImGui.SetTooltip(sum);
+                UiTheme.Tooltip(sum);
         }
         ImGui.EndChild();
         ImGui.EndChild();
@@ -371,7 +376,7 @@ public sealed partial class CodeWindow : IDisposable
             _host.Debug.Toggle(r.Start);
         ImGui.EndDisabled();
         if (_host.Fusion != null && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-            ImGui.SetTooltip("Durante una fusión los juegos no se detienen en breakpoints.");
+            UiTheme.Tooltip("Durante una fusión los juegos no se detienen en breakpoints.");
 
         if (_notes.Summaries.TryGetValue(key, out var summary))
             ImGui.TextWrapped(summary);
@@ -492,7 +497,7 @@ public sealed partial class CodeWindow : IDisposable
             Patch(m, a, string.Join(" ", Enumerable.Repeat(NopOpcode(m).ToString("X2"), ins.Length)));
         }
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Reemplaza la instrucción por NOP: la CPU deja de ejecutar esa operación.");
+            UiTheme.Tooltip("Reemplaza la instrucción por NOP: la CPU deja de ejecutar esa operación.");
     }
 
     private static byte NopOpcode(IMachine m) => m.Cpu is Retro.Cpu.M6502.M6502 ? (byte)0xEA : m.Cpu is Retro.Cpu.I8088.I8088Cpu ? (byte)0x90 : (byte)0x00;
@@ -632,7 +637,7 @@ public sealed partial class CodeWindow : IDisposable
             _explainStatus = "Pedido copiado. Pegalo en tu IA y traé la respuesta completa.";
         }
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("El selector de IA de esta sección también se usa para explicar rutinas.");
+            UiTheme.Tooltip("El selector de IA de esta sección también se usa para explicar rutinas.");
         if (_explainStatus.Length > 0)
             ImGui.TextColored(new Vector4(0.6f, 0.8f, 1, 1), _explainStatus);
         _routineActivity.Draw(_explainTask != null, _explainStatus, _cts);
@@ -751,7 +756,7 @@ public sealed partial class CodeWindow : IDisposable
                 { readable = false; }
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn(); ImGui.TextWrapped(VariableLabel(name));
-                if (ImGui.IsItemHovered()) ImGui.SetTooltip(name + "\n" + v.Description);
+                if (ImGui.IsItemHovered()) UiTheme.Tooltip(name + "\n" + v.Description);
                 if (addresses) { ImGui.TableNextColumn(); ImGui.TextUnformatted("$" + v.Address); }
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(-1);
@@ -768,7 +773,7 @@ public sealed partial class CodeWindow : IDisposable
                         ApplyModifications([new(name, requested, _modifications?.Frozen.ContainsKey(name) == true)]);
                     else _status = "Escribí un número entero válido.";
                 }
-                if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled)) ImGui.SetTooltip($"Rango: {v.Min} a {v.Max}");
+                if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled)) UiTheme.Tooltip($"Rango: {v.Min} a {v.Max}");
                 ImGui.EndDisabled();
                 ImGui.TableNextColumn();
                 ImGui.BeginDisabled(v.ReadOnly || !readable);
@@ -781,7 +786,7 @@ public sealed partial class CodeWindow : IDisposable
                 ImGui.TableNextColumn();
                 string description = readable ? v.Description + (v.ReadOnly ? " (solo lectura)" : "") : "Este dato tiene un formato o dirección inválidos en el perfil.";
                 ImGui.TextWrapped(description.Length > 140 ? description[..137] + "..." : description);
-                if (description.Length > 140 && ImGui.IsItemHovered()) ImGui.SetTooltip(description);
+                if (description.Length > 140 && ImGui.IsItemHovered()) UiTheme.Tooltip(description);
             }
             ImGui.EndTable();
         }

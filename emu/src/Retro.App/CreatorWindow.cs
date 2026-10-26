@@ -68,6 +68,10 @@ public sealed class CreatorWindow
         _games = null;
     }
 
+    public bool IsWorking => Busy || _manualPrompt != null || _agentDir != null;
+    private bool _focusWork, _showSavedProjects;
+    public void ShowWork() { _open = true; _focusWork = true; _showSavedProjects = false; }
+
     private bool Busy => _writeTask != null || _templateTask != null || _retryTask != null || _manualTask != null || _agentTask != null;
     public Task CancelWork()
     {
@@ -104,17 +108,20 @@ public sealed class CreatorWindow
             return;
         }
         _panelLeft = ImGui.GetWindowPos().X - vp.Pos.X;
+        if (_focusWork) ImGui.SetScrollY(0);
         DrawPendingWork();
-        if (ImGui.BeginTabBar("proyectos-creador"))
+        if (Busy) { DrawProgress(); ImGui.Separator(); }
+        if (ImGui.BeginTable("proyectos-creador", 2, ImGuiTableFlags.SizingStretchSame))
         {
-            if (ImGui.BeginTabItem("Nuevo proyecto")) { DrawNew(); ImGui.EndTabItem(); }
-            if (ImGui.BeginTabItem("Proyectos guardados"))
-            {
-                if (Busy) { ImGui.TextWrapped(_progress); _build.Draw(_writeTask != null, _progress, _cts); }
-                DrawGames(); ImGui.EndTabItem();
-            }
-            ImGui.EndTabBar();
+            ImGui.TableNextColumn();
+            if (ImGui.Selectable("Nuevo proyecto", !_showSavedProjects, ImGuiSelectableFlags.None, new(0, 30))) _showSavedProjects = false;
+            ImGui.TableNextColumn();
+            if (ImGui.Selectable("Proyectos guardados", _showSavedProjects, ImGuiSelectableFlags.None, new(0, 30))) _showSavedProjects = true;
+            ImGui.EndTable();
         }
+        ImGui.Separator();
+        if (_showSavedProjects) DrawGames(); else DrawNew();
+        _focusWork = false;
         ImGui.End();
     }
 
@@ -154,6 +161,15 @@ public sealed class CreatorWindow
         if (ImGui.Button("Empezar desde la plantilla"))
             FromTemplate();
         ImGui.EndDisabled();
+        if (!Busy) DrawProgress();
+        if (_manualPrompt != null)
+            DrawManual();
+        if (_agentDir != null)
+            DrawAgent();
+    }
+
+    private void DrawProgress()
+    {
         if (_progress.Length > 0)
         {
             ImGui.PushStyleColor(ImGuiCol.Text, Blue);
@@ -177,10 +193,6 @@ public sealed class CreatorWindow
                 ImGui.TreePop();
             }
         }
-        if (_manualPrompt != null)
-            DrawManual();
-        if (_agentDir != null)
-            DrawAgent();
     }
 
     private void DrawManual()

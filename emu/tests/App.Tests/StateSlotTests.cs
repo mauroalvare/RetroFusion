@@ -106,4 +106,48 @@ public sealed class StateSlotTests
         Assert.Throws<ArgumentOutOfRangeException>(() => store.LegacyPath("nes", 6));
         Assert.That(Directory.Exists(Path.Combine(_directory, "states")), Is.False);
     }
+
+    private RetroApp Controller(EmulatorHost host)
+    {
+        var app = (RetroApp)System.Runtime.CompilerServices.RuntimeHelpers.GetUninitializedObject(typeof(RetroApp));
+        var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        typeof(RetroApp).GetField("_host", flags)!.SetValue(app, host);
+        typeof(RetroApp).GetField("_stateSlots", flags)!.SetValue(app, Store);
+        return app;
+    }
+    private static void Call(RetroApp app, string method, params object[] args) => typeof(RetroApp)
+        .GetMethod(method, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.Invoke(app, args);
+
+    [Test]
+    public void ExistingSlotRemainsIntactUntilReplacementIsConfirmedAndCancelKeepsIt()
+    {
+        var host = new EmulatorHost(); Start(host, "own.nes", 1); var app = Controller(host);
+        host.Nes!.Ram[37] = 17; Call(app, "RequestStateSlotSave", 1);
+        string path = Store.PathFor(Key(host), 1); byte[] original = File.ReadAllBytes(path);
+        host.Nes.Ram[37] = 99; Call(app, "RequestStateSlotSave", 1);
+        Assert.That(File.ReadAllBytes(path), Is.EqualTo(original));
+        Call(app, "ConfirmStateSlotSave", false); Assert.That(File.ReadAllBytes(path), Is.EqualTo(original));
+        host.LoadStateFromFile(path); Assert.That(host.Nes.Ram[37], Is.EqualTo(17));
+    }
+    [Test]
+    public void ConfirmedReplacementSavesTheCurrentGameInTheChosenSlot()
+    {
+        var host = new EmulatorHost(); Start(host, "own.nes", 1); var app = Controller(host);
+        host.Nes!.Ram[37] = 17; Call(app, "RequestStateSlotSave", 2);
+        host.Nes.Ram[37] = 99; Call(app, "RequestStateSlotSave", 2); Call(app, "ConfirmStateSlotSave", true);
+        host.Nes.Ram[37] = 0; host.LoadStateFromFile(Store.PathFor(Key(host), 2));
+        Assert.That(host.Nes.Ram[37], Is.EqualTo(99));
+    }
+    [Test]
+    public void PendingReplacementCannotWriteIntoAnotherGameAfterSwitchingOrResetting()
+    {
+        var host = new EmulatorHost(); Start(host, "first.nes", 1); var app = Controller(host);
+        Call(app, "RequestStateSlotSave", 1); string original = Store.PathFor(Key(host), 1);
+        byte[] before = File.ReadAllBytes(original); Call(app, "RequestStateSlotSave", 1);
+        Start(host, "second.nes", 2); Call(app, "ConfirmStateSlotSave", true);
+        Assert.That(File.Exists(Store.PathFor(Key(host), 1)), Is.False);
+        Assert.That(File.ReadAllBytes(original), Is.EqualTo(before));
+        Start(host, "first.nes", 1); Call(app, "RequestStateSlotSave", 1); host.Reset(false);
+        Call(app, "ConfirmStateSlotSave", true); Assert.That(File.ReadAllBytes(original), Is.EqualTo(before));
+    }
 }

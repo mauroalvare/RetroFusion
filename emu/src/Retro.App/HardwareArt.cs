@@ -46,6 +46,17 @@ internal static class HardwareArt
                 Box(106, 87, 5, 5, red, 3); Box(116, 87, 5, 5, red, 3);
                 Box(79, 90, 7, 2, light); Box(90, 90, 7, 2, light);
                 break;
+            case "pcxt":
+                Box(38, 7, 85, 57, 0xFF9DAEBC, 4); Box(46, 13, 69, 43, dark, 3);
+                Box(51, 18, 59, 33, 0xFF203624, 2);
+                Line(56, 26, 60, 29, 0xFF89D698, 2); Line(60, 29, 56, 32, 0xFF89D698, 2);
+                Line(65, 33, 73, 33, 0xFF89D698, 2);
+                Box(71, 63, 19, 5, 0xFF7F929E); Box(59, 67, 43, 4, 0xFF9DAEBC);
+                Box(15, 72, 131, 14, 0xFF9DAEBC, 2); Box(22, 76, 54, 5, dark, 1);
+                Box(98, 75, 35, 5, dark, 1); Box(138, 76, 3, 3, 0xFF89D698);
+                Box(32, 89, 99, 10, 0xFFBBC7D0, 2);
+                for (int col = 0; col < 11; col++) Box(37 + col * 8, 92, 5, 3, dark);
+                break;
             default:
                 Box(8, 24, 144, 62, 0xFF425C2B, 4);
                 for (int i = 0; i < 6; i++)
