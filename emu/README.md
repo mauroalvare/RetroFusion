@@ -8,6 +8,10 @@ Jugá tus juegos originales, combiná sus reglas o creá un juego de 8 bits.
 2. Elegí una máquina o **Todos los juegos**, buscá un título y pulsá **Jugar**.
 3. Para agregar uno, usá **Abrir archivo** o arrastralo a la ventana.
 
+El selector busca dentro de la carpeta actual: seleccioná y pulsá **Abrir** o **Enter**.
+**Esc** lo cierra. Si un ZIP de PC trae varios programas, elegí el ejecutable al abrirlo;
+**Juego > Programas del archivo** permite cambiar después.
+
 El paquete trae estas carpetas junto al programa:
 
 | Carpeta | Qué va ahí |

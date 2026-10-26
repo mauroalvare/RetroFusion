@@ -876,3 +876,10 @@ no modifica la partida. La carga de un estado desactiva la aceleración; reinici
 iniciar una carga nueva. La identidad del medio incluye sistema, juego y datos.
 Los componentes de terceros, sus licencias y fuentes completas viajan en system/pcxt.
 El firmware del usuario tiene prioridad; system se actualiza como parte del programa.
+
+La apertura conserva el conjunto de medios anterior hasta cargar con éxito. Los ZIP
+de PC con varios programas usan una elección pendiente; cancelar restaura la pausa
+previa. Las opciones se distinguen por máquina y origen completo, incluidos directorios.
+FileBrowser guarda también el filtro de su instantánea y usa ImGuiListClipper para
+dibujar filas visibles. Refrescar la carpeta invalida ese filtro y las selecciones borradas.
+PcDos reserva nombres DOS originales antes de generar alias para carpetas y ejecutables.

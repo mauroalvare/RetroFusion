@@ -989,3 +989,11 @@ La versión sigue en 0.3.0 por pedido expreso. Quien ya tenga esa versión desca
 paquete revisado manualmente; no se cambia el protocolo de versiones del actualizador.
 
 El organizador conserva los EXE/COM sueltos en su ubicación para no separarlos de sus datos.
+
+## D-066 — Selección explícita de programas y contexto de apertura (0.3.1)
+
+El CLI aplica --pick al índice publicado por info antes de elegir la máquina;
+rechaza índices inválidos con código 2. El conjunto original sigue disponible para
+los datos DOS. La app pide elegir cuando un paquete de PC contiene varios programas,
+distingue opciones por máquina/origen y conserva el contexto anterior hasta una carga
+correcta. Cancelar restaura la pausa previa. No cambia formatos de perfiles o estados.

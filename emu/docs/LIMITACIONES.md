@@ -417,3 +417,8 @@ segundos mientras está abierto. La actividad de herramientas que no transmiten 
 puede seguir sin texto nuevo hasta terminar; el acceso al trabajo no inventa progreso.
 
 El organizador conserva los EXE/COM sueltos en su ubicación para no separarlos de sus datos.
+
+La elección de ejecutable de PC se hace al abrir cada ZIP; no recuerda una selección
+anterior. Se conservan las subcarpetas y los datos del paquete, sujetos al límite de
+720 KB junto con DOS. En el CLI, --pick selecciona un archivo, no un chip aislado
+de una placa arcade que requiere el conjunto completo.

@@ -98,21 +98,16 @@ desde los pendientes del estudio o del creador con su último código y sus edic
 |---|---|
 | ![Biblioteca compacta](emu/docs/img/interfaz/biblioteca-compacta.png) | ![Biblioteca de PC](emu/docs/img/interfaz/biblioteca-pc.png) |
 
-## Novedades de la 0.3.0
+## Novedades de la 0.3.1
 
-- **Interfaz más clara:** texto más legible, biblioteca adaptable a ventanas chicas,
-  búsqueda con limpieza rápida y avisos visibles de formatos pendientes.
-- **Abrir archivos:** selección con un clic, búsqueda dentro de la carpeta y botón Abrir;
-  incluye los disquetes de PC. **Ver trabajo en curso** recupera la actividad de creación
-  o análisis aunque hayas cerrado su panel.
-- **PC/XT con DOS y CGA:** 8088, teclado, altavoz y apertura de EXE/COM o ZIP con
-  BIOS libre y FreeDOS incluidos. También admite disquetes IMG/IMA; [uso y alcance](emu/docs/PC-DOS.md).
-- **Más cartuchos de NES:** mappers 0/1/2/3/4/7, bancos de memoria y temporización de
-  interrupciones MMC3. La compatibilidad depende de la placa del cartucho.
-- **Partidas por juego:** cinco ranuras con fecha, separadas por edición y firmware.
-  Los guardados anteriores se pueden cargar sin sobrescribirlos.
-- **Depuración de PC:** direcciones físicas de 20 bits, registros, memoria y código.
-  El análisis de variables y las fusiones de PC quedan para una ampliación posterior.
+- **Elegir programas de PC:** al abrir un ZIP con varios ejecutables aparece un selector
+  con sus carpetas. Podés cambiar después desde **Juego > Programas del archivo**.
+- **Archivos más ágiles:** las carpetas grandes dibujan solo las filas visibles; la búsqueda
+  conserva sus resultados entre cuadros. **Enter** abre la selección y **Esc** cierra el selector.
+- **Carga más confiable:** se corrigen colisiones de nombres DOS y rutas con signos de
+  exclamación. Cancelar o rechazar un archivo conserva las opciones del juego anterior.
+- Mantiene PC/XT con FreeDOS y CGA, NES con mappers 0/1/2/3/4/7 y cinco ranuras de
+  guardado por juego. [Alcance de PC](emu/docs/PC-DOS.md).
 
 ## Usarlo
 

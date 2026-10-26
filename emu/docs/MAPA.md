@@ -299,3 +299,9 @@ recuperar trabajos activos sin iniciar una generación nueva.
 - runtime/pcxt: GLaBIOS, kernel, shell, licencias, fuentes y procedencia con SHA.
 - App.Tests/PcDosTests.cs: datos INI en ZIP, DOS y teclado reales, identidad,
   límites y fin de aceleración; sin juegos de terceros ni IA real.
+
+Desde 0.3.1, los ZIP de PC con varios programas ofrecen un selector al abrirse.
+Juego > Programas del archivo permite cambiar de ejecutable sin perder sus datos.
+En CLI, info muestra rutas internas y run --pick N respeta su índice para todas las
+máquinas de archivo único. FileBrowser filtra su instantánea y dibuja filas visibles;
+PcDosTests comprueba ejecutables homónimos con datos distintos en sus carpetas.
