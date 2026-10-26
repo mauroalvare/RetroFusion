@@ -182,7 +182,11 @@ y flags definidos; no usa resultados indefinidos como oráculo. [I8088.md](I8088
 
 El modo funcional conserva Cycles=0. TimingEnabled activa reloj T, transferencias de
 un byte, cola de cuatro bytes y arbitraje con DMA. Instructions cuenta instrucciones o
-iteraciones de REP; no sustituye ese reloj. La temporización EU sigue siendo aproximada.
+iteraciones de REP; no sustituye ese reloj. La temporización EU sigue siendo aproximada. Los datos se toman en T3 y el ciclo
+termina en T4; el estado CPU 3 conserva el dato de una prelectura ya tomada. Se leen
+estados CPU anteriores. BusAccessed e InitializePrefetchQueue permiten contrastes
+de diagnóstico; verificar-bus compara secuencias e intervalos de datos, sin acreditar
+el cronograma absoluto ni la prelectura.
 
 I8088Model.Intel8086 selecciona el mismo motor con transferencias de palabra alineadas
 y cola de seis bytes; Intel8088 sigue siendo el predeterminado. El bus conserva callbacks

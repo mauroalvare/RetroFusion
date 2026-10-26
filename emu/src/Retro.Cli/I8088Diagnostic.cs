@@ -18,7 +18,7 @@ internal static class I8088Diagnostic
         { Console.Error.WriteLine("--steps debe estar entre 1 y 10000000."); return 1; }
         try
         {
-            if (model == I8088Model.Intel8086 && path is "irq-demo" or "timer-demo" or "verificar")
+            if (model == I8088Model.Intel8086 && path is "irq-demo" or "timer-demo" or "verificar" or "verificar-bus")
                 throw new NotSupportedException("Ese diagnóstico corresponde al 8088 del PC/XT. Para 8086 usá demo, timed-demo o un programa crudo.");
             if (path == "irq-demo") return PcInterruptDiagnostic.Run(limit);
             if (path == "timer-demo") return PcTimerDiagnostic.Run(limit);

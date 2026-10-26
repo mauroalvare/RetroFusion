@@ -32,7 +32,7 @@ public sealed class TimingTests
     {
         var (c, b) = Program(0xB8, 0x34, 0x12, 0x90, 0xF4);
         c.Step(); Assert.That(c.AX, Is.EqualTo(0x1234)); Assert.That(c.Cycles, Is.EqualTo(16));
-        Assert.That(b.Reads.Take(4).Select(v => v.Time), Is.EqualTo(new long[] { 4, 8, 12, 16 }));
+        Assert.That(b.Reads.Take(4).Select(v => v.Time), Is.EqualTo(new long[] { 3, 7, 11, 15 }));
         c.Step(); Assert.That(c.Cycles, Is.EqualTo(19), "NOP consumes its prefetched byte without another bus stall.");
         Assert.That(b.Clocks, Is.EqualTo(c.Cycles));
     }
@@ -76,7 +76,7 @@ public sealed class TimingTests
     public void DmaHoldDelaysInstructionFetchWithoutIncrementingInstructions()
     {
         var (c, b) = Program(0x90); b.HoldUntil = 12;
-        c.Step(); Assert.That(b.Reads[0].Time, Is.EqualTo(16));
+        c.Step(); Assert.That(b.Reads[0].Time, Is.EqualTo(15));
         Assert.That(c.Instructions, Is.EqualTo(1)); Assert.That(c.Cycles, Is.EqualTo(19));
     }
     [Test]

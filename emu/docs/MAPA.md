@@ -275,6 +275,8 @@ dotnet run --project src/Retro.App -c Release -- --hidden --mute --no-organize -
 Ya no existen FusionWindow, FusionDesigner, recetas clásicas ni vistas side/overlay/pip.
 Los ejemplos incluidos se abren desde sus secciones del estudio o del creador.
 
+Contraste parcial del bus 8088 con una suite local: `retro-cli cpu8088 verificar-bus --suite RUTA-A-V2 --casos 1000 --salida out/bus.json`. Compara accesos e intervalos relativos; alcance y diferencias pendientes en [I8088.md](I8088.md).
+
 Diagnóstico de interrupciones 8088+8259A (programa propio, sin BIOS/DOS): desde emu,
 `dotnet run --project src/Retro.Cli -c Release -- cpu8088 irq-demo --steps 1000`.
 Detalles y resultado esperado en [I8088.md](I8088.md).

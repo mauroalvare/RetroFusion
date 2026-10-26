@@ -75,7 +75,7 @@ public sealed partial class I8088Cpu : ICpuDebugView
     /// <summary>CPU-only snapshot at an instruction boundary. Memory and devices belong to the machine.</summary>
     public void Save(BinaryWriter writer)
     {
-        writer.Write(StateSignature); writer.Write(2);
+        writer.Write(StateSignature); writer.Write(3);
         foreach (ushort value in _r) writer.Write(value);
         foreach (ushort value in _s) writer.Write(value);
         writer.Write(IP); writer.Write(Flags); writer.Write(Halted); writer.Write(Instructions);
@@ -88,7 +88,7 @@ public sealed partial class I8088Cpu : ICpuDebugView
     {
         if (reader.ReadString() != StateSignature) throw new InvalidDataException($"El estado no corresponde a la CPU {CpuName}.");
         int version = reader.ReadInt32();
-        if (version != 2 && (WideBus || version != 1)) throw new InvalidDataException($"No es un estado de CPU {CpuName} compatible.");
+        if (version is not (2 or 3) && (WideBus || version != 1)) throw new InvalidDataException($"No es un estado de CPU {CpuName} compatible.");
         // Parse and validate before mutating any live state.
         ushort[] registers = new ushort[8], segments = new ushort[4];
         for (int i = 0; i < registers.Length; i++) registers[i] = reader.ReadUInt16();
@@ -98,7 +98,7 @@ public sealed partial class I8088Cpu : ICpuDebugView
         bool shadow = reader.ReadBoolean(), segmentShadow = reader.ReadBoolean(), nmi = reader.ReadBoolean(), trap = reader.ReadBoolean();
         byte? irq = reader.ReadBoolean() ? reader.ReadByte() : null;
         bool waiting = reader.ReadBoolean();
-        var timing = version == 2 ? ReadTiming(reader) : null;
+        var timing = version >= 2 ? ReadTiming(reader, version) : null;
         if (instructions < 0 || (flags & 0xF02A) != 0xF002) throw new InvalidDataException("El estado 8088 tiene datos inválidos.");
         registers.CopyTo(_r, 0); segments.CopyTo(_s, 0);
         IP = ip; Flags = flags; Halted = halted; Instructions = instructions;

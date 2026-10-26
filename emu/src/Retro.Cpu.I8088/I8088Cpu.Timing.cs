@@ -8,6 +8,36 @@ public sealed partial class I8088Cpu
     private int _queueHead, _queueCount, _prefetchTicks, _replayIndex, _eaClocks, _modRm = -1;
     private ushort _queueCs, _queueIp, _fetchIp, _sequentialIp, _repeatCs, _repeatIp;
     private long _cycles;
+    private bool _prefetchLatched;
+    private ushort _prefetchValue;
+
+    /// <summary>Optional diagnostic observation; no event is emitted in functional mode.</summary>
+    public event Action<I8088BusAccess>? BusAccessed;
+
+    private void TraceAccess(I8088BusAccessKind kind, uint address, byte value)
+    {
+        if (TimingEnabled && BusAccessed is { } observer) observer(new(_cycles, kind, address, value));
+    }
+    private byte MemoryRead(uint address, bool code = false)
+    {
+        byte value = bus.ReadMemory(address);
+        TraceAccess(code ? I8088BusAccessKind.Code : I8088BusAccessKind.MemoryRead, address, value);
+        return value;
+    }
+    private void MemoryWrite(uint address, byte value)
+    {
+        bus.WriteMemory(address, value); TraceAccess(I8088BusAccessKind.MemoryWrite, address, value);
+    }
+
+    /// <summary>Seed a hardware diagnostic's initial queue before any clock or instruction executes.</summary>
+    public void InitializePrefetchQueue(ReadOnlySpan<byte> bytes)
+    {
+        if (bytes.Length > _queue.Length) throw new ArgumentOutOfRangeException(nameof(bytes));
+        if (!TimingEnabled || _cycles != 0 || Instructions != 0)
+            throw new InvalidOperationException("La cola inicial requiere una CPU temporizada sin ejecutar.");
+        FlushQueue(); _repeatCode.Clear(); bytes.CopyTo(_queue);
+        _queueCount = bytes.Length; _fetchIp = (ushort)(IP + bytes.Length);
+    }
 
     /// <summary>Enables the model's clocked bus and prefetch queue. Not pin-exact microcode timing.</summary>
     public bool TimingEnabled
@@ -19,7 +49,7 @@ public sealed partial class I8088Cpu
     private void Clock() { _cycles++; bus.Clock(); }
     private void FlushQueue()
     {
-        _queueHead = _queueCount = _prefetchTicks = 0;
+        _queueHead = _queueCount = _prefetchTicks = 0; _prefetchLatched = false; _prefetchValue = 0;
         _queueCs = CS; _queueIp = _fetchIp = IP;
     }
     private void IdleClocks(int count)
@@ -32,12 +62,25 @@ public sealed partial class I8088Cpu
             if (_prefetchTicks == 0 && _queueCount <= _queue.Length - (WideBus ? 2 : 1) && !grant) _prefetchTicks = 1;
             Clock();
             if (_prefetchTicks == 0) continue;
+            if (_prefetchTicks == 3) LatchPrefetch();
             if (_prefetchTicks++ < 4) continue;
+            // Old format-2 snapshots did not latch until T4. Finish those once, without rereading new states.
+            if (!_prefetchLatched) LatchPrefetch();
             int width = WideBus && (_fetchIp & 1) == 0 ? 2 : 1;
             for (int b = 0; b < width; b++)
-                _queue[(_queueHead + _queueCount++) % _queue.Length] = bus.ReadMemory(Physical(_queueCs, _fetchIp++));
-            _prefetchTicks = 0;
+            {
+                _queue[(_queueHead + _queueCount++) % _queue.Length] = (byte)(_prefetchValue >> (b * 8));
+                _fetchIp++;
+            }
+            _prefetchTicks = 0; _prefetchLatched = false; _prefetchValue = 0;
         }
+    }
+    private void LatchPrefetch()
+    {
+        _prefetchValue = MemoryRead(Physical(_queueCs, _fetchIp), code: true);
+        if (WideBus && (_fetchIp & 1) == 0)
+            _prefetchValue |= (ushort)(MemoryRead(Physical(_queueCs, (ushort)(_fetchIp + 1)), code: true) << 8);
+        _prefetchLatched = true;
     }
     private void DataBusCycle(bool continuation = false)
     {
@@ -47,8 +90,9 @@ public sealed partial class I8088Cpu
         // An 8086 split word keeps ownership until its high byte has transferred.
         while (bus.HoldRequested && !_busLocked && !continuation) { bus.SetBusGranted(true); Clock(); }
         bus.SetBusGranted(false);
-        for (int n = 0; n < 4; n++) Clock();
+        for (int n = 0; n < 3; n++) Clock();
     }
+    private void EndDataBusCycle() { if (TimingEnabled) Clock(); }
     private byte FetchTimed()
     {
         byte value;
@@ -143,14 +187,14 @@ public sealed partial class I8088Cpu
         };
     }
     private sealed record TimingState(bool Enabled, long Cycles, byte[] Queue, int Head, int Count, int Pending,
-        ushort Cs, ushort Ip, ushort FetchIp, ushort RepeatCs, ushort RepeatIp, byte[] RepeatCode);
+        ushort Cs, ushort Ip, ushort FetchIp, ushort RepeatCs, ushort RepeatIp, byte[] RepeatCode, bool Latched, ushort Value);
     private void SaveTiming(BinaryWriter w)
     {
         w.Write(TimingEnabled); w.Write(_cycles); w.Write(_queue); w.Write(_queueHead); w.Write(_queueCount); w.Write(_prefetchTicks);
         w.Write(_queueCs); w.Write(_queueIp); w.Write(_fetchIp); w.Write(_repeatCs); w.Write(_repeatIp);
-        w.Write(_repeatCode.Count); w.Write(_repeatCode.ToArray());
+        w.Write(_repeatCode.Count); w.Write(_repeatCode.ToArray()); w.Write(_prefetchLatched); w.Write(_prefetchValue);
     }
-    private TimingState ReadTiming(BinaryReader r)
+    private TimingState ReadTiming(BinaryReader r, int version)
     {
         bool enabled = r.ReadBoolean(); long cycles = r.ReadInt64(); byte[] queue = r.ReadBytes(_queue.Length);
         int head = r.ReadInt32(), count = r.ReadInt32(), pending = r.ReadInt32();
@@ -161,12 +205,16 @@ public sealed partial class I8088Cpu
             (ushort)(ip + count) != fetchIp || length is < 0 or > 65536)
             throw new InvalidDataException("El reloj o la cola 8088 del estado no son válidos.");
         byte[] code = r.ReadBytes(length); if (code.Length != length) throw new EndOfStreamException();
-        return new(enabled, cycles, queue, head, count, pending, cs, ip, fetchIp, repeatCs, repeatIp, code);
+        bool latched = version >= 3 && r.ReadBoolean();
+        ushort value = version >= 3 ? r.ReadUInt16() : (ushort)0;
+        if (latched && pending != 4 || !latched && value != 0)
+            throw new InvalidDataException("La lectura pendiente del estado no es válida.");
+        return new(enabled, cycles, queue, head, count, pending, cs, ip, fetchIp, repeatCs, repeatIp, code, latched, value);
     }
     private void RestoreTiming(TimingState t)
     {
         _timingEnabled = t.Enabled; _cycles = t.Cycles; t.Queue.CopyTo(_queue, 0);
-        _queueHead = t.Head; _queueCount = t.Count; _prefetchTicks = t.Pending;
+        _queueHead = t.Head; _queueCount = t.Count; _prefetchTicks = t.Pending; _prefetchLatched = t.Latched; _prefetchValue = t.Value;
         _queueCs = t.Cs; _queueIp = t.Ip; _fetchIp = t.FetchIp; _repeatCs = t.RepeatCs; _repeatIp = t.RepeatIp;
         _repeatCode.Clear(); _repeatCode.AddRange(t.RepeatCode); _timingStep = _replaying = _repeatAgain = false;
     }

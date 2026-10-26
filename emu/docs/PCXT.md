@@ -123,6 +123,8 @@ RETRO-PCXT versión 1 identifica firmware, imagen, modelo y RAM, y protege el co
 con SHA-256. Guarda CPU, prelectura, memoria, todos los dispositivos, fases de sonido
 y capa de disquete. La carga reconstruye un runtime completo antes de sustituir el
 activo. Un archivo truncado, dañado o de otro medio no modifica la partida actual.
+El contenedor de placa sigue en versión 1; el estado de CPU nuevo usa formato 3 para
+retener la prelectura entre T3/T4, con lectura compatible de formatos anteriores.
 También se prueba reanudar una lectura de sector en curso y el audio del altavoz.
 Reiniciar conserva las escrituras privadas del disco; guardar una partida las incluye.
 

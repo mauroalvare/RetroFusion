@@ -62,21 +62,39 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
     public void RequestInterrupt(byte vector) => _irq = vector;
     public void RequestNmi() => _nmi = true;
 
-    public byte ReadByte(ushort segment, ushort offset) { DataBusCycle(); return bus.ReadMemory(Physical(segment, offset)); }
+    public byte ReadByte(ushort segment, ushort offset)
+    {
+        DataBusCycle();
+        try { return MemoryRead(Physical(segment, offset)); }
+        finally { EndDataBusCycle(); }
+    }
     public ushort ReadWord(ushort segment, ushort offset)
     {
         DataBusCycle();
-        int low = bus.ReadMemory(Physical(segment, offset));
-        if (!WideBus || (offset & 1) != 0) DataBusCycle(continuation: WideBus);
-        return (ushort)(low | bus.ReadMemory(Physical(segment, (ushort)(offset + 1))) << 8);
+        try
+        {
+            int low = MemoryRead(Physical(segment, offset));
+            if (!WideBus || (offset & 1) != 0) { EndDataBusCycle(); DataBusCycle(continuation: WideBus); }
+            return (ushort)(low | MemoryRead(Physical(segment, (ushort)(offset + 1))) << 8);
+        }
+        finally { EndDataBusCycle(); }
     }
-    public void WriteByte(ushort segment, ushort offset, byte value) { DataBusCycle(); bus.WriteMemory(Physical(segment, offset), value); }
+    public void WriteByte(ushort segment, ushort offset, byte value)
+    {
+        DataBusCycle();
+        try { MemoryWrite(Physical(segment, offset), value); }
+        finally { EndDataBusCycle(); }
+    }
     public void WriteWord(ushort segment, ushort offset, ushort value)
     {
         DataBusCycle();
-        bus.WriteMemory(Physical(segment, offset), (byte)value);
-        if (!WideBus || (offset & 1) != 0) DataBusCycle(continuation: WideBus);
-        bus.WriteMemory(Physical(segment, (ushort)(offset + 1)), (byte)(value >> 8));
+        try
+        {
+            MemoryWrite(Physical(segment, offset), (byte)value);
+            if (!WideBus || (offset & 1) != 0) { EndDataBusCycle(); DataBusCycle(continuation: WideBus); }
+            MemoryWrite(Physical(segment, (ushort)(offset + 1)), (byte)(value >> 8));
+        }
+        finally { EndDataBusCycle(); }
     }
     private byte Fetch() { if (TimingEnabled) return FetchTimed(); byte value = ReadByte(CS, IP); IP++; return value; }
     private ushort FetchWord() { int low = Fetch(); return (ushort)(low | Fetch() << 8); }
@@ -258,7 +276,7 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
     private void EnterInterrupt(byte vector, bool hardware = false)
     {
         _repeatCode.Clear();
-        if (hardware) { DataBusCycle(); DataBusCycle(); }
+        if (hardware) { DataBusCycle(); EndDataBusCycle(); DataBusCycle(); EndDataBusCycle(); }
         Push(Flags); Push(CS); Push(IP);
         SetFlag(InterruptEnable, false); SetFlag(Trap, false); Halted = _waitingForTest = false;
         IP = ReadWord(0, (ushort)(vector * 4)); CS = ReadWord(0, (ushort)(vector * 4 + 2));
@@ -500,14 +518,22 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
     private void Io(ushort port, bool word, bool output)
     {
         DataBusCycle();
-        int value = output ? AX : bus.In(port);
-        if (output) bus.Out(port, (byte)value);
-        if (word)
+        try
         {
-            if (!WideBus || (port & 1) != 0) DataBusCycle(continuation: WideBus);
-            if (output) bus.Out((ushort)(port + 1), (byte)(value >> 8));
-            else value |= bus.In((ushort)(port + 1)) << 8;
+            int value = output ? AX : bus.In(port);
+            if (output) bus.Out(port, (byte)value);
+            TraceAccess(output ? I8088BusAccessKind.Output : I8088BusAccessKind.Input, port, (byte)value);
+            if (word)
+            {
+                if (!WideBus || (port & 1) != 0) { EndDataBusCycle(); DataBusCycle(continuation: WideBus); }
+                ushort highPort = (ushort)(port + 1);
+                byte high = output ? (byte)(value >> 8) : bus.In(highPort);
+                if (output) bus.Out(highPort, high);
+                else value |= high << 8;
+                TraceAccess(output ? I8088BusAccessKind.Output : I8088BusAccessKind.Input, highPort, high);
+            }
+            if (!output) SetReg(0, word, value);
         }
-        if (!output) SetReg(0, word, value);
+        finally { EndDataBusCycle(); }
     }
 }

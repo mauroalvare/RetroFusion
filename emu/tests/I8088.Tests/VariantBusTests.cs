@@ -71,10 +71,10 @@ public sealed class VariantBusTests
         bus.AfterWrite = address => { if (address == offset) bus.HoldUntil = 12; };
         cpu.WriteWord(0, (ushort)offset, 0x1234);
         Assert.That(bus.Grants, Is.Empty);
-        Assert.That(bus.Accesses[1].Time, Is.EqualTo(offset == 0x100 ? 4 : 8));
+        Assert.That(bus.Accesses[1].Time, Is.EqualTo(offset == 0x100 ? 3 : 7));
         cpu.ReadByte(0, 0x200);
         Assert.That(bus.Grants, Is.Not.Empty);
-        Assert.That(bus.Accesses[^1].Time, Is.EqualTo(16));
+        Assert.That(bus.Accesses[^1].Time, Is.EqualTo(15));
     }
 
     [TestCase(I8088Model.Intel8088, 0x80, 4)]
@@ -128,7 +128,7 @@ public sealed class VariantBusTests
         var (cpu, bus) = Program(I8088Model.Intel8086, 0xD4, 10, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0xF4);
         cpu.Step(); int full = bus.Accesses.Count;
         cpu.Step(); Assert.That(bus.Accesses.Count, Is.EqualTo(full));
-        cpu.Step(); Assert.That(bus.Accesses.Count, Is.EqualTo(full), "A word prefetch is still in flight.");
+        cpu.Step(); Assert.That(bus.Accesses.Count, Is.EqualTo(full + 2), "The data is sampled at T3 while the transfer awaits T4.");
         cpu.Step(); Assert.That(bus.Accesses.Count, Is.EqualTo(full + 2));
         Assert.That(bus.Accesses[^1].Time, Is.EqualTo(bus.Accesses[^2].Time));
     }
@@ -145,9 +145,9 @@ public sealed class VariantBusTests
         Assert.That(cpu.IP, Is.EqualTo((offset + 3) & 65535));
         Assert.That(bus.Accesses.Take(3).Select(a => a.Address), Is.EqualTo(Enumerable.Range(0, 3)
             .Select(i => I8088Cpu.Physical((ushort)segment, (ushort)(offset + i)))));
-        Assert.That(bus.Accesses[0].Time, Is.EqualTo(4));
-        Assert.That(bus.Accesses[1].Time, Is.EqualTo(8));
-        Assert.That(bus.Accesses[2].Time, Is.EqualTo(8));
+        Assert.That(bus.Accesses[0].Time, Is.EqualTo(3));
+        Assert.That(bus.Accesses[1].Time, Is.EqualTo(7));
+        Assert.That(bus.Accesses[2].Time, Is.EqualTo(7));
     }
 
     [Test]

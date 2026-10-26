@@ -1037,3 +1037,21 @@ su cola de seis bytes. Cargar otra variante falla antes de mutar el estado. PC/X
 usando 8088 y conserva su formato de estado completo. cpu8086 expone solo diagnóstico
 de programas crudos; no cambia la máquina de run ni anuncia otra placa en la biblioteca.
 La temporización EU sigue aproximada y las trazas externas de 8088 no validan el 8086.
+
+## D-070 — Datos en T3, cierre de bus en T4 y contraste parcial de trazas
+
+El bus temporizado toma memoria/E/S en T3 y termina cada ciclo de cuatro T antes de
+cederlo. La prelectura guarda el dato en T3 y lo incorpora a la cola en T4. BusAccessed
+observa bytes sin reemplazar dispositivos. InitializePrefetchQueue permite iniciar
+diagnósticos con la cola del caso, únicamente antes de cualquier reloj/instrucción.
+
+El estado CPU 3 agrega el dato ya tomado y evita repetir lecturas al restaurar entre
+T3/T4. Conserva firmas por variante y lectores 8088 de formatos 1/2 y 8086 de formato 2;
+una prelectura antigua sin dato guardado se completa una vez en T4. Esto amplía D-069.
+El contenedor de estado de placa PC/XT sigue en versión 1.
+
+cpu8088 verificar-bus distingue accesos de datos e intervalos relativos al primero.
+Separa casos sin pares de intervalos; entradas vacías/inválidas no pasan. No valida
+el reloj absoluto, prelectura, INTA, señales eléctricas ni estado final. Las diferencias
+internas de lectura/modificación/escritura se conservan explícitas, sin declararlas
+resueltas por coincidir valores o por pasar la batería funcional.
