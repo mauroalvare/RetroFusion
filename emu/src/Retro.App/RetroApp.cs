@@ -26,11 +26,11 @@ public sealed partial class RetroApp
     private string? _autoStudio;
     private readonly CodeWindow _code;
     private bool _wasFusion;
-    private bool _muted;
     private Texture2D _screenTex;
     private int _texW, _texH;
     private int[] _rgba = Array.Empty<int>();
     private AudioStream _stream;
+    private readonly VideoUploadCache _videoCache = new();
     private bool _debugMode;
     private bool _followPc = true;
     private string _disasmAddr = "0000";
@@ -64,6 +64,7 @@ public sealed partial class RetroApp
     public RetroApp(string[] args)
     {
         ConfigureStyle();
+        _sound = new SoundSettings(persist: !args.Contains("--autotest"));
         _stateSlots = new StateSlotStore(args.Contains("--autotest") ? Path.Combine(Environment.CurrentDirectory, "out", "autotest-state-slots") : null);
         // the system firmware: a "firmware" folder (release packages) or a "roms" folder that
         // has the Spectrum ROM in it (so a games folder called "ROMs" is never mistaken for it)
@@ -91,6 +92,8 @@ public sealed partial class RetroApp
         Raylib.SetAudioStreamBufferSizeDefault(512);
         _stream = Raylib.LoadAudioStream(44100, 16, 1);
         s_queue = _host.Audio;
+        s_forceMute = args.Contains("--mute"); s_mute = _sound.Muted;
+        s_volume = _sound.VolumePercent / 100f; s_output.Reset();
         unsafe
         {
             Raylib.SetAudioStreamCallback(_stream, &AudioCallback);
@@ -129,14 +132,16 @@ public sealed partial class RetroApp
             else if (args[i] == "--mods-window")
                 _code.OpenModifications();
             else if (args[i] == "--mute")
-                _muted = true;
+                _sound.Muted = true;
+            else if (args[i] == "--sound-window")
+                _soundWindowOpen = true;
             else if (args[i] != "--hidden" && File.Exists(args[i]))
             {
                 OpenFile(args[i]);
                 openedFile = true;
             }
         }
-        if (!openedFile && !args.Any(a => a is "--studio" or "--preparar" or "--crear-window" or "--studio-window" or "--code" or "--mods-window" or "--states-window" or "--debug"))
+        if (!openedFile && !args.Any(a => a is "--studio" or "--preparar" or "--crear-window" or "--studio-window" or "--code" or "--mods-window" or "--states-window" or "--sound-window" or "--debug"))
             _home.Open();
         _updates = new UpdateWindow(args);
     }
@@ -190,6 +195,7 @@ public sealed partial class RetroApp
         _rgba = new int[w * h];
         _texW = w;
         _texH = h;
+        _videoCache.Invalidate();
     }
 
     public void Shutdown()
@@ -203,6 +209,7 @@ public sealed partial class RetroApp
         _home.Dispose();
         if (_texW != 0)
             Raylib.UnloadTexture(_screenTex);
+        s_queue = null;
         Raylib.UnloadAudioStream(_stream);
     }
 
@@ -246,10 +253,13 @@ public sealed partial class RetroApp
             else
                 _input.Update(m, keyboardToMachine && !_host.Paused);
             _wasFusion = _host.Fusion != null;
+            _host.AudioBufferFrames = _sound.BufferFrames;
             _host.Update(dt);
-            s_mute = _muted || _host.IsFastForwarding || _host.Paused;
             UploadScreen();
         }
+        s_mute = _sound.Muted || _host.IsFastForwarding || _host.Paused || _updates.Blocking
+            || (_sound.MuteInBackground && !Raylib.IsWindowFocused());
+        s_volume = _sound.VolumePercent / 100f;
         if (_autoStudio != null)
         {
             PlayFusion(_autoStudio);
@@ -281,6 +291,7 @@ public sealed partial class RetroApp
             DrawStateWindow();
         }
         DrawPopups();
+        DrawSoundWindow();
         AiConnectionWindow.Draw(_ai);
         ImGui.EndDisabled();
         _updates.Draw();
@@ -340,7 +351,9 @@ public sealed partial class RetroApp
     }
 
     private static AudioQueue? s_queue;
-    private static volatile bool s_mute;
+    private static volatile bool s_mute, s_forceMute;
+    private static volatile float s_volume = 1;
+    private static readonly AudioOutput s_output = new();
 
     [System.Runtime.InteropServices.UnmanagedCallersOnly(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
     private static unsafe void AudioCallback(void* buffer, uint frames)
@@ -353,8 +366,8 @@ public sealed partial class RetroApp
             return;
         }
         q.Pop(span);   // consumed even when muted: the queue level paces the emulation
-        if (s_mute)
-            span.Clear();
+        if (s_forceMute) { span.Clear(); s_output.Reset(); }
+        else s_output.Process(span, s_volume, s_mute);
     }
 
     private void UploadScreen()
@@ -363,14 +376,7 @@ public sealed partial class RetroApp
         if (video == null)
             return;
         EnsureScreenTexture(video.Width, video.Height);
-        var src = video.Pixels;
-        for (int i = 0; i < src.Length; i++)
-        {
-            int c = src[i];
-            // ARGB -> RGBA bytes in memory (little endian: R G B A)
-            _rgba[i] = unchecked((int)0xFF000000) | ((c & 0xFF) << 16) | (c & 0xFF00) | ((c >> 16) & 0xFF);
-        }
-        Raylib.UpdateTexture(_screenTex, _rgba);
+        if (_videoCache.Convert(video, _rgba)) Raylib.UpdateTexture(_screenTex, _rgba);
     }
 
     private void DrawPlayScreen()
@@ -626,7 +632,7 @@ public sealed partial class RetroApp
         if (ImGui.BeginMenu("Juego"))
         {
             if (ImGui.MenuItem("Abrir juego o programa...", ToolShortcut("O"))) _browser.Open();
-            if (ImGui.BeginMenu(_versions.All(v => v.Machine.Id == "pcxt") ? "Programas del archivo" : "Otras versiones del último juego", _versions.Count > 1))
+            if (ImGui.BeginMenu(_versions.Count > 0 && _versions.All(v => v.Machine.Id == "pcxt") ? "Programas del archivo" : "Otras versiones del último juego", _versions.Count > 1))
             {
                 ImGui.TextDisabled("Elegí otro archivo del mismo paquete.");
                 foreach (var v in _versions)
@@ -647,7 +653,7 @@ public sealed partial class RetroApp
             bool turbo = _host.Turbo;
             if (ImGui.MenuItem("Turbo", Shortcut("F8"), ref turbo)) _host.Turbo = turbo;
             if (ImGui.MenuItem("Detener fusión o creación", "", false, _host.Fusion != null)) _host.StopFusion();
-            if (ImGui.BeginMenu("Controles y hardware"))
+            if ((_host.Zx != null || _host.C64 != null || _host.Invaders != null) && ImGui.BeginMenu("Controles y hardware"))
             {
             if (_host.Zx != null)
             {
@@ -737,20 +743,39 @@ public sealed partial class RetroApp
         {
             if (ImGui.MenuItem("Modificar y analizar...", ToolShortcut("M"))) OpenModifications();
             ImGui.Separator();
-            if (ImGui.MenuItem("Modo depurador", "F12", _debugMode)) _debugMode = !_debugMode;
-            if (ImGui.MenuItem("Paso (una instrucción)", Shortcut("F10"))) { _host.StepInto(); _debugMode = true; }
-            if (ImGui.MenuItem("Paso por encima (CALL, bucles)", Shortcut("Shift+F10"))) { _host.StepOver(); _debugMode = true; }
-            if (ImGui.MenuItem("Avanzar un cuadro")) { _host.StepFrame(); _debugMode = true; }
-            if (ImGui.MenuItem("Borrar todos los breakpoints")) _host.Debug.Clear();
+            if (ImGui.BeginMenu("Depuración"))
+            {
+                if (ImGui.MenuItem("Mostrar depurador", "F12", _debugMode)) { _home.Close(); _debugMode = !_debugMode; }
+                if (ImGui.MenuItem("Paso (una instrucción)", Shortcut("F10"))) { _home.Close(); _host.StepInto(); _debugMode = true; }
+                if (ImGui.MenuItem("Paso por encima (CALL, bucles)", Shortcut("Shift+F10"))) { _home.Close(); _host.StepOver(); _debugMode = true; }
+                if (ImGui.MenuItem("Avanzar un cuadro")) { _home.Close(); _host.StepFrame(); _debugMode = true; }
+                if (ImGui.MenuItem("Borrar todos los breakpoints", "", false, _host.Debug.Breakpoints.Count > 0)) _host.Debug.Clear();
+                ImGui.EndMenu();
+            }
             ImGui.EndMenu();
         }
         if (ImGui.BeginMenu("Opciones"))
         {
             if (ImGui.MenuItem("Conectar o configurar IA...")) AiConnectionWindow.Open(_ai);
-            ImGui.MenuItem("Silenciar sonido", "", ref _muted);
-            if (ImGui.MenuItem("Pantalla completa", "F11")) Raylib.ToggleFullscreen();
-            bool integer = _scale > 0;
-            if (ImGui.MenuItem("Escala entera (píxeles nítidos)", "", ref integer)) _scale = integer ? 2 : 0;
+            if (ImGui.BeginMenu("Sonido"))
+            {
+                bool muted = _sound.Muted;
+                if (ImGui.MenuItem("Silenciar", "", ref muted)) { _sound.Muted = muted; _sound.Save(); }
+                if (ImGui.MenuItem("Volumen y opciones...")) _soundWindowOpen = true;
+                ImGui.EndMenu();
+            }
+            if (ImGui.BeginMenu("Pantalla"))
+            {
+                if (ImGui.MenuItem("Pantalla completa", "F11")) Raylib.ToggleFullscreen();
+                bool integer = _scale > 0;
+                if (ImGui.MenuItem("Escala entera (píxeles nítidos)", "", ref integer)) _scale = integer ? 2 : 0;
+                ImGui.EndMenu();
+            }
+            ImGui.EndMenu();
+        }
+        if (ImGui.BeginMenu("Ayuda"))
+        {
+            if (ImGui.MenuItem("Actualizaciones...")) _updates.Open();
             if (ImGui.BeginMenu("Sistemas disponibles y previstos"))
             {
                 foreach (var info in MachineCatalog.All)
@@ -760,11 +785,7 @@ public sealed partial class RetroApp
                 }
                 ImGui.EndMenu();
             }
-            ImGui.EndMenu();
-        }
-        if (ImGui.BeginMenu("Ayuda"))
-        {
-            if (ImGui.MenuItem("Actualizaciones...")) _updates.Open();
+
             if (ImGui.BeginMenu("Abrir y jugar"))
             {
                 ImGui.TextUnformatted("En Biblioteca elegí una máquina o Todos los juegos y pulsá Jugar.");

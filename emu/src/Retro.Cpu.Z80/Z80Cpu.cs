@@ -522,7 +522,7 @@ public sealed partial class Z80Cpu : ICpuDebugView
 
     // -- ICpuDebugView ------------------------------------------------------------------
     public string CpuName => "Zilog Z80";
-    public uint ProgramCounter { get => PC; set => PC = (ushort)value; }
+    public uint ProgramCounter { get => PC; set => PC = value <= ushort.MaxValue ? (ushort)value : throw new ArgumentOutOfRangeException(nameof(value)); }
     public uint StackPointer => SP;
     public long Cycles => T;
 
@@ -538,8 +538,10 @@ public sealed partial class Z80Cpu : ICpuDebugView
 
     public bool TrySetRegister(string name, uint value)
     {
+        string register = name.ToUpperInvariant();
+        if (value > (register is "I" or "R" ? byte.MaxValue : ushort.MaxValue)) return false;
         ushort w = (ushort)value;
-        switch (name.ToUpperInvariant())
+        switch (register)
         {
             case "AF": AF = w; return true;
             case "BC": BC = w; return true;

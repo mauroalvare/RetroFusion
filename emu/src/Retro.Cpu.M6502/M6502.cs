@@ -357,7 +357,7 @@ public sealed partial class M6502 : ICpuDebugView
 
     // ------------------------------------------------------------------ ICpuDebugView
     public string CpuName => Name;
-    public uint ProgramCounter { get => PC; set => PC = (ushort)value; }
+    public uint ProgramCounter { get => PC; set => PC = value <= ushort.MaxValue ? (ushort)value : throw new ArgumentOutOfRangeException(nameof(value)); }
     public uint StackPointer => (uint)(0x100 | S);
     public long Cycles => CycleCount;
 
@@ -369,7 +369,9 @@ public sealed partial class M6502 : ICpuDebugView
 
     public bool TrySetRegister(string name, uint value)
     {
-        switch (name)
+        string register = name.ToUpperInvariant();
+        if (value > (register == "PC" ? ushort.MaxValue : byte.MaxValue)) return false;
+        switch (register)
         {
             case "A": A = (byte)value; return true;
             case "X": X = (byte)value; return true;

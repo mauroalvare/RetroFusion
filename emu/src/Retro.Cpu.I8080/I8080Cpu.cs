@@ -462,7 +462,7 @@ public sealed class I8080Cpu : ICpuDebugView
 
     // -- ICpuDebugView --------------------------------------------------------------------
     public string CpuName => "Intel 8080";
-    public uint ProgramCounter { get => PC; set => PC = (ushort)value; }
+    public uint ProgramCounter { get => PC; set => PC = value <= ushort.MaxValue ? (ushort)value : throw new ArgumentOutOfRangeException(nameof(value)); }
     public uint StackPointer => SP;
     long ICpuDebugView.Cycles => Cycles;
 
@@ -474,6 +474,7 @@ public sealed class I8080Cpu : ICpuDebugView
 
     public bool TrySetRegister(string name, uint value)
     {
+        if (value > ushort.MaxValue) return false;
         ushort w = (ushort)value;
         switch (name.ToUpperInvariant())
         {

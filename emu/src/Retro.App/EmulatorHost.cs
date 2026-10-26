@@ -93,6 +93,12 @@ public sealed class EmulatorHost
     private uint? _runToAddress;
 
     public AudioQueue Audio => _audio;
+    private int _audioBufferFrames = 2;
+    public int AudioBufferFrames
+    {
+        get => _audioBufferFrames;
+        set => _audioBufferFrames = value is 1 or 2 or 4 ? value : throw new ArgumentOutOfRangeException(nameof(value));
+    }
     private bool _pcDosProgram, _pcDosBooting, _pcDosBootSeen;
     private long _pcDosBootStart;
     public bool IsFastForwarding => Machine != null && (Turbo || (TurboWhileLoading
@@ -269,8 +275,8 @@ public sealed class EmulatorHost
             }
             int n = fusion.DrainAudio(_frameAudio);
             _audio.Push(_frameAudio.AsSpan(0, n));
-            if (_audio.Count > 44100 / 5)
-                _audio.Discard(44100 / 15);
+            int keep = 44100 / 60 * (AudioBufferFrames + 2);
+            if (_audio.Count > Math.Max(44100 / 5, keep * 2)) _audio.Discard(keep);
             EffectiveSpeed = 1;
             return;
         }
@@ -284,8 +290,8 @@ public sealed class EmulatorHost
         if (IsFastForwarding)
         {
             // Run as many frames as fit in ~12 ms; sound is skipped while fast-forwarding.
-            var sw = Stopwatch.StartNew();
-            while (sw.Elapsed.TotalMilliseconds < 12 && !Paused && IsFastForwarding)
+            long started = Stopwatch.GetTimestamp();
+            while (Stopwatch.GetElapsedTime(started).TotalMilliseconds < 12 && !Paused && IsFastForwarding)
             {
                 if (!RunOneFrame(m))
                     break;
@@ -305,12 +311,13 @@ public sealed class EmulatorHost
         _accumulator += step;
         int queued = _audio.Count;
         int perFrame = (int)(44100 / m.FramesPerSecond);
-        if (queued < perFrame)
+        int target = perFrame * AudioBufferFrames;
+        if (queued < Math.Max(perFrame / 2, target - perFrame))
             _accumulator += step * 0.25;
-        else if (queued > perFrame * 3)
+        else if (queued > target + perFrame)
             _accumulator -= step * 0.25;
-        if (queued > perFrame * 8)
-            _audio.Discard(perFrame * 3);
+        if (queued > Math.Max(perFrame * 8, target * 4))
+            _audio.Discard(Math.Max(perFrame * 3, target));
         int guard = 0;
         while (_accumulator >= frameTime && guard++ < 5 && !Paused)
         {
@@ -391,20 +398,16 @@ public sealed class EmulatorHost
             return;
         var ins = m.Disassembler.Disassemble(a => m.Memory.Peek(a), m.Cpu.ProgramCounter);
         string mnemonic = ins.Text.Split(' ')[0].TrimEnd('*');
-        string cpuName = m.Cpu.CpuName;
-        bool over = cpuName.Contains("Z80")
-            ? mnemonic is "CALL" or "RST" or "DJNZ" or "LDIR" or "LDDR" or "CPIR" or "CPDR" or "INIR" or "INDR" or "OTIR" or "OTDR" or "HALT"
-            : cpuName.Contains("8088")
-                ? mnemonic is "CALL" or "LOOP" or "LOOPE" or "LOOPNE" or "REP" or "REPE" or "REPNE" or "HLT"
-            : cpuName.Contains("65")
-                ? mnemonic is "JSR"
-                : mnemonic is "CALL" or "CNZ" or "CZ" or "CNC" or "CC" or "CPO" or "CPE" or "CP" or "CM" or "RST" or "HLT";
+        var flow = m.Flow.Analyze(m.Memory.Peek, m.Cpu.ProgramCounter);
+        bool over = flow.Kind is FlowKind.Call or FlowKind.CallIf
+            || mnemonic is "DJNZ" or "LDIR" or "LDDR" or "CPIR" or "CPDR" or "INIR" or "INDR"
+                or "OTIR" or "OTDR" or "LOOP" or "LOOPE" or "LOOPNE" or "REP" or "REPE" or "REPNE" or "HALT" or "HLT";
         if (!over)
         {
             StepInto();
             return;
         }
-        RunTo(m.Flow.Analyze(m.Memory.Peek, m.Cpu.ProgramCounter).Next ?? ((m.Cpu.ProgramCounter + (uint)ins.Length) & ((1u << m.Memory.AddressBits) - 1)));
+        RunTo(flow.Next ?? ((m.Cpu.ProgramCounter + (uint)ins.Length) & ((1u << m.Memory.AddressBits) - 1)));
     }
 
     public void RunTo(uint address)
@@ -546,86 +549,5 @@ public sealed class EmulatorHost
             m.Cpu.ProgramCounter = address;
         Paused = true;
         Status = $"{data.Length} bytes cargados en ${address:X4}" + (setPc ? ", PC apunta ahí. Usá Paso o Continuar." : ".");
-    }
-}
-
-/// <summary>
-/// Ring buffer of 16-bit mono samples shared by the emulator (producer) and the
-/// audio device thread (consumer).
-/// </summary>
-public sealed class AudioQueue
-{
-    private readonly short[] _buf;
-    private readonly object _sync = new();
-    private int _read, _write, _count;
-    private short _last;
-
-    public AudioQueue(int capacity) => _buf = new short[capacity];
-
-    public int Count
-    {
-        get { lock (_sync) return _count; }
-    }
-
-    public void Clear()
-    {
-        lock (_sync)
-        {
-            _read = _write = _count = 0;
-            _last = 0;
-        }
-    }
-
-    /// <summary>Drops the oldest samples so that only <paramref name="keep"/> remain.</summary>
-    public void Discard(int keep)
-    {
-        lock (_sync)
-        {
-            if (_count <= keep)
-                return;
-            int drop = _count - keep;
-            _read = (_read + drop) % _buf.Length;
-            _count = keep;
-        }
-    }
-
-    public void Push(ReadOnlySpan<short> samples)
-    {
-        lock (_sync)
-        {
-            foreach (var s in samples)
-            {
-                if (_count == _buf.Length)
-                {
-                    _read = (_read + 1) % _buf.Length;
-                    _count--;
-                }
-                _buf[_write] = s;
-                _write = (_write + 1) % _buf.Length;
-                _count++;
-            }
-        }
-    }
-
-    /// <summary>Fills <paramref name="dest"/>; on underrun fades the last sample (no clicks).</summary>
-    public void Pop(Span<short> dest)
-    {
-        lock (_sync)
-        {
-            for (int i = 0; i < dest.Length; i++)
-            {
-                if (_count > 0)
-                {
-                    _last = _buf[_read];
-                    _read = (_read + 1) % _buf.Length;
-                    _count--;
-                }
-                else
-                {
-                    _last = (short)(_last * 0.98);
-                }
-                dest[i] = _last;
-            }
-        }
     }
 }
