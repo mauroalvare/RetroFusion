@@ -7,7 +7,7 @@ namespace Retro.App;
 /// <summary>Shows observed activity; local timing remains separate from observed CLI activity.</summary>
 internal sealed class AiBuildWindow(string id, string title = "Construcción del juego", string openLabel = "Abrir construcción", string? timingPath = null, TimeProvider? clock = null)
 {
-    private AiTiming? _timing;
+    private AiTiming? _timing, _displayTiming;
     private CliAgentProvider? _cli;
     private AiOperation? _operation;
     private bool _started, _open, _estimate;
@@ -22,14 +22,15 @@ internal sealed class AiBuildWindow(string id, string title = "Construcción del
     }
 
     public void Stop(bool success = false) => _timing?.Stop(success);
-    public void Reset() { _timing = null; _cli = null; _operation = null; _started = _open = false; }
+    public void Reset() { _timing = _displayTiming = null; _cli = null; _operation = null; _started = _open = false; }
 
-    public void Draw(bool busy, string stage, CancellationTokenSource? cancellation)
+    public void Draw(bool busy, string stage, CancellationTokenSource? cancellation, AiTiming? wholeWork = null)
     {
-        if (!_started) return;
+        _displayTiming = wholeWork ?? _timing;
+        if ((!_started && wholeWork == null) || _displayTiming == null) return;
         if (!busy) _timing?.Stop(false);
-        ImGui.TextDisabled($"Transcurrido: {Duration(_timing!.Elapsed)}");
-        if (busy && _estimate) ImGui.TextWrapped(_timing.RemainingText);
+        ImGui.TextDisabled($"Transcurrido: {Duration(_displayTiming.Elapsed)}");
+        if (busy && (_estimate || wholeWork != null)) ImGui.TextWrapped(_displayTiming.RemainingText);
         if (ImGui.SmallButton($"{openLabel}##{id}")) _open = true;
         if (!_open) return;
         ImGui.SetNextWindowSize(new Vector2(640, 420), ImGuiCond.FirstUseEver);
@@ -37,8 +38,8 @@ internal sealed class AiBuildWindow(string id, string title = "Construcción del
         {
             ImGui.TextWrapped(stage);
             if (ImGui.SmallButton("Copiar estado")) ImGui.SetClipboardText(stage);
-            ImGui.TextUnformatted($"Tiempo transcurrido: {Duration(_timing!.Elapsed)}");
-            if (busy && _estimate) ImGui.TextWrapped(_timing.RemainingText);
+            ImGui.TextUnformatted($"Tiempo transcurrido: {Duration(_displayTiming.Elapsed)}");
+            if (busy && (_estimate || wholeWork != null)) ImGui.TextWrapped(_displayTiming.RemainingText);
             if (_operation?.Stats is { } stats)
                 UsageDetails(stats);
             if (_cli?.Activity is { } activity)

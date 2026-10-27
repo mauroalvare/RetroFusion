@@ -7,6 +7,11 @@ terminar antes; la velocidad de la IA, las ediciones y la dificultad de las prue
 cambian esos tiempos. Si aparecen nuevos requisitos, puede extender la investigación
 dentro de la misma hora de trabajo.
 
+Cuando ya hay tres creaciones completas comparables con la misma configuración de IA,
+el intervalo usa sus duraciones locales. Los trabajos cancelados, fallidos o rechazados
+al guardar no cuentan. Sin ese historial se mantiene la orientación general anterior;
+consultar la estimación no envía pedidos a la IA.
+
 ## Un trabajo continuo
 
 **Preparar y crear esta fusión** conserva la idea, los originales, el juego base y los
@@ -30,8 +35,12 @@ referencias, escritura y comprobaciones. Reserva parte del tiempo para terminar 
 juego; las etapas no reciben una hora nueva al empezar. El modo de ahorro conserva
 su número de intentos de escritura y el límite de texto elegido.
 
+El reloj muestra el tiempo total de ese trabajo: no vuelve a cero al pasar de
+preparación a referencias, escritura o una investigación adicional. El tiempo restante
+también respeta el máximo de una hora.
+
 La pantalla informa qué original y qué requisito se están investigando. Podés abrir
-la actividad de la IA o cancelar. Los perfiles de las rondas completadas quedan
+la actividad de la IA o cancelar, incluso durante la prueba de jugabilidad. Los perfiles de las rondas completadas quedan
 guardados y los borradores de escritura siguen disponibles en trabajos pendientes.
 El punto de investigación se conserva en memoria durante ese trabajo; cerrar la
 aplicación no lo convierte en una partida guardada del jugador.
@@ -44,8 +53,13 @@ tiempo disponible, ante un fallo de arranque, cuando la IA no encuentra pruebas 
 ni datos nuevos, o si la escritura insiste en el mismo bloqueo sin evidencia adicional.
 El informe conserva los avances y explica el motivo.
 
-Cambiar los originales, los perfiles o la configuración invalida resultados que ya no
-correspondan. La preparación usa máquinas de investigación y no modifica las ROMs.
+Cambiar los originales, sus perfiles, el firmware o la configuración invalida resultados
+que ya no correspondan. Esto también se comprueba cuando la idea entra directamente
+a crear, sin preparación previa. Si los datos cambiaron desde que se eligieron,
+actualizá la biblioteca y elegí la idea de nuevo. Durante la escritura se conserva
+una copia privada de los datos; antes de guardar se comparan con los archivos actuales.
+El borrador permanece pendiente si el guardado se rechaza. La preparación usa máquinas
+de investigación y no modifica las ROMs.
 
 En intercambio manual o por carpeta, el chat o agente tiene que responder a las
 consignas. Ese modo no simula una revisión automática.

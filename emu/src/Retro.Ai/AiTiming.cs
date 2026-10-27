@@ -76,10 +76,17 @@ public sealed class AiTiming
     private TimeSpan? _stopped;
     public AiTimeRange? Range { get; }
     public TimeSpan Elapsed => _stopped ?? _clock.GetElapsedTime(_start);
-    public AiTiming(string identity, AiDurationHistory? history = null, TimeProvider? clock = null)
+    public AiTiming(string identity, AiDurationHistory? history = null, TimeProvider? clock = null,
+        AiTimeRange? fallbackRange = null, long? startedAt = null, TimeSpan? maximum = null)
     {
         _clock = clock ?? TimeProvider.System; _history = history ?? new(); _key = AiDurationHistory.Key(identity);
-        Range = _history.Estimate(_key); _start = _clock.GetTimestamp();
+        var range = _history.Estimate(_key) ?? fallbackRange;
+        if (range != null && maximum is { } limit)
+        {
+            var high = range.High > limit ? limit : range.High;
+            range = range with { High = high, Low = range.Low > high ? high : range.Low };
+        }
+        Range = range; _start = startedAt ?? _clock.GetTimestamp();
     }
     public void Stop(bool success)
     {

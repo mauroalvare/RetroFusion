@@ -47,6 +47,11 @@ public sealed class StudioWindow
     private FusionPreparationResult? _creationResearch;
     private string? _creationContext;
     private Action? _creationGuard;
+    private FusionInputSnapshot? _creationInputs;
+    private AiTiming? _creationTiming;
+    private readonly AiDurationHistory _creationHistory;
+    private readonly Dictionary<string, AiTimeRange?> _creationEstimates = new();
+    private long _lastInputCheck;
     private bool _continueCreationResearch;
     private int _automaticResearchRetries, _repeatedCreationBlocks;
     private string? _lastCreationBlock;
@@ -99,6 +104,7 @@ public sealed class StudioWindow
     {
         _host = host;
         _workClock = workClock ?? TimeProvider.System;
+        _creationHistory = new(timingPath);
         _build = new("estudio", timingPath: timingPath, clock: _workClock);
         _romDir = romDir;
         _folder = gamesFolder;
@@ -193,6 +199,7 @@ public sealed class StudioWindow
     public Task CancelWork()
     {
         _cts?.Cancel(); _prepareCts?.Cancel();
+        _creationTiming?.Stop(false);
         return Task.WhenAll(new Task?[] { _fusionPrepareTask, _prepareTask, _conceptTask, _designTask, _referenceTask, _validateTask, _startTask }.OfType<Task>());
     }
 
@@ -362,7 +369,7 @@ public sealed class StudioWindow
         if (!_inspiredMode) ImGui.TextColored(Gold, "3. Definí los aportes");
         ImGui.TextUnformatted(_inspiredMode ? "Tu propuesta para el juego (opcional):" : "Qué querés incorporar a la base (opcional):");
         ImGui.InputTextMultiline("##deseo", ref _wish, 2000, new Vector2(-1, 64));
-        AiPicker.Hint(FusionResearchPlan.EstimateText(_chosen.Count, true));
+        AiPicker.Hint(FusionResearchPlan.EstimateText(_chosen.Count, true, CreationEstimate(true)));
         AiPicker.Hint("Puede trabajar hasta una hora en total. Podés ver el avance y cancelar.");
         ImGui.BeginDisabled(Busy);
         if (ImGui.Button("Proponer 3 ideas")) AskConcepts();
@@ -392,7 +399,7 @@ public sealed class StudioWindow
                     if (ImGui.TreeNode("Datos que se van a comprobar"))
                     { ImGui.TextWrapped(concept.MissingData); ImGui.TreePop(); }
                 }
-                AiPicker.Hint(FusionResearchPlan.EstimateText(_chosen.Count, needsData));
+                AiPicker.Hint(FusionResearchPlan.EstimateText(_chosen.Count, needsData, CreationEstimate(needsData)));
                 ImGui.BeginDisabled(Busy);
                 string action = needsData
                     ? (_inspiredMode ? "Preparar y crear este juego" : "Preparar y crear esta fusión")
@@ -594,12 +601,13 @@ public sealed class StudioWindow
             ImGui.TextWrapped(_progress);
             ImGui.PopStyleColor();
         }
-        if (_cts != null && (_fusionPrepareTask != null || _conceptTask != null || _designTask != null || _referenceTask != null))
+        if (_cts != null && (_fusionPrepareTask != null || _conceptTask != null || _designTask != null || _referenceTask != null || _validateTask != null))
         {
             if (ImGui.SmallButton("Cancelar"))
                 _cts.Cancel();
         }
-        _build.Draw(_fusionPrepareTask != null || _conceptTask != null || _designTask != null, _progress, _cts);
+        _build.Draw(_fusionPrepareTask != null || _conceptTask != null || _designTask != null || _referenceTask != null || _validateTask != null,
+            _progress, _cts, _creationTiming);
         if (_preparationSummary.Length > 0 && ImGui.TreeNode("Datos comprobados en la preparación"))
         {
             ImGui.TextWrapped(_preparationSummary);
@@ -699,6 +707,7 @@ public sealed class StudioWindow
         _problem = text;
         _problemDetail = report?.Summary;
         _progress = "";
+        if (!Busy) _creationTiming?.Stop(false);
     }
 
     private void ClearProblem()
@@ -709,7 +718,8 @@ public sealed class StudioWindow
 
     private void AskConcepts()
     {
-        _creationContext = null; _creationGuard = null;
+        _creationTiming?.Stop(false); _creationTiming = null;
+        _creationInputs = null; _creationContext = null; _creationGuard = null;
         ClearProblem();
         _concepts = null;
         var slots = Slots();
@@ -752,8 +762,55 @@ public sealed class StudioWindow
     private TimeSpan CreationRemaining => _creationDeadline == null ? FusionResearchPlan.TotalTime
         : FusionResearchPlan.TotalTime - _workClock.GetElapsedTime(_creationStarted);
 
+    private string CreationTimingIdentity(bool research)
+    {
+        string model = _ai.SessionModel ?? (_ai.Provider switch
+        {
+            "claude" => _ai.ClaudeModel, "openai" => _ai.OpenAiModel, "gemini" => _ai.GeminiModel,
+            "ollama" => _ai.OllamaModel, _ => _ai.CliModels.GetValueOrDefault(_ai.Provider, ""),
+        });
+        return string.Join("\0", "whole-creation-v2", _ai.Provider, model,
+            _ai.CliEfforts.GetValueOrDefault(_ai.Provider, ""), _ai.Economic, _ai.DesignAttempts,
+            _ai.TextLimitThousands, _chosen.Count, research, _inspiredMode);
+    }
+
+    private AiTimeRange? CreationEstimate(bool research)
+    {
+        string identity = CreationTimingIdentity(research);
+        if (!_creationEstimates.TryGetValue(identity, out var range))
+            _creationEstimates[identity] = range = _creationHistory.Estimate(AiDurationHistory.Key(identity));
+        return range;
+    }
+
+    private void StartCreationTiming(bool research)
+    {
+        _creationTiming ??= new(CreationTimingIdentity(research), _creationHistory, _workClock,
+            FusionResearchPlan.Estimate(_chosen.Count, research), _creationStarted, maximum: FusionResearchPlan.TotalTime);
+    }
+
+    private bool CaptureCreationInputs()
+    {
+        try
+        {
+            var all = Sources();
+            if (_chosen.Count is < 2 or > 3 || _chosen.Any(id => !all.ContainsKey(id)))
+                throw new InvalidDataException("Elegí de nuevo los dos o tres originales de esta idea.");
+            var sources = all.Where(pair => _chosen.Contains(pair.Key)).ToDictionary();
+            _creationInputs = FusionInputSnapshot.Capture(sources, _originalPaths, _romDir);
+            _creationGuard = () => _creationInputs!.Ensure(Sources());
+            return true;
+        }
+        catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or System.Text.Json.JsonException)
+        {
+            Problem("No se pudo iniciar con los datos elegidos. " + error.Message);
+            return false;
+        }
+    }
+
     private void BeginCreationWork()
     {
+        _creationTiming?.Stop(false); _creationTiming = null; _creationInputs = null;
+        _lastInputCheck = _workClock.GetTimestamp();
         _creationDeadline?.Dispose();
         _creationDeadline = new CancellationTokenSource(FusionResearchPlan.TotalTime, _workClock);
         _creationStarted = _workClock.GetTimestamp();
@@ -793,6 +850,8 @@ public sealed class StudioWindow
             int index = Math.Max(0, targets.FindIndex(target => target.Source.Profile.Id == baseProfile));
             targets[index] = targets[index] with { NeedsPreparation = true };
         }
+        if (!CaptureCreationInputs()) return;
+        StartCreationTiming(true);
         var provider = continuing ? _creationOperation?.Provider : _preparationProvider();
         // Navigation, research, review and writing keep the same text/call/time budget.
         _fusionPrepareAi = continuing ? _creationOperation : provider == null ? null : _ai.Operation(provider,
@@ -820,6 +879,7 @@ public sealed class StudioWindow
 
     private void CompletePreparation(FusionPreparationResult result)
     {
+        _creationInputs?.EnsureOriginals();
         result.EnsureOriginalsUnchanged();
         Scan();
         _chosen.Clear(); _chosen.AddRange(result.Slots.Select(slot => slot.Profile));
@@ -911,6 +971,8 @@ public sealed class StudioWindow
         };
         string provider = _ai.Provider;
         if (operation == null) BeginCreationWork();
+        if (!CaptureCreationInputs()) return;
+        StartCreationTiming(false);
         var ai = provider is "manual" or "agent" ? null : operation ?? _ai.Operation(_preparationProvider()!,
             calls: FusionResearchPlan.Calls(_chosen.Count, _ai.DesignAttempts));
         _creationOperation = ai as AiOperation;
@@ -935,6 +997,7 @@ public sealed class StudioWindow
 
     private void WriteReady(GameConcept concept, StudioGame template, string provider, IAiProvider? ai, OriginalReferences references, CancellationToken workToken)
     {
+        StartCreationTiming(false);
         var slots = template.Games;
         switch (provider)
         {
@@ -949,12 +1012,12 @@ public sealed class StudioWindow
             {
                 _cts = CancellationTokenSource.CreateLinkedTokenSource(workToken);
                 var token = _cts.Token;
-                var sources = Sources();
+                var sources = _creationInputs?.Sources ?? Sources();
                 _progress = $"{ai!.Name} está escribiendo el juego...";
                 _build.Start(ai, "diseño", $"{_ai.CliEfforts.GetValueOrDefault(_ai.Provider)}/{_ai.DesignAttempts}");
                 var designer = RecoverableDesigner(references);
-                _designTask = Task.Run(() => designer.WriteAsync(ai, slots, ProfileLibrary.Find, concept,
-                    game => StudioValidator.Run(game, sources, _romDir), token, p => _progress = p, references));
+                _designTask = Task.Run(() => designer.WriteAsync(ai, slots, id => sources.GetValueOrDefault(id)?.Profile, concept,
+                    game => StudioValidator.Run(game, sources, _romDir, ct: token), token, p => _progress = p, references));
                 break;
             }
         }
@@ -962,7 +1025,8 @@ public sealed class StudioWindow
 
     private void Revise(StudioGame current, string request)
     {
-        _creationContext = null; _creationGuard = null;
+        _creationTiming?.Stop(false); _creationTiming = null;
+        _creationInputs = null; _creationContext = null; _creationGuard = null;
         ClearProblem();
         _activeWork = null;
         var template = current.Copy();
@@ -996,7 +1060,7 @@ public sealed class StudioWindow
                 _build.Start(ai, "cambios", $"{_ai.CliEfforts.GetValueOrDefault(_ai.Provider)}/{_ai.DesignAttempts}");
                 var designer = RecoverableDesigner(references);
                 _designTask = Task.Run(() => designer.ReviseAsync(ai, current, ProfileLibrary.Find, request,
-                    game => StudioValidator.Run(game, sources, _romDir), token, p => _progress = p, references));
+                    game => StudioValidator.Run(game, sources, _romDir, ct: token), token, p => _progress = p, references));
                 break;
             }
         }
@@ -1061,7 +1125,8 @@ public sealed class StudioWindow
 
     private void ResumeWork(StudioWork work)
     {
-        _creationContext = null; _creationGuard = null;
+        _creationTiming?.Stop(false); _creationTiming = null;
+        _creationInputs = null; _creationContext = null; _creationGuard = null;
         ClearProblem();
         var provider = _ai.CreateProvider();
         if (provider == null) return;
@@ -1081,13 +1146,13 @@ public sealed class StudioWindow
             _cts = new CancellationTokenSource(); var token = _cts.Token;
             var sources = Sources(); _build.Start(ai, "continuar", $"{_ai.CliEfforts.GetValueOrDefault(_ai.Provider)}/{_ai.DesignAttempts}");
             _designTask = Task.Run(() => designer.ResumeAsync(ai, work.State,
-                game => StudioValidator.Run(game, sources, _romDir), token, p => _progress = p, references));
+                game => StudioValidator.Run(game, sources, _romDir, ct: token), token, p => _progress = p, references));
         });
     }
 
     private void PrepareReferences(StudioGame game, Action<OriginalReferences> ready, CancellationToken? workToken = null)
     {
-        var sources = Sources();
+        var sources = workToken.HasValue ? _creationInputs?.Sources ?? Sources() : Sources();
         _cts = workToken is { } shared ? CancellationTokenSource.CreateLinkedTokenSource(shared) : new CancellationTokenSource();
         var token = _cts.Token;
         _progress = "Preparando referencias de los originales...";
@@ -1156,10 +1221,13 @@ public sealed class StudioWindow
 
     private void ValidateThen(StudioGame game, Action<StudioGame, ValidationReport> then)
     {
-        var sources = Sources();
+        var sources = _creationInputs?.Sources ?? Sources();
+        _cts = _creationInputs != null && _creationDeadline != null
+            ? CancellationTokenSource.CreateLinkedTokenSource(_creationDeadline.Token) : new CancellationTokenSource();
+        var token = _cts.Token;
         _progress = "Probando el juego con un jugador robot...";
         _afterValidate = then;
-        _validateTask = Task.Run(() => (game, StudioValidator.Run(game, sources, _romDir)));
+        _validateTask = Task.Run(() => (game, StudioValidator.Run(game, sources, _romDir, ct: token)), token);
     }
 
     private void SaveAndStart(StudioGame game, bool first = false, VideoFrame? picture = null)
@@ -1168,8 +1236,14 @@ public sealed class StudioWindow
             game.Id = StudioLibrary.UniqueId(string.IsNullOrWhiteSpace(game.Id) ? StudioLibrary.Slug(game.Title) : game.Id);
         game.WorkId = _activeWork;
         game.Usage = _activeWork != null ? _build.Usage : null;
-        try { StudioLibrary.Save(game, picture); RefreshSavedGames(); }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        try
+        {
+            if (_creationContext != null && _creationContext != PreparationContext())
+                throw new InvalidDataException("Cambió la selección o la configuración. Volvé a preparar la idea.");
+            _creationGuard?.Invoke();
+            StudioLibrary.Save(game, picture); RefreshSavedGames();
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidDataException)
         {
             RefreshWork();
             Problem("No se pudo guardar el juego: " + e.Message + ". El trabajo pendiente sigue disponible.");
@@ -1187,7 +1261,9 @@ public sealed class StudioWindow
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
         _supersededCreationWork.Clear();
         RefreshWork();
-        _creationContext = null; _creationGuard = null;
+        _creationTiming?.Stop(true);
+        _creationEstimates.Clear();
+        _creationInputs = null; _creationContext = null; _creationGuard = null;
         StartGame(game);
     }
 
@@ -1208,6 +1284,17 @@ public sealed class StudioWindow
     // ------------------------------------------------------------------ background work
     private void Poll()
     {
+        if ((_referenceTask != null || _designTask != null || _validateTask != null) && _creationInputs != null &&
+            _workClock.GetElapsedTime(_lastInputCheck) >= TimeSpan.FromSeconds(1))
+        {
+            _lastInputCheck = _workClock.GetTimestamp();
+            try { if (_creationInputs.FilesMayHaveChanged) _creationGuard?.Invoke(); }
+            catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException)
+            {
+                _cts?.Cancel();
+                Problem("Los originales o perfiles cambiaron. Se detuvo el trabajo y se conservaron los avances. " + error.Message);
+            }
+        }
         if ((_referenceTask != null || _designTask != null) && _creationContext != null &&
             _creationContext != PreparationContext()) _cts?.Cancel();
         if (_fusionPrepareTask is { IsCompleted: false } && _fusionPrepareContext != PreparationContext())
@@ -1334,7 +1421,9 @@ public sealed class StudioWindow
             _validateTask = null;
             var then = _afterValidate;
             _afterValidate = null;
-            if (vt.IsCompletedSuccessfully)
+            if (vt.IsCanceled || _cts?.IsCancellationRequested == true)
+                _progress = "Prueba cancelada. El trabajo anterior se conserva.";
+            else if (vt.IsCompletedSuccessfully)
             {
                 _progress = "";
                 if (vt.Result.report.Ok)
@@ -1358,6 +1447,7 @@ public sealed class StudioWindow
                 Problem("No se pudo arrancar: " + Failure(st.Exception));
         }
         PollAgent();
+        if (!Busy && _manual == null && _agentDir == null) _creationTiming?.Stop(false);
     }
 
     private void PollAgent()

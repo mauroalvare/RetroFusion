@@ -429,6 +429,13 @@ comparten AiOperation, límite de texto y un plazo total de una hora. La investi
 dispone como máximo de 50 minutos y reserva diez para la creación. Las CLI del estudio
 admiten llamadas largas sujetas al mismo token de cancelación. Los otros usos conservan
 su tiempo predeterminado. FusionResearchPlan muestra una estimación previa orientativa.
+StudioWindow mantiene un AiTiming para la creación completa, separado de los tiempos
+por etapa de AiBuildWindow. Incluye referencias y regresos de escritura a investigación.
+El historial whole-creation-v2 solo se registra después de guardar una fusión validada;
+no reutiliza muestras antiguas de etapas parciales. La agrupación incluye herramienta,
+modelo, esfuerzo, límites, cantidad de originales, modalidad y necesidad de investigación.
+Con tres éxitos comparables usa el intervalo local, acotado por el plazo de una hora;
+en su ausencia conserva la orientación general. Nunca consulta a la IA para estimar.
 
 ReassessConceptAsync conserva idea, pedido, modalidad y base y exige referencias a
 capacidades existentes. Solo una revisión respaldada puede vaciar MissingData. Tres
@@ -440,7 +447,19 @@ completados permanecen disponibles cuando queda trabajo pendiente.
 Se comprueba la identidad de ROMs y perfiles entre etapas; un cambio externo del
 perfil durante una preparación se detecta antes de reemplazarlo. Una observación de
 solo lectura se mejora a escritura solo si se verificó el mismo campo completo.
-Cancelar o vencer el plazo no habilita la creación con datos incompletos.
+FusionInputSnapshot comprueba disco frente a caché antes de iniciar tanto la preparación
+como la creación directa. Congela perfiles y bytes de los originales seleccionados
+para referencias, escritura y comprobación. Antes de guardar contrasta originales,
+perfiles en memoria/disco y el firmware usado por Spectrum/C64. Las marcas de archivos
+permiten cancelar pronto si cambian durante la escritura; la comprobación final compara
+contenido aunque las marcas sean iguales. Durante la preparación se admiten sus propias
+actualizaciones de perfiles, con una captura nueva antes de escribir.
+MachineFactory.FirmwareFingerprint y el preparador impiden guardar evidencia de otra
+configuración de firmware. No cambian las claves ni formatos de estados anteriores.
+
+StudioValidator recibe el token compartido en arranque y en cada tick de sus robots;
+la cancelación se propaga y libera controles, sin convertirse en un informe de arranque
+fallido. Cancelar o vencer el plazo no habilita la creación con datos incompletos.
 En intercambio manual o por carpeta, la revisión final usa una consigna con la evidencia
 actual y la respuesta del chat/agente; no se simula una respuesta automática.
 Guía de uso: [Preparar una fusión](PREPARAR-FUSION.md).

@@ -158,4 +158,213 @@ public sealed class FusionCreationBudgetTests
             public ValueTask DisposeAsync() { Dispose(); return ValueTask.CompletedTask; }
         }
     }
+    [TestCase("rom")]
+    [TestCase("profile")]
+    [TestCase("cached-bytes")]
+    public async Task DirectCreationRejectsChangedInputsBeforeStartingReferencesOrAskingAi(string changed)
+    {
+        var ai = new WaitingAi();
+        var window = Window(new FusionPreparationWorkflow(), ai, TimeProvider.System);
+        switch (changed)
+        {
+            case "rom": File.AppendAllText(_targets[0].Path, "changed"); break;
+            case "profile":
+                var edited = GameProfile.Parse(_targets[0].Source.Profile.ToJson());
+                edited.Description = "Edición externa";
+                ProfileLibrary.Save(edited); break;
+            case "cached-bytes": _targets[0].Source.Files[0].Data[0] ^= 1; break;
+        }
+        try
+        {
+            Call(window, "Write", Idea, null!);
+            Assert.That(Get(window, "_referenceTask"), Is.Null, "Changed inputs must be rejected before work begins");
+            Assert.That(Get(window, "_problem"), Is.Not.Null);
+            Assert.That(ai.Entered.Task.IsCompleted, Is.False);
+        }
+        finally { try { await window.CancelWork(); } catch (Exception) { } }
+    }
+
+    private FusionInputSnapshot Snapshot(string firmware = "") => FusionInputSnapshot.Capture(
+        _targets.ToDictionary(t => t.Source.Profile.Id, t => t.Source),
+        _targets.ToDictionary(t => t.Source.Profile.Id, t => t.Path), firmware);
+
+    [TestCase("rom")]
+    [TestCase("profile")]
+    [TestCase("delete-profile")]
+    [TestCase("memory-profile")]
+    [TestCase("memory-bytes")]
+    public void ChangedInputsCannotBeUsedToSaveAndFrozenInputsRemainUntouched(string changed)
+    {
+        var snapshot = Snapshot();
+        string frozenProfile = snapshot.Sources["own0"].Profile.ToJson();
+        byte[] frozenBytes = (byte[])snapshot.Sources["own0"].Files[0].Data.Clone();
+        switch (changed)
+        {
+            case "rom": File.AppendAllText(_targets[0].Path, "changed"); break;
+            case "profile":
+                var edited = GameProfile.Parse(_targets[0].Source.Profile.ToJson());
+                edited.Description = "Edición externa"; ProfileLibrary.Save(edited); break;
+            case "delete-profile": File.Delete(Path.Combine(ProfileLibrary.UserFolder, "own0.json")); break;
+            case "memory-profile": _targets[0].Source.Profile.Description = "Cambio en memoria"; break;
+            case "memory-bytes": _targets[0].Source.Files[0].Data[0] ^= 1; break;
+        }
+        Assert.Throws<InvalidDataException>(() => snapshot.Ensure());
+        Assert.That(snapshot.Sources["own0"].Profile.ToJson(), Is.EqualTo(frozenProfile));
+        Assert.That(snapshot.Sources["own0"].Files[0].Data, Is.EqualTo(frozenBytes));
+    }
+
+    [Test]
+    public void ReplacingTheLibraryObjectDoesNotBypassTheSaveGuard()
+    {
+        var snapshot = Snapshot();
+        var current = _targets.ToDictionary(t => t.Source.Profile.Id, t => t.Source);
+        var changed = GameProfile.Parse(current["own0"].Profile.ToJson());
+        changed.Description = "Reemplazo";
+        current["own0"] = current["own0"] with { Profile = changed };
+        Assert.Throws<InvalidDataException>(() => snapshot.Ensure(current));
+    }
+
+    [Test]
+    public void OwnPreparationMayUpdateProfilesButMustCaptureThemAgainBeforeWriting()
+    {
+        var snapshot = Snapshot();
+        _targets[0].Source.Profile.Description = "Dato verificado durante la preparación";
+        ProfileLibrary.Save(_targets[0].Source.Profile);
+        Assert.DoesNotThrow(snapshot.EnsureOriginals);
+        Assert.Throws<InvalidDataException>(() => snapshot.Ensure());
+        Assert.DoesNotThrow(() => Snapshot().Ensure());
+    }
+
+    [Test]
+    public void FirmwareChangesAreDetectedEvenWhenTheOriginalFileIsUnchanged()
+    {
+        string firmware = Path.Combine(_folder, "firmware"); Directory.CreateDirectory(firmware);
+        File.WriteAllBytes(Path.Combine(firmware, "48.rom"), new byte[16384]);
+        _targets[0].Source.Profile.Machine = "zx48";
+        ProfileLibrary.Save(_targets[0].Source.Profile);
+        var snapshot = Snapshot(firmware);
+        byte[] changed = new byte[16384]; changed[42] = 1;
+        File.WriteAllBytes(Path.Combine(firmware, "48.rom"), changed);
+        Assert.Throws<InvalidDataException>(snapshot.EnsureOriginals);
+    }
+
+    [Test]
+    public void CorruptedProfileIsReportedBeforeDirectCreationInsteadOfEscapingTheWindow()
+    {
+        var ai = new WaitingAi(); var window = Window(new FusionPreparationWorkflow(), ai, TimeProvider.System);
+        File.WriteAllText(Path.Combine(ProfileLibrary.UserFolder, "own0.json"), "{broken");
+        Assert.DoesNotThrow(() => Call(window, "Write", Idea, null!));
+        Assert.That(Get(window, "_referenceTask"), Is.Null);
+        Assert.That(Get(window, "_problem"), Is.Not.Null);
+        Assert.That(ai.Entered.Task.IsCompleted, Is.False);
+    }
+
+    [Test]
+    public void NestedArchiveInputsAreFrozenAndAnAddedMemberInvalidatesTheGuard()
+    {
+        string path = _targets[0].Path + ".zip";
+        void Zip(bool extra)
+        {
+            using var file = File.Create(path);
+            using var zip = new System.IO.Compression.ZipArchive(file, System.IO.Compression.ZipArchiveMode.Create);
+            using (var stream = zip.CreateEntry("folder/own.nes").Open()) stream.Write(new byte[] { 1, 2, 3 });
+            if (extra) using (var stream = zip.CreateEntry("other.nes").Open()) stream.Write(new byte[] { 4, 5, 6 });
+        }
+        Zip(false);
+        var target = _targets[0];
+        _targets[0] = target with { Path = path, Source = target.Source with { Files = MediaArchive.Open(path) } };
+        var snapshot = Snapshot();
+        Assert.DoesNotThrow(() => snapshot.Ensure());
+        Zip(true);
+        Assert.Throws<InvalidDataException>(() => snapshot.Ensure());
+    }
+
+    [Test]
+    public async Task WholeCreationClockKeepsResearchTimeAcrossWritingAndCancelledWorkDoesNotTrain()
+    {
+        var clock = new ManualClock(); var ai = new WaitingAi();
+        var window = Window(new FusionPreparationWorkflow(), ai, clock);
+        Call(window, "BeginCreationWork"); Call(window, "StartCreationTiming", true);
+        var timing = (AiTiming)Get(window, "_creationTiming")!;
+        clock.Advance(TimeSpan.FromMinutes(30));
+        var deadline = (CancellationTokenSource)Get(window, "_creationDeadline")!;
+        var template = new StudioGame { Id = "own", Title = "Propio", Games = [
+            new() { Slot = "a", Profile = "own0" }, new() { Slot = "b", Profile = "own1" }], BaseSlot = "a" };
+        Call(window, "WriteReady", Idea, template, "test", new AiOperation(ai, 3), new OriginalReferences([]), deadline.Token);
+        await ai.Entered.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        Assert.That(Get(window, "_creationTiming"), Is.SameAs(timing));
+        Assert.That(timing.Elapsed, Is.EqualTo(TimeSpan.FromMinutes(30)));
+        try { await window.CancelWork(); } catch (OperationCanceledException) { }
+        Call(window, "Poll");
+        var history = new AiDurationHistory(Path.Combine(_folder, "timing.json"));
+        string identity = (string)Call(window, "CreationTimingIdentity", true)!;
+        Assert.That(history.Estimate(AiDurationHistory.Key(identity)), Is.Null);
+        Assert.That(File.Exists(Path.Combine(_folder, "timing.json")), Is.False);
+    }
+
+    [Test]
+    public void UpfrontEstimateUsesCompletedJobsOfTheSameConfigurationOnly()
+    {
+        var clock = new ManualClock(); var window = Window(new FusionPreparationWorkflow(), new WaitingAi(), clock);
+        string identity = (string)Call(window, "CreationTimingIdentity", true)!;
+        var history = new AiDurationHistory(Path.Combine(_folder, "timing.json"));
+        for (int n = 0; n < 3; n++) history.Record(AiDurationHistory.Key(identity), TimeSpan.FromMinutes(8));
+        var range = (AiTimeRange)Call(window, "CreationEstimate", true)!;
+        Assert.That(range.Samples, Is.EqualTo(3));
+        Assert.That(FusionResearchPlan.EstimateText(2, true, range), Does.Contain("6–12").And.Contain("trabajos completos"));
+        Assert.That(Call(window, "CreationEstimate", false), Is.Null);
+    }
+
+    [TestCase("rom")]
+    [TestCase("profile")]
+    [TestCase("configuration")]
+    public void ChangedInputsAreRejectedAtSaveAndTheRecoverableDraftIsPreserved(string changed)
+    {
+        var clock = new ManualClock(); var window = Window(new FusionPreparationWorkflow(), new WaitingAi(), clock);
+        Call(window, "BeginCreationWork");
+        Assert.That(Call(window, "CaptureCreationInputs"), Is.EqualTo(true));
+        Set(window, "_creationContext", Call(window, "PreparationContext"));
+        Call(window, "StartCreationTiming", false);
+        clock.Advance(TimeSpan.FromMinutes(10));
+        var work = new StudioWork { State = new() { Template = new() { Id = "own", Title = "Idea propia" } } };
+        StudioWorkStore.Save(work); Set(window, "_activeWork", work.Id);
+        switch (changed)
+        {
+            case "rom": File.AppendAllText(_targets[0].Path, "changed"); break;
+            case "profile":
+                var edited = GameProfile.Parse(_targets[0].Source.Profile.ToJson());
+                edited.Description = "Edición externa"; ProfileLibrary.Save(edited); break;
+            case "configuration": Set(window, "_wish", "Otro pedido"); break;
+        }
+        Call(window, "SaveAndStart", work.State.Template.Copy(), false, null!);
+        Assert.That(Get(window, "_startTask"), Is.Null);
+        Assert.That(StudioLibrary.AllVersions().Any(g => g.Id.StartsWith("own")), Is.False);
+        Assert.That(StudioWorkStore.Pending().Select(w => w.Id), Does.Contain(work.Id));
+        string identity = (string)Call(window, "CreationTimingIdentity", false)!;
+        Assert.That(new AiDurationHistory(Path.Combine(_folder, "timing.json")).Estimate(AiDurationHistory.Key(identity)), Is.Null);
+    }
+
+    [Test]
+    public async Task FileChangeDuringWritingCancelsTheWaitingProviderAndKeepsItsWork()
+    {
+        var clock = new ManualClock(); var ai = new WaitingAi();
+        var window = Window(new FusionPreparationWorkflow(), ai, clock);
+        Call(window, "BeginCreationWork"); Assert.That(Call(window, "CaptureCreationInputs"), Is.EqualTo(true));
+        Set(window, "_creationContext", Call(window, "PreparationContext"));
+        var deadline = (CancellationTokenSource)Get(window, "_creationDeadline")!;
+        var template = new StudioGame { Id = "own", Title = "Propio", Games = [
+            new() { Slot = "a", Profile = "own0" }, new() { Slot = "b", Profile = "own1" }], BaseSlot = "a" };
+        Call(window, "WriteReady", Idea, template, "test", new AiOperation(ai, 3), new OriginalReferences([]), deadline.Token);
+        await ai.Entered.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        File.AppendAllText(_targets[0].Path, "changed");
+        clock.Advance(TimeSpan.FromSeconds(2));
+        Call(window, "Poll");
+        Assert.That(((CancellationTokenSource)Get(window, "_cts")!).IsCancellationRequested, Is.True);
+        Assert.That((string)Get(window, "_problem")!, Does.Contain("cambiaron"));
+        try { await window.CancelWork(); } catch (OperationCanceledException) { }
+        Call(window, "Poll");
+        Assert.That(Get(window, "_startTask"), Is.Null);
+        Assert.That(StudioWorkStore.Pending(), Is.Not.Empty);
+    }
+
 }

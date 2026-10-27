@@ -9,6 +9,25 @@ public sealed record GameSource(GameProfile Profile, IReadOnlyList<MediaFile> Fi
 /// <summary>Creates the right emulated machine for a game and boots it to playing.</summary>
 public static class MachineFactory
 {
+    /// <summary>Firmware content used by the supported preparation machines, independent of game/profile edits.</summary>
+    public static string FirmwareFingerprint(string machine, string directory)
+    {
+        using var hash = System.Security.Cryptography.IncrementalHash.CreateHash(System.Security.Cryptography.HashAlgorithmName.SHA256);
+        void Add(byte[] bytes)
+        {
+            Span<byte> length = stackalloc byte[4];
+            System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(length, bytes.Length);
+            hash.AppendData(length); hash.AppendData(bytes);
+        }
+        if (machine == "zx48") Add(File.ReadAllBytes(Path.Combine(directory, "48.rom")));
+        else if (machine == "c64")
+        {
+            var firmware = Retro.Systems.C64.C64Firmware.Find(directory);
+            Add(firmware.Kernal); Add(firmware.Basic); Add(firmware.Chargen);
+        }
+        return Convert.ToHexString(hash.GetHashAndReset());
+    }
+
     public static IMachine Create(GameSource source, string romDirectory)
     {
         var m = CreateMachine(source, romDirectory);

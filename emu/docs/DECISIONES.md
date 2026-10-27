@@ -1104,3 +1104,24 @@ Un cambio externo del perfil se detecta antes de guardarlo; se conservan campos
 previamente comprobados y solo se mejora una observación de solo lectura si coincide
 el campo completo verificado. Otra edición no hereda esos datos. Las CLI del estudio
 admiten un timeout largo explícito; el valor predeterminado de otros usos se conserva.
+
+## D-073 — Tiempo total y datos inmóviles durante una creación
+
+Una creación conserva un reloj monótono entre preparación, referencias, escritura,
+validación y vueltas de investigación. El historial del trabajo completo se separa
+de las muestras de etapas anteriores y solo aprende tras guardar una fusión válida.
+Agrupa configuración y alcance, sin nombres de juegos, pedidos ni respuestas en disco.
+Tres éxitos comparables permiten un intervalo observado; sin ellos se usa la
+orientación general. El intervalo nunca amplía el plazo compartido de una hora.
+
+FusionInputSnapshot valida caché frente a disco antes de trabajar, incluso sin
+preparación, y congela perfiles y medios seleccionados para la creación. La guarda
+antes del guardado vuelve a comprobar contenido, perfiles y firmware. Las marcas de
+archivos solo anticipan la cancelación, no sustituyen esa comprobación de contenido.
+La preparación puede guardar sus propios perfiles; conserva originales/firmware
+y toma una captura nueva de los perfiles comprobados antes de escribir.
+
+StudioValidator acepta CancellationToken opcional en ambas entradas, lo propaga al
+arranque y comprueba cada tick del robot. La cancelación se propaga como tal y libera
+entradas. Un resultado rechazado por datos cambiados o una cancelación conserva los
+trabajos pendientes y no entrena las estimaciones del trabajo completo.

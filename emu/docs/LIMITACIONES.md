@@ -297,6 +297,9 @@ se trata de una limitación deducida que todavía necesita una prueba específic
 - La preparación puede investigar en varias rondas y retomar su partida privada,
   dentro de un trabajo de hasta una hora que también incluye escritura y comprobación.
   La estimación previa es orientativa; no obliga a consumir el tiempo completo.
+  Aprende de tres creaciones guardadas comparables o usa un intervalo general cuando
+  faltan muestras. No es una duración garantizada ni una medición de cada proveedor.
+  El reloj total no se reinicia al cambiar de etapa.
   Puede no atravesar una intro, completar una secuencia o descubrir datos útiles.
   Se detiene si no aparecen pruebas ni datos nuevos, si vence el tiempo o ante errores;
   conserva los perfiles de las rondas completadas. El punto privado de investigación
@@ -307,7 +310,10 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   los requisitos; si falta algo, mantiene el motivo y permite reintentar. No garantiza
   descubrir mapas, cajas de choque, cámara, daño, progresión ni todas las reglas.
   Cambiar originales, perfiles, selección o configuración durante el trabajo puede
-  invalidarlo; cancelar no habilita la creación ni provoca reintentos por sí solo.
+  invalidarlo; también se comparan archivos, perfiles y firmware antes de una creación
+  directa y de guardar. La copia privada evita mezclar datos durante la escritura;
+  un rechazo conserva el borrador. Cancelar llega a las pruebas de los robots y no
+  habilita la creación ni provoca reintentos por sí solo.
 - El detector de partida puede confundir un cursor de menú que se mueve con una entidad
   jugable. La IA o una comprobación manual deben confirmar que llegó a la partida.
 - Los perfiles solo describen variables, controles y recursos que se comprobaron;
@@ -385,8 +391,11 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   que el CLI emite. No revela razonamiento interno ni puede obtener texto que la herramienta
   todavía no envió. Puede mostrar JSON o código según el formato del CLI. Conserva solo
   los últimos 12.000 caracteres en memoria; no crea un registro de conversaciones en disco.
-  El tiempo transcurrido está disponible; el estimado restante requiere al menos tres
-  trabajos completos comparables. Los modos manual y carpeta no tienen ese estimado.
+  El tiempo transcurrido está disponible; el estimado restante por operación requiere
+  al menos tres trabajos completos comparables. En la creación de fusiones se ofrece
+  además una orientación general para el trabajo completo cuando faltan muestras.
+  Los modos manual y carpeta requieren respuestas y no predicen cuánto tardará el chat
+  o agente externo.
 
 - En el C64, F1/F3/F5/F7 son teclas de la máquina: la carga rápida de estado pasa a F4 y
   el reinicio se hace desde Juego.

@@ -43,23 +43,35 @@ public static class StudioValidator
     private const int Tps = StudioSession.TicksPerSecond;
 
     public static ValidationReport Run(StudioGame game, IReadOnlyDictionary<string, GameSource> sources, string romDirectory,
-        int secondsPerRobot = DefaultSecondsPerRobot)
+        int secondsPerRobot = DefaultSecondsPerRobot, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         StudioSession session;
         try
         {
-            session = StudioSession.Start(game, sources, romDirectory);
+            session = StudioSession.Start(game, sources, romDirectory, ct: ct);
         }
-        catch (Exception e)
+        catch (Exception e) when (e is not OperationCanceledException)
         {
             return new ValidationReport(false, "No se pudieron arrancar los juegos: " + e.Message, Array.Empty<string>(), 0, "", null);
         }
-        return Run(session, secondsPerRobot);
+        return Run(session, secondsPerRobot, ct);
     }
 
     private enum Strategy { Still, Wanderer, Shooter }
 
-    public static ValidationReport Run(StudioSession s, int secondsPerRobot = DefaultSecondsPerRobot)
+    public static ValidationReport Run(StudioSession s, int secondsPerRobot = DefaultSecondsPerRobot, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        try { return RunRobots(s, secondsPerRobot, ct); }
+        finally
+        {
+            foreach (string input in StudioSession.InputNames) s.SetInput(input, false);
+            foreach (var slot in s.Slots) slot.Machine.ReleaseAllKeys();
+        }
+    }
+
+    private static ValidationReport RunRobots(StudioSession s, int secondsPerRobot, CancellationToken ct)
     {
         var problems = new List<string>();
         var notes = new List<string>();
@@ -74,6 +86,7 @@ public static class StudioValidator
         {
             if (error != null)
                 break;
+            ct.ThrowIfCancellationRequested();
             if (strategy != Strategy.Still)
                 s.Restart();
             error = s.Error;
@@ -87,6 +100,7 @@ public static class StudioValidator
             {
                 for (int i = 0; i < n; i++)
                 {
+                    ct.ThrowIfCancellationRequested();
                     s.Update(1.0 / Tps);
                     ticks++;
                     // A script cannot hide the violation by catching the JavaScript error.

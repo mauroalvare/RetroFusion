@@ -95,4 +95,18 @@ public class AiTimingTests
         Directory.CreateDirectory(_path); var clock = new Clock(); var timing = new AiTiming("job", new AiDurationHistory(_path), clock); clock.Advance(30);
         Assert.DoesNotThrow(() => timing.Stop(true)); Assert.That(timing.Elapsed.TotalSeconds, Is.EqualTo(30));
     }
+    [Test]
+    public void WholeJobCanStartBeforeTheCurrentPhaseAndItsEstimateRespectsTheDeadline()
+    {
+        var clock = new Clock(); long start = clock.GetTimestamp();
+        clock.Advance(1800);
+        var timing = new AiTiming("job", History(3000, 3000, 3000), clock,
+            fallbackRange: new(TimeSpan.FromMinutes(20), TimeSpan.FromHours(1), 0),
+            startedAt: start, maximum: TimeSpan.FromHours(1));
+        Assert.That(timing.Elapsed, Is.EqualTo(TimeSpan.FromMinutes(30)));
+        Assert.That(timing.Range!.High, Is.EqualTo(TimeSpan.FromHours(1)));
+        Assert.That(timing.RemainingText, Does.Contain("30:00"));
+        timing.Stop(false);
+    }
+
 }

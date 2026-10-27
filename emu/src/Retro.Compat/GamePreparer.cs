@@ -279,6 +279,7 @@ public static class GamePreparer
         bool recordingBoot = o.Resume == null;
         string folder = Path.GetDirectoryName(Path.GetFullPath(path))!;
         LaunchResult Launch() => MachineLauncher.Launch(machine, files, machine == "invaders" ? null : media, o.FirmwareDirectory, folder);
+        string firmwareFingerprint = MachineFactory.FirmwareFingerprint(machine, o.FirmwareDirectory);
         var launch = Launch();
         var m = launch.Machine;
         // probes run on a twin, so the real machine only sees the boot (and replays the same)
@@ -585,6 +586,8 @@ public static class GamePreparer
             PreparationResearch.Advance(m, advance, ct);
             frames += advance.Frames;
         }
+        if (MachineFactory.FirmwareFingerprint(machine, o.FirmwareDirectory) != firmwareFingerprint)
+            throw new InvalidDataException("El firmware cambió durante la preparación. No se guardaron datos de otra configuración.");
         r.Continuation = new(machine, r.Sha256, m.SaveState(), r.Boot.ToArray(), frames);
         if (o.Save)
         {

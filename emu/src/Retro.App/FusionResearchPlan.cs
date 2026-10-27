@@ -19,10 +19,15 @@ public static class FusionResearchPlan
         ? new(TimeSpan.FromMinutes(originals >= 3 ? 30 : 20), TotalTime, 0)
         : new(TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(20), 0);
 
-    public static string EstimateText(int originals, bool needsResearch)
+    public static string EstimateText(int originals, bool needsResearch, AiTimeRange? observed = null)
     {
-        var range = Estimate(originals, needsResearch);
-        return $"Tiempo orientativo: {range.Low.TotalMinutes:0}–{range.High.TotalMinutes:0} minutos para preparar, crear y comprobar. " +
-            "Puede terminar antes; depende de los datos y de la IA.";
+        var range = observed ?? Estimate(originals, needsResearch);
+        var high = range.High > TotalTime ? TotalTime : range.High;
+        var low = range.Low > high ? high : range.Low;
+        string duration = high < TimeSpan.FromMinutes(1) ? "menos de un minuto"
+            : $"{Math.Max(1, Math.Floor(low.TotalMinutes)):0}–{Math.Max(1, Math.Ceiling(high.TotalMinutes)):0} minutos";
+        return $"Tiempo orientativo: {duration} para preparar, crear y comprobar. " +
+            (range.Samples >= 3 ? "Basado en trabajos completos anteriores de esta configuración. " : "") +
+            "Puede variar; el máximo de este trabajo es una hora.";
     }
 }

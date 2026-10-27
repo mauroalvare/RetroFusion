@@ -64,6 +64,8 @@ del paquete es una guía breve; los contratos para agentes se entregan por separ
 La estimación previa y el trabajo de investigación continuo se explican en
 [Preparar una fusión](PREPARAR-FUSION.md). FusionResearchPlan define el tiempo compartido;
 FusionPreparationWorkflow conserva checkpoints privados e historial entre rondas.
+FusionInputSnapshot congela los originales/perfiles seleccionados y comprueba sus
+archivos y firmware antes de usar o guardar resultados, también en creación directa.
 
 El contrato común para las IAs está en `src/Retro.Ai/Docs/CONTRATO-DISENO.md` y se
 incrusta con `GameDesignGuide.Compact`; `DISENO-JUEGOS.md` queda como consulta ampliada.
@@ -90,8 +92,12 @@ El progreso muestra un intervalo restante cuando hay al menos tres trabajos comp
 con esa herramienta/modelo, esfuerzo y tipo de operación. `AiTiming` usa reloj monótono;
 `AiDurationHistory` conserva hasta 20 duraciones por grupo (128 grupos) en
 `%APPDATA%/RetroEmu/tiempos-ia.json`, solo claves hash y segundos. Ideas, diseño, cambios
-y recuperación se estiman por separado en estudio y creador. Fallos/cancelaciones no
-entrenan; al superar el intervalo se muestra un aviso sin un contador clavado en cero.
+y recuperación se estiman por separado en estudio y creador. La creación de una fusión
+tiene además reloj e historial de trabajo completo, desde la preparación o entrada
+directa hasta el guardado, con tope de una hora. Usa duraciones de tres éxitos comparables
+o la orientación general de FusionResearchPlan si aún no los hay. Fallos/cancelaciones
+y guardados rechazados no entrenan ese historial; al superar el intervalo se muestra
+un aviso sin un contador clavado en cero.
 `AiOperation.cs` concentra medición y límites; el estudio los conserva al continuar.
 
 ## Sonido y presentación
@@ -275,8 +281,10 @@ Está disponible en el estudio y en el creador; permite cancelar y conserva en m
 los últimos 12.000 caracteres de esa construcción. Algunos CLI entregan el texto recién
 al terminar: que no haya texto todavía no significa que el proceso haya fallado.
 El tiempo transcurrido está siempre disponible; el intervalo restante aparece cuando
-hay tres trabajos satisfactorios comparables en el historial local. No se inventa
-un porcentaje ni una ETA cuando no hay datos suficientes.
+hay tres trabajos satisfactorios comparables en el historial local. Para la creación
+completa de una fusión, sin muestras suficientes se muestra la orientación general
+previa al inicio y se mantiene el mismo reloj al cambiar de etapa. No se inventa
+un porcentaje ni una duración garantizada.
 
 Las instrucciones para la IA sí forman parte del producto: `src/Retro.Studio/Docs/GUIA-FUSION.md`
 y `API.md` están versionadas y se incorporan a la app. Los archivos locales de coordinación

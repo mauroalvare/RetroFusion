@@ -120,4 +120,42 @@ public sealed class NativeCompositionTests
         }
         return text.Append('}').ToString();
     }
+    [Test]
+    public void CancelledPlaytestDoesNotTurnCancellationIntoAStartupFailureReport()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        Assert.Throws<OperationCanceledException>(() =>
+            StudioValidator.Run(_game, _sources, _folder, ct: cancellation.Token));
+    }
+
+    [Test]
+    public async Task CancellingAnActiveRobotStopsThePlaytestAndReleasesItsInputs()
+    {
+        var session = Start("""
+            function init() { games.a.pause(); games.b.pause(); game.state('title'); }
+            function tick(input) {
+                if (input.fire || input.jump || input.start) game.level(42);
+                game.score(input.left || input.right || input.up || input.down || input.fire || input.jump || input.start ? 1 : 0);
+            }
+            """);
+        using var cancellation = new CancellationTokenSource();
+        var work = Task.Run(() => StudioValidator.Run(session, 3600, cancellation.Token));
+        try
+        {
+            Assert.That(SpinWait.SpinUntil(() => session.Level == 42 || work.IsCompleted, TimeSpan.FromSeconds(5)), Is.True);
+            Assert.That(work.IsCompleted, Is.False, "Cancel during actual robot activity, before validation finishes");
+            cancellation.Cancel();
+            Assert.ThrowsAsync<OperationCanceledException>(async () => await work.WaitAsync(TimeSpan.FromSeconds(3)));
+            long score = session.Score;
+            session.Update(1.0 / 60);
+            Assert.That(session.Score, Is.EqualTo(score), "The canceled robot must not leave keys held in a reusable session");
+        }
+        finally
+        {
+            cancellation.Cancel();
+            try { await work; } catch (OperationCanceledException) { }
+        }
+    }
+
 }
