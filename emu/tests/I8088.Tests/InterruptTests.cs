@@ -30,6 +30,25 @@ public sealed partial class CpuTests
         Assert.That((cpu.CS, cpu.IP, cpu.SP, cpu.Flags), Is.EqualTo((0x1000, 1, (int)sp, (int)flags)));
     }
 
+    // A stack over the vector table shows the order: the vector is read before the frame is pushed.
+    [TestCase(false, false)]
+    [TestCase(false, true)]
+    [TestCase(true, false)]
+    [TestCase(true, true)]
+    public void InterruptReadsItsVectorBeforePushingTheReturnFrame(bool divide, bool timed)
+    {
+        var (cpu, bus) = divide ? Program(0xF6, 0xF3) : Program(0xCD, 0x21); // DIV BL with BL=0, or INT 21h
+        byte vector = divide ? (byte)0 : (byte)0x21;
+        Vector(cpu, bus, vector, 0x3000, 0x40);
+        cpu.SS = 0; cpu.SP = (ushort)(vector * 4 + 4); cpu.BX = 0; cpu.AX = 0x1234; cpu.TimingEnabled = timed;
+        ushort flags = cpu.Flags;
+        cpu.Step();
+        Assert.That((cpu.CS, cpu.IP), Is.EqualTo((0x3000, 0x40)));
+        Assert.That(cpu.ReadWord(0, (ushort)(vector * 4)), Is.EqualTo(0x1000), "The pushed CS replaced the vector offset.");
+        Assert.That(cpu.ReadWord(0, (ushort)(vector * 4 + 2)), Is.EqualTo(flags));
+        Assert.That(cpu.ReadWord(0, cpu.SP), Is.EqualTo(2));
+    }
+
     [Test]
     public void PopfEnablingTrapWaitsForTheNextInstruction()
     {

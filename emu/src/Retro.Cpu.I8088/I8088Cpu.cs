@@ -294,9 +294,11 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
     {
         _repeatCode.Clear();
         if (hardware) { DataBusCycle(); EndDataBusCycle(); DataBusCycle(); EndDataBusCycle(); }
+        // Hardware traces of INT and divide errors read the vector before pushing the return frame.
+        ushort ip = ReadWord(0, (ushort)(vector * 4)), cs = ReadWord(0, (ushort)(vector * 4 + 2));
         Push(Flags); Push(CS); Push(IP);
         SetFlag(InterruptEnable, false); SetFlag(Trap, false); Halted = _waitingForTest = false;
-        IP = ReadWord(0, (ushort)(vector * 4)); CS = ReadWord(0, (ushort)(vector * 4 + 2));
+        IP = ip; CS = cs;
         FlushQueue(); IdleClocks(hardware ? 13 : 31);
     }
     private NotSupportedException Unsupported(byte opcode, string? detail = null) =>
