@@ -61,8 +61,11 @@ public sealed partial class RetroApp
         ImGui.SeparatorText("Rendimiento");
         bool saving = _prefs.PowerSaving;
         if (ImGui.Checkbox("Ahorrar energía cuando no hay partida en curso", ref saving)) { _prefs.PowerSaving = saving; _prefs.Save(); }
-        ImGui.TextDisabled($"Con la partida en pausa o en la biblioteca, la ventana se dibuja hasta {FramePacing.Interface} veces por segundo; " +
-            $"{FramePacing.Background} sin foco y {FramePacing.Minimized} minimizada. Un juego en curso usa siempre la frecuencia del monitor.");
+        ImGui.TextDisabled($"Con la partida en pausa o en la biblioteca, la ventana se dibuja hasta {FramePacing.Interface} veces por segundo " +
+            $"y {FramePacing.Background} sin foco. Un juego en curso usa siempre la frecuencia del monitor. Minimizada, la ventana espera sin dibujar.");
+        bool background = _prefs.PauseInBackground;
+        if (ImGui.Checkbox("Pausar el juego al pasar a otra ventana", ref background)) { _prefs.PauseInBackground = background; _prefs.Save(); }
+        ImGui.TextDisabled("Al volver, sigue solo si la pausa fue automática. Para silenciar sin pausar, usá Sonido.");
 
         ImGui.Spacing();
         if (ImGui.Button("Restablecer valores"))

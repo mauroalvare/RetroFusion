@@ -38,8 +38,15 @@ var appArgs = args.ToList();
 if (readyIndex >= 0 && readyIndex + 1 < args.Length) appArgs.RemoveRange(readyIndex, 2);
 var app = new RetroApp(appArgs.ToArray());
 bool cleanupStarted = false;
-while (!Raylib.WindowShouldClose() && !app.QuitRequested)
+bool closing = false;
+while (!app.QuitRequested)
 {
+    // A close request lets the app ask first when work is in progress. Acting only when it
+    // starts keeps the dialog from reappearing if the request were still set next frame.
+    bool close = Raylib.WindowShouldClose();
+    if (close && !closing) app.RequestQuit();
+    closing = close;
+    if (app.QuitRequested) break;
     app.Frame(Raylib.GetFrameTime());
     if (ready != null) { UpdateRunner.Acknowledge(ready); ready = null; }
     if (!cleanupStarted) { UpdateCleanup.Start(AppContext.BaseDirectory); cleanupStarted = true; }

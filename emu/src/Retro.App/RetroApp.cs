@@ -49,6 +49,8 @@ public sealed partial class RetroApp
     private bool _themeChanged;
     private float _menuHeight = 28;
     private bool _arrangeDebugger;
+    private string? _quitNotice;
+    private readonly FocusPause _focusPause = new();
     private readonly int _monitorRate;
     private int _targetFps;
     private readonly Dictionary<string, string> _regEdit = new();
@@ -256,10 +258,12 @@ public sealed partial class RetroApp
         }
         bool imguiKeyboard = CaptureGuiKeyboard();
         if (!_updates.Blocking && _pendingOpen == null && !_browser.IsOpen) HandleHotkeys(ImGui.GetIO().WantTextInput);
+        if (!_updates.Blocking && _pendingOpen == null && !_browser.IsOpen) HandleGamepadShortcut();
         _code.Update();
         _studio.Update(); _creator.Update();
         if (_home.IsOpen) _host.Paused = true;
         var m = _host.Machine;
+        PauseInBackground(m);
         if (m != null && !_updates.Blocking)
         {
             if (m.Id != _lastMachineId)
@@ -350,9 +354,38 @@ public sealed partial class RetroApp
     {
         var io = ImGui.GetIO();
         bool interfaceOnly = m == null || _host.Paused || _home.IsOpen || _browser.IsOpen || _pendingOpen != null
-            || _errorPopup != null || _updates.Blocking;
-        if (interfaceOnly) io.ConfigFlags |= ImGuiConfigFlags.NavEnableKeyboard;
-        else io.ConfigFlags &= ~ImGuiConfigFlags.NavEnableKeyboard;
+            || _errorPopup != null || _quitNotice != null || _updates.Blocking;
+        // The gamepad moves through the same places (D-pad, A to choose, B to go back).
+        var navigation = ImGuiConfigFlags.NavEnableKeyboard | ImGuiConfigFlags.NavEnableGamepad;
+        if (interfaceOnly) io.ConfigFlags |= navigation;
+        else io.ConfigFlags &= ~navigation;
+    }
+
+    /// <summary>Select + Start on the gamepad opens the library, or returns to the game from it.</summary>
+    private void HandleGamepadShortcut()
+    {
+        if (!Raylib.IsGamepadAvailable(0) || !Raylib.IsGamepadButtonDown(0, GamepadButton.MiddleLeft)
+            || !Raylib.IsGamepadButtonPressed(0, GamepadButton.MiddleRight)) return;
+        if (!_home.IsOpen) { CloseEditors(); _home.Open(); }
+        else if (_host.LoadedMedia != null || _host.Fusion != null) _home.Close();
+    }
+
+    /// <summary>Optional pause while another window has the focus (Preferencias > Rendimiento).</summary>
+    private void PauseInBackground(IMachine? m)
+    {
+        bool running = m != null && !_home.IsOpen && !_updates.Blocking;
+        switch (_focusPause.Update(_prefs.PauseInBackground, Raylib.IsWindowFocused(), running, _host.Paused))
+        {
+            case FocusPause.Step.Pause: _host.Pause("Pausa: la ventana está en segundo plano."); break;
+            case FocusPause.Step.Resume: _host.Continue(); _host.Status = "Partida reanudada."; break;
+        }
+    }
+
+    /// <summary>Window close button and Juego > Salir: asks first when AI work would be cancelled.</summary>
+    public void RequestQuit()
+    {
+        _quitNotice = QuitGuard.Notice(_studio.IsWorking, _creator.IsWorking, _code.IsWorking);
+        if (_quitNotice == null) QuitRequested = true;
     }
 
     private void PaceFrames(IMachine? m)
@@ -798,7 +831,7 @@ public sealed partial class RetroApp
                 ImGui.EndMenu();
             }
             ImGui.Separator();
-            if (ImGui.MenuItem("Salir")) QuitRequested = true;
+            if (ImGui.MenuItem("Salir")) RequestQuit();
             ImGui.EndMenu();
         }
         if (ImGui.BeginMenu("Crear"))
@@ -896,6 +929,8 @@ public sealed partial class RetroApp
                 ImGui.TextWrapped("Opciones > Accesibilidad cambia el tamaño del texto y activa el alto contraste. Los cambios se guardan.");
                 ImGui.TextWrapped("En la biblioteca, los diálogos y con la partida en pausa, Alt izquierdo lleva a los menús; Tab y las flechas recorren los controles, Enter o Espacio los activan y Esc vuelve.");
                 ImGui.TextWrapped("Mientras el juego corre, el teclado es de la máquina emulada. Pausá con " + Shortcut("F9") + " para usar la interfaz con el teclado.");
+                ImGui.TextWrapped("Con un mando, Select + Start abre la biblioteca; la cruceta recorre, A elige y B vuelve.");
+                ImGui.TextWrapped("Opciones > Preferencias puede pausar el juego al pasar a otra ventana.");
                 ImGui.PopTextWrapPos();
                 ImGui.EndMenu();
             }
@@ -966,6 +1001,8 @@ public sealed partial class RetroApp
         rows.Add(("F11", "Pantalla completa"));
         rows.Add(("F12", "Depurador"));
         rows.Add(("Alt izquierdo", "Menús, con la partida en pausa"));
+        rows.Add(("Ctrl+F", "Buscar en la biblioteca"));
+        rows.Add(("Select + Start", "Biblioteca desde el mando"));
         if (_host.Fusion != null) ImGui.TextDisabled("Los estados guardados están disponibles en originales.");
         if (!ImGui.BeginTable("atajos", 2, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.RowBg)) return;
         foreach (var (keys, action) in rows)
@@ -1054,6 +1091,30 @@ public sealed partial class RetroApp
 
     private void DrawPopups()
     {
+        if (_quitNotice is { } notice)
+        {
+            const string title = "Salir de RetroEmu";
+            ImGui.OpenPopup(title);
+            var viewport = ImGui.GetMainViewport();
+            ImGui.SetNextWindowSize(new(Math.Min(UiTheme.Px(520), viewport.WorkSize.X - 24), 0), ImGuiCond.Appearing);
+            ImGui.SetNextWindowPos(viewport.GetCenter(), ImGuiCond.Appearing, new(0.5f));
+            bool open = true;
+            if (ImGui.BeginPopupModal(title, ref open, ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoDocking))
+            {
+                ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + Math.Min(UiTheme.Px(490), viewport.WorkSize.X - 60));
+                ImGui.TextWrapped(notice);
+                ImGui.PopTextWrapPos();
+                ImGui.Spacing();
+                if (ImGui.Button("Volver")) { _quitNotice = null; ImGui.CloseCurrentPopup(); }
+                ImGui.SameLine();
+                if (ImGui.Button("Ver el trabajo")) { _quitNotice = null; ImGui.CloseCurrentPopup(); RevealCurrentWork(); }
+                ImGui.SameLine();
+                if (ImGui.Button("Salir y cancelar")) { _quitNotice = null; ImGui.CloseCurrentPopup(); QuitRequested = true; }
+                if (ImGui.IsKeyPressed(ImGuiKey.Escape)) { _quitNotice = null; ImGui.CloseCurrentPopup(); }
+                ImGui.EndPopup();
+            }
+            if (!open) _quitNotice = null;
+        }
         if (_errorPopup != null)
         {
             ImGui.OpenPopup("Aviso");

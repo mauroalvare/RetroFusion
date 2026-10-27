@@ -17,7 +17,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
     private int _thumbnailRevision = -1;
     private readonly Dictionary<string, GameProfile> _profiles = new(StringComparer.Ordinal);
     private HashSet<string> _availableProfiles = new(StringComparer.Ordinal);
-    private bool _open, _compactRows, _refreshed;
+    private bool _open, _compactRows, _refreshed, _focusSearch;
     private int _contentRevision;
     // Drawn every frame: summaries, the filtered list and created-program checks wait for a change.
     private readonly FrameCache<(int, int, bool), Dictionary<string, string>> _summaries = new();
@@ -121,6 +121,13 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         _thumbnails.Poll();
         if (!_open) return;
         if (_thumbnailRevision != library.Revision) { _thumbnailRevision = library.Revision; _thumbnails.Clear(); RefreshProfiles(); }
+        // Ctrl+F goes to the search box; from the machine overview it searches all games.
+        var io = ImGui.GetIO();
+        if (io.KeyCtrl && !io.WantTextInput && ImGui.IsKeyPressed(ImGuiKey.F, false))
+        {
+            if (_section == "home") Select("all");
+            _focusSearch = true;
+        }
         var viewport = ImGui.GetMainViewport();
         ImGui.SetNextWindowPos(viewport.WorkPos);
         ImGui.SetNextWindowSize(new Vector2(viewport.WorkSize.X, Math.Max(1, viewport.WorkSize.Y - UiTheme.StatusBarHeight)));
@@ -181,7 +188,8 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         else
         {
             ImGui.SetNextItemWidth(Math.Max(UiTheme.Px(80), ImGui.GetContentRegionAvail().X - UiTheme.Px(92)));
-            ImGui.InputTextWithHint("##buscar", "Buscar por nombre", ref _search, 150);
+            if (_focusSearch) { ImGui.SetKeyboardFocusHere(); _focusSearch = false; }
+            ImGui.InputTextWithHint("##buscar", "Buscar por nombre (Ctrl+F)", ref _search, 150);
             ImGui.SameLine(); ImGui.BeginDisabled(_search.Length == 0);
             if (ImGui.Button("Limpiar", new(UiTheme.Px(82), 0))) _search = "";
             ImGui.EndDisabled();

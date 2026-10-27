@@ -7,7 +7,8 @@ public sealed class AppPreferences
 {
     public static readonly int[] TextSizes = [100, 125, 150, 175, 200];
     private sealed record Document(int Version, int TextPercent, bool HighContrast, bool IntegerScale, bool Fullscreen,
-        bool PowerSaving, bool ShowFps, string SpectrumJoystick, int C64Port, bool TypeLoad, bool TurboWhileLoading);
+        bool PowerSaving, bool ShowFps, string SpectrumJoystick, int C64Port, bool TypeLoad, bool TurboWhileLoading,
+        bool PauseInBackground = false);   // added later in v1: an older file without it keeps the default
     private readonly string _path;
     private readonly bool _persist;
     private bool _unreadable;
@@ -21,6 +22,7 @@ public sealed class AppPreferences
     public int C64Port { get; set; } = 2;
     public bool TypeLoad { get; set; } = true;
     public bool TurboWhileLoading { get; set; } = true;
+    public bool PauseInBackground { get; set; }
     public string? Problem { get; private set; }
     public float TextScale => TextPercent / 100f;
 
@@ -40,6 +42,7 @@ public sealed class AppPreferences
             TextPercent = doc.TextPercent; HighContrast = doc.HighContrast; IntegerScale = doc.IntegerScale;
             Fullscreen = doc.Fullscreen; PowerSaving = doc.PowerSaving; ShowFps = doc.ShowFps;
             SpectrumJoystick = joystick; C64Port = doc.C64Port; TypeLoad = doc.TypeLoad; TurboWhileLoading = doc.TurboWhileLoading;
+            PauseInBackground = doc.PauseInBackground;
         }
         catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException or JsonException)
         {
@@ -52,7 +55,7 @@ public sealed class AppPreferences
     public void Defaults()
     {
         TextPercent = 100; HighContrast = Fullscreen = ShowFps = false; IntegerScale = PowerSaving = true;
-        SpectrumJoystick = JoystickMode.Kempston; C64Port = 2; TypeLoad = TurboWhileLoading = true;
+        SpectrumJoystick = JoystickMode.Kempston; C64Port = 2; TypeLoad = TurboWhileLoading = true; PauseInBackground = false;
     }
 
     public bool Save()
@@ -65,7 +68,7 @@ public sealed class AppPreferences
         {
             Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(_path))!);
             File.WriteAllText(temporary, JsonSerializer.Serialize(new Document(1, TextPercent, HighContrast, IntegerScale, Fullscreen,
-                PowerSaving, ShowFps, SpectrumJoystick.ToString(), C64Port, TypeLoad, TurboWhileLoading)));
+                PowerSaving, ShowFps, SpectrumJoystick.ToString(), C64Port, TypeLoad, TurboWhileLoading, PauseInBackground)));
             File.Move(temporary, _path, overwrite: true); Problem = null; return true;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
