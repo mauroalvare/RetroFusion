@@ -1073,3 +1073,34 @@ El editor valida anchos8/16/20bits y rechaza desbordes antes de mutar registros 
 StepOver clasifica llamadas con IFlowAnalyzer, sin inferir la arquitectura por el
 nombre visible. El paquete local se numera0.3.2; el release público sigue0.3.1 hasta
 que el usuario indique publicarlo. La preparación de paquetes no es una autorización.
+
+
+## D-072 — Investigación iterativa y tiempo previo para una fusión
+
+La preparación de una idea no termina automáticamente después de su primera revisión.
+Los requisitos que siguen faltando guían nuevas rondas, conservando idea, base, pedido
+y modalidad. La estimación aparece antes de iniciar; el trabajo comparte una hora
+entre preparación, referencias, escritura y comprobación, con reserva para terminar.
+
+PrepareOptions admite perfil previo, continuación privada por máquina/SHA-256,
+historial y número de ronda. PrepareResult devuelve continuación y resultados de
+experimentos. PreparationExperimentQuestion informa rondas anteriores y variables
+disponibles; el esquema declarativo de entradas mantiene sus límites y no acepta
+código de host ni escrituras propuestas por la IA.
+
+Las pruebas se comparan y verifican restaurando el estado incluso al cancelar.
+Después se conserva el avance real de la última secuencia válida. Una firma por
+entradas y estado evita repetir la misma prueba cambiando solo su descripción.
+La revisión y la escritura pueden devolver requisitos al mismo ciclo de investigación.
+Los cambios de texto o fechas del perfil no cuentan como capacidades nuevas.
+
+El mismo plazo y AiOperation alcanzan todas las etapas. Se detiene por cancelación,
+plazo, ausencia repetida de pruebas/capacidades nuevas o bloqueo de escritura repetido
+sin evidencia adicional. Nunca se habilita una fusión por agotamiento del tiempo.
+Las rondas completadas y los borradores se conservan; la continuación de partida
+es privada y permanece en memoria, sin sustituir partidas guardadas del jugador.
+
+Un cambio externo del perfil se detecta antes de guardarlo; se conservan campos
+previamente comprobados y solo se mejora una observación de solo lectura si coincide
+el campo completo verificado. Otra edición no hereda esos datos. Las CLI del estudio
+admiten un timeout largo explícito; el valor predeterminado de otros usos se conserva.

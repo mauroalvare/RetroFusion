@@ -153,6 +153,11 @@ public sealed class KeyTrialAdvisor : IPlayAdvisor
 
 public sealed class PrepareOptions
 {
+    public GameProfile? PreviousProfile { get; set; }
+    public PreparationContinuation? Resume { get; set; }
+    public IReadOnlyList<PreparationExperimentResult> PreviousExperiments { get; set; } = [];
+    public int InvestigationPass { get; set; } = 1;
+    public bool ContinueResearch { get; set; }
     public string Goal { get; set; } = "";
     public string FirmwareDirectory { get; set; } = "";
     /// <summary>The user's AI; null = only the built-in key trial.</summary>
@@ -168,6 +173,8 @@ public sealed class PrepareOptions
 
 public sealed class PrepareResult
 {
+    public PreparationContinuation? Continuation { get; set; }
+    public List<PreparationExperimentResult> Experiments { get; set; } = new();
     public string Goal { get; set; } = "";
     public List<string> CheckedData { get; set; } = new();
     public List<string> UnresolvedData { get; set; } = new();
@@ -259,8 +266,17 @@ public static class GamePreparer
         r.File = Path.GetFileName(path);
         r.Member = files.Count > 1 ? media.Name : null;
         r.Sha256 = Sha256Of(media);
-        var previous = ProfileLibrary.ForFiles(files);
+        var previous = o.PreviousProfile != null ? GameProfile.Parse(o.PreviousProfile.ToJson()) : ProfileLibrary.ForFiles(files);
         if (previous?.Machine != machine || previous.Match.Sha256.Contains(r.Sha256, StringComparer.OrdinalIgnoreCase) != true) previous = null;
+        if (o.Resume is { } requested && (requested.Machine != machine ||
+            !requested.Sha256.Equals(r.Sha256, StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidDataException("La continuación de investigación corresponde a otra edición.");
+        string profileFolder = o.ProfilesFolder ?? ProfileLibrary.UserFolder;
+        string expectedProfilePath = Path.Combine(profileFolder, (previous?.Id ?? $"{Slug(r.Game)}-{r.Sha256[..8]}") + ".json");
+        string? ProfileStamp() => File.Exists(expectedProfilePath)
+            ? Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(expectedProfilePath))) : null;
+        string? originalProfileStamp = o.Save ? ProfileStamp() : null;
+        bool recordingBoot = o.Resume == null;
         string folder = Path.GetDirectoryName(Path.GetFullPath(path))!;
         LaunchResult Launch() => MachineLauncher.Launch(machine, files, machine == "invaders" ? null : media, o.FirmwareDirectory, folder);
         var launch = Launch();
@@ -269,7 +285,7 @@ public static class GamePreparer
         var twin = Launch().Machine;
         string machineName = MachineCatalog.Get(machine).Name;
         Say($"{r.Game}: {machineName}, {launch.Media.Name} ({launch.Description}).");
-        if (launch.IsTape && m is Spectrum48 zx)
+        if (o.Resume == null && launch.IsTape && m is Spectrum48 zx)
         {
             Say("Cargando la cinta como lo haría una persona (LOAD \"\" y la cinta sonando)...");
             MachineLauncher.LoadTape(zx);
@@ -286,6 +302,7 @@ public static class GamePreparer
                 m.DrainAudio(sink);
             }
             frames += n;
+            if (!recordingBoot) return;
             if (r.Boot.Count > 0 && r.Boot[^1].StartsWith("wait "))
                 r.Boot[^1] = $"wait {int.Parse(r.Boot[^1][5..]) + n}";
             else
@@ -303,7 +320,7 @@ public static class GamePreparer
             }
             foreach (var k in list) m.SetKey(k, false);
             frames += hold;
-            r.Boot.Add($"press {string.Join('+', list)} {hold}");
+            if (recordingBoot) r.Boot.Add($"press {string.Join('+', list)} {hold}");
         }
         PlayCheck CheckTwin()
         {
@@ -315,7 +332,13 @@ public static class GamePreparer
         var trial = new KeyTrialAdvisor();
         var seen = new List<string>();
         var history = new List<string>();
-        Wait(100);
+        if (o.Resume is { } resume)
+        {
+            m.LoadState(resume.State); m.ReleaseAllKeys();
+            r.Boot = resume.Boot.ToList(); frames = resume.Frames;
+            Say($"Retomando la partida observada para la investigación {o.InvestigationPass}.");
+        }
+        else Wait(100);
         seen.Add(Signature(m));
         PlayCheck check = CheckTwin();
         bool accepted = false;
@@ -438,7 +461,7 @@ public static class GamePreparer
         ct.ThrowIfCancellationRequested();
         var play = PlayExperiment(c, machine);
         Say("Laboratorio: jugando al azar (siempre el mismo azar) para encontrar el puntaje...");
-        var (played, idle) = LabExperiments.Run(m, machine, play);
+        var (played, idle) = LabExperiments.Run(m, machine, play, ct: ct);
         int start = MemoryLab.RangeFor(machine).start;
         var scores = LabExperiments.Scores(played, idle, start, $"\"{play.Description}\"");
         lab.Findings.AddRange(scores);
@@ -448,8 +471,9 @@ public static class GamePreparer
         lab.Findings.AddRange(livesInPlay);
         lab.Method += $" Experimento de puntaje: {play.Description}, {play.Frames} cuadros contra los mismos sin tocar nada.";
         Say("Laboratorio: verificando cada hipótesis con un experimento...");
-        LabVerifier.VerifyBest(m, lab, scores.Concat(livesInPlay).ToDictionary(f => f, _ => play));
+        LabVerifier.VerifyBest(m, lab, scores.Concat(livesInPlay).ToDictionary(f => f, _ => play), ct: ct);
         ct.ThrowIfCancellationRequested();
+        LabExperiment? advance = null;
         if (r.Goal.Length > 0 && o.Advisor is IPreparationExperimentAdvisor planner)
         {
             Say("Preparación dirigida: buscando acciones para observar los datos pedidos...");
@@ -459,16 +483,25 @@ public static class GamePreparer
                 {
                     Goal = r.Goal, Game = r.Game, Machine = machine, MachineName = machineName,
                     Picture = Copy(m.Video), Controls = c, Keys = validKeys.ToList(), Candidates = Candidates(lab, m),
+                    Pass = o.InvestigationPass, PreviousExperiments = o.PreviousExperiments.TakeLast(18).ToArray(),
+                    KnownVariables = previous?.Variables.Keys.ToArray() ?? [],
                 }, ct);
                 foreach (var experiment in (experiments ?? new()).Take(PreparationExperiments.MaxExperiments))
                 {
                     ct.ThrowIfCancellationRequested();
                     if (!PreparationExperiments.TryValidate(experiment, validKeys, out string problem))
                     {
-                        Say("Experimento descartado: " + problem); r.UnresolvedData.Add(problem); continue;
+                        Say("Experimento descartado: " + problem); r.UnresolvedData.Add(problem);
+                        r.Experiments.Add(new("invalid", experiment.Description ?? "", "Descartado: " + problem, true)); continue;
+                    }
+                    string signature = PreparationResearch.Signature(experiment, m.SaveState());
+                    if (o.PreviousExperiments.Concat(r.Experiments).Any(e => e.Signature == signature))
+                    {
+                        r.Experiments.Add(new(signature, experiment.Description ?? "", "Ya se probó esta secuencia desde este mismo estado.", true));
+                        continue;
                     }
                     Say("Probando: " + experiment.Description);
-                    var proposed = LabExperiments.Analyze(m, machine, experiment).Where(f =>
+                    var proposed = LabExperiments.Analyze(m, machine, experiment, ct: ct).Where(f =>
                     {
                         uint address = Convert.ToUInt32(f.Address, 16);
                         var range = MemoryLab.RangeFor(machine);
@@ -478,11 +511,15 @@ public static class GamePreparer
                     {
                         ct.ThrowIfCancellationRequested();
                         if (lab.Findings.Any(f => f.Address == finding.Address && f.Kind == finding.Kind && f.Encoding == finding.Encoding && f.Bytes == finding.Bytes && f.Status == "verified")) continue;
-                        LabVerifier.Verify(m, finding, experiment, frames: experiment.Frames);
+                        LabVerifier.Verify(m, finding, experiment, frames: experiment.Frames, ct: ct);
                         lab.Findings.Add(finding);
                     }
                     ct.ThrowIfCancellationRequested();
-                    r.CheckedData.Add($"Experimento repetido: {experiment.Description}; {proposed.Count(f => f.Status == "verified")} candidatos con efecto observado.");
+                    string outcome = $"Experimento repetido: {experiment.Description}; {proposed.Count(f => f.Status == "verified")} candidatos con efecto observado. " +
+                        string.Join(" ", proposed.Select(f => $"0x{f.Address}: {f.Status}; {string.Join("; ", f.Verification?.Observations.Take(2) ?? [])}"));
+                    r.CheckedData.Add(outcome);
+                    r.Experiments.Add(new(signature, experiment.Description ?? "", outcome));
+                    advance = experiment;
                 }
                 r.Advisors.Add(planner is IPlayAdvisor playingPlanner ? playingPlanner.Name + " (experimentos)" : "experimentos dirigidos");
             }
@@ -542,9 +579,20 @@ public static class GamePreparer
         lab.Notes.AddRange(r.UnresolvedData);
         profile.Verified += " Alcance de esta preparación: arranque/controles y variables descritas; no acredita automáticamente todos los requisitos de la fusión.";
         ct.ThrowIfCancellationRequested();
+        if (o.ContinueResearch && advance != null)
+        {
+            Say("Conservando el avance de la partida para investigar los próximos eventos...");
+            PreparationResearch.Advance(m, advance, ct);
+            frames += advance.Frames;
+        }
+        r.Continuation = new(machine, r.Sha256, m.SaveState(), r.Boot.ToArray(), frames);
         if (o.Save)
         {
-            string dir = o.ProfilesFolder ?? ProfileLibrary.UserFolder;
+            if (!Path.GetFullPath(Path.Combine(profileFolder, profile.Id + ".json")).Equals(Path.GetFullPath(expectedProfilePath),
+                    OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal) ||
+                ProfileStamp() != originalProfileStamp)
+                throw new InvalidDataException("El perfil cambió durante la investigación. No se sobrescribieron los cambios.");
+            string dir = profileFolder;
             r.ProfilePath = ProfileLibrary.SaveTo(profile, dir);
             lab.Save(Path.Combine(dir, "lab", profile.Id + ".json"));
             Say($"Perfil guardado en {r.ProfilePath}.");
@@ -557,13 +605,25 @@ public static class GamePreparer
     {
         if (previous == null) return;
         profile.Id = previous.Id; profile.Name = previous.Name;
-        foreach (var item in previous.Variables) profile.Variables[item.Key] = item.Value;
-        foreach (var item in previous.Controls) profile.Controls[item.Key] = item.Value;
+        foreach (var item in previous.Variables)
+        {
+            if (profile.Variables.TryGetValue(item.Key, out var fresh))
+            {
+                bool sameField = fresh.Address == item.Value.Address && fresh.Encoding == item.Value.Encoding && fresh.Bytes == item.Value.Bytes &&
+                    fresh.Mask == item.Value.Mask && fresh.HighBitAddress == item.Value.HighBitAddress && fresh.HighBitMask == item.Value.HighBitMask;
+                if (sameField && item.Value.ReadOnly && !fresh.ReadOnly) continue;
+                // Keep conflicting observations accessible without silently redirecting an existing helper's variable.
+                if (!sameField && !fresh.ReadOnly)
+                    profile.Variables.TryAdd(item.Key + "Observed" + fresh.Address + fresh.Encoding + fresh.Bytes, fresh);
+            }
+            profile.Variables[item.Key] = item.Value;
+        }
+        foreach (var item in previous.Controls) profile.Controls.TryAdd(item.Key, item.Value);
         profile.Sprites = new(previous.Sprites);
         profile.Helpers = previous.Helpers.ToList();
         profile.HelpersDoc = previous.HelpersDoc.ToList();
-        profile.Description = previous.Description + "\nPreparación adicional: " + profile.Description;
-        profile.Verified = previous.Verified + "\n" + profile.Verified;
+        profile.Description = previous.Description.Split("\nPreparación adicional:", 2)[0] + "\nPreparación adicional: " + profile.Description;
+        profile.Verified = (previous.Verified.Length > 4000 ? previous.Verified[..4000] : previous.Verified) + "\n" + profile.Verified;
     }
 
     /// <summary>What a screen shows, coarse enough that an animation or a scroller does not make it another screen.</summary>
@@ -709,7 +769,8 @@ public static class GamePreparer
         {
             foreach (var n in named)
             {
-                var f = lab.Findings.FirstOrDefault(x => x.Address.Equals(n.Address.TrimStart('$'), StringComparison.OrdinalIgnoreCase) && x.Kind != "entity-table");
+                var f = lab.Findings.Where(x => x.Address.Equals(n.Address.TrimStart('$'), StringComparison.OrdinalIgnoreCase) && x.Kind != "entity-table")
+                    .OrderByDescending(x => x.Status == "verified").ThenByDescending(x => x.Confidence).FirstOrDefault();
                 string name = CleanName(n.Name);
                 if (f == null || p.Variables.ContainsKey(name))
                     continue;

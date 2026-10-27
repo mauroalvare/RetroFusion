@@ -27,9 +27,13 @@ arrancar el original, probar controles y ejecutar experimentos acotados.
 
 La acción **Preparar y crear esta fusión** conserva los originales, el pedido, la base
 y la mecánica elegida. En creación se llama **Preparar y crear este juego**.
-El robot prepara datos de esa edición y la IA vuelve a evaluar
-la misma idea con los perfiles actuales. Si alcanza la evidencia, continúa la creación
-y sus validaciones; si es parcial, conserva los faltantes y permite reintentar.
+Antes de empezar muestra una estimación orientativa. Con una IA conectada puede
+investigar durante varias rondas, hasta una hora para el conjunto del trabajo.
+El robot prepara datos de esa edición y la IA vuelve a evaluar la misma idea con los
+perfiles actuales. Si faltan datos, usa el historial de pruebas y el punto alcanzado en
+la partida para buscar otra evidencia. Si la escritura detecta otro requisito, vuelve
+a investigar sin cambiar la idea. Solo continúa cuando hay respaldo. Si se agota el
+tiempo o no aparecen pruebas nuevas, conserva los datos y explica los faltantes.
 Un perfil existente o un arranque correcto no significan que todo esté resuelto.
 
 En esa revisión, citá las variables, controles, recursos o ayudas reales que respaldan

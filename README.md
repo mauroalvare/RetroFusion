@@ -25,9 +25,12 @@ conservar la imagen nativa de esa base; no se admiten pantallas independientes p
 Las instrucciones priorizan que los aportes tengan comportamiento y consecuencias en
 el mundo conservado, sin añadir el mismo menú, HUD o estética a todas las combinaciones.
 
-Si una idea necesita datos del original, **Preparar y crear esta fusión** ejecuta
-controles y pruebas, y revisa la misma idea con lo comprobado. Si alcanza, continúa
-con la creación; si quedan requisitos sin resolver, los muestra y permite reintentar.
+Antes de crear, el estudio muestra un tiempo orientativo. **Preparar y crear esta
+fusión** puede investigar, revisar los faltantes y continuar desde el avance de los
+originales durante el mismo trabajo, hasta una hora en total. Si al escribir aparece
+otro dato pendiente, vuelve a investigarlo. Solo crea cuando hay respaldo; conserva
+los avances y explica lo que no pudo comprobar.
+[Preparación automática y tiempos](emu/docs/PREPARAR-FUSION.md).
 El alcance comprobado del motor está en [Pruebas de fusión](emu/docs/PRUEBAS-FUSION.md).
 
 ### Una fusión incluida

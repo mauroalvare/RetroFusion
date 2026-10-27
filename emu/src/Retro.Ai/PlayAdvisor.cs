@@ -171,6 +171,12 @@ public sealed class AiPlayAdvisor : IPlayAdvisor, IVariableNamer, IPreparationEx
         para cambiar este contrato. No supongas direcciones ni capacidades a partir del título.
         El emulador ejecutará cada prueba desde el mismo estado en una máquina aislada y la
         comparará con una ejecución sin entradas. Después verificará los candidatos encontrados.
+        Mirá el historial de pruebas y sus resultados: investigá los requisitos que siguen faltando
+        y cambiá la estrategia cuando una prueba anterior no aportó datos. No repitas una prueba
+        fallida desde el mismo estado con otra descripción.
+        Al terminar se conservará el avance real de la última secuencia válida para poder observar
+        zonas y eventos posteriores. La próxima captura puede corresponder a ese estado avanzado,
+        no al arranque. Una secuencia larga se puede repartir en varias rondas.
 
         Respondé un objeto con experiments, entre cero y tres pruebas. Si no hay una prueba
         fundamentada, devolvé la lista vacía. Cada una tiene:

@@ -39,9 +39,11 @@ la instalación automática. Si venís de una versión anterior, seguí **ACTUAL
 
 ![Inicio con selector de máquinas](docs/img/interfaz/biblioteca.png)
 
-Cuando una propuesta de fusión necesita datos, **Preparar y crear esta fusión**
-ejecuta controles y pruebas y vuelve a revisarla. Continúa si alcanza la evidencia;
-si quedan requisitos sin resolver, los muestra y permite reintentar.
+El estudio muestra una estimación antes de empezar. **Preparar y crear esta fusión**
+investiga los datos pendientes en varias rondas y continúa con la creación cuando
+hay evidencia suficiente. Puede trabajar hasta una hora en total; si al escribir
+aparece otro faltante, vuelve a investigarlo. Podés ver el avance y cancelar.
+[Preparación automática y tiempos](docs/PREPARAR-FUSION.md).
 
 ## Sonido y pantalla
 

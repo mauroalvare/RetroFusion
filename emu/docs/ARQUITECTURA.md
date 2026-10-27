@@ -412,19 +412,38 @@ PrepareResult.Ok acredita ese arranque/perfil reproducible, no todos los requisi
 CheckedData y UnresolvedData separan lo comprobado de lo que sigue abierto.
 
 En StudioWindow, una idea con MissingData ofrece **Preparar y crear esta fusión**.
-FusionPreparationWorkflow hace una pasada acotada de preparación de sus originales,
-actualiza perfiles y ranuras y llama a StudioDesigner.ReassessConceptAsync con la misma
-idea, pedido, modalidad y base. La revisión usa una instantánea de perfiles y exige
-referencias a capacidades existentes; no vuelve a proponer otro juego para quitar
-los faltantes. ROMs, perfiles o configuración cambiados invalidan resultados en curso.
+FusionPreparationWorkflow investiga en varias rondas: actualiza los perfiles y las
+ranuras, revisa los requisitos de la misma idea y usa los faltantes nuevos como objetivo
+de la siguiente ronda. Hasta 48 rondas, dentro del tiempo disponible. Los requisitos
+preceden al diseño largo en el contexto del laboratorio para no quedar recortados.
 
-Con proveedor automático, navegación, experimentos, revisión y escritura comparten
-un AiOperation con presupuesto acotado. Si la revisión deja MissingData vacío con
-respaldo, el estudio continúa por WriteAsync y StudioValidator. Si sigue incompleta,
-conserva la idea y los datos que faltan y ofrece otro intento explícito, sin un ciclo
-automático infinito. Cancelar no fuerza una creación ni elimina las guardas.
+PreparationContinuation conserva un estado privado por edición y el arranque original.
+Las comparaciones y verificaciones restauran su máquina incluso al cancelar. Después
+se ejecuta la última secuencia válida para explorar un punto posterior; la siguiente
+ronda recibe esa captura y el historial de experimentos, también si la escritura
+descubrió otro faltante. La identidad de una prueba usa entradas y estado, no su nombre.
+No se modifica la ROM ni una partida guardada del jugador.
+
+Con proveedor automático, navegación, experimentos, revisión, referencias y escritura
+comparten AiOperation, límite de texto y un plazo total de una hora. La investigación
+dispone como máximo de 50 minutos y reserva diez para la creación. Las CLI del estudio
+admiten llamadas largas sujetas al mismo token de cancelación. Los otros usos conservan
+su tiempo predeterminado. FusionResearchPlan muestra una estimación previa orientativa.
+
+ReassessConceptAsync conserva idea, pedido, modalidad y base y exige referencias a
+capacidades existentes. Solo una revisión respaldada puede vaciar MissingData. Tres
+rondas sin nuevas pruebas ni cambios de capacidades detienen un ciclo improductivo.
+Una escritura que declara un faltante vuelve automáticamente a investigar; repetir el
+mismo bloqueo sin evidencia adicional también se detecta. Perfiles y borradores
+completados permanecen disponibles cuando queda trabajo pendiente.
+
+Se comprueba la identidad de ROMs y perfiles entre etapas; un cambio externo del
+perfil durante una preparación se detecta antes de reemplazarlo. Una observación de
+solo lectura se mejora a escritura solo si se verificó el mismo campo completo.
+Cancelar o vencer el plazo no habilita la creación con datos incompletos.
 En intercambio manual o por carpeta, la revisión final usa una consigna con la evidencia
 actual y la respuesta del chat/agente; no se simula una respuesta automática.
+Guía de uso: [Preparar una fusión](PREPARAR-FUSION.md).
 
 ## Cinta: señal, no atajos
 

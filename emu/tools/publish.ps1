@@ -50,6 +50,7 @@ foreach ($rid in $Runtimes) {
     New-Item -ItemType Directory -Force $playerDocs | Out-Null
     Copy-Item (Join-Path $root "docs/MODIFICACIONES.md") (Join-Path $playerDocs "MODIFICACIONES.md")
     Copy-Item (Join-Path $root "docs/SONIDO.md") (Join-Path $playerDocs "SONIDO.md")
+    Copy-Item (Join-Path $root "docs/PREPARAR-FUSION.md") (Join-Path $playerDocs "PREPARAR-FUSION.md")
     Copy-Item (Join-Path $root "docs/NOVEDADES-0.3.2.md") (Join-Path $playerDocs "NOVEDADES-0.3.2.md")
     Copy-Item (Join-Path $root "docs/PC-DOS.md") (Join-Path $playerDocs "PC-DOS.md")
     Copy-Item (Join-Path $root "docs/PCXT.md") (Join-Path $playerDocs "PCXT.md")

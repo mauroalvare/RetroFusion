@@ -75,7 +75,7 @@ public sealed class LabExperiment
 public static class LabExperiments
 {
     /// <summary>Plays the experiment and the same frames without inputs; RAM samples of both. The machine is left at its starting state.</summary>
-    public static (List<byte[]> played, List<byte[]> idle) Run(IMachine m, string machine, LabExperiment e, int sampleEvery = 5)
+    public static (List<byte[]> played, List<byte[]> idle) Run(IMachine m, string machine, LabExperiment e, int sampleEvery = 5, CancellationToken ct = default)
     {
         var (start, end) = MemoryLab.RangeFor(machine);
         byte[] state = m.SaveState();
@@ -87,6 +87,7 @@ public static class LabExperiments
             var samples = new List<byte[]> { Snapshot(m, start, end) };
             for (int f = 0; f < e.Frames; f++)
             {
+                ct.ThrowIfCancellationRequested();
                 keys.Tick(f);
                 if (withInputs)
                     foreach (var s in e.DueAt(f))
@@ -99,11 +100,8 @@ public static class LabExperiments
             keys.ReleaseAll();
             return samples;
         }
-        var played = Play(true);
-        var idle = Play(false);
-        m.LoadState(state);
-        m.ReleaseAllKeys();
-        return (played, idle);
+        try { return (Play(true), Play(false)); }
+        finally { m.LoadState(state); m.ReleaseAllKeys(); }
     }
 
     internal static byte[] Snapshot(IMachine m, int start, int end)
@@ -114,9 +112,9 @@ public static class LabExperiments
         return b;
     }
 
-    public static List<LabFinding> Analyze(IMachine m, string machine, LabExperiment e, int sampleEvery = 5)
+    public static List<LabFinding> Analyze(IMachine m, string machine, LabExperiment e, int sampleEvery = 5, CancellationToken ct = default)
     {
-        var (played, idle) = Run(m, machine, e, sampleEvery);
+        var (played, idle) = Run(m, machine, e, sampleEvery, ct);
         int start = MemoryLab.RangeFor(machine).start;
         string what = string.IsNullOrWhiteSpace(e.Description) ? "con las entradas del experimento" : $"\"{e.Description}\"";
         var found = e.Kind switch

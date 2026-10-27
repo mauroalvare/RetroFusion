@@ -294,9 +294,14 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   esta fusión** puede arrancar y jugar los originales, probar entradas y actualizar sus
   perfiles sin exigir una partida manual previa. Un perfil parcial también puede
   revisarse; no basta con que ya exista en el catálogo.
-- La preparación hace una pasada acotada. Puede no atravesar una intro, completar
-  una secuencia o descubrir datos útiles. Sin un proveedor automático, usa las pruebas
-  disponibles y la revisión final se intercambia con el chat o agente configurado.
+- La preparación puede investigar en varias rondas y retomar su partida privada,
+  dentro de un trabajo de hasta una hora que también incluye escritura y comprobación.
+  La estimación previa es orientativa; no obliga a consumir el tiempo completo.
+  Puede no atravesar una intro, completar una secuencia o descubrir datos útiles.
+  Se detiene si no aparecen pruebas ni datos nuevos, si vence el tiempo o ante errores;
+  conserva los perfiles de las rondas completadas. El punto privado de investigación
+  no persiste al cerrar la aplicación. [Detalles](PREPARAR-FUSION.md).
+  Sin un proveedor automático, la revisión final se intercambia con el chat o agente.
   La disponibilidad del CLI depende de su instalación y sesión.
 - La revisión conserva idea, base y pedido. Solo continúa la creación si se respaldan
   los requisitos; si falta algo, mantiene el motivo y permite reintentar. No garantiza

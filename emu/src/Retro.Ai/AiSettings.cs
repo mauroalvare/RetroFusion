@@ -63,13 +63,15 @@ public sealed class AiSettings
         File.WriteAllText(FilePath, JsonSerializer.Serialize(this, GameProfile.Json));
     }
 
-    public IAiProvider? CreateProvider() => Provider switch
+    public IAiProvider? CreateProvider() => CreateProvider(null);
+
+    public IAiProvider? CreateProvider(TimeSpan? timeout) => Provider switch
     {
         "claude" => new ClaudeProvider(ClaudeApiKey, ClaudeModel),
         "openai" => new OpenAiProvider(KeyOrEnv(OpenAiApiKey, "OPENAI_API_KEY"), OpenAiModel),
         "gemini" => new GeminiProvider(KeyOrEnv(GeminiApiKey, "GEMINI_API_KEY"), GeminiModel),
         "ollama" => new OllamaProvider(OllamaUrl, OllamaModel),
-        "sub-claude" or "sub-codex" or "sub-google" => new CliAgentProvider(CliTools.ById(Provider)!, CliPaths.GetValueOrDefault(Provider),
+        "sub-claude" or "sub-codex" or "sub-google" => new CliAgentProvider(CliTools.ById(Provider)!, CliPaths.GetValueOrDefault(Provider), timeout: timeout,
             model: string.IsNullOrWhiteSpace(SessionModel) ? CliModels.GetValueOrDefault(Provider) : SessionModel,
             effort: string.IsNullOrWhiteSpace(SessionModel) ? CliEfforts.GetValueOrDefault(Provider) : null),
         _ => null,   // manual and agent modes are driven by the UI

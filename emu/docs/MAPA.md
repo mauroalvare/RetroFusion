@@ -61,6 +61,10 @@ Las ayudas para jugar están en **Ayuda > Abrir y jugar**, **Controles de la par
 y **Atajos**. Los controles corresponden al sistema o a la fusión activos. El README
 del paquete es una guía breve; los contratos para agentes se entregan por separado.
 
+La estimación previa y el trabajo de investigación continuo se explican en
+[Preparar una fusión](PREPARAR-FUSION.md). FusionResearchPlan define el tiempo compartido;
+FusionPreparationWorkflow conserva checkpoints privados e historial entre rondas.
+
 El contrato común para las IAs está en `src/Retro.Ai/Docs/CONTRATO-DISENO.md` y se
 incrusta con `GameDesignGuide.Compact`; `DISENO-JUEGOS.md` queda como consulta ampliada.
 Creador y estudio lo envían por todos los modos de trabajo. Las carpetas para agentes

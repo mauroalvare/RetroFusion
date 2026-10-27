@@ -6,6 +6,9 @@ namespace Retro.Compat;
 /// <summary>Observed context for declarative, bounded input experiments. No host code or addresses.</summary>
 public sealed class PreparationExperimentQuestion
 {
+    public int Pass { get; init; } = 1;
+    public IReadOnlyList<PreparationExperimentResult> PreviousExperiments { get; init; } = [];
+    public IReadOnlyList<string> KnownVariables { get; init; } = [];
     public string Goal { get; init; } = "";
     public string Game { get; init; } = "";
     public string Machine { get; init; } = "";
@@ -20,6 +23,10 @@ public sealed class PreparationExperimentQuestion
         var text = new StringBuilder();
         text.AppendLine($"Juego: {Game}; máquina: {MachineName}.");
         text.AppendLine("Objetivo de esta preparación: " + Goal);
+        text.AppendLine($"Ronda de investigación: {Pass}. Variables ya disponibles: {string.Join(", ", KnownVariables)}.");
+        foreach (var previous in PreviousExperiments.TakeLast(18))
+            text.AppendLine($"Prueba anterior: {previous.Description}. Resultado: {previous.Outcome}");
+        text.AppendLine("La captura es el estado ACTUAL, que puede estar avanzado respecto al arranque. Proponé una estrategia distinta si las anteriores no descubrieron el dato.");
         text.AppendLine("Teclas disponibles: " + string.Join(", ", Keys));
         if (Controls != null) text.AppendLine($"Controles comprobados: {Controls.Name}; {string.Join(", ", Controls.Keys)}.");
         foreach (var candidate in Candidates)

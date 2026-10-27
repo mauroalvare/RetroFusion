@@ -41,6 +41,16 @@ public sealed class StudioWindow
     private string? _fusionPrepareContext;
     private GameConcept? _fusionPrepareConcept;
     private GameConcept? _writingConcept;
+    private CancellationTokenSource? _creationDeadline;
+    private long _creationStarted;
+    private AiOperation? _creationOperation;
+    private FusionPreparationResult? _creationResearch;
+    private string? _creationContext;
+    private Action? _creationGuard;
+    private bool _continueCreationResearch;
+    private int _automaticResearchRetries, _repeatedCreationBlocks;
+    private string? _lastCreationBlock;
+    private readonly List<string> _supersededCreationWork = new();
     private string _preparationSummary = "";
     private CancellationTokenSource? _prepareCts;
     private string _preparing = "";
@@ -57,7 +67,8 @@ public sealed class StudioWindow
     private string _request = "";
     private List<GameConcept>? _concepts;
     private volatile string _progress = "";
-    private readonly AiBuildWindow _build = new("estudio");
+    private readonly AiBuildWindow _build;
+    private readonly TimeProvider _workClock;
     private string? _problem;          // last failure, shown in red
     private string? _problemDetail;    // validation report behind it
     private string? _lastTest;         // summary of the playtest of the game being played
@@ -83,14 +94,17 @@ public sealed class StudioWindow
     private readonly List<FusionEvent> _toasts = new();
 
     public StudioWindow(EmulatorHost host, string romDir, string gamesFolder, AiSettings ai,
-        FusionPreparationWorkflow? preparationWorkflow = null, Func<IAiProvider?>? preparationProvider = null)
+        FusionPreparationWorkflow? preparationWorkflow = null, Func<IAiProvider?>? preparationProvider = null,
+        string? timingPath = null, TimeProvider? workClock = null)
     {
         _host = host;
+        _workClock = workClock ?? TimeProvider.System;
+        _build = new("estudio", timingPath: timingPath, clock: _workClock);
         _romDir = romDir;
         _folder = gamesFolder;
         _ai = ai;
         _preparationWorkflow = preparationWorkflow ?? new FusionPreparationWorkflow();
-        _preparationProvider = preparationProvider ?? ai.CreateProvider;
+        _preparationProvider = preparationProvider ?? (() => ai.CreateProvider(FusionResearchPlan.TotalTime));
     }
 
     public void Open(bool inspired = false)
@@ -348,6 +362,8 @@ public sealed class StudioWindow
         if (!_inspiredMode) ImGui.TextColored(Gold, "3. Definí los aportes");
         ImGui.TextUnformatted(_inspiredMode ? "Tu propuesta para el juego (opcional):" : "Qué querés incorporar a la base (opcional):");
         ImGui.InputTextMultiline("##deseo", ref _wish, 2000, new Vector2(-1, 64));
+        AiPicker.Hint(FusionResearchPlan.EstimateText(_chosen.Count, true));
+        AiPicker.Hint("Puede trabajar hasta una hora en total. Podés ver el avance y cancelar.");
         ImGui.BeginDisabled(Busy);
         if (ImGui.Button("Proponer 3 ideas")) AskConcepts();
         ImGui.EndDisabled();
@@ -376,6 +392,7 @@ public sealed class StudioWindow
                     if (ImGui.TreeNode("Datos que se van a comprobar"))
                     { ImGui.TextWrapped(concept.MissingData); ImGui.TreePop(); }
                 }
+                AiPicker.Hint(FusionResearchPlan.EstimateText(_chosen.Count, needsData));
                 ImGui.BeginDisabled(Busy);
                 string action = needsData
                     ? (_inspiredMode ? "Preparar y crear este juego" : "Preparar y crear esta fusión")
@@ -692,6 +709,7 @@ public sealed class StudioWindow
 
     private void AskConcepts()
     {
+        _creationContext = null; _creationGuard = null;
         ClearProblem();
         _concepts = null;
         var slots = Slots();
@@ -731,9 +749,33 @@ public sealed class StudioWindow
             _ai.CliPaths.GetValueOrDefault(_ai.Provider, ""));
     }
 
+    private TimeSpan CreationRemaining => _creationDeadline == null ? FusionResearchPlan.TotalTime
+        : FusionResearchPlan.TotalTime - _workClock.GetElapsedTime(_creationStarted);
+
+    private void BeginCreationWork()
+    {
+        _creationDeadline?.Dispose();
+        _creationDeadline = new CancellationTokenSource(FusionResearchPlan.TotalTime, _workClock);
+        _creationStarted = _workClock.GetTimestamp();
+        _creationContext = null; _creationGuard = null; _creationOperation = null; _creationResearch = null;
+        _automaticResearchRetries = _repeatedCreationBlocks = 0; _lastCreationBlock = null;
+        _supersededCreationWork.Clear();
+    }
+
     private void PrepareConcept(GameConcept concept)
     {
         if (Busy) return;
+        bool continuing = _continueCreationResearch;
+        _continueCreationResearch = false;
+        if (!continuing) BeginCreationWork();
+        else
+        {
+            try { _creationGuard?.Invoke(); }
+            catch (Exception error) when (error is IOException or InvalidDataException)
+            { Problem("Los originales o perfiles cambiaron. No se continuó con datos anteriores. " + error.Message); return; }
+        }
+        if (CreationRemaining <= TimeSpan.FromMinutes(10))
+        { Problem("Se alcanzó el tiempo de investigación de este trabajo. Se conservaron los avances y los requisitos pendientes."); return; }
         ClearProblem(); _manual = null; _preparationSummary = "";
         var slots = Slots();
         var originalConcept = concept;
@@ -751,14 +793,15 @@ public sealed class StudioWindow
             int index = Math.Max(0, targets.FindIndex(target => target.Source.Profile.Id == baseProfile));
             targets[index] = targets[index] with { NeedsPreparation = true };
         }
-        var provider = _preparationProvider();
-        // Navigation, experiments, review and writing share one bounded operation.
-        _fusionPrepareAi = provider == null ? null : _ai.Operation(provider,
-            calls: _chosen.Count * (_ai.Economic ? 6 : 8) + 1 + _ai.DesignAttempts);
+        var provider = continuing ? _creationOperation?.Provider : _preparationProvider();
+        // Navigation, research, review and writing keep the same text/call/time budget.
+        _fusionPrepareAi = continuing ? _creationOperation : provider == null ? null : _ai.Operation(provider,
+            calls: FusionResearchPlan.Calls(_chosen.Count, _ai.DesignAttempts));
+        _creationOperation = _fusionPrepareAi;
         Retro.Compat.IPlayAdvisor? advisor = _fusionPrepareAi != null ? new AiPlayAdvisor(_fusionPrepareAi)
             : _ai.Provider == "agent" ? new FolderPlayAdvisor(Path.Combine(Path.GetTempPath(), "RetroEmu-preparar", Guid.NewGuid().ToString("N")))
             : null;
-        _cts = new CancellationTokenSource();
+        _cts = CancellationTokenSource.CreateLinkedTokenSource(_creationDeadline!.Token);
         var token = _cts.Token;
         _fusionPrepareContext = PreparationContext();
         _fusionPrepareConcept = originalConcept;
@@ -767,9 +810,12 @@ public sealed class StudioWindow
         var ai = _fusionPrepareAi;
         if (ai != null) _build.Start(ai, "preparación de idea");
         bool economic = _ai.Economic;
+        var priorResearch = continuing ? _creationResearch?.Preparations : null;
+        TimeSpan researchTime = CreationRemaining - TimeSpan.FromMinutes(10);
+        if (researchTime > FusionResearchPlan.ResearchTime) researchTime = FusionResearchPlan.ResearchTime;
         _fusionPrepareTask = Task.Run(() => _preparationWorkflow.RunAsync(concept, slots, targets, _romDir, advisor,
             ai == null ? null : (idea, freshSlots, find, ct) => new StudioDesigner().ReassessConceptAsync(ai, freshSlots, find, idea, ct),
-            economic, line => _progress = line, token), token);
+            economic, line => _progress = line, token, researchTime, priorResearch), token);
     }
 
     private void CompletePreparation(FusionPreparationResult result)
@@ -794,6 +840,7 @@ public sealed class StudioWindow
             }
         }
         _preparationSummary = result.Summary;
+        _creationResearch = result;
         if (result.Preparations.Any(r => !r.Ok || r.Profile == null))
         { _build.Stop(false); Problem(result.Summary); return; }
         if (_fusionPrepareAi == null)
@@ -829,6 +876,7 @@ public sealed class StudioWindow
             return;
         }
         _build.Stop(true);
+        _creationGuard = result.EnsureOriginalsUnchanged;
         _progress = "Datos comprobados. Continuando con la creación de la misma idea...";
         Write(result.Concept, _fusionPrepareAi);
     }
@@ -862,8 +910,13 @@ public sealed class StudioWindow
             Author = AiPicker.ShortName(_ai.Provider),
         };
         string provider = _ai.Provider;
-        var ai = provider is "manual" or "agent" ? null : operation ?? _ai.Operation(_ai.CreateProvider()!);
-        PrepareReferences(template, references => WriteReady(concept, template, provider, ai, references));
+        if (operation == null) BeginCreationWork();
+        var ai = provider is "manual" or "agent" ? null : operation ?? _ai.Operation(_preparationProvider()!,
+            calls: FusionResearchPlan.Calls(_chosen.Count, _ai.DesignAttempts));
+        _creationOperation = ai as AiOperation;
+        _creationContext = PreparationContext();
+        var workToken = _creationDeadline!.Token;
+        PrepareReferences(template, references => WriteReady(concept, template, provider, ai, references, workToken), workToken);
     }
 
     private void OfferPreparation(string? error)
@@ -880,7 +933,7 @@ public sealed class StudioWindow
         else _concepts.Add(blocked);
     }
 
-    private void WriteReady(GameConcept concept, StudioGame template, string provider, IAiProvider? ai, OriginalReferences references)
+    private void WriteReady(GameConcept concept, StudioGame template, string provider, IAiProvider? ai, OriginalReferences references, CancellationToken workToken)
     {
         var slots = template.Games;
         switch (provider)
@@ -894,7 +947,7 @@ public sealed class StudioWindow
                 break;
             default:
             {
-                _cts = new CancellationTokenSource();
+                _cts = CancellationTokenSource.CreateLinkedTokenSource(workToken);
                 var token = _cts.Token;
                 var sources = Sources();
                 _progress = $"{ai!.Name} está escribiendo el juego...";
@@ -909,6 +962,7 @@ public sealed class StudioWindow
 
     private void Revise(StudioGame current, string request)
     {
+        _creationContext = null; _creationGuard = null;
         ClearProblem();
         _activeWork = null;
         var template = current.Copy();
@@ -1007,6 +1061,7 @@ public sealed class StudioWindow
 
     private void ResumeWork(StudioWork work)
     {
+        _creationContext = null; _creationGuard = null;
         ClearProblem();
         var provider = _ai.CreateProvider();
         if (provider == null) return;
@@ -1030,10 +1085,10 @@ public sealed class StudioWindow
         });
     }
 
-    private void PrepareReferences(StudioGame game, Action<OriginalReferences> ready)
+    private void PrepareReferences(StudioGame game, Action<OriginalReferences> ready, CancellationToken? workToken = null)
     {
         var sources = Sources();
-        _cts = new CancellationTokenSource();
+        _cts = workToken is { } shared ? CancellationTokenSource.CreateLinkedTokenSource(shared) : new CancellationTokenSource();
         var token = _cts.Token;
         _progress = "Preparando referencias de los originales...";
         _afterReferences = ready;
@@ -1127,6 +1182,12 @@ public sealed class StudioWindow
             _activeWork = null;
             RefreshWork();
         }
+        foreach (string completed in _supersededCreationWork)
+            try { StudioWorkStore.Remove(completed); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+        _supersededCreationWork.Clear();
+        RefreshWork();
+        _creationContext = null; _creationGuard = null;
         StartGame(game);
     }
 
@@ -1147,13 +1208,17 @@ public sealed class StudioWindow
     // ------------------------------------------------------------------ background work
     private void Poll()
     {
+        if ((_referenceTask != null || _designTask != null) && _creationContext != null &&
+            _creationContext != PreparationContext()) _cts?.Cancel();
         if (_fusionPrepareTask is { IsCompleted: false } && _fusionPrepareContext != PreparationContext())
             _cts?.Cancel();
         if (_fusionPrepareTask is { IsCompleted: true } prepared)
         {
             _fusionPrepareTask = null;
             if (_cts?.IsCancellationRequested == true || prepared.IsCanceled)
-            { _build.Stop(false); _progress = "Preparación cancelada. La idea anterior se conserva."; }
+            { _build.Stop(false); _progress = _creationDeadline?.IsCancellationRequested == true
+                ? "Se alcanzó una hora de trabajo. Se conservaron la idea y los datos comprobados."
+                : "Preparación cancelada. La idea anterior y los datos comprobados se conservan."; }
             else if (_fusionPrepareContext != PreparationContext())
             { _build.Stop(false); Problem("Cambió la selección o la configuración. No se creó una fusión con datos anteriores."); }
             else if (prepared.IsFaulted)
@@ -1171,7 +1236,12 @@ public sealed class StudioWindow
             var ready = _afterReferences; _afterReferences = null;
             if (rt.IsCanceled || _cts?.IsCancellationRequested == true) _progress = "Preparación cancelada.";
             else if (rt.IsFaulted) Problem(Failure(rt.Exception));
-            else ready?.Invoke(rt.Result);
+            else
+            {
+                try { _creationGuard?.Invoke(); ready?.Invoke(rt.Result); }
+                catch (Exception error) when (error is IOException or InvalidDataException)
+                { Problem("Los originales o perfiles cambiaron. No se continuó con datos anteriores. " + error.Message); }
+            }
         }
         if (_prepareTask is { IsCompleted: true } pt)
         {
@@ -1210,7 +1280,13 @@ public sealed class StudioWindow
             _build.Stop(_cts?.IsCancellationRequested != true && dt.IsCompletedSuccessfully && dt.Result.Game != null);
             _designTask = null;
             RefreshWork();
-            if (!dt.IsCompletedSuccessfully)
+            if (_cts?.IsCancellationRequested == true || dt.IsCanceled)
+            {
+                _progress = _creationDeadline?.IsCancellationRequested == true
+                    ? "Se alcanzó una hora de trabajo. Los datos y el trabajo pendiente quedan conservados."
+                    : "Trabajo cancelado. Los datos y el trabajo pendiente quedan conservados.";
+            }
+            else if (!dt.IsCompletedSuccessfully)
             {
                 _activeWork = null;
                 Problem(Failure(dt.Exception));
@@ -1219,13 +1295,38 @@ public sealed class StudioWindow
             {
                 _progress = dt.Result.Attempts == 0 ? "Borrador recuperado y probado." : $"Listo en {dt.Result.Attempts} intento{(dt.Result.Attempts > 1 ? "s" : "")}.";
                 _lastTest = dt.Result.Report?.Summary;
-                SaveAndStart(game, first: game.Version <= 1, picture: dt.Result.Report?.Picture);
+                try
+                {
+                    _creationGuard?.Invoke();
+                    SaveAndStart(game, first: game.Version <= 1, picture: dt.Result.Report?.Picture);
+                }
+                catch (Exception error) when (error is IOException or InvalidDataException)
+                { Problem("Los originales o perfiles cambiaron. No se guardó una fusión con datos anteriores. " + error.Message); }
             }
             else
             {
+                string? previousWork = _activeWork;
                 _activeWork = null;
                 OfferPreparation(dt.Result.Error);
-                Problem(dt.Result.Error ?? "El juego necesita otra corrección. El trabajo sigue guardado.", dt.Result.Report);
+                bool missing = dt.Result.Error?.StartsWith(StudioDesigner.MissingDataPrefix, StringComparison.Ordinal) == true;
+                if (missing)
+                {
+                    string block = dt.Result.Error + FusionPreparationWorkflow.EvidenceStamp(_games.Where(g => _chosen.Contains(g.Profile.Id)));
+                    _repeatedCreationBlocks = block == _lastCreationBlock ? _repeatedCreationBlocks + 1 : 1;
+                    _lastCreationBlock = block;
+                }
+                if (_writingConcept != null && _creationOperation != null && _automaticResearchRetries < FusionResearchPlan.MaxPasses &&
+                    missing && _repeatedCreationBlocks < 3 &&
+                    CreationRemaining > TimeSpan.FromMinutes(10))
+                {
+                    if (previousWork != null) _supersededCreationWork.Add(previousWork);
+                    _automaticResearchRetries++;
+                    _continueCreationResearch = true;
+                    PrepareConcept(_writingConcept with { MissingData = dt.Result.Error![StudioDesigner.MissingDataPrefix.Length..] });
+                }
+                else Problem(missing && _repeatedCreationBlocks >= 3
+                    ? "La escritura volvió a pedir el mismo dato sin evidencia nueva en tres intentos. Se conservaron los avances. " + dt.Result.Error
+                    : dt.Result.Error ?? "El juego necesita otra corrección. El trabajo sigue guardado.", dt.Result.Report);
             }
         }
         if (_validateTask is { IsCompleted: true } vt)

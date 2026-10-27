@@ -266,4 +266,152 @@ public sealed class FusionPreparationWorkflowTests
         Assert.That(concepts[1].PlayerRequest, Is.EqualTo(selected.PlayerRequest));
         Assert.That(concepts[1].Direction, Is.EqualTo(selected.Direction));
     }
+    private sealed class ResearchAdvisor : IPlayAdvisor, IPreparationExperimentAdvisor
+    {
+        public string Name => "Asesor simulado";
+        public Task<PlayAdvice> AdviseAsync(PlayObservation o, CancellationToken ct) => Task.FromResult(new PlayAdvice());
+        public Task<List<LabExperiment>> PlanExperimentsAsync(PreparationExperimentQuestion q, CancellationToken ct) => Task.FromResult(new List<LabExperiment>());
+    }
+
+    private sealed class ResearchClock : TimeProvider
+    {
+        private long _ticks;
+        public override long TimestampFrequency => TimeSpan.TicksPerSecond;
+        public override long GetTimestamp() => _ticks;
+        public void Advance(TimeSpan time) => _ticks += time.Ticks;
+    }
+
+    [Test]
+    public async Task MissingRequirementsTriggerAnotherResearchRoundAfterMoreThanTwentySimulatedMinutes()
+    {
+        var clock = new ResearchClock();
+        int reviews = 0;
+        var optionsSeen = new List<PrepareOptions>();
+        var workflow = new FusionPreparationWorkflow { Clock = clock, Prepare = (path, options, _, _) =>
+        {
+            optionsSeen.Add(options); clock.Advance(TimeSpan.FromMinutes(6));
+            var result = Prepared(path);
+            result.Experiments.Add(new("plan-" + options.InvestigationPass, "Otra prueba", "Efecto observado."));
+            return Task.FromResult(result);
+        } };
+        var result = await workflow.RunAsync(Idea, _slots, _targets, "", new ResearchAdvisor(),
+            (idea, _, _, _) =>
+            {
+                clock.Advance(TimeSpan.FromMinutes(6));
+                return Task.FromResult(idea with { MissingData = ++reviews == 1 ? "Falta comprobar la cámara." : "" });
+            }, true, null, CancellationToken.None);
+        Assert.That(result.ResearchPasses, Is.EqualTo(2));
+        Assert.That(result.Concept.MissingData, Is.Empty);
+        Assert.That(clock.GetTimestamp(), Is.EqualTo(TimeSpan.FromMinutes(36).Ticks));
+        Assert.That(optionsSeen, Has.Count.EqualTo(4));
+        Assert.That(optionsSeen[2].Goal, Does.Contain("cámara"));
+        Assert.That(optionsSeen[2].PreviousExperiments, Has.Count.EqualTo(1));
+        Assert.That(optionsSeen[2].PreviousProfile!.Variables, Does.ContainKey("x"));
+        Assert.That(optionsSeen.All(o => o.ContinueResearch && o.MaxRounds == 24), Is.True);
+        Assert.That(result.Concept.PlayerRequest, Is.EqualTo(Idea.PlayerRequest));
+        Assert.That(result.Concept.Direction, Is.EqualTo(Idea.Direction));
+    }
+
+    [Test]
+    public async Task LongDesignCannotPushTheMissingRequirementsOutOfThePreparationGoal()
+    {
+        var idea = Idea with { Design = new string('X', 12000), PlayerRequest = "Conservar la física original." };
+        var goals = new List<string>();
+        var workflow = new FusionPreparationWorkflow { Prepare = (path, options, _, _) =>
+        { goals.Add(options.Goal); return Task.FromResult(Prepared(path)); } };
+        await workflow.RunAsync(idea, _slots, _targets, "", null, null, false, null, CancellationToken.None);
+        Assert.That(goals.All(g => g.Length <= 4000 && g.Contains(Idea.MissingData) && g.Contains(idea.PlayerRequest)), Is.True);
+    }
+
+    [Test]
+    public async Task EmptyPlansAndIdenticalEvidenceStopRatherThanRetryingTheSameWorkForever()
+    {
+        int reviews = 0;
+        var workflow = new FusionPreparationWorkflow { Prepare = (path, _, _, _) => Task.FromResult(Prepared(path)) };
+        var result = await workflow.RunAsync(Idea, _slots, _targets, "", new ResearchAdvisor(),
+            (idea, _, _, _) => { reviews++; return Task.FromResult(idea); }, false, null, CancellationToken.None);
+        Assert.That(reviews, Is.EqualTo(4));
+        Assert.That(result.StopReason, Does.Contain("tres rondas"));
+        Assert.That(result.Concept.MissingData, Is.EqualTo(Idea.MissingData));
+        Assert.That(result.Preparations, Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public async Task ResearchTimeLimitKeepsVerifiedResultsWithoutClearingUnresolvedRequirements()
+    {
+        var clock = new ResearchClock();
+        var workflow = new FusionPreparationWorkflow { Clock = clock, Prepare = (path, _, _, _) =>
+        { clock.Advance(TimeSpan.FromMinutes(26)); return Task.FromResult(Prepared(path)); } };
+        var result = await workflow.RunAsync(Idea, _slots, _targets, "", new ResearchAdvisor(),
+            (idea, _, _, _) => Task.FromResult(idea), false, null, CancellationToken.None);
+        Assert.That(result.StopReason, Does.Contain("tiempo"));
+        Assert.That(result.Concept.MissingData, Is.EqualTo(Idea.MissingData));
+        Assert.That(result.Preparations, Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public async Task ResearchTimeoutInterruptsAnAwaitAndReportsAPartialResultRatherThanUserCancellation()
+    {
+        var workflow = new FusionPreparationWorkflow { ResearchTime = TimeSpan.FromMilliseconds(60),
+            Prepare = async (_, _, _, ct) =>
+            { await Task.Delay(Timeout.InfiniteTimeSpan, ct); throw new AssertionException("Should be canceled"); } };
+        var result = await workflow.RunAsync(Idea, _slots, _targets, "", new ResearchAdvisor(),
+            (idea, _, _, _) => Task.FromResult(idea), false, null, CancellationToken.None);
+        Assert.That(result.StopReason, Does.Contain("tiempo"));
+        Assert.That(result.Concept.MissingData, Is.Not.Empty);
+    }
+
+    [Test]
+    public async Task EachRoundMayUpdateItsOwnSavedProfileWithoutBeingMistakenForAnExternalEdit()
+    {
+        int reviews = 0;
+        var workflow = new FusionPreparationWorkflow { Prepare = (path, options, _, _) =>
+        {
+            var prepared = Prepared(path);
+            prepared.Experiments.Add(new("round-" + options.InvestigationPass, "Prueba propia", "Observado"));
+            prepared.ProfilePath = Path.Combine(_folder, prepared.Profile!.Id + ".json");
+            File.WriteAllText(prepared.ProfilePath, prepared.Profile.ToJson() + "\n" + options.InvestigationPass);
+            return Task.FromResult(prepared);
+        } };
+        var result = await workflow.RunAsync(Idea, _slots, _targets, "", new ResearchAdvisor(),
+            (idea, _, _, _) => Task.FromResult(idea with { MissingData = ++reviews < 3 ? idea.MissingData : "" }),
+            false, null, CancellationToken.None);
+        Assert.That(result.ResearchPasses, Is.EqualTo(3));
+        result.EnsureOriginalsUnchanged();
+        File.AppendAllText(result.Preparations[0].ProfilePath!, "external edit");
+        Assert.Throws<InvalidDataException>(result.EnsureOriginalsUnchanged);
+    }
+
+    [Test]
+    public void UpfrontEstimateCoversBothTwentyMinuteResearchAndAWholeHour()
+    {
+        var range = FusionResearchPlan.Estimate(2, true);
+        Assert.That(range.Low, Is.EqualTo(TimeSpan.FromMinutes(20)));
+        Assert.That(range.High, Is.EqualTo(TimeSpan.FromHours(1)));
+        Assert.That(FusionResearchPlan.EstimateText(2, true), Does.Contain("20–60"));
+        Assert.That(FusionResearchPlan.Estimate(2, false).High, Is.LessThan(range.High));
+        Assert.That(FusionResearchPlan.Calls(3, 3),
+            Is.GreaterThan(FusionResearchPlan.MaxPasses * 3 * (FusionResearchPlan.NavigationRounds - FusionResearchPlan.TrialRounds + 2)));
+    }
+
+    [Test]
+    public async Task ReturningFromWritingRetainsTheLastPrivateCheckpointAndTheExperimentHistory()
+    {
+        var observed = new List<PrepareOptions>();
+        var workflow = new FusionPreparationWorkflow { Prepare = (path, options, _, _) =>
+        {
+            observed.Add(options);
+            var prepared = Prepared(path);
+            prepared.Continuation = new("nes", prepared.Sha256, [1, 2, (byte)observed.Count], prepared.Boot, 500);
+            prepared.Experiments.Add(new("known-plan", "Prueba anterior", "Comprobación anterior"));
+            return Task.FromResult(prepared);
+        } };
+        var first = await workflow.RunAsync(Idea, _slots, _targets, "", null, null, false, null, CancellationToken.None);
+        var targets = _targets.Select(t => t with { Source = first.Sources[t.Source.Profile.Id] }).ToArray();
+        await workflow.RunAsync(Idea, first.Slots, targets, "", null, null, false, null, CancellationToken.None,
+            priorResearch: first.Preparations);
+        Assert.That(observed[2].Resume, Is.SameAs(first.Preparations[0].Continuation));
+        Assert.That(observed[2].PreviousExperiments.Any(e => e.Signature == "known-plan"), Is.True);
+    }
+
 }

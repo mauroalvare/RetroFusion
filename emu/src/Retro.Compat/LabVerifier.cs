@@ -28,10 +28,10 @@ public static class LabVerifier
 {
     public const int DefaultFrames = 180;
 
-    public static LabVerification Verify(IMachine m, LabFinding f, LabExperiment? replay = null, int frames = 0)
+    public static LabVerification Verify(IMachine m, LabFinding f, LabExperiment? replay = null, int frames = 0, CancellationToken ct = default)
     {
         if (f.Kind == "entity-table" && f.Fields is { Count: > 0 } && frames == 0)
-            return VerifyTable(m, f);
+            return VerifyTable(m, f, ct);
         // run past the moment the observation saw it change (a life lost) so the game uses the written value
         int n = frames > 0 ? frames : replay?.Frames ?? Math.Clamp((f.EventFrame ?? 0) + 90, DefaultFrames, 9000);
         uint address = Convert.ToUInt32(f.Address, 16);
@@ -54,6 +54,7 @@ public static class LabVerifier
             values[0] = v.Read(m.Memory);
             for (int frame = 0; frame < n; frame++)
             {
+                ct.ThrowIfCancellationRequested();
                 keys.Tick(frame);
                 if (replay != null)
                     foreach (var s in replay.DueAt(frame))
@@ -68,10 +69,11 @@ public static class LabVerifier
             return (values, pictures, ScreenReader.Text(m));
         }
 
-        var (bv, bp, bt) = Play(false);
-        var (pv, pp, pt) = Play(true);
-        m.LoadState(state);
-        m.ReleaseAllKeys();
+        (int[] values, Dictionary<int, int[]> pictures, string? text) baseline, modified;
+        try { baseline = Play(false); modified = Play(true); }
+        finally { m.LoadState(state); m.ReleaseAllKeys(); }
+        var (bv, bp, bt) = baseline;
+        var (pv, pp, pt) = modified;
 
         var result = new LabVerification
         {
@@ -189,7 +191,7 @@ public static class LabVerifier
     /// A table is verified through its moving fields: the first one the game does not
     /// recompute at once decides (a table whose fields are all recomputed is a copy).
     /// </summary>
-    private static LabVerification VerifyTable(IMachine m, LabFinding table)
+    private static LabVerification VerifyTable(IMachine m, LabFinding table, CancellationToken ct)
     {
         int baseAddress = Convert.ToInt32(table.Address, 16);
         LabVerification? last = null;
@@ -199,7 +201,7 @@ public static class LabVerifier
             if (!match.Success)
                 continue;
             var probe = new LabFinding { Kind = "entity-table", Address = $"{baseAddress + int.Parse(match.Groups[1].Value):X4}" };
-            last = Verify(m, probe, null, DefaultFrames);
+            last = Verify(m, probe, null, DefaultFrames, ct);
             last.Experiment = $"Campo +{match.Groups[1].Value} del primer registro: " + last.Experiment;
             if (last.Result != "refuted")
                 break;
@@ -261,12 +263,12 @@ public static class LabVerifier
     /// of weak candidates). Score findings replay the experiment that found them, so the game
     /// adds points in both runs.
     /// </summary>
-    public static void VerifyBest(IMachine m, LabReport report, IReadOnlyDictionary<LabFinding, LabExperiment>? replays = null, int perKind = 3)
+    public static void VerifyBest(IMachine m, LabReport report, IReadOnlyDictionary<LabFinding, LabExperiment>? replays = null, int perKind = 3, CancellationToken ct = default)
     {
         // values the game recomputes or rewrites from everywhere are read-only candidates: writing them proves nothing
         foreach (var group in report.Findings.Where(f => f.Nature != "derived").GroupBy(f => f.Kind))
             foreach (var f in group.Where(f => f.Status == "hypothesis").OrderByDescending(f => f.Confidence).Take(perKind))
-                Verify(m, f, replays != null && replays.TryGetValue(f, out var e) ? e : null);
+                Verify(m, f, replays != null && replays.TryGetValue(f, out var e) ? e : null, ct: ct);
         report.Findings = report.Findings
             .OrderBy(f => f.Status switch { "verified" => 0, "hypothesis" => 1, "inconclusive" => 2, _ => 3 })
             .ThenByDescending(f => f.Confidence).ThenBy(f => f.Kind).ThenBy(f => f.Address).ToList();
