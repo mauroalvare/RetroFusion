@@ -1125,3 +1125,24 @@ StudioValidator acepta CancellationToken opcional en ambas entradas, lo propaga 
 arranque y comprueba cada tick del robot. La cancelación se propaga como tal y libera
 entradas. Un resultado rechazado por datos cambiados o una cancelación conserva los
 trabajos pendientes y no entrena las estimaciones del trabajo completo.
+
+## D-074 — Trabajo interno del 8088 ubicado entre sus transferencias
+
+El reloj optativo conserva el total nominal de cada instrucción y ubica dentro de ella
+el trabajo que precede o separa sus transferencias: cálculo de dirección con lectura de
+desplazamientos, dos T por prefijo y la espera entre lectura y escritura de memoria.
+Los valores salen de las trazas locales de SingleStepTests/8088 v2 y se documentan en
+I8088.md. La BIU no inicia una prelectura en los dos T previos a un pedido de la EU.
+El inmediato de 80h–83h se toma de la cola después de leer el operando.
+
+Los desplazamientos de memoria por CL escriben el operando aunque la cuenta sea cero.
+INT, INTO, AAM 0 y los errores de división leen el vector antes de apilar el retorno;
+NMI, INTR y la trampa comparten ese recorrido. Valor, flags y formatos de estado no
+cambian: los contadores nuevos solo existen dentro de un paso. La variante 8086 comparte
+estas reglas sin contraste externo propio.
+
+cpu8088 verificar-bus acepta archivos de grupo `XX.R` con los metadatos del opcode base y
+trazas que empiezan dentro de una prelectura; un dato sin ALE sigue siendo inválido.
+El informe agrega `ValueOnlyFailures` para mismo orden y dirección con otro valor, y
+compara intervalos siempre que coincidan tipo y dirección. El alcance no cambia:
+intervalos relativos, sin reloj absoluto ni prelectura.
