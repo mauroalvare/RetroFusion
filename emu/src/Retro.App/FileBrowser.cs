@@ -20,6 +20,8 @@ public sealed class FileBrowser
     private string _filter = "";
     private bool _filterAll;
     public bool IsOpen => _open;
+    /// <summary>The folder shown; the app remembers it for the next session.</summary>
+    public string Folder => _dir;
 
     public FileBrowser(string startDir) { _dir = startDir; _pathInput = startDir; }
     public void Open()

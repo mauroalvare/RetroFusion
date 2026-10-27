@@ -49,6 +49,8 @@ public sealed partial class RetroApp
     private bool _themeChanged;
     private float _menuHeight = 28;
     private bool _arrangeDebugger;
+    private string? _currentMedia;   // the original file of the game being played, for its library thumbnail
+    private readonly string _captureFolder;
     private string? _quitNotice;
     private readonly FocusPause _focusPause = new();
     private readonly int _monitorRate;
@@ -90,7 +92,8 @@ public sealed partial class RetroApp
         string games = FindGamesFolder() ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         _library.Rescan(games);
         Retro.Studio.StudioLibrary.ExportBuiltIns();
-        _browser = new FileBrowser(games);
+        _browser = new FileBrowser(_prefs.LastFolder is { } last && Directory.Exists(last) ? last : games);
+        _captureFolder = args.Contains("--autotest") ? Path.Combine(Environment.CurrentDirectory, "out", "autotest-capturas") : ScreenCapture.DefaultFolder;
         _studio = new StudioWindow(_host, _romDir, games, _ai);
         _code = new CodeWindow(_host, _ai, ShowInDebugger, EditCurrentStudioGame,
             new ModificationHistory(persist: !args.Contains("--autotest")));
@@ -311,7 +314,7 @@ public sealed partial class RetroApp
             DrawDebugger();
         DrawStatusBar();
         _home.Draw();
-        _browser.Draw(OpenFile);
+        _browser.Draw(PickFromBrowser);
         if (!_home.IsOpen)
         {
             _studio.Draw();
@@ -338,6 +341,8 @@ public sealed partial class RetroApp
         if (_autotestSeconds >= 0 && _elapsed >= _autotestSeconds && _autotestShot != null)
         {
             Raylib.TakeScreenshot(_autotestShot);
+            // The emulated screen too, through the same path as Juego > Guardar captura (out/autotest-capturas).
+            if (!_home.IsOpen) { SaveCapture(); Console.WriteLine("captura: " + _host.Status); }
             foreach (var group in _library.Entries.GroupBy(e => e.Machine.Name))
                 Console.WriteLine($"biblioteca: {group.Key}: {string.Join(", ", group.Select(e => e.Name))}");
             foreach (var e in _library.Entries.Where(e => FusionsOf(e.ProfileId).Count > 0))
@@ -368,6 +373,7 @@ public sealed partial class RetroApp
             || !Raylib.IsGamepadButtonPressed(0, GamepadButton.MiddleRight)) return;
         if (!_home.IsOpen) { CloseEditors(); _home.Open(); }
         else if (_host.LoadedMedia != null || _host.Fusion != null) _home.Close();
+        _input.HoldGamepadUntilReleased();
     }
 
     /// <summary>Optional pause while another window has the focus (Preferencias > Rendimiento).</summary>
@@ -522,7 +528,7 @@ public sealed partial class RetroApp
             {
                 if (LaunchArcade(board.Machine, files, Path.GetDirectoryName(path)))
                 {
-                    _versions = []; _openedMedia = files;
+                    _versions = []; _openedMedia = files; _currentMedia = path;
                     _home.RecordOriginal(path, board.Machine.Id, files);
                 }
                 return;
@@ -574,7 +580,7 @@ public sealed partial class RetroApp
     {
         if (!Launch(choice, request.Files)) return false;
         _versions = request.Versions;
-        _openedMedia = request.Files;
+        _openedMedia = request.Files; _currentMedia = request.Path;
         _home.RecordOriginal(request.Path, choice.Machine.Id, request.Files);
         return true;
     }
@@ -675,6 +681,7 @@ public sealed partial class RetroApp
         if (_home.IsOpen) return;
         if (_host.Machine == null)
             return;
+        if (toolModifier && Raylib.IsKeyPressed(KeyboardKey.S)) SaveCapture();
         // the C64 has its own F1 F3 F5 F7 keys (games say "press F1"): there quick load is
         // F4 and reset is in the Machine menu
         if (_host.Pc != null && _host.Fusion == null && !ctrl) return;
@@ -704,6 +711,39 @@ public sealed partial class RetroApp
         if (zx == null) return;
         if (zx.Tape.IsPlaying) zx.Tape.Stop(zx.Z80.T);
         else zx.Tape.Play(zx.Z80.T);
+    }
+
+    private void PickFromBrowser(string path)
+    {
+        if (_browser.Folder != _prefs.LastFolder) { _prefs.LastFolder = _browser.Folder; _prefs.Save(); }
+        OpenFile(path);
+    }
+
+    private void SaveCapture()
+    {
+        if (_host.CurrentVideo is not { } video) return;
+        string title = _host.Fusion?.Title ?? (_host.LoadedMedia != null ? Path.GetFileNameWithoutExtension(_host.LoadedMedia) : _host.Info?.Name ?? "captura");
+        try { _host.Status = "Captura guardada: " + ScreenCapture.Save(video, _captureFolder, title, DateTime.Now); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException)
+        { _errorPopup = "No se pudo guardar la captura: " + e.Message; }
+    }
+
+    /// <summary>The library original being played: thumbnails are not offered for fusions, creations or loose files.</summary>
+    private string? ThumbnailTarget() =>
+        _host.Fusion == null && _host.LoadedMedia != null && _host.CurrentVideo != null && _currentMedia is { } media
+        && _library.Entries.Any(entry => entry.Path.Equals(media, StringComparison.OrdinalIgnoreCase)) ? media : null;
+
+    private void SaveThumbnail()
+    {
+        if (ThumbnailTarget() is not { } media || _host.CurrentVideo is not { } video) return;
+        try
+        {
+            _host.Status = ScreenCapture.SaveThumbnail(video, media) is { } path
+                ? $"Miniatura guardada: {Path.GetFileName(path)}. Se ve al volver a la biblioteca."
+                : "Ese juego ya tiene una imagen junto a su archivo; no se reemplaza.";
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException)
+        { _errorPopup = "No se pudo guardar la miniatura: " + e.Message; }
     }
 
     private void ToggleFullscreen()
@@ -753,6 +793,11 @@ public sealed partial class RetroApp
             if (ImGui.MenuItem("Guardar estado rápido", Shortcut("F2"), false, _host.CanUseStates)) _host.QuickSave();
             if (ImGui.MenuItem("Cargar estado rápido", _host.Pc != null ? Shortcut("F4") : _host.C64 != null ? "F4" : "F3", false, _host.CanUseStates)) _host.QuickLoad();
             if (ImGui.MenuItem("Partidas guardadas...", "", false, _host.CanUseStates)) OpenStateWindow();
+            ImGui.Separator();
+            if (ImGui.MenuItem("Guardar captura de pantalla", ToolShortcut("S"), false, _host.CurrentVideo != null)) SaveCapture();
+            if (ImGui.IsItemHovered()) UiTheme.Tooltip("PNG de la pantalla emulada, a su resolución, en " + _captureFolder);
+            if (ImGui.MenuItem("Usar la pantalla como miniatura", "", false, ThumbnailTarget() != null)) SaveThumbnail();
+            if (ImGui.IsItemHovered()) UiTheme.Tooltip("Guarda la imagen junto al juego para la biblioteca. No reemplaza una imagen que ya exista.");
             ImGui.Separator();
             ImGui.BeginDisabled(_host.Machine == null);
             if (ImGui.MenuItem(_host.Paused ? "Continuar" : "Pausa", Shortcut("F9"), false, !_home.IsOpen))
@@ -987,6 +1032,7 @@ public sealed partial class RetroApp
         {
             (ToolShortcut("O"), "Abrir juego o programa"), (ToolShortcut("L"), "Biblioteca"),
             (ToolShortcut("M"), "Modificar y analizar"), (ToolShortcut("K"), "Código del juego"),
+            (ToolShortcut("S"), "Guardar captura de pantalla"),
         };
         if (_host.Fusion == null)
         {

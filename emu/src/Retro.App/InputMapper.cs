@@ -53,7 +53,7 @@ public sealed class InputMapper
     public void UpdateFusion(Retro.Fusion.IFusionRun session, bool keyboardEnabled)
     {
         bool Key(KeyboardKey k) => keyboardEnabled && Raylib.IsKeyDown(k);
-        bool pad = Raylib.IsGamepadAvailable(0);
+        bool pad = GamepadReady();
         float ax = pad ? Raylib.GetGamepadAxisMovement(0, GamepadAxis.LeftX) : 0;
         float ay = pad ? Raylib.GetGamepadAxisMovement(0, GamepadAxis.LeftY) : 0;
         bool Btn(GamepadButton b) => pad && Raylib.IsGamepadButtonDown(0, b);
@@ -84,12 +84,29 @@ public sealed class InputMapper
     public static bool ToolShortcutsNeedShift(Retro.Core.IMachine? machine, bool fusion) =>
         machine is Retro.Systems.Pc.PcXt || (!fusion && machine is Spectrum48 or Retro.Systems.C64.C64);
 
-    /// <summary>Ctrl+Shift with O, K, L or M: an emulator shortcut that must not reach the machine.</summary>
+    /// <summary>Ctrl+Shift with O, K, L, M or S: an emulator shortcut that must not reach the machine.</summary>
     public static bool ToolChordHeld(Func<KeyboardKey, bool> down) =>
         (down(KeyboardKey.LeftControl) || down(KeyboardKey.RightControl)) && (down(KeyboardKey.LeftShift) || down(KeyboardKey.RightShift))
         && HostToolKeys.Any(down);
 
     private static readonly Func<KeyboardKey, bool> KeyDown = key => Raylib.IsKeyDown(key);
+    private static readonly GamepadButton[] GamepadButtons = Enum.GetValues<GamepadButton>().Where(b => b != GamepadButton.Unknown).ToArray();
+    private bool _gamepadHeld;
+
+    /// <summary>
+    /// After a gamepad shortcut (Select + Start for the library) the game ignores the gamepad until
+    /// every button is released, so the shortcut does not also press Select and Start in the game.
+    /// </summary>
+    public void HoldGamepadUntilReleased() => _gamepadHeld = true;
+
+    private bool GamepadReady() => GamepadReady(Raylib.IsGamepadAvailable(0), button => Raylib.IsGamepadButtonDown(0, button));
+
+    internal bool GamepadReady(bool available, Func<GamepadButton, bool> down)
+    {
+        if (!available) return false;
+        if (_gamepadHeld) _gamepadHeld = GamepadButtons.Any(down);
+        return !_gamepadHeld;
+    }
 
     public void Update(Retro.Core.IMachine machine, bool keyboardEnabled)
     {
@@ -131,7 +148,7 @@ public sealed class InputMapper
         return map.ToArray();
     }
     private static readonly KeyboardKey[] HostFunctionKeys = [KeyboardKey.F2, KeyboardKey.F4, KeyboardKey.F5, KeyboardKey.F8, KeyboardKey.F9, KeyboardKey.F10];
-    private static readonly KeyboardKey[] HostToolKeys = [KeyboardKey.O, KeyboardKey.K, KeyboardKey.L, KeyboardKey.M];
+    private static readonly KeyboardKey[] HostToolKeys = [KeyboardKey.O, KeyboardKey.K, KeyboardKey.L, KeyboardKey.M, KeyboardKey.S];
     public static HashSet<string> CollectPcKeys(Func<KeyboardKey, bool> down, bool enabled)
     {
         var now = new HashSet<string>();
@@ -212,7 +229,7 @@ public sealed class InputMapper
             right = Raylib.IsKeyDown(KeyboardKey.Right);
             fire = Raylib.IsKeyDown(KeyboardKey.LeftAlt) || Raylib.IsKeyDown(KeyboardKey.RightAlt) || Raylib.IsKeyDown(KeyboardKey.RightControl);
         }
-        if (Raylib.IsGamepadAvailable(0))
+        if (GamepadReady())
         {
             float ax = Raylib.GetGamepadAxisMovement(0, GamepadAxis.LeftX);
             float ay = Raylib.GetGamepadAxisMovement(0, GamepadAxis.LeftY);
@@ -239,7 +256,7 @@ public sealed class InputMapper
     {
         var now = new HashSet<string>();
         bool Key(KeyboardKey k) => keyboardEnabled && Raylib.IsKeyDown(k);
-        bool pad = Raylib.IsGamepadAvailable(0);
+        bool pad = GamepadReady();
         float ax = pad ? Raylib.GetGamepadAxisMovement(0, GamepadAxis.LeftX) : 0;
         float ay = pad ? Raylib.GetGamepadAxisMovement(0, GamepadAxis.LeftY) : 0;
         bool Btn(GamepadButton b) => pad && Raylib.IsGamepadButtonDown(0, b);
@@ -259,7 +276,7 @@ public sealed class InputMapper
     {
         var now = new HashSet<string>();
         bool Key(KeyboardKey k) => keyboardEnabled && Raylib.IsKeyDown(k);
-        bool pad = Raylib.IsGamepadAvailable(0);
+        bool pad = GamepadReady();
         float ax = pad ? Raylib.GetGamepadAxisMovement(0, GamepadAxis.LeftX) : 0;
         bool left = Key(KeyboardKey.Left) || Key(KeyboardKey.A) || ax < -0.4f || (pad && Raylib.IsGamepadButtonDown(0, GamepadButton.LeftFaceLeft));
         bool right = Key(KeyboardKey.Right) || Key(KeyboardKey.D) || ax > 0.4f || (pad && Raylib.IsGamepadButtonDown(0, GamepadButton.LeftFaceRight));
@@ -307,7 +324,7 @@ public sealed class InputMapper
             right = Raylib.IsKeyDown(KeyboardKey.Right);
             fire = Raylib.IsKeyDown(KeyboardKey.LeftAlt) || Raylib.IsKeyDown(KeyboardKey.RightAlt) || Raylib.IsKeyDown(KeyboardKey.Tab);
         }
-        if (Raylib.IsGamepadAvailable(0))
+        if (GamepadReady())
         {
             float ax = Raylib.GetGamepadAxisMovement(0, GamepadAxis.LeftX);
             float ay = Raylib.GetGamepadAxisMovement(0, GamepadAxis.LeftY);
