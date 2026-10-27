@@ -63,7 +63,7 @@ Estos dos vienen incluidos como ejemplo (originales, escritos solo con las guía
 **Investigar y modificar una partida:** pedile a tu IA que analice memoria y código,
 revisá las variables y propuestas, y elegí qué aplicar. Podés congelar valores, deshacer
 el último cambio o restaurar la partida. Podés guardar los análisis y las variables por
-juego, y elegir si sus cambios se reaplican al reiniciar o volver a jugar. **Herramientas > Modificar y analizar** (Ctrl+M). [Cómo usarlo](emu/docs/MODIFICACIONES.md).
+juego, y elegir si sus cambios se reaplican al reiniciar o volver a jugar. **Herramientas > Modificar y analizar** (Ctrl+M; Ctrl+Shift+M en Spectrum, C64 y PC). [Cómo usarlo](emu/docs/MODIFICACIONES.md).
 
 ![Variables y propuestas de análisis de una partida](emu/docs/img/interfaz/modificaciones.png)
 
@@ -82,9 +82,14 @@ Los archivos sueltos de `ROMs` se ordenan por sistema al detectarlos. Los que no
 identificar quedan en su lugar; se conservan tus subcarpetas, fechas y nombres repetidos.
 El selector muestra el hardware de cada máquina y las capturas o carátulas locales
 de los juegos. Una imagen PNG o JPG con el mismo nombre junto al juego sirve como miniatura.
-**Biblioteca** o **Ctrl+L** vuelve al selector y conserva la partida. **Crear** reúne las
+**Biblioteca** o **Ctrl+L** vuelve al selector y conserva la partida; en Spectrum, C64 y
+PC los atajos de herramientas usan **Ctrl+Shift**, porque Ctrl es una tecla del equipo.
+**Juego > Recientes** reabre lo último que jugaste. **Crear** reúne las
 fusiones y los juegos nuevos; **Herramientas** reúne modificaciones, código y depurador.
-**Opciones** contiene la conexión de IA y los menús de sonido y pantalla.
+**Opciones** contiene las preferencias, la conexión de IA y los menús de sonido, pantalla
+y accesibilidad: tamaño del texto de 100 a 200 %, alto contraste y navegación con el
+teclado en la biblioteca, los diálogos y la pausa. Sin partida en curso, la ventana se
+dibuja menos veces para gastar menos energía. [Preferencias y teclado](emu/docs/PREFERENCIAS.md).
 **Sonido > Volumen y opciones** permite ajustar volumen, silencio de fondo y margen
 de audio. [Opciones de sonido](emu/docs/SONIDO.md).
 

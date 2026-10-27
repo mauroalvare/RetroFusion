@@ -11,7 +11,9 @@ máquinas disponibles, sus juegos y **Todos los juegos**, con búsqueda por nomb
 **Todos los juegos** reúne originales, creados y fusiones; cada máquina lista originales
 y creaciones para ese sistema. **Fusionados** y **Creados** tienen también secciones
 propias. No aparece una ventana flotante.
-**Biblioteca** o Ctrl+L (Ctrl+Shift+L en PC) pausa la partida; **Volver a la partida** restaura la pausa previa.
+**Biblioteca** o Ctrl+L (Ctrl+Shift+L en Spectrum, C64 y PC) pausa la partida; **Volver a la partida** restaura la pausa previa.
+`InputMapper.ToolShortcutsNeedShift` decide el modificador y `ToolChordHeld` evita que el
+acorde llegue a la máquina. **Juego > Recientes** usa `HomeScreen.Recents`.
 Elegir una máquina filtra la biblioteca sin reiniciar la partida; abrir un juego
 comienza la partida elegida. Las fusiones y los juegos creados se actualizan al entrar
 o pulsar Actualizar. **Herramientas > Modificar y analizar** reúne cambios, IA, búsqueda y código;
@@ -57,8 +59,9 @@ solo las filas visibles. Un clic selecciona; **Abrir** o **Enter** abre y **Esc*
 Los ZIP de PC con varios ejecutables muestran rutas de carpeta para elegir; **Juego >
 Programas del archivo** permite cambiar después. Cancelar devuelve la pausa previa;
 una apertura rechazada conserva las opciones del medio anterior.
-Las ayudas para jugar están en **Ayuda > Abrir y jugar**, **Controles de la partida**
-y **Atajos**. Los controles corresponden al sistema o a la fusión activos. El README
+Las ayudas para jugar están en **Ayuda > Abrir y jugar**, **Controles de la partida**,
+**Atajos** (tabla según la máquina activa) y **Accesibilidad y teclado**. Los controles
+corresponden al sistema o a la fusión activos. El README
 del paquete es una guía breve; los contratos para agentes se entregan por separado.
 
 La estimación previa y el trabajo de investigación continuo se explican en
@@ -112,9 +115,20 @@ VideoUploadCache convierte ARGB a RGBA por vectores cuando están disponibles y 
 subir imágenes iguales. Compara contenido para detectar también restauraciones y
 ediciones durante pausa; el cambio de textura invalida la caché.
 
+**Opciones > Preferencias** (`RetroApp.Preferences.cs`) reúne lectura, pantalla,
+controles, cintas y rendimiento. `AppPreferences` guarda preferencias.json v1 por cuenta,
+validado y aparte de sonido e IA; un archivo ilegible no se reemplaza y las pruebas
+automáticas usan opciones en memoria. `UiTheme.Apply(escala, contraste)` reconstruye la
+fuente entre cuadros y escala el estilo desde la copia sin escalar; `UiTheme.Px` y
+`StatusBarHeight` ajustan las medidas fijas. `WorkspaceLayout.LimitNextWindow` evita que
+una ventana autoajustada tape la barra de estado. `SetKeyboardNavigation` habilita la
+navegación de ImGui solo cuando el juego no tiene el teclado; Alt izquierdo enfoca la
+barra principal. `FramePacing.TargetFps` baja los cuadros sin partida en curso y mantiene
+la frecuencia del monitor mientras se emula. [Preferencias y teclado](PREFERENCIAS.md).
+
 ## Modificar una partida
 
-**Herramientas > Modificar y analizar** (Ctrl+M) reúne edición/congelado, análisis de
+**Herramientas > Modificar y analizar** (Ctrl+M; Ctrl+Shift+M en Spectrum, C64 y PC) reúne edición/congelado, análisis de
 partida con cualquier proveedor configurado, búsqueda manual y código. El análisis usa
 escrituras y código capturados, propone hipótesis experimentales y no aplica cambios. Hay
 cinco pasos de deshacer y un punto de regreso anterior al primer cambio. Cada propuesta
@@ -186,8 +200,10 @@ dotnet test tests/C64.Tests -c Release                    # un proyecto
 dotnet test tests/Retro.Cpu.Z80.Tests -c Release --filter "TestCategory=Long"
 
 # Pruebas de interfaz: ventana oculta, sin audio, organización ni red.
-# Las capturas usan rutas relativas al directorio actual.
+# raylib guarda la captura junto al ejecutable con el nombre indicado (descarta la carpeta).
+# Cada segundo se informa fps= con los cuadros realmente dibujados y objetivo= con el límite.
 dotnet run --project src/Retro.App -c Release -- --hidden --mute --no-organize --no-update --autotest 10 out/prueba.png
+dotnet run --project src/Retro.App -c Release -- --hidden --mute --no-organize --no-update --text-size 150 --high-contrast --preferences-window --autotest 4 preferencias.png
 dotnet run --project src/Retro.App -c Release -- --hidden --mute --no-organize --no-update --crear-window --autotest 10 out/crear.png
 dotnet run --project src/Retro.App -c Release -- --hidden --mute --no-organize --no-update --studio-window --autotest 10 out/estudio.png
 

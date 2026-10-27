@@ -421,6 +421,23 @@ se trata de una limitación deducida que todavía necesita una prueba específic
 ## Interfaz y apertura
 
 - La tipografía usa fuentes instaladas o la incorporada de ImGui; puede variar entre sistemas.
+- **Tamaño del texto y contraste:** 100 a 200 % en pasos de 25. Escalan menús, barras,
+  biblioteca, diálogos, Sonido y Preferencias; el depurador, el estudio y el creador
+  conservan su tamaño inicial de ventana y pueden necesitar desplazamiento o achicar el
+  tamaño elegido. El alto contraste no cambia los colores de la pantalla emulada.
+  [Preferencias y teclado](PREFERENCIAS.md).
+- **Lectores de pantalla:** la interfaz se dibuja con Dear ImGui y no publica sus controles
+  al sistema operativo; un lector de pantalla no puede recorrerla.
+- **Teclado:** la navegación con Tab, flechas, Enter y Esc funciona en la biblioteca, los
+  diálogos, sin máquina y con la partida en pausa; mientras un juego corre, el teclado es
+  de la máquina emulada. Alt izquierdo lleva a la barra de menús en esos mismos estados.
+  Esta navegación se verificó en la lógica y en capturas ocultas; no hubo una sesión
+  visible con teclado real.
+- **Ahorro de energía:** sin partida en curso la ventana se dibuja hasta 60 veces por
+  segundo, 15 sin foco y 5 minimizada. Medido con la ventana oculta, que el sistema informa
+  con foco: la biblioteca pasó de 120 a 60 cuadros por segundo y de 0,12 a 0,09 s de CPU
+  por segundo; con la máquina en marcha no cambió. Los casos sin foco y minimizada se
+  comprueban en pruebas de la regla, no con una medición nativa.
 - El selector de archivos refresca su instantánea cada dos segundos mientras está abierto.
   Conserva el filtro entre cuadros y dibuja solo las filas visibles; la velocidad también
   depende del disco y del acceso a la carpeta.

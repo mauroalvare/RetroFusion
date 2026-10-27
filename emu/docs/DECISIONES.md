@@ -1146,3 +1146,30 @@ trazas que empiezan dentro de una prelectura; un dato sin ALE sigue siendo invá
 El informe agrega `ValueOnlyFailures` para mismo orden y dirección con otro valor, y
 compara intervalos siempre que coincidan tipo y dirección. El alcance no cambia:
 intervalos relativos, sin reloj absoluto ni prelectura.
+
+## D-075 — Preferencias de la app, teclado compartido y cuadros sin partida
+
+La app guarda sus preferencias en preferencias.json v1, aparte de sonido.json, IA,
+biblioteca y partidas: tamaño del texto (100–200 % en pasos de 25), alto contraste,
+escala entera, pantalla completa, ahorro de energía, cuadros por segundo visibles,
+joystick del Spectrum, puerto del C64, LOAD automático y aceleración de cintas. Un archivo
+de otra versión o con valores desconocidos no se carga ni se reemplaza; los cambios
+quedan en la sesión. `--autotest` no lee ni escribe el archivo; `--text-size N` y
+`--high-contrast` cambian solo la sesión, como `--mute`.
+
+Ctrl es una tecla del Spectrum (SYMBOL SHIFT) y del C64 (C=), además del PC. En esas
+máquinas, fuera de una fusión, los atajos de herramientas pasan de Ctrl+letra a
+Ctrl+Shift+letra (O, L, M, K) y el acorde completo no llega a la máquina. Antes Ctrl+M
+escribía un punto en el Spectrum y además abría Modificar; Ctrl+L, el signo igual, abría
+la biblioteca. NES, arcade, fusiones y el arranque sin máquina conservan Ctrl+letra.
+
+La navegación con teclado de ImGui solo se habilita cuando ningún juego en curso tiene
+el teclado: biblioteca, selector de archivos, avisos, sin máquina, actualización en curso
+o pausa. Así Tab, las flechas, Alt, Enter y Espacio siguen siendo de la máquina mientras
+se juega.
+
+Sin partida en curso la ventana se limita a 60 cuadros por segundo, 15 sin foco y 5
+minimizada; mientras se emula, sigue la frecuencia del monitor porque la emulación y
+la cola de audio avanzan por cuadro del host. El renglón por segundo de `--autotest`
+informa en `fps=` los cuadros realmente dibujados (antes repetía Raylib.GetFPS, que
+consultado una vez por segundo sobrestimaba) y agrega `objetivo=`.

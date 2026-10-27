@@ -1,10 +1,10 @@
 # Modificar y analizar una partida
 
-Abrí un original y usá **Herramientas > Modificar y analizar** o **Ctrl+M**.
+Abrí un original y usá **Herramientas > Modificar y analizar** o **Ctrl+M**. En
+Spectrum, C64 y PC, donde Ctrl es una tecla del equipo, el atajo es **Ctrl+Shift+M**.
 
 En PC/XT todavía no está disponible el análisis ni la edición de variables de este panel.
-Podés usar las herramientas de código, parches y depuración; los atajos de herramientas
-son **Ctrl+Shift+letra**.
+Podés usar las herramientas de código, parches y depuración.
 
 - **Cambios:** editá valores con Enter, congelalos o aplicá una propuesta.
 - **Analizar con IA:** elegí proveedor y modelo, escribí tu pregunta y pulsá **Analizar la partida**.
