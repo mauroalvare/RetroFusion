@@ -45,12 +45,16 @@ hay evidencia suficiente. Puede trabajar hasta una hora en total; si al escribir
 aparece otro faltante, vuelve a investigarlo. Podés ver el avance y cancelar.
 [Preparación automática y tiempos](docs/PREPARAR-FUSION.md).
 
-## Sonido y pantalla
+## Preferencias, sonido y pantalla
 
+**Opciones > Preferencias** reúne tamaño del texto (100 a 200 %), alto contraste,
+pantalla completa, escala entera, joysticks, cintas y ahorro de energía. En la
+biblioteca, los diálogos y la pausa, el teclado y el mando recorren la interfaz:
+Alt izquierdo lleva a los menús y **Select + Start** abre la biblioteca.
 En **Opciones > Sonido > Volumen y opciones** ajustás volumen, silencio al cambiar
 de ventana y margen de audio. Los cambios se conservan al cerrar.
-**Opciones > Pantalla** reúne pantalla completa y escala entera.
-[Opciones de sonido](docs/SONIDO.md) · [Novedades de 0.3.3](docs/NOVEDADES-0.3.3.md).
+[Preferencias y teclado](docs/PREFERENCIAS.md) · [Opciones de sonido](docs/SONIDO.md) ·
+[Novedades de 0.3.4](docs/NOVEDADES-0.3.4.md).
 
 ## Durante la partida
 
@@ -62,11 +66,16 @@ muestra las teclas del juego o sistema activo. También se puede usar un mando.
 | Ctrl+L | Volver a Inicio |
 | Ctrl+O | Abrir un archivo |
 | Ctrl+M | Modificar la partida |
+| Ctrl+S | Guardar captura de pantalla |
+| Ctrl+F | Buscar en la biblioteca |
 | F2 | Guardar estado rápido |
 | F3 / F4 en C64 | Cargar estado rápido |
 | F8 | Turbo |
 | F9 | Pausa |
 | F11 | Pantalla completa |
+
+En Spectrum, C64 y PC, donde Ctrl es una tecla del equipo, los atajos con letra llevan
+también Shift (por ejemplo, Ctrl+Shift+L). **Ayuda > Atajos** muestra los de la máquina activa.
 
 Las cintas pueden tardar en cargar. Si el joystick del C64 no responde,
 cambiá el puerto en **Juego > Controles y hardware**.
