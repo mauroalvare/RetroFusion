@@ -2,10 +2,10 @@ namespace Retro.Cpu.I8088;
 
 public sealed partial class I8088Cpu
 {
-    private bool _timingEnabled, _timingStep, _replaying, _repeatAgain;
+    private bool _timingEnabled, _timingStep, _replaying, _repeatAgain, _operandLate;
     private readonly byte[] _queue = new byte[model == I8088Model.Intel8086 ? 6 : 4];
     private readonly List<byte> _repeatCode = [];
-    private int _queueHead, _queueCount, _prefetchTicks, _replayIndex, _eaClocks, _modRm = -1;
+    private int _queueHead, _queueCount, _prefetchTicks, _replayIndex, _eaClocks, _euSpent, _requestClocks, _modRm = -1;
     private ushort _queueCs, _queueIp, _fetchIp, _sequentialIp, _repeatCs, _repeatIp;
     private long _cycles;
     private bool _prefetchLatched;
@@ -52,14 +52,14 @@ public sealed partial class I8088Cpu
         _queueHead = _queueCount = _prefetchTicks = 0; _prefetchLatched = false; _prefetchValue = 0;
         _queueCs = CS; _queueIp = _fetchIp = IP;
     }
-    private void IdleClocks(int count)
+    private void IdleClocks(int count, bool prefetch = true)
     {
         if (!TimingEnabled) return;
         for (int n = 0; n < count; n++)
         {
             bool grant = _prefetchTicks == 0 && bus.HoldRequested && !_busLocked;
             bus.SetBusGranted(grant);
-            if (_prefetchTicks == 0 && _queueCount <= _queue.Length - (WideBus ? 2 : 1) && !grant) _prefetchTicks = 1;
+            if (prefetch && _prefetchTicks == 0 && _queueCount <= _queue.Length - (WideBus ? 2 : 1) && !grant) _prefetchTicks = 1;
             Clock();
             if (_prefetchTicks == 0) continue;
             if (_prefetchTicks == 3) LatchPrefetch();
@@ -85,6 +85,8 @@ public sealed partial class I8088Cpu
     private void DataBusCycle(bool continuation = false)
     {
         if (!TimingEnabled) return;
+        // The BIU sees the EU request two clocks before T1 and starts no new prefetch meanwhile.
+        SpendRequestClocks(prefetch: false);
         // A pending EU transfer wins over the next prefetch, after an active cycle finishes.
         while (_prefetchTicks != 0) IdleClocks(1);
         // An 8086 split word keeps ownership until its high byte has transferred.
@@ -107,9 +109,40 @@ public sealed partial class I8088Cpu
         if (_timingStep) _repeatCode.Add(value);
         return value;
     }
+    // EU work that must happen before or between this instruction's transfers.
+    // EndTimingStep subtracts it from the nominal total, so only its placement changes.
+    // A request defers its last two clocks to the next data transfer, which spends them without prefetch.
+    private void EuClocks(int count, bool request = false)
+    {
+        if (!TimingEnabled || count <= 0) return;
+        SpendRequestClocks(prefetch: true);
+        int deferred = request ? Math.Min(count, 2) : 0;
+        IdleClocks(count - deferred); _euSpent += count - deferred; _requestClocks = deferred;
+    }
+    private void SpendRequestClocks(bool prefetch)
+    {
+        int count = _requestClocks; _requestClocks = 0;
+        IdleClocks(count, prefetch); _euSpent += count;
+    }
+    private bool QueueLate => !_replaying && (_queueCount == 0 || _queueCs != CS || _queueIp != IP);
+    // Microcode reads an operand byte from the queue in one clock. Hardware traces show that
+    // a byte still being prefetched is consumed two clocks after the T4 that delivers it.
+    private byte FetchOperand()
+    {
+        if (!TimingEnabled) return Fetch();
+        SpendRequestClocks(prefetch: true);
+        _operandLate = QueueLate;
+        byte value = FetchTimed();
+        if (_operandLate) IdleClocks(1);
+        EuClocks(1);
+        return value;
+    }
+    private ushort FetchOperandWord() { int low = FetchOperand(); return (ushort)(low | FetchOperand() << 8); }
+    // Read-to-write EU work of a memory read-modify-write, measured on SingleStepTests/8088 v2.
+    private void ModifyClocks(Operand o, int count, bool request = true) { if (o.Register < 0) EuClocks(count, request); }
     private void StartTimingStep()
     {
-        _eaClocks = 0; _modRm = -1; _repeatAgain = false;
+        _eaClocks = _euSpent = _requestClocks = 0; _modRm = -1; _repeatAgain = false;
         if (!TimingEnabled) return;
         _replaying = _repeatCode.Count > 0 && CS == _repeatCs && IP == _repeatIp;
         if (!_replaying) { _repeatCode.Clear(); _repeatCs = CS; _repeatIp = IP; }
@@ -123,8 +156,9 @@ public sealed partial class I8088Cpu
         if (op is 0xE8 or 0xE9 or 0xEA or 0xEB or 0x9A or 0xC2 or 0xC3 or 0xCA or 0xCB or 0xCF) jump = true;
         if (op == 0xFF && ((_modRm >> 3) & 7) is >= 2 and <= 5) jump = true;
         if (jump && !_repeatAgain) FlushQueue();
-        int clocks = ExecutionClocks(op, repeat, oldFlags, oldCx, jump) + _eaClocks + prefixes * 2;
-        IdleClocks(clocks);
+        _requestClocks = 0; // Unspent request clocks remain part of the nominal remainder.
+        int clocks = ExecutionClocks(op, repeat, oldFlags, oldCx, jump) + _eaClocks + prefixes * 2 - _euSpent;
+        IdleClocks(Math.Max(0, clocks));
         _timingStep = false;
         if (!_repeatAgain) _repeatCode.Clear();
     }

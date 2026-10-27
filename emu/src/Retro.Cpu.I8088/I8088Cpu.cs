@@ -111,14 +111,31 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
     private readonly record struct Operand(int Register, ushort Segment, ushort Offset);
     private (int Reg, Operand Rm) Decode()
     {
+        bool late = TimingEnabled && QueueLate;
         byte code = Fetch(); _modRm = code; int mod = code >> 6, rm = code & 7;
-        if (mod != 3) _eaClocks += mod == 0 && rm == 6 ? 6 : (rm is 0 or 3 ? 7 : rm is 1 or 2 ? 8 : 5) + (mod == 0 ? 0 : 4);
+        if (late) { IdleClocks(1); EuClocks(1); }
         if (mod == 3) return ((code >> 3) & 7, new Operand(rm, 0, 0));
+        // Nominal EA clocks still set the instruction total. The address is computed before the
+        // operand transfer: SingleStepTests/8088 v2 traces give the work before and after reading
+        // a displacement, which costs one clock per byte, until the operand's T1.
+        _eaClocks += mod == 0 && rm == 6 ? 6 : (rm is 0 or 3 ? 7 : rm is 1 or 2 ? 8 : 5) + (mod == 0 ? 0 : 4);
+        var (before, after) = (mod, rm) switch
+        {
+            (0, 6) => (1, 3), (0, < 4) => (8, 0), (0, _) => (6, 0),
+            (_, 1 or 2) => (6, mod == 1 ? 5 : 4), (_, < 4) => (5, mod == 1 ? 6 : 5), _ => (3, mod == 1 ? 6 : 5),
+        };
         bool bp = rm is 2 or 3 || rm == 6 && mod != 0;
         int address = rm switch { 0 => BX + SI, 1 => BX + DI, 2 => BP + SI, 3 => BP + DI,
-            4 => SI, 5 => DI, 6 => mod == 0 ? FetchWord() : BP, _ => BX };
-        if (mod == 1) address += (sbyte)Fetch();
-        else if (mod == 2) address += FetchWord();
+            4 => SI, 5 => DI, 6 => mod == 0 ? 0 : BP, _ => BX };
+        EuClocks(before, request: after == 0);
+        if (mod == 1) address += (sbyte)FetchOperand();
+        else if (mod == 2 || rm == 6 && mod == 0)
+        {
+            address += FetchOperandWord();
+            // After waiting for a late high displacement byte, every 16-bit form leaves four clocks.
+            if (_operandLate) after = 4;
+        }
+        EuClocks(after, request: true);
         return ((code >> 3) & 7, new Operand(-1, _s[_segmentOverride >= 0 ? _segmentOverride : bp ? 2 : 3], (ushort)address));
     }
     private int Read(Operand o, bool word) => o.Register >= 0 ? GetReg(o.Register, word) : word ? ReadWord(o.Segment, o.Offset) : ReadByte(o.Segment, o.Offset);
@@ -313,6 +330,8 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
             else if (opcode is 0xF0 or 0xF1) locked = true;
             else break;
             if (++prefixes == 65536) throw Unsupported(opcode, "segmento lleno de prefijos");
+            // Each decoded prefix takes two clocks before the next byte; a replayed REP does not decode it again.
+            if (!_replaying) EuClocks(2);
         }
         try
         {
@@ -339,7 +358,7 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
             {
                 var (reg, rm) = Decode(); bool toReg = (op & 2) != 0;
                 int result = Alu(operation, toReg ? GetReg(reg, word) : Read(rm, word), toReg ? Read(rm, word) : GetReg(reg, word), word);
-                if (operation != 7) { if (toReg) SetReg(reg, word, result); else Write(rm, word, result); }
+                if (operation != 7) { if (toReg) SetReg(reg, word, result); else { ModifyClocks(rm, 7); Write(rm, word, result); } }
             }
             else
             {
@@ -364,16 +383,22 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
             case 0x80: case 0x81: case 0x82: case 0x83:
             {
                 var (operation, rm) = Decode(); word = (op & 1) != 0;
-                int immediate = op == 0x81 ? FetchWord() : op == 0x83 ? (ushort)(short)(sbyte)Fetch() : Fetch();
-                int result = Alu(operation, Read(rm, word), immediate, word);
-                if (operation != 7) Write(rm, word, result); break;
+                // Microcode reads a memory operand before taking the immediate from the queue.
+                int value = Read(rm, word); bool memory = rm.Register < 0;
+                ModifyClocks(rm, 2);
+                int immediate = memory ? FetchOperand() : Fetch();
+                if (op == 0x81) immediate |= (memory ? FetchOperand() : Fetch()) << 8;
+                else if (op == 0x83) immediate = (ushort)(short)(sbyte)immediate;
+                int result = Alu(operation, value, immediate, word);
+                if (operation != 7) { ModifyClocks(rm, op == 0x81 ? 4 : 5); Write(rm, word, result); }
+                break;
             }
             case 0x84: case 0x85: { var (reg, rm) = Decode(); Alu(4, Read(rm, word), GetReg(reg, word), word); break; }
             case 0x86: case 0x87:
             {
                 var (reg, rm) = Decode();
                 if (rm.Register < 0) LockBus();
-                int old = Read(rm, word); Write(rm, word, GetReg(reg, word)); SetReg(reg, word, old); break;
+                int old = Read(rm, word); ModifyClocks(rm, 8); Write(rm, word, GetReg(reg, word)); SetReg(reg, word, old); break;
             }
             case 0x88: case 0x89: case 0x8A: case 0x8B:
             {
@@ -430,7 +455,9 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
                 if (operation == 6) throw Unsupported(op, "grupo reservado /6");
                 int count = (op & 2) == 0 ? 1 : CX & 255;
                 int value = Shift(operation, Read(rm, word), count, word);
-                if (count != 0) Write(rm, word, value);
+                // Hardware traces show the memory operand written back even when CL is zero.
+                ModifyClocks(rm, (op & 2) == 0 ? 6 : 11 + 4 * count);
+                Write(rm, word, value);
                 break;
             }
             case 0xD4: case 0xD5: AsciiProductAdjust(op, repeat); break;
@@ -459,8 +486,8 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
             {
                 var (operation, rm) = Decode(); int value = Read(rm, word);
                 if (operation == 0) Alu(4, value, word ? FetchWord() : Fetch(), word);
-                else if (operation == 2) Write(rm, word, ~value);
-                else if (operation == 3) Write(rm, word, Alu(5, 0, value, word));
+                else if (operation == 2) { ModifyClocks(rm, 6); Write(rm, word, ~value); }
+                else if (operation == 3) { int result = Alu(5, 0, value, word); ModifyClocks(rm, 6); Write(rm, word, result); }
                 else if (operation >= 4)
                 {
                     if (repeat != 0 && operation != 7) throw Unsupported(op, "REP en multiplicación/división no contrastado");
@@ -477,7 +504,11 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
             case 0xFE: case 0xFF:
             {
                 var (operation, rm) = Decode(); word = op == 0xFF;
-                if (operation <= 1) Write(rm, word, IncDec(Read(rm, word), word, operation == 1));
+                if (operation <= 1)
+                {
+                    int result = IncDec(Read(rm, word), word, operation == 1);
+                    ModifyClocks(rm, 6); Write(rm, word, result);
+                }
                 else if (!word || operation == 7) throw Unsupported(op, $"grupo /{operation}");
                 else if (operation == 6) Push(rm.Register == 4 ? (ushort)(SP - 2) : (ushort)Read(rm, true));
                 else
