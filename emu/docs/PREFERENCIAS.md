@@ -5,9 +5,12 @@ al cerrar y actualizar el programa.
 
 ## Lectura
 
-- **Tamaño del texto:** 100, 125, 150, 175 o 200 %. Agranda letras, botones, márgenes,
-  la barra de menús, la barra de estado y la biblioteca. Con un tamaño grande en una
-  ventana chica, la biblioteca pasa a su vista compacta y los paneles se desplazan.
+- **Tamaño del texto:** 100, 125, 150, 175 o 200 %. Agranda letras, botones y márgenes
+  en todas las ventanas: biblioteca, depurador, estudio, creador, código y diálogos.
+  Con un tamaño grande en una ventana chica, la biblioteca pasa a su vista compacta, las
+  filas de botones continúan abajo y los paneles se desplazan. Si moviste los paneles del
+  depurador, **Herramientas > Depuración > Reorganizar paneles** los vuelve a ubicar
+  dentro de la ventana actual.
 - **Alto contraste:** texto blanco sobre negro, bordes visibles en todos los controles
   y el foco del teclado marcado en amarillo.
 

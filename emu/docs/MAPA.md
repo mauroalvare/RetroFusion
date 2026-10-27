@@ -125,6 +125,12 @@ una ventana autoajustada tape la barra de estado. `SetKeyboardNavigation` habili
 navegación de ImGui solo cuando el juego no tiene el teclado; Alt izquierdo enfoca la
 barra principal. `FramePacing.TargetFps` baja los cuadros sin partida en curso y mantiene
 la frecuencia del monitor mientras se emula. [Preferencias y teclado](PREFERENCIAS.md).
+`DebuggerLayout.Place` ubica los siete paneles del depurador como fracciones del área
+libre (primer uso y **Herramientas > Depuración > Reorganizar paneles**, que los desacopla).
+`UiTheme.SameLineIfFits` hace que filas de botones y flags continúen abajo; `Highlight`,
+`Error` y `Success` reemplazan colores fijos del depurador y del código. En la biblioteca,
+`FrameCache` conserva resúmenes por máquina, la lista filtrada y la comprobación de
+programas creados hasta que cambian la biblioteca, la búsqueda o la sección.
 
 ## Modificar una partida
 
@@ -200,7 +206,7 @@ dotnet test tests/C64.Tests -c Release                    # un proyecto
 dotnet test tests/Retro.Cpu.Z80.Tests -c Release --filter "TestCategory=Long"
 
 # Pruebas de interfaz: ventana oculta, sin audio, organización ni red.
-# raylib guarda la captura junto al ejecutable con el nombre indicado (descarta la carpeta).
+# Las capturas usan rutas relativas al directorio actual.
 # Cada segundo se informa fps= con los cuadros realmente dibujados y objetivo= con el límite.
 dotnet run --project src/Retro.App -c Release -- --hidden --mute --no-organize --no-update --autotest 10 out/prueba.png
 dotnet run --project src/Retro.App -c Release -- --hidden --mute --no-organize --no-update --text-size 150 --high-contrast --preferences-window --autotest 4 preferencias.png

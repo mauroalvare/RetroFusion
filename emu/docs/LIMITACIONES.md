@@ -422,9 +422,11 @@ se trata de una limitación deducida que todavía necesita una prueba específic
 
 - La tipografía usa fuentes instaladas o la incorporada de ImGui; puede variar entre sistemas.
 - **Tamaño del texto y contraste:** 100 a 200 % en pasos de 25. Escalan menús, barras,
-  biblioteca, diálogos, Sonido y Preferencias; el depurador, el estudio y el creador
-  conservan su tamaño inicial de ventana y pueden necesitar desplazamiento o achicar el
-  tamaño elegido. El alto contraste no cambia los colores de la pantalla emulada.
+  biblioteca, diálogos, depurador, estudio, creador, código, selector de archivos y
+  ventanas de IA y actualización. Una ventana ya ubicada conserva su tamaño guardado en
+  imgui.ini; el depurador se reacomoda con Herramientas > Depuración > Reorganizar
+  paneles. Con 175–200 % en una ventana chica los paneles necesitan desplazamiento.
+  El alto contraste no cambia los colores de la pantalla emulada.
   [Preferencias y teclado](PREFERENCIAS.md).
 - **Lectores de pantalla:** la interfaz se dibuja con Dear ImGui y no publica sus controles
   al sistema operativo; un lector de pantalla no puede recorrerla.
