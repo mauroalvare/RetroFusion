@@ -17,7 +17,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
     private int _thumbnailRevision = -1;
     private readonly Dictionary<string, GameProfile> _profiles = new(StringComparer.Ordinal);
     private HashSet<string> _availableProfiles = new(StringComparer.Ordinal);
-    private bool _open, _compactRows;
+    private bool _open, _compactRows, _refreshed;
     private string _section = "home", _machine = "", _search = "", _problem = "";
     private List<StudioGame> _fusions = new();
     private List<StudioGame> _inspired = new();
@@ -57,8 +57,28 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         _search = "";
     }
 
+    /// <summary>The most recently played games that can be started now, newest first (Juego > Recientes).</summary>
+    public IReadOnlyList<(string Title, string Detail, Action Play)> Recents(int count)
+    {
+        if (!_refreshed) Refresh();
+        var items = new List<(string Key, string Title, string Detail, Action Play)>();
+        foreach (var game in library.Originals())
+            if (game.NotYet == null && game.Confidence >= 50)
+                items.Add((OriginalKey(game), game.Name, Name(game.Machine), () => playOriginal(game.Path)));
+        foreach (var game in _created)
+            if (File.Exists(game.ProgramPath))
+                items.Add((CreatedKey(game), game.Title, game.MachineName, () => playOriginal(game.ProgramPath)));
+        foreach (var game in _fusions.Concat(_inspired))
+            if (game.Games.All(g => _availableProfiles.Contains(g.Profile)))
+                items.Add((FusionKey(game), game.Title, game.IsInspired ? "Con originales" : "Fusión", () => playFusion(game.Id)));
+        return items.Where(item => _activity.LastPlayed(item.Key) != null).DistinctBy(item => item.Key)
+            .OrderByDescending(item => _activity.LastPlayed(item.Key)).ThenBy(item => item.Title, StringComparer.OrdinalIgnoreCase)
+            .Take(count).Select(item => (item.Title, item.Detail, item.Play)).ToList();
+    }
+
     private void Refresh()
     {
+        _refreshed = true;
         _thumbnails.Clear();
         try
         {
@@ -98,15 +118,15 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         if (_thumbnailRevision != library.Revision) { _thumbnailRevision = library.Revision; _thumbnails.Clear(); RefreshProfiles(); }
         var viewport = ImGui.GetMainViewport();
         ImGui.SetNextWindowPos(viewport.WorkPos);
-        ImGui.SetNextWindowSize(new Vector2(viewport.WorkSize.X, Math.Max(1, viewport.WorkSize.Y - 24)));
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(18, 18));
+        ImGui.SetNextWindowSize(new Vector2(viewport.WorkSize.X, Math.Max(1, viewport.WorkSize.Y - UiTheme.StatusBarHeight)));
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, UiTheme.Px(18, 18));
         ImGui.Begin("##inicio", ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoDocking
             | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoBringToFrontOnFocus);
-        bool compact = viewport.WorkSize.X < 800;
+        bool compact = viewport.WorkSize.X < UiTheme.Px(800);
         if (compact) DrawCompactNavigation();
         else
         {
-            ImGui.BeginChild("navegacion", new Vector2(Math.Clamp(viewport.WorkSize.X * 0.22f, 156, 210), 0));
+            ImGui.BeginChild("navegacion", new Vector2(Math.Clamp(viewport.WorkSize.X * 0.22f, UiTheme.Px(156), UiTheme.Px(210)), 0));
             ImGui.SetWindowFontScale(1.4f);
             ImGui.TextUnformatted("RetroEmu");
             ImGui.SetWindowFontScale(1);
@@ -155,10 +175,10 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         if (_section == "home") DrawMachines();
         else
         {
-            ImGui.SetNextItemWidth(Math.Max(80, ImGui.GetContentRegionAvail().X - 92));
+            ImGui.SetNextItemWidth(Math.Max(UiTheme.Px(80), ImGui.GetContentRegionAvail().X - UiTheme.Px(92)));
             ImGui.InputTextWithHint("##buscar", "Buscar por nombre", ref _search, 150);
             ImGui.SameLine(); ImGui.BeginDisabled(_search.Length == 0);
-            if (ImGui.Button("Limpiar", new(82, 0))) _search = "";
+            if (ImGui.Button("Limpiar", new(UiTheme.Px(82), 0))) _search = "";
             ImGui.EndDisabled();
             ImGui.Spacing();
             if (_section is "favorites" or "recent") DrawPersonal();
@@ -180,7 +200,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
 
     private void DrawCompactNavigation()
     {
-        ImGui.SetNextItemWidth(canReturn() ? Math.Max(150, ImGui.GetContentRegionAvail().X - 168) : -1);
+        ImGui.SetNextItemWidth(canReturn() ? Math.Max(UiTheme.Px(150), ImGui.GetContentRegionAvail().X - UiTheme.Px(168)) : -1);
         if (ImGui.BeginCombo("##seccion-biblioteca", _section == "home" ? "Inicio" : SectionTitle()))
         {
             Choice("Inicio", "home"); Choice("Todos los juegos", "all");
@@ -190,7 +210,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
             ImGui.Separator(); Choice("Fusionados", "fusions"); Choice("Creados", "created");
             ImGui.EndCombo();
         }
-        if (canReturn()) { ImGui.SameLine(); if (ImGui.Button("Volver al juego", new(158, 0))) Close(); }
+        if (canReturn()) { ImGui.SameLine(); if (ImGui.Button("Volver al juego", new(UiTheme.Px(158), 0))) Close(); }
         ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
         void Choice(string label, string section, string machine = "")
         {
@@ -200,7 +220,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
 
     private void Nav(string label, string section, string machine = "")
     {
-        if (ImGui.Selectable(label, _section == section && _machine == machine, ImGuiSelectableFlags.None, new Vector2(0, 28)))
+        if (ImGui.Selectable(label, _section == section && _machine == machine, ImGuiSelectableFlags.None, new Vector2(0, UiTheme.Px(28))))
             Select(section, machine);
     }
 
@@ -208,13 +228,13 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
 
     private void DrawMachines()
     {
-        int columns = ImGui.GetContentRegionAvail().X >= 700 ? 2 : 1;
+        int columns = ImGui.GetContentRegionAvail().X >= UiTheme.Px(700) ? 2 : 1;
         if (ImGui.BeginTable("maquinas", columns, ImGuiTableFlags.SizingStretchSame))
         {
             foreach (var machine in Machines)
             {
                 ImGui.TableNextColumn();
-                var size = new Vector2(ImGui.GetContentRegionAvail().X, 116);
+                var size = new Vector2(ImGui.GetContentRegionAvail().X, UiTheme.Px(116));
                 bool selected = ImGui.InvisibleButton("maquina-" + machine.Id, size);
                 bool hovered = ImGui.IsItemHovered();
                 var min = ImGui.GetItemRectMin();
@@ -229,18 +249,18 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
                     _ => ImGui.ColorConvertFloat4ToU32(new Vector4(0.55f, 0.85f, 0.55f, 1)),
                 };
                 draw.AddRectFilled(min, max, ImGui.GetColorU32(hovered ? ImGuiCol.HeaderHovered : ImGuiCol.FrameBg), 5);
-                draw.AddRectFilled(min, new Vector2(min.X + 4, max.Y), accent, 3);
-                HardwareArt.Draw(draw, machine.Id, min + new Vector2(12, 7), new Vector2(100, 76));
-                float width = size.X - 136;
-                draw.AddText(min + new Vector2(124, 18), ImGui.GetColorU32(ImGuiCol.Text), UiTheme.Fit(Name(machine), width));
-                draw.AddText(min + new Vector2(124, 42), ImGui.GetColorU32(ImGuiCol.TextDisabled), UiTheme.Fit(machine.Cpu, width));
+                draw.AddRectFilled(min, new Vector2(min.X + UiTheme.Px(4), max.Y), accent, 3);
+                HardwareArt.Draw(draw, machine.Id, min + UiTheme.Px(12, 7), UiTheme.Px(100, 76));
+                float width = size.X - UiTheme.Px(136);
+                draw.AddText(min + UiTheme.Px(124, 18), ImGui.GetColorU32(ImGuiCol.Text), UiTheme.Fit(Name(machine), width));
+                draw.AddText(min + UiTheme.Px(124, 42), ImGui.GetColorU32(ImGuiCol.TextDisabled), UiTheme.Fit(machine.Cpu, width));
                 var originals = library.Originals(machineId: machine.Id).ToList();
                 int count = originals.Count + _created.Count(g => g.Machine == machine.Id);
                 int ready = originals.Count(g => g.NotYet == null && g.Confidence >= 50) + _created.Count(g => g.Machine == machine.Id && File.Exists(g.ProgramPath));
                 string summary = library.Scanning ? "Buscando juegos..." : count == 0 ? "Sin juegos agregados"
                     : ready == count ? $"{count} juego{(count == 1 ? "" : "s")}" : $"{count} archivos / {ready} admitidos";
-                draw.AddText(min + new Vector2(124, 66), ImGui.GetColorU32(ImGuiCol.TextDisabled), UiTheme.Fit(summary, width));
-                draw.AddText(min + new Vector2(18, 88), accent, "Ver juegos >");
+                draw.AddText(min + UiTheme.Px(124, 66), ImGui.GetColorU32(ImGuiCol.TextDisabled), UiTheme.Fit(summary, width));
+                draw.AddText(min + UiTheme.Px(18, 88), accent, "Ver juegos >");
                 if (hovered) UiTheme.Tooltip(Name(machine) + "\n" + summary);
                 if (selected) Select("machine", machine.Id);
                 ImGui.Spacing();
@@ -391,13 +411,13 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
 
     private bool BeginList()
     {
-        _compactRows = ImGui.GetContentRegionAvail().X < 640;
+        _compactRows = ImGui.GetContentRegionAvail().X < UiTheme.Px(640);
         if (!ImGui.BeginTable("juegos", _compactRows ? 3 : 4, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY | ImGuiTableFlags.BordersInnerH,
-            new Vector2(0, Math.Max(50, ImGui.GetContentRegionAvail().Y - 30)))) return false;
+            new Vector2(0, Math.Max(UiTheme.Px(50), ImGui.GetContentRegionAvail().Y - UiTheme.Px(30))))) return false;
         ImGui.TableSetupColumn("Juego", ImGuiTableColumnFlags.WidthStretch);
-        if (!_compactRows) ImGui.TableSetupColumn("Sistema", ImGuiTableColumnFlags.WidthFixed, 156);
-        ImGui.TableSetupColumn("Fav.", ImGuiTableColumnFlags.WidthFixed, 32);
-        ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 75);
+        if (!_compactRows) ImGui.TableSetupColumn("Sistema", ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(156));
+        ImGui.TableSetupColumn("Fav.", ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(32));
+        ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(75));
         ImGui.TableHeadersRow();
         return true;
     }
@@ -409,7 +429,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         ImGui.PushID(id);
         ImGui.TableNextColumn();
         var position = ImGui.GetCursorScreenPos();
-        var size = new Vector2(58, 42);
+        var size = UiTheme.Px(58, 42);
         ImGui.Dummy(size);
         if (ImGui.IsItemVisible())
         {
@@ -422,7 +442,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
                 var at = position + (size - fitted) / 2;
                 draw.AddImage((nint)texture.Id, at, at + fitted);
             }
-            else HardwareArt.Draw(draw, machine, position + new Vector2(2, 1), size - new Vector2(4, 2));
+            else HardwareArt.Draw(draw, machine, position + UiTheme.Px(2, 1), size - UiTheme.Px(4, 2));
         }
         ImGui.SameLine(); ImGui.BeginGroup();
         float textWidth = Math.Max(20, ImGui.GetContentRegionAvail().X);
@@ -444,12 +464,12 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         }
         ImGui.TableNextColumn();
         bool favorite = _activity.IsFavorite(id);
-        if (ImGui.Button("##favorito", new Vector2(28, 24))) _activity.SetFavorite(id, !favorite);
+        if (ImGui.Button("##favorito", UiTheme.Px(28, 24))) _activity.SetFavorite(id, !favorite);
         var center = (ImGui.GetItemRectMin() + ImGui.GetItemRectMax()) / 2;
         Span<Vector2> star = stackalloc Vector2[10];
         for (int i = 0; i < star.Length; i++)
         {
-            float angle = -MathF.PI / 2 + i * MathF.PI / 5, radius = (i & 1) == 0 ? 9 : 4;
+            float angle = -MathF.PI / 2 + i * MathF.PI / 5, radius = UiTheme.Px((i & 1) == 0 ? 9 : 4);
             star[i] = center + new Vector2(MathF.Cos(angle), MathF.Sin(angle)) * radius;
         }
         var starDraw = ImGui.GetWindowDrawList();

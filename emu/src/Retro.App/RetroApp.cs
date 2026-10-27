@@ -45,8 +45,11 @@ public sealed partial class RetroApp
     private OpenRequest? _pendingOpen;
     private bool _pausedBeforeChoice;
     private List<MachineCatalog.Candidate> _versions = new();   // versions of the last opened game
-    private bool _autoType = true;
-    private float _scale = 2;
+    private readonly AppPreferences _prefs;
+    private bool _themeChanged;
+    private float _menuHeight = 28;
+    private readonly int _monitorRate;
+    private int _targetFps;
     private readonly Dictionary<string, string> _regEdit = new();
     private string? _editMemAddr;
     private string _editMemValue = "";
@@ -60,10 +63,21 @@ public sealed partial class RetroApp
     private string? _autoPrepare;
     private string? _autotestShot;
     private double _elapsed;
+    private int _windowFrames;
 
     public RetroApp(string[] args)
     {
+        _prefs = new AppPreferences(persist: !args.Contains("--autotest"));
+        // --text-size 150 and --high-contrast change this session, as --mute does with the sound.
+        int textArg = Array.IndexOf(args, "--text-size");
+        if (textArg >= 0 && textArg + 1 < args.Length && int.TryParse(args[textArg + 1], out int text) && AppPreferences.TextSizes.Contains(text))
+            _prefs.TextPercent = text;
+        if (args.Contains("--high-contrast")) _prefs.HighContrast = true;
         ConfigureStyle();
+        _input.Joystick = _prefs.SpectrumJoystick; _input.C64Port = _prefs.C64Port;
+        _host.TurboWhileLoading = _prefs.TurboWhileLoading;
+        if (_prefs.Fullscreen && !args.Contains("--hidden") && !args.Contains("--autotest") && !Raylib.IsWindowFullscreen())
+            Raylib.ToggleFullscreen();
         _sound = new SoundSettings(persist: !args.Contains("--autotest"));
         _stateSlots = new StateSlotStore(args.Contains("--autotest") ? Path.Combine(Environment.CurrentDirectory, "out", "autotest-state-slots") : null);
         // the system firmware: a "firmware" folder (release packages) or a "roms" folder that
@@ -86,7 +100,9 @@ public sealed partial class RetroApp
             }, () => _host.LoadedMedia != null || _host.Fusion != null,
             args.Contains("--autotest") ? new LibraryActivity(persist: false) : null);
         _studio.GameStarted += game => _home.RecordFusion(game);
-        Raylib.SetTargetFPS(Math.Max(60, Raylib.GetMonitorRefreshRate(Raylib.GetCurrentMonitor())));
+        _monitorRate = Raylib.GetMonitorRefreshRate(Raylib.GetCurrentMonitor());
+        _targetFps = FramePacing.TargetFps(_monitorRate, saving: false, emulating: true, focused: true, minimized: false);
+        Raylib.SetTargetFPS(_targetFps);
         // The audio device pulls samples through a callback on its own thread, so the
         // emulator can pace itself on the real consumption rate.
         Raylib.SetAudioStreamBufferSizeDefault(512);
@@ -135,13 +151,17 @@ public sealed partial class RetroApp
                 _sound.Muted = true;
             else if (args[i] == "--sound-window")
                 _soundWindowOpen = true;
+            else if (args[i] == "--preferences-window")
+                _preferencesOpen = true;
+            else if (args[i] == "--text-size")
+                i++;
             else if (args[i] != "--hidden" && File.Exists(args[i]))
             {
                 OpenFile(args[i]);
                 openedFile = true;
             }
         }
-        if (!openedFile && !args.Any(a => a is "--studio" or "--preparar" or "--crear-window" or "--studio-window" or "--code" or "--mods-window" or "--states-window" or "--sound-window" or "--debug"))
+        if (!openedFile && !args.Any(a => a is "--studio" or "--preparar" or "--crear-window" or "--studio-window" or "--code" or "--mods-window" or "--states-window" or "--sound-window" or "--preferences-window" or "--debug"))
             _home.Open();
         _updates = new UpdateWindow(args);
     }
@@ -149,7 +169,7 @@ public sealed partial class RetroApp
     /// <summary>The user's game folder ("ROMs", exact case: "roms" holds the firmware).</summary>
     private static string? FindGamesFolder() => PlayerFolders.Find("ROMs");
 
-    private static void ConfigureStyle() => UiTheme.Apply();
+    private void ConfigureStyle() => UiTheme.Apply(_prefs.TextScale, _prefs.HighContrast);
 
     private void ShowInDebugger(uint address)
     {
@@ -260,6 +280,7 @@ public sealed partial class RetroApp
         s_mute = _sound.Muted || _host.IsFastForwarding || _host.Paused || _updates.Blocking
             || (_sound.MuteInBackground && !Raylib.IsWindowFocused());
         s_volume = _sound.VolumePercent / 100f;
+        PaceFrames(m);
         if (_autoStudio != null)
         {
             PlayFusion(_autoStudio);
@@ -271,6 +292,9 @@ public sealed partial class RetroApp
             _autoPrepare = null;
         }
 
+        // A new text size rebuilds the font atlas, which ImGui only allows between frames.
+        if (_themeChanged) { ConfigureStyle(); _themeChanged = false; }
+        SetKeyboardNavigation(m);
         Raylib.BeginDrawing();
         Raylib.ClearBackground(new Color(18, 18, 22, 255));
         if (!_home.IsOpen && !_debugMode && _texW != 0)
@@ -292,15 +316,20 @@ public sealed partial class RetroApp
         }
         DrawPopups();
         DrawSoundWindow();
+        DrawPreferencesWindow();
         AiConnectionWindow.Draw(_ai);
         ImGui.EndDisabled();
         _updates.Draw();
         rlImGui.End();
         Raylib.EndDrawing();
 
-        _elapsed += dt;
+        _elapsed += dt; _windowFrames++;
+        // Frames drawn during the last second: Raylib.GetFPS averages samples taken per call, so read once per second it overstated the rate.
         if (_autotestSeconds >= 0 && (int)_elapsed != (int)(_elapsed - dt))
-            Console.WriteLine($"t={_elapsed:F1}s fps={Raylib.GetFPS()} velocidad={_host.EffectiveSpeed * 100:F0}% audio_en_cola={_host.Audio.Count} cuadros={_host.Machine?.FrameCount}");
+        {
+            Console.WriteLine($"t={_elapsed:F1}s fps={_windowFrames} objetivo={_targetFps} velocidad={_host.EffectiveSpeed * 100:F0}% audio_en_cola={_host.Audio.Count} cuadros={_host.Machine?.FrameCount}");
+            _windowFrames = 0;
+        }
         if (_autotestSeconds >= 0 && _elapsed >= _autotestSeconds && _autotestShot != null)
         {
             Raylib.TakeScreenshot(_autotestShot);
@@ -310,6 +339,28 @@ public sealed partial class RetroApp
                 Console.WriteLine($"con fusión: {e.Name}: {string.Join(", ", FusionsOf(e.ProfileId))}");
             QuitRequested = true;
         }
+    }
+
+    /// <summary>
+    /// Tab, arrows, Enter and Esc move through the interface while no running game owns the keyboard:
+    /// the library, dialogs, menus and panels with the game paused.
+    /// </summary>
+    private void SetKeyboardNavigation(IMachine? m)
+    {
+        var io = ImGui.GetIO();
+        bool interfaceOnly = m == null || _host.Paused || _home.IsOpen || _browser.IsOpen || _pendingOpen != null
+            || _errorPopup != null || _updates.Blocking;
+        if (interfaceOnly) io.ConfigFlags |= ImGuiConfigFlags.NavEnableKeyboard;
+        else io.ConfigFlags &= ~ImGuiConfigFlags.NavEnableKeyboard;
+    }
+
+    private void PaceFrames(IMachine? m)
+    {
+        bool emulating = m != null && !_updates.Blocking && !_host.Paused;
+        int fps = FramePacing.TargetFps(_monitorRate, _prefs.PowerSaving, emulating, Raylib.IsWindowFocused(), Raylib.IsWindowMinimized());
+        if (fps == _targetFps) return;
+        _targetFps = fps;
+        Raylib.SetTargetFPS(fps);
     }
 
     /// <summary>Per-machine defaults for the debugger panels.</summary>
@@ -381,13 +432,14 @@ public sealed partial class RetroApp
 
     private void DrawPlayScreen()
     {
-        float top = 22, bottom = 24;
+        // Bars measured on the previous frame, so a larger text size never covers the picture.
+        float top = _menuHeight, bottom = UiTheme.StatusBarHeight;
         // the AI studio panel sits on the right while you play: the game uses the rest
         float reserved = Math.Max(_code.RightReserve(Raylib.GetScreenWidth()),
             Math.Max(_studio.RightReserve(Raylib.GetScreenWidth()), _creator.RightReserve(Raylib.GetScreenWidth())));
-        float w = Math.Max(1, Raylib.GetScreenWidth() - reserved), h = Raylib.GetScreenHeight() - top - bottom;
+        float w = Math.Max(1, Raylib.GetScreenWidth() - reserved), h = Math.Max(1, Raylib.GetScreenHeight() - top - bottom);
         float s = MathF.Min(w / _texW, h / _texH);
-        if (_scale > 0)
+        if (_prefs.IntegerScale)
             s = MathF.Min(s, MathF.Max(1, MathF.Floor(s)));
         float dw = _texW * s, dh = _texH * s;
         var dest = new Rectangle((w - dw) / 2, top + (h - dh) / 2, dw, dh);
@@ -533,7 +585,7 @@ public sealed partial class RetroApp
             {
                 if (_host.Info?.Id != c.Machine.Id || _host.Fusion != null)
                     _host.Start(c.Machine, _romDir);
-                _host.Load(c.File, _autoType);
+                _host.Load(c.File, _prefs.TypeLoad);
             }
             _host.Status = $"{c.Machine.Name} (CPU {c.Machine.Cpu}), {c.Reason}  |  {_host.Status}";
             return true;
@@ -575,9 +627,9 @@ public sealed partial class RetroApp
             _debugMode = !_debugMode;
         }
         if (Raylib.IsKeyPressed(KeyboardKey.F11))
-            Raylib.ToggleFullscreen();
+            ToggleFullscreen();
         bool ctrl = Raylib.IsKeyDown(KeyboardKey.LeftControl) || Raylib.IsKeyDown(KeyboardKey.RightControl);
-        bool toolModifier = ctrl && (_host.Pc == null || Raylib.IsKeyDown(KeyboardKey.LeftShift) || Raylib.IsKeyDown(KeyboardKey.RightShift));
+        bool toolModifier = ctrl && (!ToolShortcutsNeedShift || Raylib.IsKeyDown(KeyboardKey.LeftShift) || Raylib.IsKeyDown(KeyboardKey.RightShift));
         if (toolModifier && Raylib.IsKeyPressed(KeyboardKey.O)) _browser.Open();
         if (toolModifier && Raylib.IsKeyPressed(KeyboardKey.K) && _host.Machine != null)
         {
@@ -620,18 +672,41 @@ public sealed partial class RetroApp
         else zx.Tape.Play(zx.Z80.T);
     }
 
+    private void ToggleFullscreen()
+    {
+        Raylib.ToggleFullscreen();
+        _prefs.Fullscreen = Raylib.IsWindowFullscreen(); _prefs.Save();
+    }
+
     // ------------------------------------------------------------------ menu
-    private string ToolShortcut(string key) => (_host.Pc != null ? "Ctrl+Shift+" : "Ctrl+") + key;
+    private bool ToolShortcutsNeedShift => InputMapper.ToolShortcutsNeedShift(_host.Machine, _host.Fusion != null);
+    private string ToolShortcut(string key) => (ToolShortcutsNeedShift ? "Ctrl+Shift+" : "Ctrl+") + key;
     private string Shortcut(string key) => _host.Pc != null && _host.Fusion == null ? "Ctrl+" + key :
         _host.C64 != null && key is "F5" or "Shift+F5" ? "" : key;
 
     private void DrawMenu()
     {
         if (!ImGui.BeginMainMenuBar()) return;
-        if (ImGui.MenuItem("Biblioteca")) { CloseEditors(); _home.Open(); }
+        _menuHeight = ImGui.GetWindowHeight();
+        // ImGui moves to a menu bar when Alt is released, but only in the focused window: focusing
+        // the main bar while Alt is down lets the keyboard reach Biblioteca, Juego, Opciones...
+        var io = ImGui.GetIO();
+        if ((io.ConfigFlags & ImGuiConfigFlags.NavEnableKeyboard) != 0 && !io.WantTextInput && ImGui.IsKeyPressed(ImGuiKey.LeftAlt, false))
+            ImGui.SetWindowFocus();
+        if (ImGui.MenuItem("Biblioteca", ToolShortcut("L"))) { CloseEditors(); _home.Open(); }
         if (ImGui.BeginMenu("Juego"))
         {
             if (ImGui.MenuItem("Abrir juego o programa...", ToolShortcut("O"))) _browser.Open();
+            if (ImGui.BeginMenu("Recientes"))
+            {
+                var recents = _home.Recents(10);
+                if (recents.Count == 0) ImGui.TextDisabled("Todavía no abriste juegos.");
+                for (int r = 0; r < recents.Count; r++)
+                    if (ImGui.MenuItem($"{UiTheme.Fit(recents[r].Title, UiTheme.Px(360))}##reciente{r}", recents[r].Detail)) recents[r].Play();
+                ImGui.Separator();
+                if (ImGui.MenuItem("Ver todos en la biblioteca")) { CloseEditors(); _home.ShowRecents(); }
+                ImGui.EndMenu();
+            }
             if (ImGui.BeginMenu(_versions.Count > 0 && _versions.All(v => v.Machine.Id == "pcxt") ? "Programas del archivo" : "Otras versiones del último juego", _versions.Count > 1))
             {
                 ImGui.TextDisabled("Elegí otro archivo del mismo paquete.");
@@ -660,15 +735,7 @@ public sealed partial class RetroApp
                 if (ImGui.BeginMenu("Joystick en flechas / gamepad"))
                 {
                     foreach (JoystickMode jm in Enum.GetValues<JoystickMode>())
-                    {
-                        string name = jm switch
-                        {
-                            JoystickMode.Kempston => "Kempston (Alt = disparo)",
-                            JoystickMode.Cursor => "Cursor (5 6 7 8 0)",
-                            _ => "Sinclair 1 (6 7 8 9 0)",
-                        };
-                        if (ImGui.MenuItem(name, "", _input.Joystick == jm)) _input.Joystick = jm;
-                    }
+                        if (ImGui.MenuItem(JoystickNames[(int)jm], "", _input.Joystick == jm)) SetSpectrumJoystick(jm);
                     ImGui.EndMenu();
                 }
             }
@@ -676,8 +743,8 @@ public sealed partial class RetroApp
             {
                 if (ImGui.BeginMenu("Joystick en flechas / gamepad"))
                 {
-                    if (ImGui.MenuItem("Puerto 2 (la mayoría de los juegos)", "", _input.C64Port == 2)) _input.C64Port = 2;
-                    if (ImGui.MenuItem("Puerto 1", "", _input.C64Port == 1)) _input.C64Port = 1;
+                    if (ImGui.MenuItem("Puerto 2 (la mayoría de los juegos)", "", _input.C64Port == 2)) SetC64Port(2);
+                    if (ImGui.MenuItem("Puerto 1", "", _input.C64Port == 1)) SetC64Port(1);
                     ImGui.TextDisabled("Si el personaje no se mueve, probá el otro puerto.");
                     ImGui.EndMenu();
                 }
@@ -703,9 +770,10 @@ public sealed partial class RetroApp
         if (_host.Zx is { } zx && ImGui.BeginMenu("Cinta"))
         {
             var tape = zx.Tape;
-            ImGui.MenuItem("Escribir LOAD \"\" al abrir cintas", "", ref _autoType);
+            bool typeLoad = _prefs.TypeLoad;
+            if (ImGui.MenuItem("Escribir LOAD \"\" al abrir cintas", "", ref typeLoad)) { _prefs.TypeLoad = typeLoad; _prefs.Save(); }
             bool turboLoading = _host.TurboWhileLoading;
-            if (ImGui.MenuItem("Acelerar durante la carga", "", ref turboLoading)) _host.TurboWhileLoading = turboLoading;
+            if (ImGui.MenuItem("Acelerar durante la carga", "", ref turboLoading)) SetTurboWhileLoading(turboLoading);
             if (ImGui.MenuItem(tape.IsPlaying ? "Detener" : "Reproducir", "F6", false, tape.IsLoaded)) ToggleTape();
             if (ImGui.MenuItem("Rebobinar", "F7", false, tape.IsLoaded)) tape.Rewind();
             if (ImGui.MenuItem("Expulsar", "", false, tape.IsLoaded)) tape.Eject();
@@ -756,7 +824,9 @@ public sealed partial class RetroApp
         }
         if (ImGui.BeginMenu("Opciones"))
         {
+            if (ImGui.MenuItem("Preferencias...")) _preferencesOpen = true;
             if (ImGui.MenuItem("Conectar o configurar IA...")) AiConnectionWindow.Open(_ai);
+            ImGui.Separator();
             if (ImGui.BeginMenu("Sonido"))
             {
                 bool muted = _sound.Muted;
@@ -766,9 +836,23 @@ public sealed partial class RetroApp
             }
             if (ImGui.BeginMenu("Pantalla"))
             {
-                if (ImGui.MenuItem("Pantalla completa", "F11")) Raylib.ToggleFullscreen();
-                bool integer = _scale > 0;
-                if (ImGui.MenuItem("Escala entera (píxeles nítidos)", "", ref integer)) _scale = integer ? 2 : 0;
+                if (ImGui.MenuItem("Pantalla completa", "F11", Raylib.IsWindowFullscreen())) ToggleFullscreen();
+                bool integer = _prefs.IntegerScale;
+                if (ImGui.MenuItem("Escala entera (píxeles nítidos)", "", ref integer)) { _prefs.IntegerScale = integer; _prefs.Save(); }
+                bool fps = _prefs.ShowFps;
+                if (ImGui.MenuItem("Mostrar cuadros por segundo", "", ref fps)) { _prefs.ShowFps = fps; _prefs.Save(); }
+                ImGui.EndMenu();
+            }
+            if (ImGui.BeginMenu("Accesibilidad"))
+            {
+                if (ImGui.BeginMenu("Tamaño del texto"))
+                {
+                    foreach (int size in AppPreferences.TextSizes)
+                        if (ImGui.MenuItem($"{size} %", "", _prefs.TextPercent == size)) SetTextSize(size);
+                    ImGui.EndMenu();
+                }
+                bool contrast = _prefs.HighContrast;
+                if (ImGui.MenuItem("Alto contraste", "", ref contrast)) SetHighContrast(contrast);
                 ImGui.EndMenu();
             }
             ImGui.EndMenu();
@@ -800,12 +884,16 @@ public sealed partial class RetroApp
             }
             if (ImGui.BeginMenu("Atajos"))
             {
-                ImGui.TextUnformatted($"{ToolShortcut("L")}: biblioteca    {ToolShortcut("M")}: modificar");
-                ImGui.TextUnformatted(_host.Fusion != null ? "Los estados guardados están disponibles en originales."
-                    : _host.Pc != null ? "Ctrl+F2: guardar estado    Ctrl+F4: cargar estado"
-                    : _host.C64 != null ? "F2: guardar estado    F4: cargar estado" : "F2: guardar estado    F3: cargar estado");
-                ImGui.TextUnformatted($"{Shortcut("F8")}: turbo    {Shortcut("F9")}: pausa    F11: pantalla completa");
-                ImGui.TextUnformatted($"{ToolShortcut("K")}: código    {Shortcut("F10")}: paso    F12: depurador");
+                DrawShortcutsHelp();
+                ImGui.EndMenu();
+            }
+            if (ImGui.BeginMenu("Accesibilidad y teclado"))
+            {
+                ImGui.PushTextWrapPos(UiTheme.Px(440));
+                ImGui.TextWrapped("Opciones > Accesibilidad cambia el tamaño del texto y activa el alto contraste. Los cambios se guardan.");
+                ImGui.TextWrapped("En la biblioteca, los diálogos y con la partida en pausa, Alt izquierdo lleva a los menús; Tab y las flechas recorren los controles, Enter o Espacio los activan y Esc vuelve.");
+                ImGui.TextWrapped("Mientras el juego corre, el teclado es de la máquina emulada. Pausá con " + Shortcut("F9") + " para usar la interfaz con el teclado.");
+                ImGui.PopTextWrapPos();
                 ImGui.EndMenu();
             }
             ImGui.EndMenu();
@@ -826,12 +914,14 @@ public sealed partial class RetroApp
                 ImGui.TextUnformatted("Teclado: letras y números del juego.");
                 ImGui.TextUnformatted("Shift: CAPS SHIFT    Ctrl: SYMBOL SHIFT    Backspace: DELETE");
                 ImGui.TextUnformatted("Joystick: flechas y Alt. Elegí el tipo en Juego > Controles y hardware.");
+                ImGui.TextUnformatted("Ctrl+Shift+O/L/M/K: abrir, biblioteca, modificar y código.");
                 break;
             case "c64":
                 ImGui.TextUnformatted("Joystick: flechas y Alt o Ctrl derecho.");
                 ImGui.TextUnformatted("Si no responde, cambiá el puerto en Juego > Controles y hardware.");
                 ImGui.TextUnformatted("Esc: RUN/STOP    RePág: RESTORE    Ctrl izquierdo: C=    Tab: CTRL");
                 ImGui.TextUnformatted("F1, F3, F5 y F7 son las teclas del C64.");
+                ImGui.TextUnformatted("Ctrl+Shift+O/L/M/K: abrir, biblioteca, modificar y código.");
                 break;
             case "pcxt":
                 ImGui.TextUnformatted("Teclado de PC de 83 teclas, con distribución estadounidense.");
@@ -850,6 +940,38 @@ public sealed partial class RetroApp
                 ImGui.TextUnformatted("Abrí un juego para ver sus controles.");
                 break;
         }
+    }
+
+    private void DrawShortcutsHelp()
+    {
+        string loadKey = _host.Pc != null ? Shortcut("F4") : _host.C64 != null ? "F4" : "F3";
+        var rows = new List<(string Keys, string Action)>
+        {
+            (ToolShortcut("O"), "Abrir juego o programa"), (ToolShortcut("L"), "Biblioteca"),
+            (ToolShortcut("M"), "Modificar y analizar"), (ToolShortcut("K"), "Código del juego"),
+        };
+        if (_host.Fusion == null)
+        {
+            rows.Add((Shortcut("F2"), "Guardar estado rápido"));
+            rows.Add((loadKey, "Cargar estado rápido"));
+            if (Shortcut("F5").Length > 0) rows.Add((Shortcut("F5") + " / " + Shortcut("Shift+F5"), "Reiniciar / reinicio total"));
+        }
+        if (_host.Zx != null) rows.Add(("F6 / F7", "Cinta: reproducir o detener / rebobinar"));
+        rows.Add((Shortcut("F8"), "Turbo"));
+        rows.Add((Shortcut("F9"), "Pausa y continuar"));
+        rows.Add((Shortcut("F10") + " / " + Shortcut("Shift+F10"), "Paso / paso por encima"));
+        rows.Add(("F11", "Pantalla completa"));
+        rows.Add(("F12", "Depurador"));
+        rows.Add(("Alt izquierdo", "Menús, con la partida en pausa"));
+        if (_host.Fusion != null) ImGui.TextDisabled("Los estados guardados están disponibles en originales.");
+        if (!ImGui.BeginTable("atajos", 2, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.RowBg)) return;
+        foreach (var (keys, action) in rows)
+        {
+            ImGui.TableNextRow();
+            ImGui.TableNextColumn(); ImGui.TextColored(UiTheme.Accent, keys);
+            ImGui.TableNextColumn(); ImGui.TextUnformatted(action);
+        }
+        ImGui.EndTable();
     }
 
     /// <summary>The newest version of each game made in the AI studio.</summary>
@@ -883,13 +1005,14 @@ public sealed partial class RetroApp
     private void DrawStatusBar()
     {
         var vp = ImGui.GetMainViewport();
-        ImGui.SetNextWindowPos(new(vp.Pos.X, vp.Pos.Y + vp.Size.Y - 24));
-        ImGui.SetNextWindowSize(new(vp.Size.X, 24));
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(8, 3));
+        float height = UiTheme.StatusBarHeight;
+        ImGui.SetNextWindowPos(new(vp.Pos.X, vp.Pos.Y + vp.Size.Y - height));
+        ImGui.SetNextWindowSize(new(vp.Size.X, height));
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, UiTheme.Px(8, 3));
         ImGui.Begin("##status", ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoSavedSettings
             | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoScrollbar);
         string status;
-        if (_home.IsOpen) status = _library.Scanning ? "Buscando juegos..." : $"{_home.GameCount} juegos en la biblioteca";
+        if (_home.IsOpen) status = _library.Scanning ? "Buscando juegos..." : $"{_home.GameCount} {(_home.GameCount == 1 ? "juego" : "juegos")} en la biblioteca";
         else
         {
             var m = _host.Machine;
@@ -900,15 +1023,16 @@ public sealed partial class RetroApp
             string title = _host.Fusion?.Title ?? _host.Info?.Name ?? "Sin máquina";
             status = $"{title} · {speed}{extra} · {_host.Status}";
         }
+        if (_prefs.ShowFps) status = $"{Raylib.GetFPS()} cuadros/s · {status}";
         int jobs = (_studio.IsWorking ? 1 : 0) + (_creator.IsWorking ? 1 : 0) + (_code.IsWorking ? 1 : 0);
         bool work = jobs > 0;
         string workLabel = jobs > 1 ? $"{jobs} trabajos en curso" : "Ver trabajo en curso";
-        float buttonWidth = ImGui.CalcTextSize(workLabel).X + 18;
-        ImGui.TextUnformatted(UiTheme.Fit(status, ImGui.GetContentRegionAvail().X - (work ? buttonWidth + 12 : 0)));
+        float buttonWidth = ImGui.CalcTextSize(workLabel).X + ImGui.GetStyle().FramePadding.X * 2;
+        ImGui.TextUnformatted(UiTheme.Fit(status, ImGui.GetContentRegionAvail().X - (work ? buttonWidth + UiTheme.Px(12) : 0)));
         if (ImGui.IsItemHovered()) UiTheme.Tooltip(status);
         if (work)
         {
-            ImGui.SameLine(Math.Max(ImGui.GetCursorPosX(), ImGui.GetWindowWidth() - buttonWidth - 8));
+            ImGui.SameLine(Math.Max(ImGui.GetCursorPosX(), ImGui.GetWindowWidth() - buttonWidth - UiTheme.Px(8)));
             if (ImGui.SmallButton(workLabel))
             { if (jobs == 1) RevealCurrentWork(); else ImGui.OpenPopup("trabajos-activos"); }
             if (ImGui.BeginPopup("trabajos-activos"))
@@ -932,12 +1056,14 @@ public sealed partial class RetroApp
             ImGui.OpenPopup("Aviso");
             bool open = true;
             var area = ImGui.GetMainViewport().WorkSize;
-            float width = Math.Min(620, area.X - 24);
-            ImGui.SetNextWindowSizeConstraints(new(width, 100), new(width, area.Y - 32));
+            float width = Math.Min(UiTheme.Px(620), area.X - 24);
+            ImGui.SetNextWindowSizeConstraints(new(width, UiTheme.Px(100)), new(width, area.Y - 32));
             ImGui.SetNextWindowSize(new(width, 0), ImGuiCond.Appearing);
             if (ImGui.BeginPopupModal("Aviso", ref open, ImGuiWindowFlags.AlwaysAutoResize))
             {
-                float height = Math.Clamp(ImGui.CalcTextSize(_errorPopup, false, ImGui.GetContentRegionAvail().X).Y + 12, 55, Math.Max(55, area.Y - 160));
+                float minimum = UiTheme.Px(55);
+                float height = Math.Clamp(ImGui.CalcTextSize(_errorPopup, false, ImGui.GetContentRegionAvail().X).Y + UiTheme.Px(12),
+                    minimum, Math.Max(minimum, area.Y - UiTheme.Px(160)));
                 ImGui.BeginChild("mensaje-aviso", new(0, height)); ImGui.TextWrapped(_errorPopup); ImGui.EndChild();
                 if (ImGui.Button("Copiar mensaje")) ImGui.SetClipboardText(_errorPopup);
                 ImGui.SameLine();
@@ -957,13 +1083,13 @@ public sealed partial class RetroApp
             ImGui.OpenPopup(title);
             bool open = true;
             var viewport = ImGui.GetMainViewport();
-            ImGui.SetNextWindowSize(Vector2.Min(new(660, 430), viewport.WorkSize - new Vector2(24)), ImGuiCond.Always);
+            ImGui.SetNextWindowSize(Vector2.Min(UiTheme.Px(660, 430), viewport.WorkSize - new Vector2(24)), ImGuiCond.Always);
             ImGui.SetNextWindowPos(viewport.WorkPos + viewport.WorkSize / 2, ImGuiCond.Appearing, new(0.5f));
             if (ImGui.BeginPopupModal(title, ref open, ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoDocking))
             {
                 ImGui.TextUnformatted("El archivo contiene varios programas. Elegí cuál iniciar.");
                 ImGui.Separator();
-                if (ImGui.BeginChild("programas", new(0, -45), ImGuiChildFlags.Borders))
+                if (ImGui.BeginChild("programas", new(0, -ImGui.GetFrameHeightWithSpacing() - UiTheme.Px(10)), ImGuiChildFlags.Borders))
                 {
                     foreach (var c in request.Versions)
                     {
@@ -980,7 +1106,7 @@ public sealed partial class RetroApp
                     }
                 }
                 ImGui.EndChild();
-                if (ImGui.Button("Cancelar", new(110, 0)) || ImGui.IsKeyPressed(ImGuiKey.Escape))
+                if (ImGui.Button("Cancelar", new(UiTheme.Px(110), 0)) || ImGui.IsKeyPressed(ImGuiKey.Escape))
                 {
                     CancelOpen();
                     ImGui.CloseCurrentPopup();
@@ -1101,7 +1227,7 @@ public sealed partial class RetroApp
         ImGui.End();
     }
 
-    private uint DisassemblyStart(IMachine m, uint pc)
+    private uint DisassemblyStart(IMachine m, uint pc, Func<uint, byte> peek)
     {
         // Find an address before PC whose decoding lands exactly on PC.
         for (int back = 24; back > 0; back--)
@@ -1110,7 +1236,7 @@ public sealed partial class RetroApp
             int guard = 0;
             while (a != pc && guard++ < 30)
             {
-                var ins = m.Disassembler.Disassemble(x => m.Memory.Peek(x), a);
+                var ins = m.Disassembler.Disassemble(peek, a);
                 uint next = (uint)((a + ins.Length) & ((1u << m.Memory.AddressBits) - 1));
                 if (((pc - a) & ((1u << m.Memory.AddressBits) - 1)) < ((next - a) & ((1u << m.Memory.AddressBits) - 1)))
                     break;
@@ -1134,12 +1260,13 @@ public sealed partial class RetroApp
         if (ImGui.InputText("Ir a##dis", ref _disasmAddr, (uint)((m.Memory.AddressBits + 3) / 4), ImGuiInputTextFlags.CharsHexadecimal | ImGuiInputTextFlags.EnterReturnsTrue))
             _followPc = false;
         uint pc = m.Cpu.ProgramCounter;
-        uint addr = _followPc ? DisassemblyStart(m, pc) : uint.TryParse(_disasmAddr, NumberStyles.HexNumber, null, out var a0) ? a0 : 0;
+        Func<uint, byte> peek = m.Memory.Peek;   // one delegate per frame instead of one per decoded instruction
+        uint addr = _followPc ? DisassemblyStart(m, pc, peek) : uint.TryParse(_disasmAddr, NumberStyles.HexNumber, null, out var a0) ? a0 : 0;
         ImGui.TextDisabled("Clic en ( ) para breakpoint. Clic derecho: ejecutar hasta ahí.");
         ImGui.BeginChild("dislist");
         for (int i = 0; i < 48; i++)
         {
-            var ins = m.Disassembler.Disassemble(x => m.Memory.Peek(x), addr);
+            var ins = m.Disassembler.Disassemble(peek, addr);
             bool isPc = addr == pc;
             bool bp = _host.Debug.IsBreakpoint(addr);
             ImGui.PushID((int)addr);
@@ -1175,6 +1302,8 @@ public sealed partial class RetroApp
         ImGui.End();
     }
 
+    private static readonly string[] HexBytes = Enumerable.Range(0, 256).Select(b => b.ToString("X2")).ToArray();
+
     private void DrawMemoryWindow(IMachine m)
     {
         ImGui.SetNextWindowPos(new Vector2(10, 680), ImGuiCond.FirstUseEver);
@@ -1198,6 +1327,7 @@ public sealed partial class RetroApp
         ImGui.TextDisabled(m.MemoryMapDescription + ". Clic en un byte para editarlo.");
         ImGui.BeginChild("memgrid", Vector2.Zero, ImGuiChildFlags.None, ImGuiWindowFlags.HorizontalScrollbar);
         uint pc = m.Cpu.ProgramCounter, sp = m.Cpu.StackPointer;
+        Span<char> chars = stackalloc char[17];
         for (int row = 0; row < 16; row++)
         {
             uint rowAddr = (uint)((_memStart + row * 16) & ((1u << m.Memory.AddressBits) - 1));
@@ -1210,10 +1340,10 @@ public sealed partial class RetroApp
                 bool highlight = ad == pc || ad == sp;
                 if (highlight) ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 1, 0.3f, 1));
                 ImGui.PushID((int)ad);
-                if (ImGui.Selectable(v.ToString("X2"), false, ImGuiSelectableFlags.None, new Vector2(18, 0)))
+                if (ImGui.Selectable(HexBytes[v], false, ImGuiSelectableFlags.None, new Vector2(MathF.Ceiling(ImGui.CalcTextSize("00").X), 0)))
                 {
                     _editMemAddr = ad.ToString("X4");
-                    _editMemValue = v.ToString("X2");
+                    _editMemValue = HexBytes[v];
                     ImGui.OpenPopup("editmem");
                 }
                 if (ImGui.BeginPopup("editmem"))
@@ -1233,13 +1363,13 @@ public sealed partial class RetroApp
                 if (highlight) ImGui.PopStyleColor();
             }
             ImGui.SameLine();
-            var chars = new char[16];
+            chars[0] = ' ';
             for (int col = 0; col < 16; col++)
             {
                 byte v = m.Memory.Peek((uint)((rowAddr + col) & ((1u << m.Memory.AddressBits) - 1)));
-                chars[col] = v is >= 32 and < 127 ? (char)v : '.';
+                chars[col + 1] = v is >= 32 and < 127 ? (char)v : '.';
             }
-            ImGui.TextUnformatted(" " + new string(chars));
+            ImGui.TextUnformatted(new string(chars));
         }
         ImGui.EndChild();
         ImGui.End();
@@ -1300,28 +1430,28 @@ public sealed partial class RetroApp
         ImGui.Checkbox("Poner PC en esa dirección", ref _testSetPc);
         ImGui.InputText("Bytes (hex)", ref _testHex, 512);
         uint addr = uint.TryParse(_testAddr, NumberStyles.HexNumber, null, out var ta) ? ta & ((1u << m.Memory.AddressBits) - 1) : 0x8000;
+        // Bad input or a program that does not fit only shows a notice: it used to close the program.
         if (ImGui.Button("Cargar bytes"))
         {
-            try
-            {
-                var bytes = _testHex.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries)
-                    .Select(h => byte.Parse(h, NumberStyles.HexNumber)).ToArray();
-                _host.LoadBinary(bytes, addr, _testSetPc);
-            }
-            catch (FormatException)
-            {
-                _errorPopup = "Bytes inválidos: usá pares hexadecimales separados por espacios.";
-            }
+            if (TestProgram.ParseHex(_testHex) is { } bytes) TryLoadBinary(() => bytes, addr);
+            else _errorPopup = "Bytes inválidos: usá pares hexadecimales separados por espacios.";
         }
         ImGui.InputText("Archivo .bin", ref _testPath, 512);
         if (ImGui.Button("Cargar archivo"))
         {
             if (File.Exists(_testPath))
-                _host.LoadBinary(File.ReadAllBytes(_testPath), addr, _testSetPc);
+                TryLoadBinary(() => File.ReadAllBytes(_testPath), addr);
             else
                 _errorPopup = "No existe el archivo " + _testPath;
         }
         ImGui.TextDisabled("Escribí bytes en hexadecimal o cargá un archivo binario.");
         ImGui.End();
+    }
+
+    private void TryLoadBinary(Func<byte[]> read, uint address)
+    {
+        try { _host.LoadBinary(read(), address, _testSetPc); }
+        catch (Exception error) when (error is InvalidDataException or IOException or UnauthorizedAccessException)
+        { _errorPopup = "No se pudo cargar el programa: " + error.Message; }
     }
 }

@@ -43,7 +43,8 @@ public sealed class InputMapper
         return list.ToArray();
     }
 
-    private readonly Dictionary<string, bool> _fusionInputs = new();
+    private static readonly string[] FusionInputs = ["left", "right", "up", "down", "fire", "jump", "start", "coin"];
+    private readonly bool[] _fusionInputs = new bool[FusionInputs.Length];
 
     /// <summary>
     /// Fusion controls: arrows move, Ctrl/Z fire, Space/X jump, Enter/1 start, 5/C coin
@@ -56,34 +57,48 @@ public sealed class InputMapper
         float ax = pad ? Raylib.GetGamepadAxisMovement(0, GamepadAxis.LeftX) : 0;
         float ay = pad ? Raylib.GetGamepadAxisMovement(0, GamepadAxis.LeftY) : 0;
         bool Btn(GamepadButton b) => pad && Raylib.IsGamepadButtonDown(0, b);
-        var state = new Dictionary<string, bool>
+        // Same order as FusionInputs; a fixed array keeps the per-frame update free of allocations.
+        Span<bool> state =
+        [
+            Key(KeyboardKey.Left) || ax < -0.4f || Btn(GamepadButton.LeftFaceLeft),
+            Key(KeyboardKey.Right) || ax > 0.4f || Btn(GamepadButton.LeftFaceRight),
+            Key(KeyboardKey.Up) || ay < -0.4f || Btn(GamepadButton.LeftFaceUp),
+            Key(KeyboardKey.Down) || ay > 0.4f || Btn(GamepadButton.LeftFaceDown),
+            Key(KeyboardKey.LeftControl) || Key(KeyboardKey.RightControl) || Key(KeyboardKey.Z) || Btn(GamepadButton.RightFaceRight),
+            Key(KeyboardKey.Space) || Key(KeyboardKey.X) || Btn(GamepadButton.RightFaceDown),
+            Key(KeyboardKey.Enter) || Key(KeyboardKey.One) || Btn(GamepadButton.MiddleRight),
+            Key(KeyboardKey.Five) || Key(KeyboardKey.C) || Btn(GamepadButton.MiddleLeft),
+        ];
+        for (int i = 0; i < state.Length; i++)
         {
-            ["left"] = Key(KeyboardKey.Left) || ax < -0.4f || Btn(GamepadButton.LeftFaceLeft),
-            ["right"] = Key(KeyboardKey.Right) || ax > 0.4f || Btn(GamepadButton.LeftFaceRight),
-            ["up"] = Key(KeyboardKey.Up) || ay < -0.4f || Btn(GamepadButton.LeftFaceUp),
-            ["down"] = Key(KeyboardKey.Down) || ay > 0.4f || Btn(GamepadButton.LeftFaceDown),
-            ["fire"] = Key(KeyboardKey.LeftControl) || Key(KeyboardKey.RightControl) || Key(KeyboardKey.Z) || Btn(GamepadButton.RightFaceRight),
-            ["jump"] = Key(KeyboardKey.Space) || Key(KeyboardKey.X) || Btn(GamepadButton.RightFaceDown),
-            ["start"] = Key(KeyboardKey.Enter) || Key(KeyboardKey.One) || Btn(GamepadButton.MiddleRight),
-            ["coin"] = Key(KeyboardKey.Five) || Key(KeyboardKey.C) || Btn(GamepadButton.MiddleLeft),
-        };
-        foreach (var (input, pressed) in state)
-        {
-            _fusionInputs.TryGetValue(input, out bool was);
-            if (was != pressed)
-                session.SetInput(input, pressed);
-            _fusionInputs[input] = pressed;
+            if (_fusionInputs[i] != state[i])
+                session.SetInput(FusionInputs[i], state[i]);
+            _fusionInputs[i] = state[i];
         }
     }
+
+    /// <summary>
+    /// Ctrl is a real key on the Spectrum (SYMBOL SHIFT), the C64 (C=) and the PC, so there the tool
+    /// shortcuts also need Shift: on the Spectrum Ctrl+M alone types a full stop and Ctrl+L an equals sign.
+    /// </summary>
+    public static bool ToolShortcutsNeedShift(Retro.Core.IMachine? machine, bool fusion) =>
+        machine is Retro.Systems.Pc.PcXt || (!fusion && machine is Spectrum48 or Retro.Systems.C64.C64);
+
+    /// <summary>Ctrl+Shift with O, K, L or M: an emulator shortcut that must not reach the machine.</summary>
+    public static bool ToolChordHeld(Func<KeyboardKey, bool> down) =>
+        (down(KeyboardKey.LeftControl) || down(KeyboardKey.RightControl)) && (down(KeyboardKey.LeftShift) || down(KeyboardKey.RightShift))
+        && HostToolKeys.Any(down);
+
+    private static readonly Func<KeyboardKey, bool> KeyDown = key => Raylib.IsKeyDown(key);
 
     public void Update(Retro.Core.IMachine machine, bool keyboardEnabled)
     {
         if (machine is Spectrum48 zx)
-            UpdateSpectrum(zx, keyboardEnabled);
+            UpdateSpectrum(zx, keyboardEnabled && !ToolChordHeld(KeyDown));
         else if (machine is Retro.Systems.C64.C64 c64)
-            UpdateC64(c64, keyboardEnabled);
+            UpdateC64(c64, keyboardEnabled && !ToolChordHeld(KeyDown));
         else if (machine is Retro.Systems.Pc.PcXt)
-            Apply(machine, CollectPcKeys(key => Raylib.IsKeyDown(key), keyboardEnabled));
+            Apply(machine, CollectPcKeys(KeyDown, keyboardEnabled));
         else if (machine is Retro.Systems.Nes.Nes nes)
             UpdateNes(nes, keyboardEnabled);
         else
@@ -123,8 +138,7 @@ public sealed class InputMapper
         if (!enabled) return now;
         bool ctrl = down(KeyboardKey.LeftControl) || down(KeyboardKey.RightControl);
         if (ctrl && HostFunctionKeys.Any(down)) return now;
-        bool shift = down(KeyboardKey.LeftShift) || down(KeyboardKey.RightShift);
-        if (ctrl && shift && HostToolKeys.Any(down)) return now;
+        if (ToolChordHeld(down)) return now;
         foreach (var (key, name) in PcKeyMap) if (down(key)) now.Add(name);
         return now;
     }

@@ -32,8 +32,8 @@ public sealed partial class RetroApp
     {
         if (!_stateWindowOpen) return;
         var size = ImGui.GetMainViewport().WorkSize;
-        ImGui.SetNextWindowSizeConstraints(new(Math.Min(540, size.X), Math.Min(300, size.Y)), size);
-        ImGui.SetNextWindowSize(new(Math.Min(650, size.X), Math.Min(420, size.Y)), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowSizeConstraints(Vector2.Min(UiTheme.Px(540, 300), size), size);
+        ImGui.SetNextWindowSize(Vector2.Min(UiTheme.Px(650, 420), size), ImGuiCond.FirstUseEver);
         if (!ImGui.Begin("Partidas guardadas", ref _stateWindowOpen)) { ImGui.End(); return; }
         WorkspaceLayout.KeepOnScreen();
         try
@@ -113,7 +113,7 @@ public sealed partial class RetroApp
     {
         if (_pendingStateSave is not { } pending) return;
         ImGui.OpenPopup("Reemplazar partida guardada");
-        float width = Math.Min(440, ImGui.GetMainViewport().WorkSize.X - 24);
+        float width = Math.Min(UiTheme.Px(440), ImGui.GetMainViewport().WorkSize.X - 24);
         ImGui.SetNextWindowSizeConstraints(new(width, 0), new(width, ImGui.GetMainViewport().WorkSize.Y - 24));
         ImGui.SetNextWindowSize(new(width, 0), ImGuiCond.Appearing);
         bool open = true;

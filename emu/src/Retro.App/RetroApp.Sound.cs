@@ -12,13 +12,14 @@ public sealed partial class RetroApp
     private void DrawSoundWindow()
     {
         if (!_soundWindowOpen) return;
-        ImGui.SetNextWindowSize(new Vector2(460, 0), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowSize(UiTheme.Px(460, 0), ImGuiCond.FirstUseEver);
+        WorkspaceLayout.LimitNextWindow();
         if (!ImGui.Begin("Sonido", ref _soundWindowOpen, ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoDocking))
         { ImGui.End(); return; }
         WorkspaceLayout.KeepOnScreen();
         bool changed = false;
         int volume = _sound.VolumePercent;
-        ImGui.SetNextItemWidth(280);
+        ImGui.SetNextItemWidth(UiTheme.Px(280));
         if (ImGui.SliderInt("Volumen", ref volume, 0, 100, "%d %%")) { _sound.VolumePercent = volume; changed = true; }
         bool muted = _sound.Muted;
         if (ImGui.Checkbox("Silenciar", ref muted)) { _sound.Muted = muted; changed = true; }
@@ -26,10 +27,10 @@ public sealed partial class RetroApp
         if (ImGui.Checkbox("Silenciar al perder el foco", ref background)) { _sound.MuteInBackground = background; changed = true; }
         ImGui.Spacing();
         int margin = _sound.BufferFrames == 1 ? 0 : _sound.BufferFrames == 4 ? 2 : 1;
-        ImGui.SetNextItemWidth(230);
+        ImGui.SetNextItemWidth(UiTheme.Px(230));
         if (ImGui.Combo("Margen de audio", ref margin, AudioMargins, AudioMargins.Length))
         { _sound.BufferFrames = margin == 0 ? 1 : margin == 2 ? 4 : 2; changed = true; }
-        ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + 420);
+        ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + UiTheme.Px(420));
         ImGui.TextDisabled(margin switch {
             0 => "Menor demora. Si escuchás cortes, probá Equilibrado.",
             2 => "Más margen ante pausas del equipo; puede aumentar la demora.",
