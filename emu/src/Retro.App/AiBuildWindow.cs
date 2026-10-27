@@ -33,7 +33,7 @@ internal sealed class AiBuildWindow(string id, string title = "Construcción del
         if (busy && (_estimate || wholeWork != null)) ImGui.TextWrapped(_displayTiming.RemainingText);
         if (ImGui.SmallButton($"{openLabel}##{id}")) _open = true;
         if (!_open) return;
-        ImGui.SetNextWindowSize(new Vector2(640, 420), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowSize(UiTheme.Px(640, 420), ImGuiCond.FirstUseEver);
         if (ImGui.Begin($"{title}##{id}", ref _open))
         {
             ImGui.TextWrapped(stage);
@@ -51,7 +51,7 @@ internal sealed class AiBuildWindow(string id, string title = "Construcción del
                 ImGui.TextDisabled(activity.OutputCharacters == 0
                     ? "Todavía no hay salida."
                     : $"Sin salida nueva hace {Duration(activity.QuietFor)} · {activity.OutputCharacters:N0} caracteres");
-                ImGui.BeginChild("salida", new Vector2(0, -70), ImGuiChildFlags.Borders, ImGuiWindowFlags.HorizontalScrollbar);
+                ImGui.BeginChild("salida", new Vector2(0, -UiTheme.Px(70)), ImGuiChildFlags.Borders, ImGuiWindowFlags.HorizontalScrollbar);
                 bool atBottom = ImGui.GetScrollY() >= ImGui.GetScrollMaxY() - 2;
                 ImGui.TextUnformatted(activity.Output.Length > 0 ? activity.Output : "Esperando salida del CLI...");
                 if (atBottom) ImGui.SetScrollHereY(1);

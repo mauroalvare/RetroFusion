@@ -136,7 +136,7 @@ public sealed partial class CodeWindow
         ImGui.TextDisabled($"{_observation?.FramesObserved ?? 0} cuadros · {_observation?.WrittenAddresses ?? 0} bytes escritos");
         AiPicker.Choose(_ai, "analisis", "El análisis usa un pedido a la IA elegida.");
         ImGui.TextUnformatted("Qué querés investigar o cambiar:");
-        ImGui.InputTextMultiline("##investigar", ref _modificationWish, 2000, new Vector2(-1, 64));
+        ImGui.InputTextMultiline("##investigar", ref _modificationWish, 2000, new Vector2(-1, UiTheme.Px(64)));
         bool callable = AiPicker.IsApi(_ai.Provider);
         if (ImGui.Button(callable ? (_lastAnalysis.Length > 0 ? "Investigar este pedido" : "Analizar la partida") : _ai.Provider == "agent" ? "Copiar pedido para mi agente" : "Copiar pedido para mi IA"))
         {
@@ -161,7 +161,7 @@ public sealed partial class CodeWindow
         _modificationActivity.Draw(busy, _status, _modificationCts);
         if (_manualModification && _analysisSnapshot != null)
         {
-            ImGui.InputTextMultiline("##analisis-recibido", ref _modificationPasted, 32000, new Vector2(-1, 90));
+            ImGui.InputTextMultiline("##analisis-recibido", ref _modificationPasted, 32000, new Vector2(-1, UiTheme.Px(90)));
             if (ImGui.Button("Revisar respuesta"))
             {
                 _analysisAnswer = _modificationPasted;
@@ -179,7 +179,7 @@ public sealed partial class CodeWindow
                 AiPicker.Hint("Este es el último informe aceptado; no corresponde al intento nuevo.");
             if (ImGui.SmallButton("Copiar informe")) ImGui.SetClipboardText(
                 $"{AnalysisReportHeading}\n{_lastAnalysisProvider} · cuadro {_lastAnalysisFrame}\n\n{_lastAnalysis}");
-            ImGui.BeginChild("informe-analisis", new Vector2(0, Math.Clamp(ImGui.GetContentRegionAvail().Y * 0.45f, 100, 220)), ImGuiChildFlags.Borders);
+            ImGui.BeginChild("informe-analisis", new Vector2(0, Math.Clamp(ImGui.GetContentRegionAvail().Y * 0.45f, UiTheme.Px(100), UiTheme.Px(220))), ImGuiChildFlags.Borders);
             ImGui.TextWrapped(_lastAnalysis);
             ImGui.EndChild();
             if (ImGui.Button("Ver variables y propuestas")) _requestedPage = ToolPage.Changes;
@@ -211,7 +211,7 @@ public sealed partial class CodeWindow
         if (_analysisSnapshot != null && ImGui.CollapsingHeader("Evidencia enviada"))
         {
             ImGui.TextDisabled($"{_analysisSnapshot.FramesObserved} cuadros observados · {_analysisSnapshot.Candidates.Count} bytes de RAM · recorte de código");
-            ImGui.BeginChild("evidencia", new Vector2(0, 180), ImGuiChildFlags.Borders);
+            ImGui.BeginChild("evidencia", new Vector2(0, UiTheme.Px(180)), ImGuiChildFlags.Borders);
             foreach (var candidate in _analysisSnapshot.Candidates)
                 ImGui.TextUnformatted($"0x{candidate.Address:X4} = {candidate.Value} · {candidate.Writes} escrituras" +
                     (candidate.Writer is uint pc ? $" · instrucción 0x{pc:X4}" : "") +

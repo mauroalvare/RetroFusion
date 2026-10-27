@@ -69,11 +69,11 @@ public static class AiPicker
     {
         if (!ImGui.TreeNode("Uso de IA")) return;
         int mode = ai.Economic ? 1 : 0;
-        ImGui.SetNextItemWidth(150);
+        ImGui.SetNextItemWidth(UiTheme.Px(150));
         if (ImGui.Combo("Modo", ref mode, new[] { "Equilibrado", "Económico" }, 2)) { ai.Economic = mode == 1; ai.Save(); }
         Hint($"Hasta {ai.DesignAttempts} pedidos por escritura o revisión. Se mantienen las mismas pruebas del juego.");
         int limit = ai.TextLimitThousands;
-        ImGui.SetNextItemWidth(150);
+        ImGui.SetNextItemWidth(UiTheme.Px(150));
         if (ImGui.InputInt("Tope de texto (miles de caracteres)", ref limit, 10))
         { ai.TextLimitThousands = Math.Clamp(limit, 0, 10000); ai.Save(); }
         if (ImGui.IsItemHovered()) ImGui.SetTooltip("0: sin tope. Cuenta instrucciones, pedido, código y esquema en todos los intentos de ese trabajo. No recorta el contenido.");
@@ -108,7 +108,7 @@ public static class AiPicker
             case "claude":
             {
                 string key = ai.ClaudeApiKey;
-                ImGui.SetNextItemWidth(320);
+                ImGui.SetNextItemWidth(UiTheme.Px(320));
                 if (ImGui.InputText("Clave de API", ref key, 200, ImGuiInputTextFlags.Password))
                 {
                     ai.ClaudeApiKey = key.Trim();
@@ -116,7 +116,7 @@ public static class AiPicker
                 }
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip("Si está vacía, usa ANTHROPIC_API_KEY del entorno.");
                 string model = ai.ClaudeModel;
-                ImGui.SetNextItemWidth(320);
+                ImGui.SetNextItemWidth(UiTheme.Px(320));
                 if (ImGui.InputText("Modelo de Claude", ref model, 100))
                 {
                     ai.ClaudeModel = model;
@@ -128,14 +128,14 @@ public static class AiPicker
             case "openai":
             {
                 string key = ai.OpenAiApiKey, model = ai.OpenAiModel;
-                ImGui.SetNextItemWidth(320);
+                ImGui.SetNextItemWidth(UiTheme.Px(320));
                 if (ImGui.InputText("Clave de API", ref key, 200, ImGuiInputTextFlags.Password))
                 {
                     ai.OpenAiApiKey = key.Trim();
                     ai.Save();
                 }
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip("Si está vacía, usa OPENAI_API_KEY del entorno.");
-                ImGui.SetNextItemWidth(320);
+                ImGui.SetNextItemWidth(UiTheme.Px(320));
                 if (ImGui.InputText("Modelo de OpenAI", ref model, 100)) { ai.OpenAiModel = model; ai.Save(); }
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip($"Si está vacío, usa {OpenAiProvider.DefaultModel}.");
                 Hint("La API se cobra por separado de tu suscripción. " + costNote);
@@ -144,14 +144,14 @@ public static class AiPicker
             case "gemini":
             {
                 string key = ai.GeminiApiKey, model = ai.GeminiModel;
-                ImGui.SetNextItemWidth(320);
+                ImGui.SetNextItemWidth(UiTheme.Px(320));
                 if (ImGui.InputText("Clave de API", ref key, 200, ImGuiInputTextFlags.Password))
                 {
                     ai.GeminiApiKey = key.Trim();
                     ai.Save();
                 }
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip("Si está vacía, usa GEMINI_API_KEY del entorno.");
-                ImGui.SetNextItemWidth(320);
+                ImGui.SetNextItemWidth(UiTheme.Px(320));
                 if (ImGui.InputText("Modelo de Gemini", ref model, 100)) { ai.GeminiModel = model; ai.Save(); }
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip($"Si está vacío, usa {GeminiProvider.DefaultModel}.");
                 Hint("La API tiene sus propios límites y condiciones. " + costNote);

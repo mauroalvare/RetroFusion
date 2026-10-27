@@ -97,8 +97,8 @@ public sealed class CreatorWindow
             return;
         }
         var vp = ImGui.GetMainViewport();
-        ImGui.SetNextWindowPos(new Vector2(vp.Pos.X + vp.Size.X - 540, vp.Pos.Y + 30), ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(530, Math.Min(760, vp.Size.Y - 70)), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowPos(new Vector2(vp.Pos.X + vp.Size.X - UiTheme.Px(540), vp.WorkPos.Y + 8), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowSize(new Vector2(UiTheme.Px(530), Math.Min(UiTheme.Px(760), vp.Size.Y - 70)), ImGuiCond.FirstUseEver);
         bool visible = ImGui.Begin("Crear un juego de 8 bits", ref _open);
         WorkspaceLayout.KeepOnScreen();
         if (!visible)
@@ -114,9 +114,9 @@ public sealed class CreatorWindow
         if (ImGui.BeginTable("proyectos-creador", 2, ImGuiTableFlags.SizingStretchSame))
         {
             ImGui.TableNextColumn();
-            if (ImGui.Selectable("Nuevo proyecto", !_showSavedProjects, ImGuiSelectableFlags.None, new(0, 30))) _showSavedProjects = false;
+            if (ImGui.Selectable("Nuevo proyecto", !_showSavedProjects, ImGuiSelectableFlags.None, new(0, UiTheme.Px(30)))) _showSavedProjects = false;
             ImGui.TableNextColumn();
-            if (ImGui.Selectable("Proyectos guardados", _showSavedProjects, ImGuiSelectableFlags.None, new(0, 30))) _showSavedProjects = true;
+            if (ImGui.Selectable("Proyectos guardados", _showSavedProjects, ImGuiSelectableFlags.None, new(0, UiTheme.Px(30)))) _showSavedProjects = true;
             ImGui.EndTable();
         }
         ImGui.Separator();
@@ -143,7 +143,7 @@ public sealed class CreatorWindow
         else if (_ai.Provider == "agent")
             AiPicker.Hint("Prepará la carpeta y pasale la tarea a tu agente.");
         ImGui.TextUnformatted("Qué juego querés (opcional):");
-        ImGui.InputTextMultiline("##pedido-crear", ref _wish, 1000, new Vector2(-1, 44));
+        ImGui.InputTextMultiline("##pedido-crear", ref _wish, 1000, new Vector2(-1, UiTheme.Px(44)));
         AiPicker.Hint("Dejalo vacío si preferís que la IA elija la idea.");
         ImGui.BeginDisabled(Busy || _agentDir != null);
         if (ImGui.Button(callable ? "Escribir el juego con IA" : _ai.Provider == "manual" ? "Preparar la consigna" : "Preparar la carpeta del agente"))
@@ -205,7 +205,7 @@ public sealed class CreatorWindow
             _progress = "Pedido copiado. Pegalo en tu chat y traé la respuesta completa.";
         }
         ImGui.TextUnformatted("2. Pegá acá la respuesta completa:");
-        ImGui.InputTextMultiline("##respuesta-crear", ref _pasted, 200_000, new Vector2(-1, 90));
+        ImGui.InputTextMultiline("##respuesta-crear", ref _pasted, 200_000, new Vector2(-1, UiTheme.Px(90)));
         ImGui.BeginDisabled(Busy || _pasted.Trim().Length == 0);
         if (ImGui.Button("3. Probar el juego"))
             TryPasted();

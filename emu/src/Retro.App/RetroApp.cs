@@ -48,6 +48,7 @@ public sealed partial class RetroApp
     private readonly AppPreferences _prefs;
     private bool _themeChanged;
     private float _menuHeight = 28;
+    private bool _arrangeDebugger;
     private readonly int _monitorRate;
     private int _targetFps;
     private readonly Dictionary<string, string> _regEdit = new();
@@ -817,6 +818,8 @@ public sealed partial class RetroApp
                 if (ImGui.MenuItem("Paso (una instrucción)", Shortcut("F10"))) { _home.Close(); _host.StepInto(); _debugMode = true; }
                 if (ImGui.MenuItem("Paso por encima (CALL, bucles)", Shortcut("Shift+F10"))) { _home.Close(); _host.StepOver(); _debugMode = true; }
                 if (ImGui.MenuItem("Avanzar un cuadro")) { _home.Close(); _host.StepFrame(); _debugMode = true; }
+                if (ImGui.MenuItem("Reorganizar paneles")) { _home.Close(); _debugMode = true; _arrangeDebugger = true; }
+                if (ImGui.IsItemHovered()) UiTheme.Tooltip("Vuelve a ubicar los paneles para que entren en la ventana actual.");
                 if (ImGui.MenuItem("Borrar todos los breakpoints", "", false, _host.Debug.Breakpoints.Count > 0)) _host.Debug.Clear();
                 ImGui.EndMenu();
             }
@@ -1132,18 +1135,35 @@ public sealed partial class RetroApp
         if (_host.Zx != null)
             DrawTapeWindow();
         DrawTestProgramWindow(m);
+        _arrangeDebugger = false;
+    }
+
+    /// <summary>
+    /// First placement of a debugger panel, fitted to the current window; Herramientas > Depuración >
+    /// Reorganizar paneles applies it again (undocking) after the panels were moved or the window resized.
+    /// </summary>
+    private void PlacePanel(DebuggerLayout.Panel panel)
+    {
+        var viewport = ImGui.GetMainViewport();
+        var area = Vector2.Max(new Vector2(240, 180), viewport.WorkSize - new Vector2(8, 8 + UiTheme.StatusBarHeight));
+        var (position, size) = DebuggerLayout.Place(panel, viewport.WorkPos + new Vector2(4), area, _host.Zx != null);
+        var condition = _arrangeDebugger ? ImGuiCond.Always : ImGuiCond.FirstUseEver;
+        if (_arrangeDebugger) ImGui.SetNextWindowDockID(0, ImGuiCond.Always);
+        ImGui.SetNextWindowPos(position, condition);
+        ImGui.SetNextWindowSize(size, condition);
     }
 
     private void DrawScreenWindow()
     {
-        ImGui.SetNextWindowPos(new Vector2(10, 30), ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(720, 640), ImGuiCond.FirstUseEver);
+        PlacePanel(DebuggerLayout.Panel.Screen);
         ImGui.Begin("Pantalla");
         WorkspaceLayout.KeepOnScreen();
         if (_texW != 0)
         {
             var avail = ImGui.GetContentRegionAvail();
-            float s = MathF.Max(0.5f, MathF.Min(avail.X / _texW, (avail.Y - 20) / _texH));
+            // Room for the hint below the picture, so it is not hidden under the next panel.
+            float hint = ImGui.GetTextLineHeightWithSpacing() + ImGui.GetStyle().ItemSpacing.Y;
+            float s = MathF.Max(0.5f, MathF.Min(avail.X / _texW, (avail.Y - hint) / _texH));
             rlImGui.ImageSize(_screenTex, (int)(_texW * s), (int)(_texH * s));
         }
         _screenFocused = ImGui.IsWindowFocused();
@@ -1157,8 +1177,7 @@ public sealed partial class RetroApp
     private void DrawCpuWindow(IMachine m)
     {
         var cpu = m.Cpu;
-        ImGui.SetNextWindowPos(new Vector2(740, 30), ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(280, 440), ImGuiCond.FirstUseEver);
+        PlacePanel(DebuggerLayout.Panel.Cpu);
         ImGui.Begin("CPU###cpu");
         WorkspaceLayout.KeepOnScreen();
         ImGui.TextUnformatted(cpu.CpuName);
@@ -1166,12 +1185,13 @@ public sealed partial class RetroApp
         {
             if (_host.Paused) _host.Continue(); else _host.Pause("Pausa");
         }
-        ImGui.SameLine();
+        UiTheme.SameLineIfFits("Paso");
         if (ImGui.Button("Paso")) _host.StepInto();
-        ImGui.SameLine();
+        UiTheme.SameLineIfFits("Por encima");
         if (ImGui.Button("Por encima")) _host.StepOver();
+        UiTheme.SameLineIfFits("Cuadro");
         if (ImGui.Button("Cuadro")) _host.StepFrame();
-        ImGui.SameLine();
+        UiTheme.SameLineIfFits("Reiniciar");
         if (ImGui.Button("Reiniciar")) _host.Reset(false);
         ImGui.Separator();
         if (ImGui.BeginTable("regs", 2, ImGuiTableFlags.SizingFixedFit))
@@ -1187,7 +1207,7 @@ public sealed partial class RetroApp
                 {
                     if (!_regEdit.TryGetValue(r.Name, out var text))
                         text = fmt;
-                    ImGui.SetNextItemWidth(70);
+                    ImGui.SetNextItemWidth(UiTheme.Px(70));
                     if (ImGui.InputText("##" + r.Name, ref text, (uint)((r.Bits + 3) / 4), ImGuiInputTextFlags.CharsHexadecimal | ImGuiInputTextFlags.EnterReturnsTrue))
                     {
                         if (uint.TryParse(text, NumberStyles.HexNumber, null, out var v))
@@ -1211,7 +1231,8 @@ public sealed partial class RetroApp
         int i = 0;
         foreach (var f in cpu.GetFlags())
         {
-            if (i++ > 0) ImGui.SameLine();
+            // Flags wrap to the next row instead of leaving the panel at large text sizes.
+            if (i++ > 0) UiTheme.SameLineIfFits(ImGui.GetFrameHeight() + ImGui.GetStyle().ItemInnerSpacing.X + ImGui.CalcTextSize(f.Name).X);
             bool set = f.Set;
             if (ImGui.Checkbox(f.Name + "##flag", ref set) && _host.Paused)
                 cpu.TrySetFlag(f.Name, set);
@@ -1250,41 +1271,40 @@ public sealed partial class RetroApp
 
     private void DrawDisassemblyWindow(IMachine m)
     {
-        ImGui.SetNextWindowPos(new Vector2(1030, 30), ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(420, 640), ImGuiCond.FirstUseEver);
+        PlacePanel(DebuggerLayout.Panel.Disassembly);
         ImGui.Begin("Desensamblado");
         WorkspaceLayout.KeepOnScreen();
         ImGui.Checkbox("Seguir PC", ref _followPc);
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(70);
+        ImGui.SetNextItemWidth(UiTheme.Px(70));
         if (ImGui.InputText("Ir a##dis", ref _disasmAddr, (uint)((m.Memory.AddressBits + 3) / 4), ImGuiInputTextFlags.CharsHexadecimal | ImGuiInputTextFlags.EnterReturnsTrue))
             _followPc = false;
         uint pc = m.Cpu.ProgramCounter;
         Func<uint, byte> peek = m.Memory.Peek;   // one delegate per frame instead of one per decoded instruction
         uint addr = _followPc ? DisassemblyStart(m, pc, peek) : uint.TryParse(_disasmAddr, NumberStyles.HexNumber, null, out var a0) ? a0 : 0;
         ImGui.TextDisabled("Clic en ( ) para breakpoint. Clic derecho: ejecutar hasta ahí.");
-        ImGui.BeginChild("dislist");
+        ImGui.BeginChild("dislist", Vector2.Zero, ImGuiChildFlags.None, ImGuiWindowFlags.HorizontalScrollbar);
         for (int i = 0; i < 48; i++)
         {
             var ins = m.Disassembler.Disassemble(peek, addr);
             bool isPc = addr == pc;
             bool bp = _host.Debug.IsBreakpoint(addr);
             ImGui.PushID((int)addr);
-            ImGui.PushStyleColor(ImGuiCol.Text, bp ? new Vector4(1, 0.3f, 0.3f, 1) : new Vector4(0.4f, 0.4f, 0.4f, 1));
+            ImGui.PushStyleColor(ImGuiCol.Text, bp ? UiTheme.Error : UiTheme.Muted);
             if (ImGui.SmallButton(bp ? "(*)" : "( )"))
                 _host.Debug.Toggle(addr);
             ImGui.PopStyleColor();
             ImGui.SameLine();
-            string bytes = string.Join(" ", ins.Bytes.Select(b => b.ToString("X2")));
+            string bytes = string.Join(" ", ins.Bytes.Select(b => HexBytes[b]));
             string? sym = m.SymbolFor(addr);
             string line = $"{(isPc ? ">" : " ")} {addr:X4}  {bytes,-12} {ins.Text}";
             if (sym != null)
             {
-                ImGui.TextColored(new Vector4(0.5f, 0.8f, 1f, 1), sym + ":");
+                ImGui.TextColored(UiTheme.Accent, sym + ":");
                 ImGui.SameLine();
             }
             if (isPc)
-                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 1, 0.3f, 1));
+                ImGui.PushStyleColor(ImGuiCol.Text, UiTheme.Highlight);
             ImGui.Selectable(line, isPc);
             if (isPc)
                 ImGui.PopStyleColor();
@@ -1306,23 +1326,22 @@ public sealed partial class RetroApp
 
     private void DrawMemoryWindow(IMachine m)
     {
-        ImGui.SetNextWindowPos(new Vector2(10, 680), ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(720, 330), ImGuiCond.FirstUseEver);
+        PlacePanel(DebuggerLayout.Panel.Memory);
         ImGui.Begin("Memoria");
         WorkspaceLayout.KeepOnScreen();
-        ImGui.SetNextItemWidth(70);
+        ImGui.SetNextItemWidth(UiTheme.Px(70));
         if (ImGui.InputText("Dirección", ref _memAddr, (uint)((m.Memory.AddressBits + 3) / 4), ImGuiInputTextFlags.CharsHexadecimal | ImGuiInputTextFlags.EnterReturnsTrue)
             && uint.TryParse(_memAddr, NumberStyles.HexNumber, null, out var a))
             _memStart = a & (((1u << m.Memory.AddressBits) - 1) & ~15u);
-        ImGui.SameLine();
+        UiTheme.SameLineIfFits("< página");
         if (ImGui.Button("< página")) _memStart = (_memStart - 0x100) & ((1u << m.Memory.AddressBits) - 1);
-        ImGui.SameLine();
+        UiTheme.SameLineIfFits("página >");
         if (ImGui.Button("página >")) _memStart = (_memStart + 0x100) & ((1u << m.Memory.AddressBits) - 1);
-        ImGui.SameLine();
+        UiTheme.SameLineIfFits("PC");
         if (ImGui.Button("PC")) _memStart = m.Cpu.ProgramCounter & (((1u << m.Memory.AddressBits) - 1) & ~15u);
-        ImGui.SameLine();
+        UiTheme.SameLineIfFits("SP");
         if (ImGui.Button("SP")) _memStart = m.Cpu.StackPointer & (((1u << m.Memory.AddressBits) - 1) & ~15u);
-        ImGui.SameLine();
+        UiTheme.SameLineIfFits("Video");
         if (ImGui.Button("Video")) _memStart = m.Id == "pcxt" ? 0xB8000u : m.Id == "invaders" ? 0x2400u : 0x4000u;
         ImGui.TextDisabled(m.MemoryMapDescription + ". Clic en un byte para editarlo.");
         ImGui.BeginChild("memgrid", Vector2.Zero, ImGuiChildFlags.None, ImGuiWindowFlags.HorizontalScrollbar);
@@ -1338,7 +1357,7 @@ public sealed partial class RetroApp
                 byte v = m.Memory.Peek(ad);
                 ImGui.SameLine();
                 bool highlight = ad == pc || ad == sp;
-                if (highlight) ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 1, 0.3f, 1));
+                if (highlight) ImGui.PushStyleColor(ImGuiCol.Text, UiTheme.Highlight);
                 ImGui.PushID((int)ad);
                 if (ImGui.Selectable(HexBytes[v], false, ImGuiSelectableFlags.None, new Vector2(MathF.Ceiling(ImGui.CalcTextSize("00").X), 0)))
                 {
@@ -1349,7 +1368,7 @@ public sealed partial class RetroApp
                 if (ImGui.BeginPopup("editmem"))
                 {
                     ImGui.TextUnformatted("Nuevo valor en $" + _editMemAddr);
-                    ImGui.SetNextItemWidth(50);
+                    ImGui.SetNextItemWidth(UiTheme.Px(50));
                     if (ImGui.InputText("##val", ref _editMemValue, 2, ImGuiInputTextFlags.CharsHexadecimal | ImGuiInputTextFlags.EnterReturnsTrue))
                     {
                         if (byte.TryParse(_editMemValue, NumberStyles.HexNumber, null, out var nv) && _editMemAddr != null)
@@ -1377,8 +1396,7 @@ public sealed partial class RetroApp
 
     private void DrawStackWindow(IMachine m)
     {
-        ImGui.SetNextWindowPos(new Vector2(740, 480), ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(280, 240), ImGuiCond.FirstUseEver);
+        PlacePanel(DebuggerLayout.Panel.Stack);
         ImGui.Begin("Pila");
         WorkspaceLayout.KeepOnScreen();
         uint sp = m.Cpu.StackPointer;
@@ -1395,8 +1413,7 @@ public sealed partial class RetroApp
     private void DrawTapeWindow()
     {
         var zx = _host.Zx!;
-        ImGui.SetNextWindowPos(new Vector2(740, 730), ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(420, 280), ImGuiCond.FirstUseEver);
+        PlacePanel(DebuggerLayout.Panel.Tape);
         ImGui.Begin("Cinta");
         WorkspaceLayout.KeepOnScreen();
         var tape = zx.Tape;
@@ -1407,9 +1424,9 @@ public sealed partial class RetroApp
             return;
         }
         if (ImGui.Button(tape.IsPlaying ? "Detener (F6)" : "Reproducir (F6)")) ToggleTape();
-        ImGui.SameLine();
+        UiTheme.SameLineIfFits("Rebobinar (F7)");
         if (ImGui.Button("Rebobinar (F7)")) tape.Rewind();
-        ImGui.SameLine();
+        UiTheme.SameLineIfFits("LOAD \"\"");
         if (ImGui.Button("LOAD \"\"")) zx.TypeLoadCommand();
         ImGui.ProgressBar((float)tape.Progress, new Vector2(-1, 0), $"{tape.Progress * 100:F0}%");
         int current = tape.CurrentBlock;
@@ -1420,12 +1437,11 @@ public sealed partial class RetroApp
 
     private void DrawTestProgramWindow(IMachine m)
     {
-        ImGui.SetNextWindowPos(new Vector2(1170, 680), ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(330, 250), ImGuiCond.FirstUseEver);
+        PlacePanel(DebuggerLayout.Panel.TestProgram);
         ImGui.Begin("Programa de prueba");
         WorkspaceLayout.KeepOnScreen();
         ImGui.TextWrapped($"Cargá bytes de {m.Cpu.CpuName} o un .bin en memoria para estudiar su ejecución paso a paso.");
-        ImGui.SetNextItemWidth(70);
+        ImGui.SetNextItemWidth(UiTheme.Px(70));
         ImGui.InputText("Dirección##test", ref _testAddr, (uint)((m.Memory.AddressBits + 3) / 4), ImGuiInputTextFlags.CharsHexadecimal);
         ImGui.Checkbox("Poner PC en esa dirección", ref _testSetPc);
         ImGui.InputText("Bytes (hex)", ref _testHex, 512);

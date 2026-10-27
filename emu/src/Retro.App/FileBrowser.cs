@@ -86,10 +86,10 @@ public sealed class FileBrowser
     {
         if (!_open) return;
         if (DateTime.UtcNow >= _refreshAt) Refresh();
-        ImGui.SetNextWindowSize(new(760, 540), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowSize(UiTheme.Px(760, 540), ImGuiCond.FirstUseEver);
         if (!ImGui.Begin("Abrir archivo", ref _open, ImGuiWindowFlags.NoDocking)) { ImGui.End(); return; }
         WorkspaceLayout.KeepOnScreen();
-        ImGui.SetNextItemWidth(-90);
+        ImGui.SetNextItemWidth(-UiTheme.Px(90));
         if (ImGui.InputTextWithHint("##path", "Carpeta o archivo", ref _pathInput, 2048, ImGuiInputTextFlags.EnterReturnsTrue))
         {
             if (File.Exists(_pathInput)) { _selected = Path.GetFullPath(_pathInput); OpenSelected(onPick); }
@@ -99,7 +99,7 @@ public sealed class FileBrowser
         ImGui.SameLine();
         var parent = Directory.GetParent(_dir);
         ImGui.BeginDisabled(parent == null);
-        if (ImGui.Button("Subir", new(80, 0))) Navigate(parent!.FullName);
+        if (ImGui.Button("Subir", new(UiTheme.Px(80), 0))) Navigate(parent!.FullName);
         ImGui.EndDisabled();
         if (ImGui.IsItemHovered()) UiTheme.Tooltip("Ir a la carpeta superior.");
         ImGui.SetNextItemWidth(-1);
@@ -113,10 +113,10 @@ public sealed class FileBrowser
         if (_problem.Length > 0) ImGui.TextWrapped(_problem);
         var shown = VisibleItems();
         if (ImGui.BeginTable("archivos", 2, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY | ImGuiTableFlags.BordersInnerH,
-            new(0, Math.Max(60, ImGui.GetContentRegionAvail().Y - 100))))
+            new(0, Math.Max(UiTheme.Px(60), ImGui.GetContentRegionAvail().Y - UiTheme.Px(100)))))
         {
             ImGui.TableSetupColumn("Nombre", ImGuiTableColumnFlags.WidthStretch);
-            ImGui.TableSetupColumn("Tamaño", ImGuiTableColumnFlags.WidthFixed, 85); ImGui.TableHeadersRow();
+            ImGui.TableSetupColumn("Tamaño", ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(85)); ImGui.TableHeadersRow();
             var clipper = new ImGuiListClipperPtr(ImGuiNative.ImGuiListClipper_ImGuiListClipper());
             try
             {
@@ -146,9 +146,9 @@ public sealed class FileBrowser
         }
         ImGui.TextUnformatted(UiTheme.Fit(_selected == null ? "Seleccioná un archivo para abrirlo." : Path.GetFileName(_selected), ImGui.GetContentRegionAvail().X));
         ImGui.BeginDisabled(_selected == null);
-        if (ImGui.Button("Abrir", new(110, 0))) OpenSelected(onPick);
+        if (ImGui.Button("Abrir", new(UiTheme.Px(110), 0))) OpenSelected(onPick);
         ImGui.EndDisabled(); ImGui.SameLine();
-        if (ImGui.Button("Cancelar", new(110, 0))) _open = false;
+        if (ImGui.Button("Cancelar", new(UiTheme.Px(110), 0))) _open = false;
         ImGui.SameLine(); ImGui.TextDisabled($"{shown.Length} elementos");
         if (ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows))
         {

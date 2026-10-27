@@ -17,10 +17,11 @@ namespace Retro.App;
 /// </summary>
 public sealed partial class CodeWindow : IDisposable
 {
-    private static readonly Vector4 LabelColor = new(0.5f, 0.8f, 1f, 1);
-    private static readonly Vector4 CommentColor = new(0.55f, 0.85f, 0.55f, 1);
-    private static readonly Vector4 DimColor = new(0.55f, 0.55f, 0.6f, 1);
-    private static readonly Vector4 ErrorColor = new(1, 0.5f, 0.4f, 1);
+    // From the theme, so the listing stays legible in high contrast.
+    private static Vector4 LabelColor => UiTheme.Accent;
+    private static Vector4 CommentColor => UiTheme.Success;
+    private static Vector4 DimColor => UiTheme.Muted;
+    private static Vector4 ErrorColor => UiTheme.Error;
     private static readonly Regex AddressToken = new(@"\$([0-9A-F]{4,5})(?![0-9A-F])", RegexOptions.Compiled);
 
     private readonly EmulatorHost _host;
@@ -98,9 +99,9 @@ public sealed partial class CodeWindow : IDisposable
         var machine = _host.Machine;
         if (machine == null || !_open) { _modificationPanelLeft = null; return; }
         var viewport = ImGui.GetMainViewport();
-        float width = Math.Min(620, viewport.Size.X - 20);
-        ImGui.SetNextWindowPos(new Vector2(viewport.Pos.X + Math.Max(10, viewport.Size.X - width - 10), viewport.Pos.Y + 30), ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(width, Math.Min(760, viewport.Size.Y - 70)), ImGuiCond.FirstUseEver);
+        float width = Math.Min(UiTheme.Px(620), viewport.Size.X - 20);
+        ImGui.SetNextWindowPos(new Vector2(viewport.Pos.X + Math.Max(10, viewport.Size.X - width - 10), viewport.WorkPos.Y + 8), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowSize(new Vector2(width, Math.Min(UiTheme.Px(760), viewport.Size.Y - 70)), ImGuiCond.FirstUseEver);
         bool visible = ImGui.Begin("Modificar y analizar###game-tools", ref _open);
         WorkspaceLayout.KeepOnScreen();
         if (!visible)
@@ -143,7 +144,7 @@ public sealed partial class CodeWindow : IDisposable
         void Page(string label, ToolPage page)
         {
             ImGui.TableNextColumn();
-            if (ImGui.Selectable(label, _activePage == page, ImGuiSelectableFlags.None, new Vector2(0, 30))) _activePage = page;
+            if (ImGui.Selectable(label, _activePage == page, ImGuiSelectableFlags.None, new Vector2(0, UiTheme.Px(30)))) _activePage = page;
         }
     }
 
@@ -485,7 +486,7 @@ public sealed partial class CodeWindow : IDisposable
         ImGui.SameLine();
         if (ImGui.Button("Guardar comentario"))
             SetComment(a, _commentText);
-        ImGui.SetNextItemWidth(200);
+        ImGui.SetNextItemWidth(UiTheme.Px(200));
         ImGui.InputText("bytes nuevos (hex)", ref _patchHex, 64);
         ImGui.SameLine();
         if (ImGui.Button("Cambiar"))
@@ -643,7 +644,7 @@ public sealed partial class CodeWindow : IDisposable
         _routineActivity.Draw(_explainTask != null, _explainStatus, _cts);
         if (_manualExplanation)
         {
-            ImGui.InputTextMultiline("##respuestaia", ref _pasted, 20000, new Vector2(-1, 60));
+            ImGui.InputTextMultiline("##respuestaia", ref _pasted, 20000, new Vector2(-1, UiTheme.Px(60)));
             if (ImGui.Button("Usar la respuesta"))
             {
                 try
@@ -716,7 +717,7 @@ public sealed partial class CodeWindow : IDisposable
         foreach (var input in Retro.Studio.StudioSession.InputNames)
         {
             int index = _profile.Controls.TryGetValue(input, out var k) ? Array.IndexOf(keys, k) + 1 : 0;
-            ImGui.SetNextItemWidth(160);
+            ImGui.SetNextItemWidth(UiTheme.Px(160));
             if (ImGui.Combo(input, ref index, options, options.Length))
             {
                 if (index == 0) _profile.Controls.Remove(input);
@@ -725,7 +726,7 @@ public sealed partial class CodeWindow : IDisposable
             }
         }
         ImGui.TextUnformatted("Arranque (una orden por línea: load-tape, wait N, press TECLA N):");
-        if (ImGui.InputTextMultiline("##boot", ref _bootText, 2000, new Vector2(-1, 80)))
+        if (ImGui.InputTextMultiline("##boot", ref _bootText, 2000, new Vector2(-1, UiTheme.Px(80))))
         {
             _profile.Boot = _bootText.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
             changed = true;
@@ -738,14 +739,14 @@ public sealed partial class CodeWindow : IDisposable
     {
         if (_profile == null) return;
         var flags = ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.ScrollY;
-        var size = new Vector2(0, Math.Clamp(ImGui.GetWindowHeight() * 0.32f, 130, 245));
+        var size = new Vector2(0, Math.Clamp(ImGui.GetWindowHeight() * 0.32f, UiTheme.Px(130), UiTheme.Px(245)));
         if (ImGui.BeginTable("vars", addresses ? 5 : 4, flags, size))
         {
             ImGui.TableSetupScrollFreeze(0, 1);
             ImGui.TableSetupColumn("Variable", ImGuiTableColumnFlags.WidthStretch, 2);
-            if (addresses) ImGui.TableSetupColumn("Dirección", ImGuiTableColumnFlags.WidthFixed, 70);
-            ImGui.TableSetupColumn("Valor", ImGuiTableColumnFlags.WidthFixed, 72);
-            ImGui.TableSetupColumn("Congelar", ImGuiTableColumnFlags.WidthFixed, 64);
+            if (addresses) ImGui.TableSetupColumn("Dirección", ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(70));
+            ImGui.TableSetupColumn("Valor", ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(72));
+            ImGui.TableSetupColumn("Congelar", ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(64));
             ImGui.TableSetupColumn("Qué es", ImGuiTableColumnFlags.WidthStretch, 3);
             ImGui.TableHeadersRow();
             foreach (var (name, v) in _profile.Variables)
@@ -808,9 +809,9 @@ public sealed partial class CodeWindow : IDisposable
             return;
         string[] conditions = ["Cambió", "No cambió", "Aumentó", "Disminuyó", "Es igual a"];
         SearchCondition[] filters = [SearchCondition.Changed, SearchCondition.Unchanged, SearchCondition.Increased, SearchCondition.Decreased, SearchCondition.EqualTo];
-        ImGui.SetNextItemWidth(150);
+        ImGui.SetNextItemWidth(UiTheme.Px(150));
         ImGui.Combo("Condición", ref _searchCondition, conditions, conditions.Length);
-        if (_searchCondition == 4) { ImGui.SetNextItemWidth(90); ImGui.InputInt("Valor", ref _searchValue); }
+        if (_searchCondition == 4) { ImGui.SetNextItemWidth(UiTheme.Px(90)); ImGui.InputInt("Valor", ref _searchValue); }
         if (ImGui.Button("Filtrar resultados")) _search.Filter(filters[_searchCondition], _searchValue);
         ImGui.TextUnformatted($"Quedan {_search.Count} direcciones.");
         if (_search.Count > 200)
@@ -818,7 +819,7 @@ public sealed partial class CodeWindow : IDisposable
             ImGui.TextDisabled("Todavía son muchas: seguí filtrando.");
             return;
         }
-        ImGui.SetNextItemWidth(160);
+        ImGui.SetNextItemWidth(UiTheme.Px(160));
         ImGui.InputTextWithHint("##nuevavar", "Nombre de la variable", ref _newVarName, 32);
         ImGui.SameLine();
         ImGui.SetNextItemWidth(-1);

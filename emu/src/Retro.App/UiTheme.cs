@@ -13,6 +13,10 @@ internal static class UiTheme
     public static Vector4 Muted => HighContrast ? new(0.86f, 0.89f, 0.93f, 1) : new(0.64f, 0.69f, 0.76f, 1);
     public static Vector4 Accent => HighContrast ? new(0.55f, 0.86f, 1, 1) : new(0.48f, 0.78f, 1, 1);
     public static Vector4 Warning => HighContrast ? new(1, 0.82f, 0.36f, 1) : new(0.96f, 0.75f, 0.42f, 1);
+    /// <summary>Current instruction, PC and SP in the debugger.</summary>
+    public static Vector4 Highlight => HighContrast ? new(1, 1, 0.2f, 1) : new(1, 1, 0.3f, 1);
+    public static Vector4 Error => HighContrast ? new(1, 0.6f, 0.55f, 1) : new(1, 0.5f, 0.4f, 1);
+    public static Vector4 Success => HighContrast ? new(0.6f, 1, 0.6f, 1) : new(0.55f, 0.85f, 0.55f, 1);
     /// <summary>Text and spacing factor chosen in the preferences (1 = 16 px text).</summary>
     public static float Scale { get; private set; } = 1;
     public static bool HighContrast { get; private set; }
@@ -39,6 +43,8 @@ internal static class UiTheme
         style.WindowPadding = new(14, 14); style.FramePadding = new(9, 6);
         style.ItemSpacing = new(10, 8); style.CellPadding = new(9, 8);
         style.WindowBorderSize = 1; style.FrameBorderSize = highContrast ? 1 : 0; style.ScrollbarSize = 14;
+        // Tall entries (library sections, creator and code tabs) center their text vertically.
+        style.SelectableTextAlign = new(0, 0.5f);
         if (Scale != 1) style.ScaleAllSizes(Scale);
         var colors = style.Colors;
         if (highContrast)
@@ -116,6 +122,17 @@ internal static class UiTheme
         if (OperatingSystem.IsMacOS()) yield return "/System/Library/Fonts/Menlo.ttc";
         yield return "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf";
         yield return "/usr/share/fonts/truetype/liberation2/LiberationMono-Regular.ttf";
+    }
+
+    /// <summary>Keeps the next button on this row only if it fits, so rows of buttons wrap at large text sizes.</summary>
+    public static void SameLineIfFits(string buttonLabel) =>
+        SameLineIfFits(ImGui.CalcTextSize(buttonLabel, true).X + ImGui.GetStyle().FramePadding.X * 2);
+
+    public static void SameLineIfFits(float width)
+    {
+        // After an item the cursor waits at the start of the next row, so this is the row's right edge.
+        float right = ImGui.GetCursorScreenPos().X + ImGui.GetContentRegionAvail().X;
+        if (ImGui.GetItemRectMax().X + ImGui.GetStyle().ItemSpacing.X + width <= right) ImGui.SameLine();
     }
 
     public static void Tooltip(string text)

@@ -224,8 +224,8 @@ public sealed class StudioWindow
         }
         if (_libraryChanged && !Busy && _manual == null) Scan();
         var vp = ImGui.GetMainViewport();
-        ImGui.SetNextWindowPos(new Vector2(vp.Pos.X + vp.Size.X - 540, vp.Pos.Y + 30), ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(530, Math.Min(760, vp.Size.Y - 70)), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowPos(new Vector2(vp.Pos.X + vp.Size.X - UiTheme.Px(540), vp.WorkPos.Y + 8), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowSize(new Vector2(UiTheme.Px(530), Math.Min(UiTheme.Px(760), vp.Size.Y - 70)), ImGuiCond.FirstUseEver);
         bool visible = ImGui.Begin(_inspiredMode ? "Crear con originales" : "Fusionar juegos", ref _open);
         WorkspaceLayout.KeepOnScreen();
         if (!visible)
@@ -306,8 +306,8 @@ public sealed class StudioWindow
         ImGui.SetNextItemWidth(-1);
         ImGui.InputTextWithHint("##buscar-juego", "Buscar por nombre o máquina", ref _gameSearch, 150);
         var matches = _games.Where(g => _labels.GetValueOrDefault(g.Profile.Id, g.Profile.Name).Contains(_gameSearch.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
-        float listHeight = Math.Min(Math.Clamp(ImGui.GetWindowHeight() * 0.28f, 110, 200),
-            Math.Max(74, matches.Count * ImGui.GetFrameHeightWithSpacing() + 2 * ImGui.GetStyle().WindowPadding.Y));
+        float listHeight = Math.Min(Math.Clamp(ImGui.GetWindowHeight() * 0.28f, UiTheme.Px(110), UiTheme.Px(200)),
+            Math.Max(UiTheme.Px(74), matches.Count * ImGui.GetFrameHeightWithSpacing() + 2 * ImGui.GetStyle().WindowPadding.Y));
         ImGui.BeginChild("elegir-juegos", new Vector2(0, listHeight), ImGuiChildFlags.Borders);
         if (matches.Count == 0) ImGui.TextWrapped("No encontré juegos con ese nombre. Probá otra búsqueda.");
         foreach (var g in matches)
@@ -368,7 +368,7 @@ public sealed class StudioWindow
         ImGui.Spacing();
         if (!_inspiredMode) ImGui.TextColored(Gold, "3. Definí los aportes");
         ImGui.TextUnformatted(_inspiredMode ? "Tu propuesta para el juego (opcional):" : "Qué querés incorporar a la base (opcional):");
-        ImGui.InputTextMultiline("##deseo", ref _wish, 2000, new Vector2(-1, 64));
+        ImGui.InputTextMultiline("##deseo", ref _wish, 2000, new Vector2(-1, UiTheme.Px(64)));
         AiPicker.Hint(FusionResearchPlan.EstimateText(_chosen.Count, true, CreationEstimate(true)));
         AiPicker.Hint("Puede trabajar hasta una hora en total. Podés ver el avance y cancelar.");
         ImGui.BeginDisabled(Busy);
@@ -523,7 +523,7 @@ public sealed class StudioWindow
         if (versions.Count > 1)
         {
             ImGui.SameLine();
-            ImGui.SetNextItemWidth(150);
+            ImGui.SetNextItemWidth(UiTheme.Px(150));
             if (ImGui.BeginCombo("##versiones", $"Versión {g.Version} de {versions.Count}"))
             {
                 foreach (var v in versions)
@@ -547,7 +547,7 @@ public sealed class StudioWindow
         ImGui.Separator();
         ImGui.TextColored(Gold, "Pedile un cambio a la IA");
         AiPicker.Hint("Describí el cambio. Se guardará como una versión nueva.");
-        ImGui.InputTextMultiline("##pedido", ref _request, 2000, new Vector2(-1, 56));
+        ImGui.InputTextMultiline("##pedido", ref _request, 2000, new Vector2(-1, UiTheme.Px(56)));
         DrawAiChooser("Cada versión puede necesitar varios pedidos a la IA.");
         ImGui.BeginDisabled(Busy || _request.Trim().Length < 3);
         if (ImGui.Button("Hacer versión nueva"))
@@ -643,7 +643,7 @@ public sealed class StudioWindow
                 _progress = "Pedido copiado. Pegalo en tu chat y traé la respuesta completa.";
             }
             ImGui.TextUnformatted("2. Pegá acá la respuesta:");
-            ImGui.InputTextMultiline("##respuesta", ref _pasted, 300_000, new Vector2(-1, 90));
+            ImGui.InputTextMultiline("##respuesta", ref _pasted, 300_000, new Vector2(-1, UiTheme.Px(90)));
             ImGui.BeginDisabled(Busy || _pasted.Trim().Length == 0);
             if (ImGui.Button("3. Usar la respuesta"))
             {
@@ -692,7 +692,7 @@ public sealed class StudioWindow
         if (_toasts.Count == 0)
             return;
         var vp = ImGui.GetMainViewport();
-        ImGui.SetNextWindowPos(new Vector2(vp.Pos.X + vp.Size.X / 2, vp.Pos.Y + 40), ImGuiCond.Always, new Vector2(0.5f, 0));
+        ImGui.SetNextWindowPos(new Vector2(vp.Pos.X + vp.Size.X / 2, vp.WorkPos.Y + UiTheme.Px(12)), ImGuiCond.Always, new Vector2(0.5f, 0));
         ImGui.SetNextWindowBgAlpha(0.75f);
         ImGui.Begin("##studiotoasts", ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoInputs |
                                       ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoDocking);

@@ -18,6 +18,11 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
     private readonly Dictionary<string, GameProfile> _profiles = new(StringComparer.Ordinal);
     private HashSet<string> _availableProfiles = new(StringComparer.Ordinal);
     private bool _open, _compactRows, _refreshed;
+    private int _contentRevision;
+    // Drawn every frame: summaries, the filtered list and created-program checks wait for a change.
+    private readonly FrameCache<(int, int, bool), Dictionary<string, string>> _summaries = new();
+    private readonly FrameCache<(int, string, string, string), List<LibraryEntry>> _originals = new();
+    private readonly FrameCache<int, HashSet<string>> _readyCreated = new();
     private string _section = "home", _machine = "", _search = "", _problem = "";
     private List<StudioGame> _fusions = new();
     private List<StudioGame> _inspired = new();
@@ -66,7 +71,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
             if (game.NotYet == null && game.Confidence >= 50)
                 items.Add((OriginalKey(game), game.Name, Name(game.Machine), () => playOriginal(game.Path)));
         foreach (var game in _created)
-            if (File.Exists(game.ProgramPath))
+            if (Ready(game))
                 items.Add((CreatedKey(game), game.Title, game.MachineName, () => playOriginal(game.ProgramPath)));
         foreach (var game in _fusions.Concat(_inspired))
             if (game.Games.All(g => _availableProfiles.Contains(g.Profile)))
@@ -78,7 +83,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
 
     private void Refresh()
     {
-        _refreshed = true;
+        _refreshed = true; _contentRevision++;
         _thumbnails.Clear();
         try
         {
@@ -254,11 +259,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
                 float width = size.X - UiTheme.Px(136);
                 draw.AddText(min + UiTheme.Px(124, 18), ImGui.GetColorU32(ImGuiCol.Text), UiTheme.Fit(Name(machine), width));
                 draw.AddText(min + UiTheme.Px(124, 42), ImGui.GetColorU32(ImGuiCol.TextDisabled), UiTheme.Fit(machine.Cpu, width));
-                var originals = library.Originals(machineId: machine.Id).ToList();
-                int count = originals.Count + _created.Count(g => g.Machine == machine.Id);
-                int ready = originals.Count(g => g.NotYet == null && g.Confidence >= 50) + _created.Count(g => g.Machine == machine.Id && File.Exists(g.ProgramPath));
-                string summary = library.Scanning ? "Buscando juegos..." : count == 0 ? "Sin juegos agregados"
-                    : ready == count ? $"{count} juego{(count == 1 ? "" : "s")}" : $"{count} archivos / {ready} admitidos";
+                string summary = Summary(machine.Id);
                 draw.AddText(min + UiTheme.Px(124, 66), ImGui.GetColorU32(ImGuiCol.TextDisabled), UiTheme.Fit(summary, width));
                 draw.AddText(min + UiTheme.Px(18, 88), accent, "Ver juegos >");
                 if (hovered) UiTheme.Tooltip(Name(machine) + "\n" + summary);
@@ -271,9 +272,27 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         if (ImGui.Button("Ver todos los juegos")) Select("all");
     }
 
+    private bool Ready(CreatedGame game) => _readyCreated.Get(_contentRevision,
+        () => _created.Select(g => g.ProgramPath).Where(File.Exists).ToHashSet(StringComparer.OrdinalIgnoreCase)).Contains(game.ProgramPath);
+
+    private string Summary(string machineId) => _summaries.Get((library.Revision, _contentRevision, library.Scanning),
+        () => Machines.ToDictionary(machine => machine.Id, machine => SummaryOf(machine.Id)))[machineId];
+
+    private string SummaryOf(string machineId)
+    {
+        if (library.Scanning) return "Buscando juegos...";
+        var originals = library.Originals(machineId: machineId).ToList();
+        var created = _created.Where(g => g.Machine == machineId).ToList();
+        int count = originals.Count + created.Count;
+        int ready = originals.Count(g => g.NotYet == null && g.Confidence >= 50) + created.Count(Ready);
+        return count == 0 ? "Sin juegos agregados"
+            : ready == count ? $"{count} juego{(count == 1 ? "" : "s")}" : $"{count} archivos / {ready} admitidos";
+    }
+
     private void DrawOriginals()
     {
-        var games = library.Originals(_search, _section == "machine" ? _machine : null).ToList();
+        var games = _originals.Get((library.Revision, _search, _section, _machine),
+            () => library.Originals(_search, _section == "machine" ? _machine : null).ToList());
         var created = _created.Where(g => Matches(g.Title) && (_section == "all" || g.Machine == _machine)).ToList();
         var fusions = _section == "all" ? _fusions.Concat(_inspired).Where(g => Matches(g.Title)).ToList() : new List<StudioGame>();
         if (_section == "machine")
@@ -302,7 +321,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
                     () => playOriginal(game.Path), game.NotYet == null && game.Confidence >= 50, game.Machine.Id, () => ThumbnailFiles.Beside(game.Path));
             foreach (var game in created)
                 Row(CreatedKey(game), game.Title, game.MachineName, game.Pitch,
-                    () => playOriginal(game.ProgramPath), File.Exists(game.ProgramPath), game.Machine, () => game.PicturePath);
+                    () => playOriginal(game.ProgramPath), Ready(game), game.Machine, () => game.PicturePath);
             foreach (var game in fusions) FusionRow(game);
             ImGui.EndTable();
         }
@@ -345,7 +364,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         {
             foreach (var game in games)
                 Row(CreatedKey(game), game.Title, game.MachineName, game.Pitch,
-                    () => playOriginal(game.ProgramPath), File.Exists(game.ProgramPath), game.Machine, () => game.PicturePath);
+                    () => playOriginal(game.ProgramPath), Ready(game), game.Machine, () => game.PicturePath);
             foreach (var game in inspired) FusionRow(game);
             ImGui.EndTable();
         }
@@ -385,7 +404,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
                     g.NotYet == null && g.Confidence >= 50, g.Machine.Id, () => ThumbnailFiles.Beside(g.Path))))
             .Concat(_created.Select(g => new PersonalRow(CreatedKey(g), g.Title,
                 () => Row(CreatedKey(g), g.Title, g.MachineName, g.Pitch, () => playOriginal(g.ProgramPath),
-                    File.Exists(g.ProgramPath), g.Machine, () => g.PicturePath))))
+                    Ready(g), g.Machine, () => g.PicturePath))))
             .Concat(_fusions.Concat(_inspired).Select(g => new PersonalRow(FusionKey(g), g.Title, () => FusionRow(g))))
             .Where(r => Matches(r.Title) && (_section == "favorites" ? _activity.IsFavorite(r.Key) : _activity.LastPlayed(r.Key) != null))
             .DistinctBy(r => r.Key);

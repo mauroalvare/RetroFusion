@@ -28,8 +28,8 @@ public static class AiConnectionWindow
         var condition = s_workSize != vp.WorkSize ? ImGuiCond.Always : ImGuiCond.Appearing;
         s_workSize = vp.WorkSize;
         var maximum = vp.WorkSize - new Vector2(16);
-        ImGui.SetNextWindowSizeConstraints(Vector2.Min(new Vector2(320, 240), maximum), maximum);
-        ImGui.SetNextWindowSize(Vector2.Min(new Vector2(670, 650), maximum), condition);
+        ImGui.SetNextWindowSizeConstraints(Vector2.Min(UiTheme.Px(320, 240), maximum), maximum);
+        ImGui.SetNextWindowSize(Vector2.Min(UiTheme.Px(670, 650), maximum), condition);
         ImGui.SetNextWindowPos(vp.GetCenter(), condition, new Vector2(.5f));
         if (!ImGui.Begin("Conectar IA", ref s_open, ImGuiWindowFlags.NoCollapse)) { ImGui.End(); return; }
         ImGui.SetNextItemWidth(-1);

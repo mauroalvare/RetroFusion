@@ -99,8 +99,8 @@ public sealed class UpdateWindow : IDisposable
         const string title = "Actualizaciones de RetroEmu";
         if (!_open && !ImGui.IsPopupOpen(title)) return;
         var vp = ImGui.GetMainViewport();
-        ImGui.SetNextWindowSizeConstraints(new(280, 180), Vector2.Min(new(520, 400), vp.WorkSize));
-        ImGui.SetNextWindowSize(Vector2.Min(new(480, 230), vp.WorkSize), ImGuiCond.Appearing);
+        ImGui.SetNextWindowSizeConstraints(Vector2.Min(UiTheme.Px(280, 180), vp.WorkSize), Vector2.Min(UiTheme.Px(520, 400), vp.WorkSize));
+        ImGui.SetNextWindowSize(Vector2.Min(UiTheme.Px(480, 230), vp.WorkSize), ImGuiCond.Appearing);
         ImGui.SetNextWindowPos(vp.GetCenter(), ImGuiCond.Appearing, new(.5f));
         if (_open && !ImGui.IsPopupOpen(title)) ImGui.OpenPopup(title);
         bool shown = ImGui.BeginPopupModal(title, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoSavedSettings);
