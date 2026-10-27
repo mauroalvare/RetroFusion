@@ -29,6 +29,9 @@ internal static class I8088BusVerification
                 address = row[1].GetUInt32(); kind = row[7].GetString();
                 if (address > 0xFFFFF) throw new InvalidDataException("Dirección de bus fuera de 20 bits.");
             }
+            // A trace may start inside a prefetch whose ALE was earlier. Its status is still driven in T2;
+            // code is not compared, so its unknown address is harmless. Data without ALE stays invalid.
+            else if (kind == null && row[7].GetString() == "CODE") kind = "CODE";
             string? phase = row[8].GetString();
             if (phase is not ("T3" or "Tw") || i + 1 < rows.Length && rows[i + 1][8].GetString() == "Tw") continue;
             string memory = row[3].GetString() ?? "", ports = row[4].GetString() ?? "";
@@ -56,8 +59,10 @@ internal static class I8088BusVerification
         {
             string[] selected = (opcodes ?? "88,89,8A,8B,A0,A1,A2,A3,E4,E5,E6,E7,EC,ED,EE,EF")
                 .Split(',', StringSplitOptions.TrimEntries).Select(v => v.ToUpperInvariant()).Distinct().ToArray();
-            if (selected.Length == 0 || selected.Any(v => v.Length != 2 || !byte.TryParse(v, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _)))
-                throw new InvalidDataException("--opcodes requiere bytes hexadecimales separados por coma.");
+            // Group opcodes are stored per ModRM reg field, as XX.R files.
+            if (selected.Length == 0 || selected.Any(v => v.Length is not (2 or 4) || v.Length == 4 && (v[2] != '.' || v[3] is < '0' or > '7') ||
+                    !byte.TryParse(v.AsSpan(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _)))
+                throw new InvalidDataException("--opcodes requiere bytes hexadecimales o grupos XX.R separados por coma.");
             if (string.IsNullOrWhiteSpace(folder)) throw new InvalidDataException("Indicá --suite con la carpeta v2 de SingleStepTests/8088.");
             string root = Path.GetFullPath(folder);
             using var metadata = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "metadata.json")));
@@ -73,7 +78,9 @@ internal static class I8088BusVerification
                 using var document = JsonDocument.Parse(gzip);
                 var tests = document.RootElement; int take = Math.Min(limit, tests.GetArrayLength());
                 if (take == 0) throw new InvalidDataException("El archivo no contiene casos.");
-                var info = metadata.RootElement.GetProperty("opcodes").GetProperty(opcode);
+                var info = metadata.RootElement.GetProperty("opcodes").GetProperty(opcode[..2]);
+                if (opcode.Length == 4 && !info.TryGetProperty("reg", out _))
+                    throw new InvalidDataException($"{opcode[..2]} no es un opcode de grupo.");
                 int fileChecked = 0, fileSequenceFailures = 0, fileTimingFailures = 0;
                 var differences = new List<object>();
                 for (int n = 0; n < take; n++)
