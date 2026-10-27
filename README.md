@@ -88,8 +88,10 @@ PC los atajos de herramientas usan **Ctrl+Shift**, porque Ctrl es una tecla del 
 fusiones y los juegos nuevos; **Herramientas** reúne modificaciones, código y depurador.
 **Opciones** contiene las preferencias, la conexión de IA y los menús de sonido, pantalla
 y accesibilidad: tamaño del texto de 100 a 200 %, alto contraste y navegación con el
-teclado en la biblioteca, los diálogos y la pausa. Sin partida en curso, la ventana se
-dibuja menos veces para gastar menos energía. [Preferencias y teclado](emu/docs/PREFERENCIAS.md).
+teclado o mando en la biblioteca, los diálogos y la pausa (Select + Start abre la
+biblioteca). Sin partida en curso, la ventana se dibuja menos veces para gastar menos
+energía, y una opción pausa el juego al pasar a otra ventana. Si hay un trabajo de IA en
+curso, salir pide confirmación. [Preferencias y teclado](emu/docs/PREFERENCIAS.md).
 **Sonido > Volumen y opciones** permite ajustar volumen, silencio de fondo y margen
 de audio. [Opciones de sonido](emu/docs/SONIDO.md).
 

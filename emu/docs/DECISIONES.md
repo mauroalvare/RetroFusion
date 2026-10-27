@@ -1173,3 +1173,20 @@ minimizada; mientras se emula, sigue la frecuencia del monitor porque la emulaci
 la cola de audio avanzan por cuadro del host. El renglón por segundo de `--autotest`
 informa en `fps=` los cuadros realmente dibujados (antes repetía Raylib.GetFPS, que
 consultado una vez por segundo sobrestimaba) y agrega `objetivo=`.
+
+## D-076 — Salida con trabajos en curso, pausa en segundo plano y mando
+
+El bucle principal ya no termina directamente con `WindowShouldClose`: la orden de cierre
+llega a `RetroApp.RequestQuit`, que sale si no hay trabajos de IA en curso (estudio,
+creador, análisis o respuestas manuales pendientes) y si no, pide confirmación. Se actúa
+al comenzar la orden, de modo que el diálogo no reaparece aunque raylib la mantuviera.
+`--autotest` y la actualización conservan su salida directa.
+
+preferencias.json v1 agrega `PauseInBackground` (falso de fábrica). Un archivo v1 anterior
+sin el campo se lee con ese valor, sin cambiar de versión. La pausa automática solo
+reanuda lo que pausó y respeta una reanudación manual hecha sin foco.
+
+La navegación con mando de ImGui sigue la misma condición que la del teclado (D-075).
+Select + Start abre la biblioteca o vuelve al juego; Ctrl+F enfoca la búsqueda de la
+biblioteca. Corrección de D-075: minimizada, raylib espera eventos sin dibujar, así que
+el límite de 5 cuadros solo rige para los cuadros que esos eventos despiertan.

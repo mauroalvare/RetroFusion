@@ -131,6 +131,11 @@ libre (primer uso y **Herramientas > Depuración > Reorganizar paneles**, que lo
 `Error` y `Success` reemplazan colores fijos del depurador y del código. En la biblioteca,
 `FrameCache` conserva resúmenes por máquina, la lista filtrada y la comprobación de
 programas creados hasta que cambian la biblioteca, la búsqueda o la sección.
+`Program.cs` pasa la orden de cierre a `RetroApp.RequestQuit`, que sale o, con trabajos
+de IA en curso, muestra la confirmación de `QuitGuard`. `FocusPause` aplica la pausa
+opcional en segundo plano y reanuda solo la que hizo. La navegación con mando
+(`NavEnableGamepad`) sigue la misma regla que el teclado; Select + Start abre o cierra la
+biblioteca y Ctrl+F enfoca su búsqueda.
 
 ## Modificar una partida
 

@@ -39,9 +39,14 @@ Estas opciones también están en **Juego > Controles y hardware** y en **Cinta*
 
 **Ahorrar energía cuando no hay partida en curso** está activado de fábrica. Con la
 partida en pausa, en la biblioteca o sin máquina, la ventana se dibuja hasta 60 veces
-por segundo; sin foco, 15, y minimizada, 5. Un juego en curso usa siempre la frecuencia
-del monitor, porque la emulación y el sonido se reparten en esos cuadros. Desactivá la
-opción si preferís que la interfaz se dibuje siempre al máximo.
+por segundo, y 15 sin foco. Un juego en curso usa siempre la frecuencia del monitor,
+porque la emulación y el sonido se reparten en esos cuadros. Desactivá la opción si
+preferís que la interfaz se dibuje siempre al máximo. Con la ventana minimizada el
+programa espera sin dibujar y la partida queda detenida hasta que vuelvas.
+
+**Pausar el juego al pasar a otra ventana** está desactivado de fábrica. Al volver, la
+partida sigue sola solo si la pausó esta opción: una pausa tuya se respeta. Para
+silenciar sin pausar, usá **Silenciar al perder el foco** en Sonido.
 
 ## Teclado
 
@@ -57,7 +62,22 @@ los atajos de herramientas usan **Ctrl+Shift**: O abre un archivo, L la bibliote
 M modificar y analizar, y K el código. En NES, arcade, fusiones y sin máquina alcanza con
 Ctrl. La lista completa para la máquina activa está en **Ayuda > Atajos**.
 
+En la biblioteca, **Ctrl+F** lleva a la búsqueda; desde el inicio busca en todos los juegos.
+
 **Juego > Recientes** abre de nuevo los últimos juegos, creaciones y fusiones jugados.
+
+## Mando
+
+Con un mando conectado, **Select + Start** abre la biblioteca y, con un juego abierto,
+vuelve a él. En la biblioteca, los diálogos y la pausa, la **cruceta** recorre los
+controles, **A** elige y **B** vuelve. Mientras se juega, el mando es de la máquina.
+
+## Salir
+
+Si hay un trabajo de IA en curso (fusión, creación, análisis o una respuesta manual
+pendiente), cerrar la ventana o **Juego > Salir** pregunta antes. **Volver** sigue con el
+trabajo, **Ver el trabajo** lo muestra y **Salir y cancelar** lo detiene. Lo que ya
+estaba guardado se conserva. Sin trabajos en curso, el programa sale como siempre.
 
 ## Dónde se guardan
 

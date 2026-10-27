@@ -436,10 +436,18 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   Esta navegación se verificó en la lógica y en capturas ocultas; no hubo una sesión
   visible con teclado real.
 - **Ahorro de energía:** sin partida en curso la ventana se dibuja hasta 60 veces por
-  segundo, 15 sin foco y 5 minimizada. Medido con la ventana oculta, que el sistema informa
-  con foco: la biblioteca pasó de 120 a 60 cuadros por segundo y de 0,12 a 0,09 s de CPU
-  por segundo; con la máquina en marcha no cambió. Los casos sin foco y minimizada se
-  comprueban en pruebas de la regla, no con una medición nativa.
+  segundo y 15 sin foco. Medido con la ventana oculta, que el sistema informa con foco:
+  la biblioteca pasó de 120 a 60 cuadros por segundo y de 0,12 a 0,09 s de CPU por
+  segundo; con la máquina en marcha no cambió. El caso sin foco se comprueba en pruebas
+  de la regla, no con una medición nativa. Minimizada, raylib 5.5 espera eventos sin
+  dibujar (no se usa FLAG_WINDOW_ALWAYS_RUN), así que la emulación se detiene hasta
+  restaurar la ventana, como antes de estas preferencias. Esto sale del código de raylib;
+  no se midió, porque minimizar la ventana de prueba la haría visible.
+- **Mando y salida:** la navegación con mando usa el primer mando y la traducción de
+  rlImGui; no se probó con un mando físico. Select + Start también llega al juego en el
+  cuadro en que se pulsa. La confirmación de salida se comprobó con una orden de cierre
+  real sin trabajos en curso (sale de inmediato); el diálogo con un trabajo en curso solo
+  tiene pruebas de su texto, porque iniciarlo requiere un proveedor de IA real.
 - El selector de archivos refresca su instantánea cada dos segundos mientras está abierto.
   Conserva el filtro entre cuadros y dibuja solo las filas visibles; la velocidad también
   depende del disco y del acceso a la carpeta.
