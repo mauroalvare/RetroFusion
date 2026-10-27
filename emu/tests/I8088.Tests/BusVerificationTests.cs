@@ -70,7 +70,16 @@ public sealed class BusVerificationTests
         using (var report = JsonDocument.Parse(File.ReadAllText(Path.Combine(_folder, "report.json"))))
         {
             Assert.That(report.RootElement.GetProperty("SequenceFailures").GetInt32(), Is.EqualTo(1));
+            Assert.That(report.RootElement.GetProperty("ValueOnlyFailures").GetInt32(), Is.EqualTo(1));
             Assert.That(report.RootElement.GetProperty("RelativeTimingFailures").GetInt32(), Is.Zero);
+            Assert.That(report.RootElement.GetProperty("TimingComparedPairs").GetInt32(), Is.EqualTo(1), "Same order and addresses keep the interval.");
+        }
+        WriteCase(stale: true, warm: false); Assert.That(Run(), Is.EqualTo(2));
+        using (var order = JsonDocument.Parse(File.ReadAllText(Path.Combine(_folder, "report.json"))))
+        {
+            Assert.That(order.RootElement.GetProperty("SequenceFailures").GetInt32(), Is.EqualTo(1));
+            Assert.That(order.RootElement.GetProperty("ValueOnlyFailures").GetInt32(), Is.Zero, "A byte store has a different shape.");
+            Assert.That(order.RootElement.GetProperty("TimingComparedPairs").GetInt32(), Is.Zero);
         }
         WriteCase(delayed: true); Assert.That(Run(), Is.EqualTo(2));
         using var timing = JsonDocument.Parse(File.ReadAllText(Path.Combine(_folder, "report.json")));

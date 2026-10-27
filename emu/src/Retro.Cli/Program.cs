@@ -19,7 +19,7 @@ static int Usage()
         RetroEmu CLI
 
           retro-cli info <archivo>
-          retro-cli cpu8088 verificar-bus --suite <carpeta-v2> [--opcodes A1,A3] [--casos 1000] [--salida informe.json]
+          retro-cli cpu8088 verificar-bus --suite <carpeta-v2> [--opcodes A1,A3,80.0] [--casos 1000] [--salida informe.json]
           retro-cli cpu8088 verificar --suite <carpeta-v2> [--salida informe.json]
           retro-cli cpu8088 <programa.bin|demo|timed-demo|irq-demo|timer-demo> [--steps n]   diagnóstico del núcleo, separado del arranque de PC/XT
           retro-cli cpu8086 <programa.bin|demo|timed-demo> [--steps n]   diagnóstico de CPU 8086, sin placa ni DOS

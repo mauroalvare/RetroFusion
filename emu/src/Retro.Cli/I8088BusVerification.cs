@@ -70,7 +70,7 @@ internal static class I8088BusVerification
                 throw new InvalidDataException("Se requiere SingleStepTests/8088 formato 2.");
             var properties = typeof(I8088Cpu).GetProperties().Where(p => p.CanWrite && p.PropertyType == typeof(ushort)).ToDictionary(p => p.Name.ToLowerInvariant());
             var bus = new Bus(); var files = new List<object>();
-            int checkedCases = 0, sequenceFailures = 0, timingFailures = 0, timingCompared = 0, pairs = 0, excluded = 0, noPairs = 0;
+            int checkedCases = 0, sequenceFailures = 0, valueFailures = 0, timingFailures = 0, timingCompared = 0, pairs = 0, excluded = 0, noPairs = 0;
             foreach (string opcode in selected)
             {
                 using var input = File.OpenRead(Path.Combine(root, opcode + ".json.gz"));
@@ -81,7 +81,7 @@ internal static class I8088BusVerification
                 var info = metadata.RootElement.GetProperty("opcodes").GetProperty(opcode[..2]);
                 if (opcode.Length == 4 && !info.TryGetProperty("reg", out _))
                     throw new InvalidDataException($"{opcode[..2]} no es un opcode de grupo.");
-                int fileChecked = 0, fileSequenceFailures = 0, fileTimingFailures = 0;
+                int fileChecked = 0, fileSequenceFailures = 0, fileValueFailures = 0, fileTimingFailures = 0;
                 var differences = new List<object>();
                 for (int n = 0; n < take; n++)
                 {
@@ -116,36 +116,41 @@ internal static class I8088BusVerification
                         } while (cpu.IP == start && bytes[operation] is 0xA4 or 0xA5 or 0xA6 or 0xA7 or 0xAA or 0xAB or 0xAC or 0xAD or 0xAE or 0xAF);
                     }
                     catch (Exception e) when (e is NotSupportedException or InvalidDataException) { error = e.Message; }
-                    bool sequence = error == null && actual.Count == expected.Count && actual.Zip(expected)
-                        .All(pair => pair.First.Kind == pair.Second.Kind && pair.First.Address == pair.Second.Address && pair.First.Value == pair.Second.Value);
+                    bool shape = error == null && actual.Count == expected.Count && actual.Zip(expected)
+                        .All(pair => pair.First.Kind == pair.Second.Kind && pair.First.Address == pair.Second.Address);
+                    bool sequence = shape && actual.Zip(expected).All(pair => pair.First.Value == pair.Second.Value);
                     bool? timing = null;
                     if (!sequence) { sequenceFailures++; fileSequenceFailures++; }
-                    else if (expected.Count > 1)
+                    // Same order and addresses with other values (e.g. undefined flags pushed by a
+                    // divide error) are counted apart and still give comparable intervals.
+                    if (shape && !sequence) { valueFailures++; fileValueFailures++; }
+                    if (shape && expected.Count > 1)
                     {
                         timingCompared++; pairs += expected.Count - 1;
                         timing = actual.Zip(expected).All(pair => pair.First.Clock - actual[0].Clock == pair.Second.Clock - expected[0].Clock);
                         if (timing == false) { timingFailures++; fileTimingFailures++; }
                     }
-                    else noPairs++;
+                    else if (shape) noPairs++;
                     checkedCases++; fileChecked++;
                     if ((!sequence || timing == false) && differences.Count < 5)
                         differences.Add(new { Index = test.GetProperty("idx").GetInt32(), Name = test.GetProperty("name").GetString(),
                             SequenceMatches = sequence, RelativeTimingMatches = timing, Error = error, Expected = expected, Actual = actual });
                 }
-                files.Add(new { Opcode = opcode, Checked = fileChecked, SequenceFailures = fileSequenceFailures, RelativeTimingFailures = fileTimingFailures, Differences = differences });
-                Console.WriteLine($"{opcode}: {fileChecked} casos; diferencias de accesos={fileSequenceFailures}, de intervalos={fileTimingFailures}.");
+                files.Add(new { Opcode = opcode, Checked = fileChecked, SequenceFailures = fileSequenceFailures, ValueOnlyFailures = fileValueFailures,
+                    RelativeTimingFailures = fileTimingFailures, Differences = differences });
+                Console.WriteLine($"{opcode}: {fileChecked} casos; diferencias de accesos={fileSequenceFailures} (solo valores={fileValueFailures}), de intervalos={fileTimingFailures}.");
             }
             if (checkedCases == 0) throw new InvalidDataException("No se comparó ningún caso documentado.");
-            var result = new { Checked = checkedCases, SequenceFailures = sequenceFailures, RelativeTimingFailures = timingFailures,
+            var result = new { Checked = checkedCases, SequenceFailures = sequenceFailures, ValueOnlyFailures = valueFailures, RelativeTimingFailures = timingFailures,
                 TimingComparedCases = timingCompared, TimingComparedPairs = pairs, NoTimingPairs = noPairs, Excluded = excluded,
-                Scope = "Accesos de datos: orden, dirección, valor e intervalos relativos al primer acceso. Sin tiempos absolutos EU, prelectura, INTA, señales eléctricas ni estado final.", Files = files };
+                Scope = "Accesos de datos: orden, dirección, valor e intervalos relativos al primer acceso, comparados si coinciden tipo y dirección. Sin tiempos absolutos EU, prelectura, INTA, señales eléctricas ni estado final.", Files = files };
             if (report != null)
             {
                 string path = Path.GetFullPath(report); Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                 var options = new JsonSerializerOptions { WriteIndented = true }; options.Converters.Add(new JsonStringEnumConverter());
                 File.WriteAllText(path, JsonSerializer.Serialize(result, options));
             }
-            Console.WriteLine($"Casos: {checkedCases}; diferencias de accesos: {sequenceFailures}; de intervalos: {timingFailures}; pares contrastados: {pairs}.");
+            Console.WriteLine($"Casos: {checkedCases}; diferencias de accesos: {sequenceFailures} (solo valores: {valueFailures}); de intervalos: {timingFailures}; pares contrastados: {pairs}.");
             Console.WriteLine(result.Scope);
             return sequenceFailures == 0 && timingFailures == 0 ? 0 : 2;
         }
