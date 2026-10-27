@@ -69,8 +69,20 @@ En la biblioteca, **Ctrl+F** lleva a la búsqueda; desde el inicio busca en todo
 ## Mando
 
 Con un mando conectado, **Select + Start** abre la biblioteca y, con un juego abierto,
-vuelve a él. En la biblioteca, los diálogos y la pausa, la **cruceta** recorre los
-controles, **A** elige y **B** vuelve. Mientras se juega, el mando es de la máquina.
+vuelve a él; el juego no recibe el mando hasta que soltás los botones. En la biblioteca,
+los diálogos y la pausa, la **cruceta** recorre los controles, **A** elige y **B** vuelve.
+Mientras se juega, el mando es de la máquina.
+
+## Capturas y miniaturas
+
+**Juego > Guardar captura de pantalla** (Ctrl+S; Ctrl+Shift+S en Spectrum, C64 y PC)
+guarda la pantalla emulada en PNG, a su resolución original, en la carpeta RetroEmu de
+tus imágenes. Cada captura lleva el nombre del juego y la fecha, y nunca reemplaza otra.
+
+**Juego > Usar la pantalla como miniatura** guarda esa imagen junto al archivo del juego,
+con su mismo nombre, para que la biblioteca la muestre. Solo está disponible para los
+juegos originales de tu biblioteca y no reemplaza una imagen que ya esté ahí: para
+cambiarla, borrá o renombrá la anterior.
 
 ## Salir
 
@@ -82,6 +94,7 @@ estaba guardado se conserva. Sin trabajos en curso, el programa sale como siempr
 ## Dónde se guardan
 
 Las preferencias se guardan en preferencias.json dentro de la carpeta de datos de
-RetroEmu de tu cuenta, separadas del sonido, la IA, los juegos y las partidas. Si el
+RetroEmu de tu cuenta, separadas del sonido, la IA, los juegos y las partidas. También
+recuerdan la última carpeta del selector de archivos, que se usa mientras exista. Si el
 archivo no se puede leer, el panel lo indica, no lo reemplaza y conserva los cambios
 solo durante la sesión. **Restablecer valores** vuelve a las opciones de fábrica.

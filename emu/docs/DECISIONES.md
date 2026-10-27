@@ -1190,3 +1190,18 @@ La navegación con mando de ImGui sigue la misma condición que la del teclado (
 Select + Start abre la biblioteca o vuelve al juego; Ctrl+F enfoca la búsqueda de la
 biblioteca. Corrección de D-075: minimizada, raylib espera eventos sin dibujar, así que
 el límite de 5 cuadros solo rige para los cuadros que esos eventos despiertan.
+
+## D-077 — Capturas, miniaturas, mando retenido y última carpeta
+
+Las capturas son PNG RGB de 8 bits escritos en código propio (zlib de .NET y CRC32), a
+la resolución de la máquina, en Imágenes/RetroEmu (o la carpeta personal si el sistema
+no tiene Imágenes). Se crean con `FileMode.CreateNew`: nunca reemplazan un archivo y un
+fallo de escritura borra el parcial. La miniatura se escribe como `<juego>.png` junto al
+original solo si `ThumbnailFiles.Beside` no encuentra ya una imagen. Ctrl+S (Ctrl+Shift+S
+donde Ctrl es una tecla del equipo) se suma a las teclas de herramientas que no llegan a
+la máquina.
+
+Al terminar `--autotest` fuera de la biblioteca también se guarda la pantalla emulada en
+`out/autotest-capturas` del directorio actual. Después de Select + Start el mando no
+llega al juego hasta soltar todos sus botones. preferencias.json v1 agrega `LastFolder`
+(opcional, hasta 1.024 caracteres); se usa solo si la carpeta existe.

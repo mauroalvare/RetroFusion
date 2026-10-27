@@ -428,6 +428,10 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   paneles. Con 175–200 % en una ventana chica los paneles necesitan desplazamiento.
   El alto contraste no cambia los colores de la pantalla emulada.
   [Preferencias y teclado](PREFERENCIAS.md).
+- **Capturas:** PNG a la resolución de la máquina (con su borde), sin escalar ni filtros.
+  La miniatura solo se ofrece para originales de la biblioteca y nunca reemplaza una imagen
+  existente. Se verificaron el PNG decodificado y sus CRC con una captura real oculta; la
+  opción de menú y el atajo no se pulsaron en una sesión visible.
 - **Lectores de pantalla:** la interfaz se dibuja con Dear ImGui y no publica sus controles
   al sistema operativo; un lector de pantalla no puede recorrerla.
 - **Teclado:** la navegación con Tab, flechas, Enter y Esc funciona en la biblioteca, los
@@ -444,8 +448,9 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   restaurar la ventana, como antes de estas preferencias. Esto sale del código de raylib;
   no se midió, porque minimizar la ventana de prueba la haría visible.
 - **Mando y salida:** la navegación con mando usa el primer mando y la traducción de
-  rlImGui; no se probó con un mando físico. Select + Start también llega al juego en el
-  cuadro en que se pulsa. La confirmación de salida se comprobó con una orden de cierre
+  rlImGui; no se probó con un mando físico. Después de Select + Start el juego no recibe
+  el mando hasta soltar todos los botones, pero Select ya llegó mientras se mantenía
+  apretado antes de Start. La confirmación de salida se comprobó con una orden de cierre
   real sin trabajos en curso (sale de inmediato); el diálogo con un trabajo en curso solo
   tiene pruebas de su texto, porque iniciarlo requiere un proveedor de IA real.
 - El selector de archivos refresca su instantánea cada dos segundos mientras está abierto.

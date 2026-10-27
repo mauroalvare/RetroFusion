@@ -135,7 +135,10 @@ programas creados hasta que cambian la biblioteca, la búsqueda o la sección.
 de IA en curso, muestra la confirmación de `QuitGuard`. `FocusPause` aplica la pausa
 opcional en segundo plano y reanuda solo la que hizo. La navegación con mando
 (`NavEnableGamepad`) sigue la misma regla que el teclado; Select + Start abre o cierra la
-biblioteca y Ctrl+F enfoca su búsqueda.
+biblioteca y Ctrl+F enfoca su búsqueda. Tras ese atajo, `InputMapper.HoldGamepadUntilReleased`
+retiene el mando hasta soltarlo. `ScreenCapture` escribe PNG propios (zlib y CRC sin
+nativos): capturas en Imágenes/RetroEmu y miniaturas junto al original con
+`FileMode.CreateNew`. `AppPreferences.LastFolder` recuerda la carpeta del selector.
 
 ## Modificar una partida
 
@@ -213,6 +216,7 @@ dotnet test tests/Retro.Cpu.Z80.Tests -c Release --filter "TestCategory=Long"
 # Pruebas de interfaz: ventana oculta, sin audio, organización ni red.
 # Las capturas usan rutas relativas al directorio actual.
 # Cada segundo se informa fps= con los cuadros realmente dibujados y objetivo= con el límite.
+# Al terminar, fuera de la biblioteca, guarda además la pantalla emulada en out/autotest-capturas.
 dotnet run --project src/Retro.App -c Release -- --hidden --mute --no-organize --no-update --autotest 10 out/prueba.png
 dotnet run --project src/Retro.App -c Release -- --hidden --mute --no-organize --no-update --text-size 150 --high-contrast --preferences-window --autotest 4 preferencias.png
 dotnet run --project src/Retro.App -c Release -- --hidden --mute --no-organize --no-update --crear-window --autotest 10 out/crear.png

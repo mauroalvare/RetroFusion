@@ -91,7 +91,8 @@ y accesibilidad: tamaño del texto de 100 a 200 %, alto contraste y navegación 
 teclado o mando en la biblioteca, los diálogos y la pausa (Select + Start abre la
 biblioteca). Sin partida en curso, la ventana se dibuja menos veces para gastar menos
 energía, y una opción pausa el juego al pasar a otra ventana. Si hay un trabajo de IA en
-curso, salir pide confirmación. [Preferencias y teclado](emu/docs/PREFERENCIAS.md).
+curso, salir pide confirmación. **Juego > Guardar captura de pantalla** guarda un PNG
+de la pantalla emulada, y otra opción la usa como miniatura del juego en la biblioteca. [Preferencias y teclado](emu/docs/PREFERENCIAS.md).
 **Sonido > Volumen y opciones** permite ajustar volumen, silencio de fondo y margen
 de audio. [Opciones de sonido](emu/docs/SONIDO.md).
 
