@@ -64,5 +64,5 @@ de investigación y no modifica las ROMs.
 En intercambio manual o por carpeta, el chat o agente tiene que responder a las
 consignas. Ese modo no simula una revisión automática.
 
-[Volver al mapa](MAPA.md) · [Límites actuales](LIMITACIONES.md) ·
-[Cómo se diseña una fusión](../src/Retro.Studio/Docs/GUIA-FUSION.md)
+[Volver al mapa](https://github.com/mauroalvare/RetroFusion/blob/main/emu/docs/MAPA.md) · [Límites actuales](https://github.com/mauroalvare/RetroFusion/blob/main/emu/docs/LIMITACIONES.md) ·
+[Cómo se diseña una fusión](https://github.com/mauroalvare/RetroFusion/blob/main/emu/src/Retro.Studio/Docs/GUIA-FUSION.md)

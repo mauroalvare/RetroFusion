@@ -50,7 +50,7 @@ aparece otro faltante, vuelve a investigarlo. Podés ver el avance y cancelar.
 En **Opciones > Sonido > Volumen y opciones** ajustás volumen, silencio al cambiar
 de ventana y margen de audio. Los cambios se conservan al cerrar.
 **Opciones > Pantalla** reúne pantalla completa y escala entera.
-[Opciones de sonido](docs/SONIDO.md) · [Novedades de 0.3.2](docs/NOVEDADES-0.3.2.md).
+[Opciones de sonido](docs/SONIDO.md) · [Novedades de 0.3.3](docs/NOVEDADES-0.3.3.md).
 
 ## Durante la partida
 
