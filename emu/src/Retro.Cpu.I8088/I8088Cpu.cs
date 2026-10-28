@@ -441,7 +441,9 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
             case 0xC4: case 0xC5:
             {
                 var (reg, rm) = Decode(); if (rm.Register >= 0) throw Unsupported(op, "puntero lejano requiere memoria");
-                ushort offset = ReadWord(rm.Segment, rm.Offset), segment = ReadWord(rm.Segment, (ushort)(rm.Offset + 2));
+                ushort offset = ReadWord(rm.Segment, rm.Offset);
+                EuClocks(6, request: true);
+                ushort segment = ReadWord(rm.Segment, (ushort)(rm.Offset + 2));
                 _r[reg] = offset; _s[op == 0xC4 ? 0 : 3] = segment; break;
             }
             case 0xC6: case 0xC7: { var (reg, rm) = Decode(); if (reg != 0) throw Unsupported(op); Write(rm, word, word ? FetchWord() : Fetch()); break; }
@@ -512,7 +514,11 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
                     ModifyClocks(rm, 6); Write(rm, word, result);
                 }
                 else if (!word || operation == 7) throw Unsupported(op, $"grupo /{operation}");
-                else if (operation == 6) Push(rm.Register == 4 ? (ushort)(SP - 2) : (ushort)Read(rm, true));
+                else if (operation == 6)
+                {
+                    ushort value = rm.Register == 4 ? (ushort)(SP - 2) : (ushort)Read(rm, true);
+                    ModifyClocks(rm, 7); Push(value);
+                }
                 else
                 {
                     ushort target = (ushort)Read(rm, true), segment = CS;
