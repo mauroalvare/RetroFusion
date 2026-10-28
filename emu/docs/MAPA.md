@@ -332,6 +332,12 @@ Los ejemplos incluidos se abren desde sus secciones del estudio o del creador.
 
 Contraste parcial del bus 8088 con una suite local: `retro-cli cpu8088 verificar-bus --suite RUTA-A-V2 --casos 1000 --salida out/bus.json`. Compara accesos e intervalos relativos; `--opcodes` admite grupos `XX.R` (por ejemplo `80.0`). Alcance, resultados y diferencias pendientes en [I8088.md](I8088.md).
 
+Cadenas CMPS/STOS/LODS: `retro-cli cpu8088 verificar-bus --suite RUTA-A-V2 --opcodes A6,A7,AA,AB,AC,AD --casos 10000 --salida out/bus-cadenas.json`.
+Los 12.000 casos coinciden en accesos e intervalos. La selección completa
+`A4,A5,A6,A7,AA,AB,AC,AD,AE,AF` conserva 1.968 diferencias de un T al iniciar REP
+MOVS/SCAS y devuelve 2. `tests/I8088.Tests/StringTimingTests.cs` comprueba intervalos,
+presupuesto nominal, REP vacío y resultados funcionales en ambos modelos.
+
 Diagnóstico de interrupciones 8088+8259A (programa propio, sin BIOS/DOS): desde emu,
 `dotnet run --project src/Retro.Cli -c Release -- cpu8088 irq-demo --steps 1000`.
 Detalles y resultado esperado en [I8088.md](I8088.md).

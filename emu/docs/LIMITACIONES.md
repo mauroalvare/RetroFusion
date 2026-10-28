@@ -146,8 +146,11 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   ser DOS 8.3; las carpetas largas reciben alias internos. No se ejecuta código en el host.
 - 8088 con prelectura y reloj T; los totales EU siguen una tabla nominal. El contraste
   externo comprobó estado funcional y accesos/intervalos relativos de movimientos, E/S
-  y lectura/modificación/escritura de memoria; también el orden de accesos de INT y de
-  los errores de división. Cadenas, LES/LDS, PUSH/POP de memoria, llamadas/retornos
+  y lectura/modificación/escritura de memoria, CMPS, STOS y LODS; también el orden de
+  accesos de INT y de los errores de división. MOVS/SCAS sin REP coinciden; quedan
+  1.968 de 20.000 casos de cadenas con un intervalo un T más largo al iniciar REP
+  MOVS/SCAS (primer o segundo par de MOVS, primera transición de SCAS).
+  LES/LDS, PUSH/POP de memoria, llamadas/retornos
   lejanos, IRET, llamadas indirectas, INT y errores de división conservan diferencias de
   intervalos, y los flags indefinidos apilados no se reproducen. No valida reloj absoluto
   ni prelectura; verificar-bus informa cada diferencia por separado.

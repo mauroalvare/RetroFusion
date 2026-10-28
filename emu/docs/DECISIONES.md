@@ -1205,3 +1205,19 @@ Al terminar `--autotest` fuera de la biblioteca también se guarda la pantalla e
 `out/autotest-capturas` del directorio actual. Después de Select + Start el mando no
 llega al juego hasta soltar todos sus botones. preferencias.json v1 agrega `LastFolder`
 (opcional, hasta 1.024 caracteres); se usa solo si la carpeta existe.
+
+## D-078 — Trabajo de cadenas y prefijos de REP ya decodificados
+
+Las cadenas ubican su trabajo EU antes del pedido de datos y entre origen y destino:
+3 T en MOVS y 4 T en CMPS, dentro de la tabla nominal existente. Los bytes de palabra
+conservan transferencias consecutivas de 4 T en el 8088. Al repetir un paso se reutilizan
+los prefijos y no se vuelve a sumar su costo de decodificación al remanente nominal.
+REP vacío sigue sin acceder a datos; no cambian valores, flags, interfaces ni estados.
+El 8086 comparte el recorrido funcional sin que las trazas del 8088 validen su reloj.
+
+El contraste completo de A4–AF (sin A8/A9) mantiene 20.000 secuencias de accesos
+correctas. CMPS/STOS/LODS coinciden en todos sus intervalos (12.000 casos); MOVS/SCAS
+sin REP también coinciden. Se conservan explícitos 1.968 casos de REP MOVS/SCAS con
+un intervalo inicial un T más largo. El trabajo de entrada a REP y la prelectura
+necesitan otro hito; no se modifica el presupuesto nominal para hacer pasar esas trazas.
+El diagnóstico conserva su formato, códigos de salida y alcance relativo de D-070/D-074.
