@@ -56,14 +56,14 @@ por lo que no sustituye la batería completa. Las pruebas omitidas por falta de 
 se informan como tales. No se descargan suites automáticamente.
 
 Las fuentes de estas afirmaciones están en
-[FUSE](../tests/Retro.Cpu.Z80.Tests/FuseTests.cs),
-[ZEX](../tests/Retro.Cpu.Z80.Tests/ZexTests.cs),
-[diagnósticos del 8080](../tests/I8080.Tests/CpmConformanceTests.cs),
-[conformidad del 6502](../tests/M6502.Tests/ConformanceTests.cs),
-[bus e interrupciones del Z80](../src/Retro.Cpu.Z80/Z80Cpu.cs),
-[núcleo y bus del 8080](../src/Retro.Cpu.I8080/I8080Cpu.cs),
-[núcleo del 6502](../src/Retro.Cpu.M6502/M6502.cs),
-[placa C64](../src/Retro.Systems.C64/C64.cs),
-[placa NES](../src/Retro.Systems.Nes/Nes.cs) y
-[pruebas de punteros/pila](../tests/I8088.Tests/PointerStackTimingTests.cs) y
-[pruebas de marcos y control](../tests/I8088.Tests/StackControlTimingTests.cs).
+[FUSE](https://github.com/mauroalvare/RetroFusion/blob/v0.3.5/emu/tests/Retro.Cpu.Z80.Tests/FuseTests.cs),
+[ZEX](https://github.com/mauroalvare/RetroFusion/blob/v0.3.5/emu/tests/Retro.Cpu.Z80.Tests/ZexTests.cs),
+[diagnósticos del 8080](https://github.com/mauroalvare/RetroFusion/blob/v0.3.5/emu/tests/I8080.Tests/CpmConformanceTests.cs),
+[conformidad del 6502](https://github.com/mauroalvare/RetroFusion/blob/v0.3.5/emu/tests/M6502.Tests/ConformanceTests.cs),
+[bus e interrupciones del Z80](https://github.com/mauroalvare/RetroFusion/blob/v0.3.5/emu/src/Retro.Cpu.Z80/Z80Cpu.cs),
+[núcleo y bus del 8080](https://github.com/mauroalvare/RetroFusion/blob/v0.3.5/emu/src/Retro.Cpu.I8080/I8080Cpu.cs),
+[núcleo del 6502](https://github.com/mauroalvare/RetroFusion/blob/v0.3.5/emu/src/Retro.Cpu.M6502/M6502.cs),
+[placa C64](https://github.com/mauroalvare/RetroFusion/blob/v0.3.5/emu/src/Retro.Systems.C64/C64.cs),
+[placa NES](https://github.com/mauroalvare/RetroFusion/blob/v0.3.5/emu/src/Retro.Systems.Nes/Nes.cs) y
+[pruebas de punteros/pila](https://github.com/mauroalvare/RetroFusion/blob/v0.3.5/emu/tests/I8088.Tests/PointerStackTimingTests.cs) y
+[pruebas de marcos y control](https://github.com/mauroalvare/RetroFusion/blob/v0.3.5/emu/tests/I8088.Tests/StackControlTimingTests.cs).

@@ -54,7 +54,7 @@ Alt izquierdo lleva a los menús y **Select + Start** abre la biblioteca.
 En **Opciones > Sonido > Volumen y opciones** ajustás volumen, silencio al cambiar
 de ventana y margen de audio. Los cambios se conservan al cerrar.
 [Preferencias y teclado](docs/PREFERENCIAS.md) · [Opciones de sonido](docs/SONIDO.md) ·
-[Novedades de 0.3.4](docs/NOVEDADES-0.3.4.md).
+[Novedades de 0.3.5](docs/NOVEDADES-0.3.5.md).
 
 ## Durante la partida
 

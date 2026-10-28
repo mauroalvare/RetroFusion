@@ -5,7 +5,7 @@ param(
     [ValidatePattern('^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$')]
     [string[]]$Runtimes = @("win-x64", "linux-x64"),
     [ValidatePattern('^\d+\.\d+\.\d+$')]
-    [string]$Version = "0.3.4"
+    [string]$Version = "0.3.5"
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
@@ -27,8 +27,8 @@ foreach ($rid in $Runtimes) {
     }
     Write-Host "== $name"
     foreach ($proj in "src/Retro.App", "src/Retro.Cli") {
-        dotnet publish (Join-Path $root $proj) -c Release -r $rid --self-contained true -o $out -m:1 `
-            -p:DebugType=None -p:DebugSymbols=false -p:Version=$Version
+        dotnet publish (Join-Path $root $proj) -c Release -r $rid --self-contained true -o $out -m:1 -nr:false `
+            -p:DebugType=None -p:DebugSymbols=false -p:Version=$Version -p:UseSharedCompilation=false -p:NuGetAudit=false
         if ($LASTEXITCODE -ne 0) { throw "dotnet publish falló para $proj ($rid)" }
     }
     # system firmware in its own folder: on Windows "roms" and the games folder "ROMs" would be the same folder
@@ -54,6 +54,8 @@ foreach ($rid in $Runtimes) {
     Copy-Item (Join-Path $root "docs/NOVEDADES-0.3.2.md") (Join-Path $playerDocs "NOVEDADES-0.3.2.md")
     Copy-Item (Join-Path $root "docs/NOVEDADES-0.3.3.md") (Join-Path $playerDocs "NOVEDADES-0.3.3.md")
     Copy-Item (Join-Path $root "docs/NOVEDADES-0.3.4.md") (Join-Path $playerDocs "NOVEDADES-0.3.4.md")
+    Copy-Item (Join-Path $root "docs/NOVEDADES-0.3.5.md") (Join-Path $playerDocs "NOVEDADES-0.3.5.md")
+    Copy-Item (Join-Path $root "docs/PRECISION-CPU.md") (Join-Path $playerDocs "PRECISION-CPU.md")
     Copy-Item (Join-Path $root "docs/PREFERENCIAS.md") (Join-Path $playerDocs "PREFERENCIAS.md")
     Copy-Item (Join-Path $root "docs/PC-DOS.md") (Join-Path $playerDocs "PC-DOS.md")
     Copy-Item (Join-Path $root "docs/PCXT.md") (Join-Path $playerDocs "PCXT.md")
