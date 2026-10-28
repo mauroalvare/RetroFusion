@@ -140,6 +140,14 @@ public sealed partial class I8088Cpu
     private ushort FetchOperandWord() { int low = FetchOperand(); return (ushort)(low | FetchOperand() << 8); }
     // Read-to-write EU work of a memory read-modify-write, measured on SingleStepTests/8088 v2.
     private void ModifyClocks(Operand o, int count, bool request = true) { if (o.Register < 0) EuClocks(count, request); }
+    private void PopWriteClocks(Operand o)
+    {
+        if (!TimingEnabled || o.Register >= 0) return;
+        EuClocks(3);
+        // POP's destination request follows an active prefetch, with two request clocks after T4.
+        while (_prefetchTicks != 0) IdleClocks(1);
+        EuClocks(2, request: true);
+    }
     private void StartTimingStep()
     {
         _eaClocks = _euSpent = _requestClocks = 0; _modRm = -1; _repeatAgain = false;

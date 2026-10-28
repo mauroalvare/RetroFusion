@@ -415,11 +415,21 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
                 break;
             }
             case 0x8D: { var (reg, rm) = Decode(); if (rm.Register >= 0) throw Unsupported(op, "LEA requiere memoria"); _r[reg] = rm.Offset; break; }
-            case 0x8F: { var (reg, rm) = Decode(); if (reg != 0) throw Unsupported(op); Write(rm, true, Pop()); break; }
+            case 0x8F:
+            {
+                var (reg, rm) = Decode(); if (reg != 0) throw Unsupported(op);
+                // Finish the longer displacement work before reading the stack, within the EA budget.
+                ModifyClocks(rm, (_modRm & 0xC7) is 0x81 or 0x82 ? 3 : 2);
+                ushort value = Pop(); PopWriteClocks(rm); Write(rm, true, value); break;
+            }
             case 0x90: break;
             case 0x98: AX = (ushort)(short)(sbyte)AX; break;
             case 0x99: DX = (AX & 0x8000) != 0 ? (ushort)0xFFFF : (ushort)0; break;
-            case 0x9A: { ushort target = FetchWord(), segment = FetchWord(); Push(CS); Push(IP); CS = segment; IP = target; break; }
+            case 0x9A:
+            {
+                ushort target = FetchWord(), segment = FetchWord();
+                Push(CS); EuClocks(9, request: true); Push(IP); CS = segment; IP = target; break;
+            }
             case 0x9B:
                 _waitingForTest = bus.TestSignal;
                 if (_waitingForTest) { IP = _startIp; _repeatAgain = true; }
@@ -447,12 +457,12 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
                 _r[reg] = offset; _s[op == 0xC4 ? 0 : 3] = segment; break;
             }
             case 0xC6: case 0xC7: { var (reg, rm) = Decode(); if (reg != 0) throw Unsupported(op); Write(rm, word, word ? FetchWord() : Fetch()); break; }
-            case 0xCA: { ushort adjustment = FetchWord(); IP = Pop(); CS = Pop(); SP += adjustment; break; }
-            case 0xCB: IP = Pop(); CS = Pop(); break;
+            case 0xCA: { ushort adjustment = FetchWord(); IP = Pop(); EuClocks(5, request: true); CS = Pop(); SP += adjustment; break; }
+            case 0xCB: IP = Pop(); EuClocks(5, request: true); CS = Pop(); break;
             case 0xCC: EnterInterrupt(3); break;
             case 0xCD: EnterInterrupt(Fetch()); break;
             case 0xCE: if (Flag(Overflow)) EnterInterrupt(4); break;
-            case 0xCF: IP = Pop(); CS = Pop(); Flags = Pop(); break;
+            case 0xCF: IP = Pop(); EuClocks(5, request: true); CS = Pop(); EuClocks(4, request: true); Flags = Pop(); break;
             case 0xD0: case 0xD1: case 0xD2: case 0xD3:
             {
                 var (operation, rm) = Decode();
