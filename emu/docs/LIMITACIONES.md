@@ -160,9 +160,10 @@ reutilizan ese motor con diferencias de placa. La NES conserva límites de DMA.
   1.968 de 20.000 casos de cadenas con un intervalo un T más largo al iniciar REP
   MOVS/SCAS (primer o segundo par de MOVS, primera transición de SCAS).
   LES/LDS y PUSH de memoria coinciden en 30.000 casos y 84.994 pares de intervalos.
-  POP de memoria, llamadas/retornos
-  lejanos, IRET, llamadas indirectas, INT y errores de división conservan diferencias de
-  intervalos, y los flags indefinidos apilados no se reproducen. No valida reloj absoluto
+  POP de memoria, CALL lejano directo, RETF e IRET coinciden en otros 50.000 casos y
+  170.000 pares. Las llamadas indirectas, JMP lejano indirecto, INT y los errores de
+  división conservan diferencias de intervalos; los flags indefinidos apilados no se
+  reproducen. No valida reloj absoluto
   ni prelectura; verificar-bus informa cada diferencia por separado.
   La variante 8086
   existe como núcleo/API y diagnóstico, con bus de 16 bits y cola de seis bytes; aún

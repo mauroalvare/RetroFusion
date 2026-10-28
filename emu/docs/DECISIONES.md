@@ -1240,3 +1240,27 @@ externo independiente.
 PRECISION-CPU.md explicita el alcance de los cuatro motores y sus variantes: un
 conjunto de instrucciones o una suite aprobada no equivale a certificar todas las
 combinaciones de señales, revisiones físicas y dispositivos de una máquina.
+
+## D-080 — POP de memoria y marcos lejanos con trabajo EU distribuido
+
+POP de memoria termina su trabajo previo antes de leer SS:SP: dos T, o tres en
+las formas de desplazamiento de 16 bits con BX+DI/BP+SI. Después de leer la palabra
+ejecuta tres T de EU, termina una prelectura activa y recién entonces entrega el
+pedido de escritura con sus dos T. Eso produce el intervalo observado de 9/10 T
+entre el último byte leído y el primero escrito, según la cola, sin condicionar
+el tiempo a un tamaño de cola supuesto.
+
+CALL lejano directo ubica nueve T de EU entre CS e IP apilados. RETF ubica cinco T
+entre IP y CS; IRET agrega cuatro entre CS y FLAGS. Las transferencias de palabra
+conservan su orden, valores y cruces. Se descuenta el trabajo del remanente existente:
+la tabla nominal, los flags y el formato de estado no cambian.
+
+Los archivos completos 8F/9A/CA/CB/CF coinciden en 50.000 casos y 170.000 pares de
+intervalos. Los mismos casos conservaban diferencias de intervalos con el núcleo
+anterior. Las pruebas propias verifican marcos en ambos modelos, NMI durante POP y
+HOLD solicitado durante una prelectura. El 8086 comparte el recorrido, sin contraste
+externo propio.
+
+La entrada de REP, las llamadas indirectas, JMP lejano indirecto, INT y los errores de
+división siguen pendientes. No se conservan los ensayos parciales de indirectos ni
+se amplía el alcance a reloj absoluto, prelectura completa o señales eléctricas.

@@ -31,8 +31,11 @@ placas C64/NES. La variante 8086 comparte su ejecución con el 8088.
 La mejora local del 8088 ubica seis T entre las palabras de LES/LDS y siete T entre
 la lectura de PUSH de memoria y su escritura en la pila, sin cambiar la tabla nominal.
 Sus 30.000 casos externos coinciden en accesos y 84.994 pares de intervalos. POP de
-memoria y la entrada de REP siguen pendientes. Esto no completa el 8088 ni certifica
-el 8086.
+memoria, CALL lejano directo, RETF e IRET también ubican el trabajo entre transferencias:
+otros 50.000 casos y 170.000 pares coinciden, con la tabla nominal intacta. Las pruebas
+propias incluyen HOLD durante prelectura y NMI durante POP. La entrada de REP, las
+transferencias indirectas e INT/división siguen pendientes. Esto no completa el 8088
+ni certifica el 8086.
 
 ## Cómo reproducir las comprobaciones
 
@@ -62,4 +65,5 @@ Las fuentes de estas afirmaciones están en
 [núcleo del 6502](../src/Retro.Cpu.M6502/M6502.cs),
 [placa C64](../src/Retro.Systems.C64/C64.cs),
 [placa NES](../src/Retro.Systems.Nes/Nes.cs) y
-[pruebas de punteros/pila](../tests/I8088.Tests/PointerStackTimingTests.cs).
+[pruebas de punteros/pila](../tests/I8088.Tests/PointerStackTimingTests.cs) y
+[pruebas de marcos y control](../tests/I8088.Tests/StackControlTimingTests.cs).

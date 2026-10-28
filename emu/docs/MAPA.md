@@ -339,10 +339,15 @@ MOVS/SCAS y devuelve 2. `tests/I8088.Tests/StringTimingTests.cs` comprueba inter
 presupuesto nominal, REP vacío y resultados funcionales en ambos modelos.
 
 Punteros lejanos y PUSH de memoria: `retro-cli cpu8088 verificar-bus --suite RUTA-A-V2 --opcodes C4,C5,FF.6 --casos 10000 --salida out/bus-punteros-push.json`.
-Coinciden 30.000 casos y 84.994 pares; POP de memoria conserva sus diferencias.
+Coinciden 30.000 casos y 84.994 pares.
 `tests/I8088.Tests/PointerStackTimingTests.cs` cubre también límites y alias de pila.
 [Precisión de CPU](PRECISION-CPU.md) distingue instrucciones, suites y límites de cada
 procesador; no equipara esos resultados con una fidelidad general del 100 %.
+
+POP y marcos lejanos: `retro-cli cpu8088 verificar-bus --suite RUTA-A-V2 --opcodes 8F,9A,CA,CB,CF --casos 10000 --salida out/bus-pila-control.json`.
+Coinciden 50.000 casos y 170.000 pares. `tests/I8088.Tests/StackControlTimingTests.cs`
+cubre también presupuesto nominal, ambos modelos, NMI y cesión del bus por HOLD.
+REP, llamadas indirectas, JMP lejano indirecto e INT/división conservan sus pendientes.
 
 Diagnóstico de interrupciones 8088+8259A (programa propio, sin BIOS/DOS): desde emu,
 `dotnet run --project src/Retro.Cli -c Release -- cpu8088 irq-demo --steps 1000`.
