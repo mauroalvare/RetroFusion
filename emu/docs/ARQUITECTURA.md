@@ -120,8 +120,8 @@ servirá para el Spectrum 128K, el TK90X, el MSX y el Amstrad CPC).
 
 ## Núcleo de CPU: el bus decide el tiempo
 
-El Z80 lleva su contador de T-states (`T`) y emite cada ciclo de bus en el instante en
-que ocurre en el chip real:
+El Z80 lleva su contador de T-states (`T`) y ubica los accesos de bus en ese reloj.
+FUSE contrasta los cronogramas de sus casos incluidos:
 
 | Ciclo | Llamadas al bus |
 |---|---|
@@ -137,7 +137,9 @@ máquina aporta sus demoras sin acoplar el núcleo a su hardware.
 Están implementados los comportamientos no documentados que usan los juegos: flags 3 y
 5, MEMPTR (WZ), el registro Q que afecta a SCF/CCF, IXH/IXL/IYH/IYL, SLL, las copias a
 registro de DDCB, los opcodes ED duplicados, la demora de interrupciones tras EI, HALT y
-los modos de interrupción 0, 1 y 2.
+los modos de interrupción 1 y 2. IM 0 usa el caso del Spectrum: FFh en el bus,
+equivalente a RST 38h; no acepta instrucciones arbitrarias del periférico.
+Las suites y los límites de cada núcleo se detallan en [Precisión de CPU](PRECISION-CPU.md).
 
 ## ZX Spectrum 48K
 

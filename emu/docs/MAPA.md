@@ -338,6 +338,12 @@ Los 12.000 casos coinciden en accesos e intervalos. La selección completa
 MOVS/SCAS y devuelve 2. `tests/I8088.Tests/StringTimingTests.cs` comprueba intervalos,
 presupuesto nominal, REP vacío y resultados funcionales en ambos modelos.
 
+Punteros lejanos y PUSH de memoria: `retro-cli cpu8088 verificar-bus --suite RUTA-A-V2 --opcodes C4,C5,FF.6 --casos 10000 --salida out/bus-punteros-push.json`.
+Coinciden 30.000 casos y 84.994 pares; POP de memoria conserva sus diferencias.
+`tests/I8088.Tests/PointerStackTimingTests.cs` cubre también límites y alias de pila.
+[Precisión de CPU](PRECISION-CPU.md) distingue instrucciones, suites y límites de cada
+procesador; no equipara esos resultados con una fidelidad general del 100 %.
+
 Diagnóstico de interrupciones 8088+8259A (programa propio, sin BIOS/DOS): desde emu,
 `dotnet run --project src/Retro.Cli -c Release -- cpu8088 irq-demo --steps 1000`.
 Detalles y resultado esperado en [I8088.md](I8088.md).

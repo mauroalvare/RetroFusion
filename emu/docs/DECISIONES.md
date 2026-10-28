@@ -1221,3 +1221,22 @@ sin REP también coinciden. Se conservan explícitos 1.968 casos de REP MOVS/SCA
 un intervalo inicial un T más largo. El trabajo de entrada a REP y la prelectura
 necesitan otro hito; no se modifica el presupuesto nominal para hacer pasar esas trazas.
 El diagnóstico conserva su formato, códigos de salida y alcance relativo de D-070/D-074.
+
+## D-079 — Intervalos de LES/LDS y PUSH de memoria
+
+LES/LDS ubican seis T de trabajo EU entre la lectura de la palabra de desplazamiento
+y la del segmento; ambos valores se leen antes de sustituir el registro o segmento
+de destino. PUSH de memoria ubica siete T entre la lectura del operando y la escritura
+en la pila. El trabajo se descuenta del remanente existente, sin modificar la tabla
+nominal, formatos de estado, valores ni flags. Las formas de registro, incluido PUSH SP
+del 8088, conservan su recorrido.
+
+C4/C5/FF.6 completos coinciden en 30.000 casos y 84.994 pares de intervalos de la suite
+local v2. POP de memoria conserva sus diferencias y no se declara corregido. Tampoco
+se amplía el alcance del verificador a reloj absoluto, prelectura o señales eléctricas.
+El 8086 comparte los cambios y las pruebas funcionales propias; falta su contraste
+externo independiente.
+
+PRECISION-CPU.md explicita el alcance de los cuatro motores y sus variantes: un
+conjunto de instrucciones o una suite aprobada no equivale a certificar todas las
+combinaciones de señales, revisiones físicas y dispositivos de una máquina.

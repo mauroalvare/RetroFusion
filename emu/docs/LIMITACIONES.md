@@ -135,6 +135,15 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   tamaño/paleta. En copia manual hay que adjuntar las imágenes al chat. La visión depende
   también del modelo elegido; el nombre de un archivo no prueba que la IA lo haya visto.
 
+## Procesadores
+
+Los conjuntos de instrucciones y las suites aprobadas no acreditan un 100 % general
+de fidelidad. El Z80 limita IM 0 al caso del Spectrum; el 8080 cuenta tiempos por
+instrucción sin exponer cada fase de bus. El 6502 se contrasta como NMOS; 6510/2A03
+reutilizan ese motor con diferencias de placa. La NES conserva límites de DMA.
+8088/8086 tienen pendientes explícitos de temporización y contraste.
+[Alcance y pruebas por procesador](PRECISION-CPU.md).
+
 ## Máquinas
 
 ### IBM PC/XT
@@ -150,7 +159,8 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   accesos de INT y de los errores de división. MOVS/SCAS sin REP coinciden; quedan
   1.968 de 20.000 casos de cadenas con un intervalo un T más largo al iniciar REP
   MOVS/SCAS (primer o segundo par de MOVS, primera transición de SCAS).
-  LES/LDS, PUSH/POP de memoria, llamadas/retornos
+  LES/LDS y PUSH de memoria coinciden en 30.000 casos y 84.994 pares de intervalos.
+  POP de memoria, llamadas/retornos
   lejanos, IRET, llamadas indirectas, INT y errores de división conservan diferencias de
   intervalos, y los flags indefinidos apilados no se reproducen. No valida reloj absoluto
   ni prelectura; verificar-bus informa cada diferencia por separado.
