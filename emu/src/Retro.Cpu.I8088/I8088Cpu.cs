@@ -536,8 +536,16 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
         bool word = (opcode & 1) != 0; int kind = opcode & 0xFE;
         ushort source = _s[_segmentOverride < 0 ? 3 : _segmentOverride];
         var from = new Operand(-1, source, SI); var to = new Operand(-1, ES, DI);
-        if (kind == 0xA4) Write(to, word, Read(from, word));
-        else if (kind == 0xA6) Alu(7, Read(from, word), Read(to, word), word);
+        // Place the string's EU work around data requests, within the existing nominal budget.
+        int before = kind switch { 0xA4 => repeat == 0 ? 4 : 6, 0xAA => 2, 0xAC or 0xAE => repeat == 0 ? 4 : 3, _ => 4 };
+        EuClocks(before, request: true);
+        if (kind is 0xA4 or 0xA6)
+        {
+            int value = Read(from, word);
+            EuClocks(kind == 0xA4 ? 3 : 4, request: true);
+            if (kind == 0xA4) Write(to, word, value);
+            else Alu(7, value, Read(to, word), word);
+        }
         else if (kind == 0xAA) Write(to, word, GetReg(0, word));
         else if (kind == 0xAC) SetReg(0, word, Read(from, word));
         else Alu(7, GetReg(0, word), Read(to, word), word);

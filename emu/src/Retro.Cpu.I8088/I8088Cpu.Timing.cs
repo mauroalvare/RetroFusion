@@ -157,7 +157,7 @@ public sealed partial class I8088Cpu
         if (op == 0xFF && ((_modRm >> 3) & 7) is >= 2 and <= 5) jump = true;
         if (jump && !_repeatAgain) FlushQueue();
         _requestClocks = 0; // Unspent request clocks remain part of the nominal remainder.
-        int clocks = ExecutionClocks(op, repeat, oldFlags, oldCx, jump) + _eaClocks + prefixes * 2 - _euSpent;
+        int clocks = ExecutionClocks(op, repeat, oldFlags, oldCx, jump) + _eaClocks + (_replaying ? 0 : prefixes * 2) - _euSpent;
         IdleClocks(Math.Max(0, clocks));
         _timingStep = false;
         if (!_repeatAgain) _repeatCode.Clear();
