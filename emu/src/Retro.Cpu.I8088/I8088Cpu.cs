@@ -183,7 +183,7 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
     {
         int radix = Fetch();
         int low = AX & 255;
-        if (op == 0xD4 && radix == 0) { Szp(0, false); EnterInterrupt(0); return; }
+        if (op == 0xD4 && radix == 0) { Szp(0, false); EuClocks(10); EnterInterrupt(0); return; }
         AX = op == 0xD4 ? (ushort)(((low / radix) << 8) | low % radix)
             : (ushort)((low + (AX >> 8) * radix) & 255);
         Szp(AX, false);
@@ -270,17 +270,35 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
         long dividend = word ? signed ? (int)(((uint)DX << 16) | AX) : ((uint)DX << 16) | AX
             : signed ? (short)AX : AX;
         long divisor = signed ? word ? (short)value : (sbyte)value : value;
-        if (divisor == 0) { EnterInterrupt(0); return; }
+        if (divisor == 0) { DivideError(dividend, divisor, word, signed); return; }
         long quotient = dividend / divisor;
         if (negateQuotient) quotient = -quotient;
         long maximum = signed ? word ? 32767 : 127 : word ? 65535 : 255;
         // Unlike later x86 CPUs, 8088 IDIV also faults on -128 and -32768.
-        if (quotient < (signed ? -maximum : 0) || quotient > maximum) { EnterInterrupt(0); return; }
+        if (quotient < (signed ? -maximum : 0) || quotient > maximum) { DivideError(dividend, divisor, word, signed); return; }
         long remainder = dividend % divisor;
         if (word) { AX = (ushort)quotient; DX = (ushort)remainder; }
         else AX = (ushort)(((remainder & 255) << 8) | (quotient & 255));
         // DIV/IDIV flags are undefined; errors retain AX/DX before entering type 0.
         // EnterInterrupt saves the already consumed IP: 8088 returns to the next instruction.
+    }
+    private void DivideError(long dividend, long divisor, bool word, bool signed)
+    {
+        // Relative operand-to-vector work measured on the 8088 traces. Signed division
+        // normalizes both signs; a late overflow completes the restoring quotient loop.
+        int gap = 21;
+        if (signed)
+        {
+            gap = 31 + (dividend < 0 ? 4 : 0) - (divisor < 0 ? 1 : 0);
+            if (divisor != 0 && Math.Abs(dividend) < Math.Abs(divisor) << (word ? 16 : 8))
+            {
+                uint magnitude = (uint)(Math.Abs(dividend) / Math.Abs(divisor));
+                gap += (word ? 135 : 71) + System.Numerics.BitOperations.PopCount(magnitude) + 2 * (int)(magnitude & 1);
+            }
+        }
+        // T4 + three bus clocks and the six entry clocks account for ten clocks of the gap.
+        EuClocks(gap - 10, request: true);
+        EnterInterrupt(0);
     }
     private bool Condition(int condition) => condition switch
     {
@@ -295,11 +313,20 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
         _repeatCode.Clear();
         if (hardware) { DataBusCycle(); EndDataBusCycle(); DataBusCycle(); EndDataBusCycle(); }
         // Hardware traces of INT and divide errors read the vector before pushing the return frame.
-        ushort ip = ReadWord(0, (ushort)(vector * 4)), cs = ReadWord(0, (ushort)(vector * 4 + 2));
-        Push(Flags); Push(CS); Push(IP);
+        int spent = _euSpent;
+        if (!hardware) EuClocks(6, request: true);
+        ushort ip = ReadWord(0, (ushort)(vector * 4));
+        if (!hardware) EuClocks(_queueCount == _queue.Length ? 3 : 4, request: true);
+        ushort cs = ReadWord(0, (ushort)(vector * 4 + 2));
+        if (!hardware) EuClocks(4, request: true);
+        Push(Flags);
+        if (!hardware) EuClocks(6, request: true);
+        Push(CS);
+        if (!hardware) EuClocks(9, request: true);
+        Push(IP);
         SetFlag(InterruptEnable, false); SetFlag(Trap, false); Halted = _waitingForTest = false;
         IP = ip; CS = cs;
-        FlushQueue(); IdleClocks(hardware ? 13 : 31);
+        FlushQueue(); IdleClocks(hardware ? 13 : Math.Max(0, 31 - (_euSpent - spent)));
     }
     private NotSupportedException Unsupported(byte opcode, string? detail = null) =>
         new($"8088: instrucción {opcode:X2} en {_startCs:X4}:{_startIp:X4} todavía no implementada{(detail == null ? "." : " (" + detail + ").")}");
@@ -532,12 +559,22 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
                 else
                 {
                     ushort target = (ushort)Read(rm, true), segment = CS;
+                    // Indirect control transfers correct the saved return address while the BIU
+                    // finishes filling the queue. Keep that work between the observed words.
+                    int queueSpace = _queue.Length - _queueCount;
                     if (operation is 3 or 5)
                     {
                         if (rm.Register >= 0) throw Unsupported(op, "puntero lejano requiere memoria");
+                        EuClocks((operation == 3 ? 5 : 6) + (queueSpace > 0 ? 1 : 0),
+                            request: true, requestLead: operation == 5 ? 3 : 2);
                         segment = ReadWord(rm.Segment, (ushort)(rm.Offset + 2));
                     }
-                    if (operation is 2 or 3) { if (operation == 3) Push(CS); Push(IP); }
+                    if (operation is 2 or 3)
+                    {
+                        ModifyClocks(rm, operation == 2 ? 12 + (queueSpace > 0 ? 2 : 0) : 6 + (queueSpace > 1 ? 3 : 0));
+                        if (operation == 3) { Push(CS); EuClocks(9, request: true); }
+                        Push(IP);
+                    }
                     CS = segment; IP = target;
                 }
                 break;
@@ -554,7 +591,10 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
         var from = new Operand(-1, source, SI); var to = new Operand(-1, ES, DI);
         // Place the string's EU work around data requests, within the existing nominal budget.
         int before = kind switch { 0xA4 => repeat == 0 ? 4 : 6, 0xAA => 2, 0xAC or 0xAE => repeat == 0 ? 4 : 3, _ => 4 };
-        EuClocks(before, request: true);
+        // MOVS starts one EU clock later on entry. SCAS issues its repeat request a
+        // clock earlier, so a new prefetch cannot delay the first iteration boundary.
+        if (repeat != 0 && !_replaying && kind == 0xA4) EuClocks(1);
+        EuClocks(before, request: true, requestLead: repeat != 0 && kind == 0xAE ? 3 : 2);
         if (kind is 0xA4 or 0xA6)
         {
             int value = Read(from, word);

@@ -13,7 +13,7 @@ señales y revisiones físicas. Tampoco equivale a completar la máquina que rod
 | Intel 8080 | Los 256 opcodes, incluidos los alias. TST8080, 8080PRE, CPUTEST y 8080EXM comprueban resultados y totales exactos de instrucciones/ciclos. | El núcleo suma el tiempo al terminar cada instrucción. Su bus no expone el reloj de cada acceso ni READY/HOLD/INTA; los totales correctos no validan esas fases. |
 | MOS 6502 NMOS / 6510 | Los 256 opcodes, incluidos JAM y los no documentados; modo decimal y accesos de bus ciclo a ciclo. SingleStepTests: 1.000 casos por opcode; prueba funcional de Klaus Dormann. El C64 agrega el puerto del 6510 y la espera por la VIC-II. | Se verifica un modelo NMOS, no todas las revisiones ni el 65C02. ANE/LXA usan una constante fija EEh. El 6510 comparte el motor y tiene pruebas de placa, sin una suite externa independiente de esa variante. |
 | Ricoh 2A03 | Reutiliza el 6502 con aritmética decimal desactivada; una prueba propia conserva D y comprueba ADC/SBC binarios. Hay pruebas de integración de la NES. | Falta nestest; el DMC no roba ciclos a la CPU y la DMA de OAM no reproduce su alineación completa. Las pruebas del 6502 no certifican esas diferencias de la NES. |
-| Intel 8088 | Instrucciones documentadas sin coprocesador, segmentos, interrupciones y reloj optativo. Contraste funcional: 2.559.500 casos seleccionados, con 447.500 excluidos por metadatos. Se contrastan grupos de accesos e intervalos relativos. | Quedan diferencias de temporización, flags indefinidos, entrada de REP y transferencias de control. No se certifican reloj absoluto, prelectura completa, READY/INTA ni señales eléctricas. [Detalle](I8088.md). |
+| Intel 8088 | Instrucciones documentadas sin coprocesador, segmentos, interrupciones y reloj optativo. Contraste funcional: 2.559.500 casos seleccionados, con 447.500 excluidos por metadatos. Cadenas, indirectos y marcos de INT/división coinciden en los intervalos contrastados. | Los flags indefinidos apilados difieren. No se certifican reloj absoluto, prelectura completa, READY/INTA ni señales eléctricas; multiplicación/división conservan totales conservadores. [Detalle](I8088.md). |
 | Intel 8086 | Comparte el motor del 8088; bus de palabra según alineación, cola de seis bytes, estados separados y pruebas propias de ambas variantes. | Sin contraste externo propio ni placa 8086. Hereda las aproximaciones de la EU; una prueba del 8088 no valida los tiempos del 8086. |
 
 Los conteos de casos de las suites se distinguen de las pruebas NUnit: una sola prueba
@@ -33,9 +33,11 @@ la lectura de PUSH de memoria y su escritura en la pila, sin cambiar la tabla no
 Sus 30.000 casos externos coinciden en accesos y 84.994 pares de intervalos. POP de
 memoria, CALL lejano directo, RETF e IRET también ubican el trabajo entre transferencias:
 otros 50.000 casos y 170.000 pares coinciden, con la tabla nominal intacta. Las pruebas
-propias incluyen HOLD durante prelectura y NMI durante POP. La entrada de REP, las
-transferencias indirectas e INT/división siguen pendientes. Esto no completa el 8088
-ni certifica el 8086.
+propias incluyen HOLD durante prelectura y NMI durante POP. La entrada de REP ya
+coincide en los 20.000 casos de cadenas y 1.045.870 pares. Los indirectos coinciden
+en 40.000 casos y 132.437 pares; INT/INTO/AAM/DIV/IDIV, en los intervalos de 80.000
+casos y 488.394 pares. Se conservan 25.049 casos con flags indefinidos distintos en
+la pila. Esto no completa el 8088 ni certifica el 8086.
 
 ## Cómo reproducir las comprobaciones
 

@@ -1264,3 +1264,32 @@ externo propio.
 La entrada de REP, las llamadas indirectas, JMP lejano indirecto, INT y los errores de
 división siguen pendientes. No se conservan los ensayos parciales de indirectos ni
 se amplía el alcance a reloj absoluto, prelectura completa o señales eléctricas.
+
+## D-081 — Entrada REP, transferencias indirectas y marcos de INT/división
+
+MOVS ejecuta un T más de EU antes del primer acceso al entrar a REP. SCAS repetido
+emite su pedido con tres T sin iniciar otra prelectura. El trabajo se descuenta del
+remanente nominal; no se recobran prefijos ni se modifican valores o estado guardado.
+Las 20.000 cadenas coinciden en accesos y 1.045.870 pares, resolviendo los 1.968
+intervalos iniciales pendientes de D-078.
+
+CALL/JMP indirectos ubican el trabajo entre las palabras del puntero y de la pila.
+Se considera el espacio libre de cola al terminar de leer el destino: el bus termina
+su prelectura antes del siguiente pedido. CALL lejano separa CS e IP apilados con
+nueve T; JMP lejano inhibe nuevas prelecturas en los tres T previos al acceso.
+FF.2/FF.3/FF.4/FF.5 completos coinciden en 40.000 casos y 132.437 pares.
+
+INT/INTO/AAM 0 y los fallos DIV/IDIV siguen leyendo IP/CS del vector antes de apilar
+FLAGS/CS/IP. Se distribuyen los 31 T de entrada software entre esos accesos. DIV
+distingue el fallo temprano por magnitud del fallo después de completar el cociente;
+IDIV incluye la normalización de signos y el trabajo de los bits del cociente. La
+aritmética funcional, máscaras de flags indefinidos y recorrido hardware de NMI/INTR/TF
+no cambian. Coinciden los 488.394 pares de los 80.000 casos, conservando 25.049
+casos distintos solo en FLAGS indefinidos apilados. El verificador devuelve 2 por
+esos valores; no se cambian su criterio, formato ni alcance.
+
+La tabla nominal y el formato CPU3 se conservan; los totales de multiplicación/división
+siguen siendo conservadores. Las fórmulas de estos grupos proceden de las trazas locales
+8088; no acreditan reloj absoluto, prelectura completa, señales ni tiempos del 8086.
+Las 45 pruebas propias incluyen restauración de REP y pila solapada en ambos modelos;
+39 detectan el núcleo anterior. Las notas D-078 a D-080 se conservan como antecedentes.

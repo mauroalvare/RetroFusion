@@ -85,7 +85,7 @@ public sealed partial class I8088Cpu
     private void DataBusCycle(bool continuation = false)
     {
         if (!TimingEnabled) return;
-        // The BIU sees the EU request two clocks before T1 and starts no new prefetch meanwhile.
+        // Spend the EU request lead without starting another prefetch.
         SpendRequestClocks(prefetch: false);
         // A pending EU transfer wins over the next prefetch, after an active cycle finishes.
         while (_prefetchTicks != 0) IdleClocks(1);
@@ -111,12 +111,13 @@ public sealed partial class I8088Cpu
     }
     // EU work that must happen before or between this instruction's transfers.
     // EndTimingStep subtracts it from the nominal total, so only its placement changes.
-    // A request defers its last two clocks to the next data transfer, which spends them without prefetch.
-    private void EuClocks(int count, bool request = false)
+    // A request normally defers two clocks to the next data transfer, which spends them without
+    // prefetch. SCAS repetition and indirect far JMP issue that request one clock earlier.
+    private void EuClocks(int count, bool request = false, int requestLead = 2)
     {
         if (!TimingEnabled || count <= 0) return;
         SpendRequestClocks(prefetch: true);
-        int deferred = request ? Math.Min(count, 2) : 0;
+        int deferred = request ? Math.Min(count, requestLead) : 0;
         IdleClocks(count - deferred); _euSpent += count - deferred; _requestClocks = deferred;
     }
     private void SpendRequestClocks(bool prefetch)

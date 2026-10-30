@@ -334,8 +334,8 @@ Contraste parcial del bus 8088 con una suite local: `retro-cli cpu8088 verificar
 
 Cadenas CMPS/STOS/LODS: `retro-cli cpu8088 verificar-bus --suite RUTA-A-V2 --opcodes A6,A7,AA,AB,AC,AD --casos 10000 --salida out/bus-cadenas.json`.
 Los 12.000 casos coinciden en accesos e intervalos. La selección completa
-`A4,A5,A6,A7,AA,AB,AC,AD,AE,AF` conserva 1.968 diferencias de un T al iniciar REP
-MOVS/SCAS y devuelve 2. `tests/I8088.Tests/StringTimingTests.cs` comprueba intervalos,
+`A4,A5,A6,A7,AA,AB,AC,AD,AE,AF` coincide en los 20.000 casos y 1.045.870 pares,
+incluida la entrada de REP, y devuelve 0. `tests/I8088.Tests/StringTimingTests.cs` comprueba intervalos,
 presupuesto nominal, REP vacío y resultados funcionales en ambos modelos.
 
 Punteros lejanos y PUSH de memoria: `retro-cli cpu8088 verificar-bus --suite RUTA-A-V2 --opcodes C4,C5,FF.6 --casos 10000 --salida out/bus-punteros-push.json`.
@@ -347,7 +347,11 @@ procesador; no equipara esos resultados con una fidelidad general del 100 %.
 POP y marcos lejanos: `retro-cli cpu8088 verificar-bus --suite RUTA-A-V2 --opcodes 8F,9A,CA,CB,CF --casos 10000 --salida out/bus-pila-control.json`.
 Coinciden 50.000 casos y 170.000 pares. `tests/I8088.Tests/StackControlTimingTests.cs`
 cubre también presupuesto nominal, ambos modelos, NMI y cesión del bus por HOLD.
-REP, llamadas indirectas, JMP lejano indirecto e INT/división conservan sus pendientes.
+Indirectos: `--opcodes FF.2,FF.3,FF.4,FF.5 --casos 10000` coincide en 40.000 casos y 132.437 pares.
+INT y división: `--opcodes CC,CD,CE,D4,F6.6,F6.7,F7.6,F7.7 --casos 10000` coincide en
+los intervalos de 80.000 casos y 488.394 pares, pero devuelve 2 por los 25.049 casos
+con flags indefinidos distintos en la pila. `RepIndirectInterruptTimingTests.cs` cubre
+arranques, restauración de REP, pila solapada, marcos y errores tempranos/tardíos.
 
 Diagnóstico de interrupciones 8088+8259A (programa propio, sin BIOS/DOS): desde emu,
 `dotnet run --project src/Retro.Cli -c Release -- cpu8088 irq-demo --steps 1000`.
