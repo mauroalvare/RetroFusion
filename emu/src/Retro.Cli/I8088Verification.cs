@@ -41,6 +41,8 @@ internal static class I8088Verification
                     foreach (var reg in initial.GetProperty("regs").EnumerateObject()) props[reg.Name].SetValue(cpu, reg.Value.GetUInt16());
                     foreach (var cell in initial.GetProperty("ram").EnumerateArray()) bus.Ram[cell[0].GetInt32()] = cell[1].GetByte();
                     for (int i = 0; i < bytes.Length; i++) bus.Ram[I8088Cpu.Physical(cpu.CS, (ushort)(cpu.IP + i))] = bytes[i];
+                    ushort initialSs = cpu.SS, initialSp = cpu.SP;
+                    ushort vectorIp = (ushort)(bus.Ram[0] | bus.Ram[1] << 8), vectorCs = (ushort)(bus.Ram[2] | bus.Ram[3] << 8);
                     string? problem = null;
                     try
                     {
@@ -52,13 +54,18 @@ internal static class I8088Verification
                         // OF is architecturally undefined for counts greater than one, regardless of metadata.
                         if (bytes[actualOpcode] is 0xD2 or 0xD3 && (initial.GetProperty("regs").GetProperty("cx").GetInt32() & 255) > 1) mask &= ~I8088Cpu.Overflow;
                         foreach (var (name, value) in expected) { int actual = (ushort)props[name].GetValue(cpu)!; int compare = name == "flags" ? mask : 65535; if ((actual & compare) != (value & compare)) { problem = $"{name} esperado {value:X4}, actual {actual:X4}, máscara {compare:X4}"; break; } }
+                        bool canFault = bytes[actualOpcode] == 0xD4 && actualOpcode + 1 < bytes.Length && bytes[actualOpcode + 1] == 0 ||
+                            bytes[actualOpcode] is 0xF6 or 0xF7 && actualOpcode + 1 < bytes.Length && ((bytes[actualOpcode + 1] >> 3) & 7) >= 6;
+                        // Identify the expected type-0 frame, independently of the CPU's observed result.
+                        bool arithmeticFault = canFault && expected["cs"] == vectorCs && expected["ip"] == vectorIp &&
+                            expected["ss"] == initialSs && expected["sp"] == (ushort)(initialSp - 6);
+                        uint flagsLow = I8088Cpu.Physical(initialSs, (ushort)(initialSp - 2));
+                        uint flagsHigh = I8088Cpu.Physical(initialSs, (ushort)(initialSp - 1));
                         if (problem == null) foreach (var cell in final.GetProperty("ram").EnumerateArray())
                         {
                             int a = cell[0].GetInt32(), expectedByte = cell[1].GetByte(), byteMask = 255;
-                            bool arithmeticFault = cpu.CS == 0 && cpu.IP == 0x400 && bytes[actualOpcode] is 0xD4 or 0xF6 or 0xF7;
-                            int stackFlags = (int)I8088Cpu.Physical(initial.GetProperty("regs").GetProperty("ss").GetUInt16(), (ushort)(initial.GetProperty("regs").GetProperty("sp").GetUInt16() - 2));
-                            if (arithmeticFault && a == stackFlags) byteMask = mask & 255;
-                            if (arithmeticFault && a == ((stackFlags + 1) & 0xFFFFF)) byteMask = (mask >> 8) & 255;
+                            if (arithmeticFault && a == flagsLow) byteMask = mask & 255;
+                            if (arithmeticFault && a == flagsHigh) byteMask = (mask >> 8) & 255;
                             if ((bus.Ram[a] & byteMask) != (expectedByte & byteMask)) { problem = $"RAM {cell[0]} esperada {cell[1]}, actual {bus.Ram[cell[0].GetInt32()]}"; break; }
                         }
                     }

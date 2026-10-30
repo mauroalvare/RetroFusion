@@ -79,4 +79,56 @@ public sealed class FunctionalVerificationTests
         using var report = JsonDocument.Parse(File.ReadAllText(Path.Combine(_folder, "report.json")));
         Assert.That(report.RootElement.GetProperty("Files")[0].GetProperty("Errors")[0].GetProperty("Index").GetInt32(), Is.Zero);
     }
+    private void DivideFixture(string cpu, int sp, bool customVector = false, bool wrongCarry = false,
+        bool wrongAdjacent = false, bool successful = false)
+    {
+        var detail = new Dictionary<string, object> { ["status"] = "normal", ["flags-mask"] = I8088Cpu.Carry };
+        var members = new Dictionary<string, object> { ["6"] = detail };
+        var opcodes = new Dictionary<string, object> { ["F7"] = new { reg = members } };
+        File.WriteAllText(Path.Combine(_folder, "metadata.json"), JsonSerializer.Serialize(new
+        { syntax_version = 2, cpu, opcodes }));
+        int ss = 0x320, cs = successful ? 0 : 0x100, ip = successful ? 0x3FE : 0;
+        int vectorIp = customVector ? 0x40 : 0x400, vectorCs = customVector ? 0x110 : 0;
+        int low = (int)I8088Cpu.Physical((ushort)ss, (ushort)(sp - 2));
+        int high = (int)I8088Cpu.Physical((ushort)ss, (ushort)(sp - 1));
+        var memory = new List<int[]>();
+        if (successful) memory.Add([low, 0x10]); // RAM stays 90h; this is unrelated to undefined CPU flags.
+        else
+        {
+            memory.Add([low, wrongCarry ? 0x83 : wrongAdjacent ? 0x02 : 0x82]);
+            memory.Add([high, wrongAdjacent ? 0xF0 : 0xF8]);
+            if (wrongAdjacent) memory.Add([(low + 1) & 0xFFFFF, 0]);
+        }
+        var test = new { name = "own division frame", bytes = new[] { 0xF7, 0xF0 },
+            initial = new { regs = new { cs, ip, ds = 0x200, ss, sp, es = 0, ax = successful ? 1 : 0,
+                bx = 0, cx = 0, dx = 0, bp = 0, si = 0, di = 0, flags = 0xF002 },
+                ram = new int[][] { [0, vectorIp & 255], [1, vectorIp >> 8], [2, vectorCs & 255], [3, vectorCs >> 8] } },
+            final = new { regs = new { cs = successful ? cs : vectorCs, ip = successful ? 0x400 : vectorIp,
+                sp = successful ? sp : (ushort)(sp - 6), flags = 0xF082 }, ram = memory } };
+        using var file = File.Create(Path.Combine(_folder, "F7.6.json.gz")); using var gzip = new GZipStream(file, CompressionMode.Compress);
+        JsonSerializer.Serialize(gzip, new[] { test });
+    }
+    [TestCase(I8088Model.Intel8088, "8088", 0x100)]
+    [TestCase(I8088Model.Intel8086, "8086", 0x100)]
+    [TestCase(I8088Model.Intel8088, "8088", 1)]
+    [TestCase(I8088Model.Intel8086, "8086", 1)]
+    public void UndefinedStackFlagsUseTheActualVectorAndSegmentOffsetWrap(I8088Model model, string cpu, int sp)
+    {
+        DivideFixture(cpu, sp, customVector: true);
+        Assert.That(Run(model), Is.Zero, File.ReadAllText(Path.Combine(_folder, "report.json")));
+    }
+    [TestCase(I8088Model.Intel8088, "8088", 0x100)]
+    [TestCase(I8088Model.Intel8086, "8086", 0x100)]
+    [TestCase(I8088Model.Intel8088, "8088", 1)]
+    [TestCase(I8088Model.Intel8086, "8086", 1)]
+    public void DefinedStackFlagsStillRejectAWrongCarry(I8088Model model, string cpu, int sp)
+    { DivideFixture(cpu, sp, wrongCarry: true); Assert.That(Run(model), Is.EqualTo(2)); }
+    [TestCase(I8088Model.Intel8088, "8088")]
+    [TestCase(I8088Model.Intel8086, "8086")]
+    public void LinearAddressAfterWrappedFlagsIsOrdinaryMemory(I8088Model model, string cpu)
+    { DivideFixture(cpu, 1, wrongAdjacent: true); Assert.That(Run(model), Is.EqualTo(2)); }
+    [TestCase(I8088Model.Intel8088, "8088")]
+    [TestCase(I8088Model.Intel8086, "8086")]
+    public void ARegularDivideEndingAt0400DoesNotCreateAnExceptionMask(I8088Model model, string cpu)
+    { DivideFixture(cpu, 0x100, successful: true); Assert.That(Run(model), Is.EqualTo(2)); }
 }

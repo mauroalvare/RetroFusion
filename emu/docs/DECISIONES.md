@@ -1377,3 +1377,18 @@ de D-084. Permanecen los 4.787 casos con flags indefinidos distintos. No certifi
 absoluto, cola final, pines/INTA, interrupciones externas ni todas las revisiones del chip.
 Veintisiete regresiones con programas propios cubren paridad de instrucción/operando/
 pila, prefijos, rutas de dirección y errores; 26 fallan con el núcleo D-084.
+
+## D-086 — Excepción de flags del oráculo limitada al marco esperado
+
+El contraste funcional identifica una excepción aritmética a partir del opcode, el
+vector 0 leído antes de ejecutar y los registros finales esperados del marco. Ya no
+supone el destino 0000:0400 ni decide por los registros observados del núcleo.
+Solo aplica la máscara de metadatos a los dos bytes de FLAGS apilado, calculando cada
+dirección con el desbordamiento de offset SS. El byte físico contiguo puede quedar
+fuera del marco y siempre conserva una comparación completa.
+
+Doce casos propios comprueban ambos modelos, vector personalizado, SP=0001, flags
+definidos erróneos y RAM ajena al marco. Ocho detectan el verificador anterior:
+cuatro falsos rechazos de flags indefinidos y cuatro falsos aprobados de memoria.
+Una división normal que termine en 0000:0400 no obtiene una excepción. Este hito
+modifica únicamente el oráculo; no cambia el núcleo ni los tiempos o los guardados.
