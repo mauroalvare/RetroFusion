@@ -24,13 +24,12 @@ public sealed partial class RetroApp
         if (!ImGui.Begin("Preferencias", ref _preferencesOpen, ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoDocking))
         { ImGui.End(); return; }
         WorkspaceLayout.KeepOnScreen();
-        float field = UiTheme.Px(360), wrap = UiTheme.Px(560);
-        ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + wrap);
+        ImGui.PushTextWrapPos(0);
 
         ImGui.SeparatorText("Lectura");
         int text = Array.IndexOf(AppPreferences.TextSizes, _prefs.TextPercent);
-        ImGui.SetNextItemWidth(field);
-        if (ImGui.Combo("Tamaño del texto", ref text, TextSizeNames, TextSizeNames.Length)) SetTextSize(AppPreferences.TextSizes[text]);
+        ImGui.TextUnformatted("Tamaño del texto"); ImGui.SetNextItemWidth(-1);
+        if (ImGui.Combo("##tamano-texto", ref text, TextSizeNames, TextSizeNames.Length)) SetTextSize(AppPreferences.TextSizes[text]);
         bool contrast = _prefs.HighContrast;
         if (ImGui.Checkbox("Alto contraste", ref contrast)) SetHighContrast(contrast);
         ImGui.TextDisabled("Texto blanco sobre negro, bordes visibles y el foco del teclado en amarillo.");
@@ -41,15 +40,15 @@ public sealed partial class RetroApp
         bool integer = _prefs.IntegerScale;
         if (ImGui.Checkbox("Escala entera (píxeles nítidos)", ref integer)) { _prefs.IntegerScale = integer; _prefs.Save(); }
         bool fps = _prefs.ShowFps;
-        if (ImGui.Checkbox("Mostrar cuadros por segundo en la barra de estado", ref fps)) { _prefs.ShowFps = fps; _prefs.Save(); }
+        if (ImGui.Checkbox("Mostrar cuadros por segundo", ref fps)) { _prefs.ShowFps = fps; _prefs.Save(); }
 
         ImGui.SeparatorText("Controles");
         int joystick = (int)_prefs.SpectrumJoystick;
-        ImGui.SetNextItemWidth(field);
-        if (ImGui.Combo("Joystick del Spectrum", ref joystick, JoystickNames, JoystickNames.Length)) SetSpectrumJoystick((JoystickMode)joystick);
+        ImGui.TextUnformatted("Joystick del Spectrum"); ImGui.SetNextItemWidth(-1);
+        if (ImGui.Combo("##joystick-spectrum", ref joystick, JoystickNames, JoystickNames.Length)) SetSpectrumJoystick((JoystickMode)joystick);
         int port = _prefs.C64Port - 1;
-        ImGui.SetNextItemWidth(field);
-        if (ImGui.Combo("Joystick del C64", ref port, C64Ports, C64Ports.Length)) SetC64Port(port + 1);
+        ImGui.TextUnformatted("Joystick del C64"); ImGui.SetNextItemWidth(-1);
+        if (ImGui.Combo("##joystick-c64", ref port, C64Ports, C64Ports.Length)) SetC64Port(port + 1);
         ImGui.TextDisabled("Las flechas y el mando manejan el joystick elegido.");
 
         ImGui.SeparatorText("Cintas del Spectrum");
@@ -60,11 +59,11 @@ public sealed partial class RetroApp
 
         ImGui.SeparatorText("Rendimiento");
         bool saving = _prefs.PowerSaving;
-        if (ImGui.Checkbox("Ahorrar energía cuando no hay partida en curso", ref saving)) { _prefs.PowerSaving = saving; _prefs.Save(); }
+        if (ImGui.Checkbox("Ahorrar energía sin partida", ref saving)) { _prefs.PowerSaving = saving; _prefs.Save(); }
         ImGui.TextDisabled($"Con la partida en pausa o en la biblioteca, la ventana se dibuja hasta {FramePacing.Interface} veces por segundo " +
             $"y {FramePacing.Background} sin foco. Un juego en curso usa siempre la frecuencia del monitor. Minimizada, la ventana espera sin dibujar.");
         bool background = _prefs.PauseInBackground;
-        if (ImGui.Checkbox("Pausar el juego al pasar a otra ventana", ref background)) { _prefs.PauseInBackground = background; _prefs.Save(); }
+        if (ImGui.Checkbox("Pausar al cambiar de ventana", ref background)) { _prefs.PauseInBackground = background; _prefs.Save(); }
         ImGui.TextDisabled("Al volver, sigue solo si la pausa fue automática. Para silenciar sin pausar, usá Sonido.");
 
         ImGui.Spacing();
@@ -77,9 +76,9 @@ public sealed partial class RetroApp
             _host.TurboWhileLoading = _prefs.TurboWhileLoading;
             _prefs.Save(); _themeChanged = true;
         }
-        ImGui.SameLine();
+        UiTheme.SameLineIfFits("Sonido…");
         if (ImGui.Button("Sonido...")) _soundWindowOpen = true;
-        ImGui.SameLine();
+        UiTheme.SameLineIfFits("Cerrar");
         if (ImGui.Button("Cerrar")) _preferencesOpen = false;
         if (_prefs.Problem is { } problem) ImGui.TextWrapped(problem);
         ImGui.PopTextWrapPos();

@@ -102,6 +102,7 @@ public sealed partial class CodeWindow : IDisposable
         float width = Math.Min(UiTheme.Px(620), viewport.Size.X - 20);
         ImGui.SetNextWindowPos(new Vector2(viewport.Pos.X + Math.Max(10, viewport.Size.X - width - 10), viewport.WorkPos.Y + 8), ImGuiCond.FirstUseEver);
         ImGui.SetNextWindowSize(new Vector2(width, Math.Min(UiTheme.Px(760), viewport.Size.Y - 70)), ImGuiCond.FirstUseEver);
+        WorkspaceLayout.ToolWindowConstraints();
         bool visible = ImGui.Begin("Modificar y analizar###game-tools", ref _open);
         WorkspaceLayout.KeepOnScreen();
         if (!visible)
@@ -378,6 +379,12 @@ public sealed partial class CodeWindow : IDisposable
         ImGui.EndDisabled();
         if (_host.Fusion != null && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
             UiTheme.Tooltip("Durante una fusión los juegos no se detienen en breakpoints.");
+        UiTheme.SameLineIfFits("Copiar referencia");
+        if (ImGui.Button("Copiar referencia"))
+        {
+            ImGui.SetClipboardText(RoutineReference(m, r));
+            _status = "Referencia copiada con direcciones y huellas; sin bytes del original.";
+        }
 
         if (_notes.Summaries.TryGetValue(key, out var summary))
             ImGui.TextWrapped(summary);
@@ -438,6 +445,7 @@ public sealed partial class CodeWindow : IDisposable
 
     private void DrawListing(IMachine m, Routine r)
     {
+        using var font = UiTheme.FixedWidth();
         float editHeight = _line != null ? 92 : 0;
         ImGui.BeginChild("listing", new Vector2(0, -editHeight), ImGuiChildFlags.None, ImGuiWindowFlags.HorizontalScrollbar);
         uint? expected = null;
@@ -475,6 +483,10 @@ public sealed partial class CodeWindow : IDisposable
         if (_line is uint sel)
             DrawLineEditor(m, r, sel);
     }
+
+    private string RoutineReference(IMachine machine, Routine routine) => CodeExplainer.Reference(machine, routine,
+        _host.Fusion == null ? _host.LoadedMediaHashes : [],
+        _host.Fusion == null ? _host.FirmwareIdentity : "No asociada a esta ranura desde el visor; consultá las referencias del proyecto.");
 
     private void DrawLineEditor(IMachine m, Routine r, uint a)
     {
@@ -610,7 +622,7 @@ public sealed partial class CodeWindow : IDisposable
                 try
                 {
                     var ai = _ai.CreateProvider()!;
-                    string prompt = CodeExplainer.Prompt(m, r, _notes, _profile, _map!);
+                    string prompt = CodeExplainer.Prompt(m, r, _notes, _profile, _map!) + "\n\n" + RoutineReference(m, r);
                     _explainFor = r.Start;
                     _explainRevision = _mediaRevision;
                     _explainMachine = m;
@@ -633,7 +645,7 @@ public sealed partial class CodeWindow : IDisposable
         }
         if (ImGui.Button("Copiar pedido"))
         {
-            ImGui.SetClipboardText(CodeExplainer.ManualPrompt(CodeExplainer.Prompt(m, r, _notes, _profile, _map!)));
+            ImGui.SetClipboardText(CodeExplainer.ManualPrompt(CodeExplainer.Prompt(m, r, _notes, _profile, _map!) + "\n\n" + RoutineReference(m, r)));
             _manualExplanation = true;
             _explainStatus = "Pedido copiado. Pegalo en tu IA y traé la respuesta completa.";
         }

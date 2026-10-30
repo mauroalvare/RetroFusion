@@ -15,9 +15,9 @@ namespace Retro.App;
 /// </summary>
 public sealed class StudioWindow
 {
-    private static readonly Vector4 Gold = new(1, 0.85f, 0.3f, 1);
-    private static readonly Vector4 Blue = new(0.6f, 0.8f, 1, 1);
-    private static readonly Vector4 Red = new(1, 0.5f, 0.4f, 1);
+    private static Vector4 Gold => UiTheme.Accent;
+    private static Vector4 Blue => UiTheme.Accent;
+    private static Vector4 Red => UiTheme.Error;
     private static readonly string[] SlotNames = { "a", "b", "c" };
 
     private sealed record ManualStep(string Title, string Prompt, Action<string> OnAnswer, string? ReferenceFolder = null);
@@ -28,6 +28,7 @@ public sealed class StudioWindow
     private readonly FusionPreparationWorkflow _preparationWorkflow;
     private readonly Func<IAiProvider?> _preparationProvider;
     private bool _open;
+    public bool IsOpen => _open;
     private bool _libraryChanged;
     private string _folder;
     private readonly List<GameSource> _games = new();
@@ -226,6 +227,7 @@ public sealed class StudioWindow
         var vp = ImGui.GetMainViewport();
         ImGui.SetNextWindowPos(new Vector2(vp.Pos.X + vp.Size.X - UiTheme.Px(540), vp.WorkPos.Y + 8), ImGuiCond.FirstUseEver);
         ImGui.SetNextWindowSize(new Vector2(UiTheme.Px(530), Math.Min(UiTheme.Px(760), vp.Size.Y - 70)), ImGuiCond.FirstUseEver);
+        WorkspaceLayout.ToolWindowConstraints();
         bool visible = ImGui.Begin(_inspiredMode ? "Crear con originales" : "Fusionar juegos", ref _open);
         WorkspaceLayout.KeepOnScreen();
         if (!visible)
@@ -282,8 +284,9 @@ public sealed class StudioWindow
 
     private void DrawSetup()
     {
-        ImGui.TextWrapped(_inspiredMode ? "Creá un juego nuevo a partir de personajes, recursos o reglas de tus ROMs."
-            : "Elegí un juego base e incorporá personajes o mecánicas de otros originales.");
+        UiTheme.Heading(_inspiredMode ? "Una nueva combinación" : "Un mundo, nuevas reglas",
+            _inspiredMode ? "Creá un juego nuevo a partir de recursos o reglas de tus originales."
+            : "Conservá el mundo de un juego base e incorporá mecánicas de los otros.");
         if (ImGui.TreeNode("Carpetas de juegos"))
         {
             ImGui.SetNextItemWidth(-90);
@@ -302,7 +305,7 @@ public sealed class StudioWindow
         AiPicker.Hint(_status);
         DrawAiChooser("La preparación y creación pueden usar varios pedidos a la IA elegida.");
         ImGui.Separator();
-        ImGui.TextColored(Gold, $"1. Elegí los juegos ({_chosen.Count}/3)");
+        UiTheme.Section($"1 · Elegí los originales ({_chosen.Count}/3)", "Seleccioná de 2 a 3 juegos. Preparar busca datos que la creación pueda usar.");
         ImGui.SetNextItemWidth(-1);
         ImGui.InputTextWithHint("##buscar-juego", "Buscar por nombre o máquina", ref _gameSearch, 150);
         var matches = _games.Where(g => _labels.GetValueOrDefault(g.Profile.Id, g.Profile.Name).Contains(_gameSearch.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
@@ -328,7 +331,7 @@ public sealed class StudioWindow
             ImGui.EndDisabled();
             if (_unprepared.TryGetValue(g.Profile.Id, out var file))
             {
-                ImGui.SameLine();
+                UiTheme.SameLineIfFits($"Preparar##{g.Profile.Id}");
                 ImGui.BeginDisabled(Busy);
                 if (ImGui.SmallButton($"Preparar##{g.Profile.Id}"))
                     StartPrepare(g.Profile.Name, file);
@@ -363,18 +366,18 @@ public sealed class StudioWindow
         }
 
         ImGui.Separator();
-        ImGui.TextColored(Gold, _inspiredMode ? "2. Definí el juego nuevo" : "2. Elegí el juego base");
+        UiTheme.Section(_inspiredMode ? "2 · Definí el juego nuevo" : "2 · Elegí el juego base");
         DrawDirection();
         ImGui.Spacing();
-        if (!_inspiredMode) ImGui.TextColored(Gold, "3. Definí los aportes");
+        if (!_inspiredMode) UiTheme.Section("3 · Definí los aportes");
         ImGui.TextUnformatted(_inspiredMode ? "Tu propuesta para el juego (opcional):" : "Qué querés incorporar a la base (opcional):");
         ImGui.InputTextMultiline("##deseo", ref _wish, 2000, new Vector2(-1, UiTheme.Px(64)));
         AiPicker.Hint(FusionResearchPlan.EstimateText(_chosen.Count, true, CreationEstimate(true)));
         AiPicker.Hint("Puede trabajar hasta una hora en total. Podés ver el avance y cancelar.");
         ImGui.BeginDisabled(Busy);
-        if (ImGui.Button("Proponer 3 ideas")) AskConcepts();
+        if (UiTheme.PrimaryButton("Proponer 3 ideas")) AskConcepts();
         ImGui.EndDisabled();
-        ImGui.SameLine();
+        UiTheme.SameLineIfFits(_inspiredMode ? "Crear con mi propuesta" : "Fusionar con mi propuesta");
         ImGui.BeginDisabled(Busy || _wish.Trim().Length < 10);
         if (ImGui.Button(_inspiredMode ? "Crear con mi propuesta" : "Fusionar con mi propuesta"))
             Write(new GameConcept("", "", _wish.Trim(), "", PlayerRequest: _wish.Trim()));

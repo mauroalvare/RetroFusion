@@ -1461,3 +1461,31 @@ instrucción, no en mitad de la DMA. Catorce pruebas NES propias(12 fallan antes
 de núcleo y dos de RDY6510(una detecta antes) comprueban el recorrido. Los detalles
 de activación/aborto DMC, conflictos de bus, bordes de solapamiento, Famicom/PAL y la
 aceptación exacta de interrupciones siguen pendientes de contraste externo.
+
+## D-091 — Interfaz adaptable y referencias de técnicas con evidencia
+
+La interfaz usa fuente de lectura del sistema y reserva ancho fijo para listados y
+depuración. Conserva bibliotecas, atajos, accesibilidad, guardados y flujos de creación.
+Los paneles fijan un ancho mínimo proporcional al texto, limitado por el área disponible;
+el menú se agrupa cuando no cabe. El creador diferencia máquina, idea y método, y la
+vista previa vacía evita mostrar el arranque de una máquina ajena al nuevo proyecto.
+
+CommandPalette busca acciones sin ejecutarlas ni gastar IA; muestra causas de
+indisponibilidad y conserva la separación de entrada de la máquina. El acorde nuevo
+Ctrl+P/Ctrl+Shift+P respeta el modificador de herramientas de cada sistema. La prueba
+oculta no guarda imgui.ini y admite un tamaño explícito para revisar disposición.
+
+RoutineFinder.Sample es una API para máquinas descartables de 16 bits: avanza de 1 a
+50000 pasos (12000 por defecto), conserva observadores existentes y acota accesos,
+raíces y resultados. Las agrupaciones son candidatas. Detectar instrucciones cambiantes
+inhabilita el mapa estable. Las referencias del estudio conservan la captura anterior
+a la muestra y citan archivos SHA-256, huella de conjunto (perfil/firmware incluidos),
+direcciones y frecuencias, sin listados ni bytes de originales. Son observaciones de
+hardware, no una interpretación probada de la mecánica ni nuevas variables verificadas.
+
+RoutineCodeIdentity v1 usa prefijo UTF-8 RetroEmu-routine-v1 y registros ordenados por
+dirección: uint32 dirección, uint32 longitud, ambos little-endian, y bytes de instrucción;
+SHA-256. Visor y hallador comparten ese algoritmo. Es una instantánea de código, diferente
+del hash del archivo y de la huella de conjunto. No cambia los formatos de juegos ni
+estados. Guías de diseño, carpetas de agentes y pedidos comparten la distinción entre
+presentación, evidencia, hipótesis y pruebas; los robots no certifican calidad creativa.

@@ -71,6 +71,8 @@ static int Usage()
           --disasm <hex>:<n>       al final, desensambla n instrucciones desde la dirección
           --dump <hex>:<n>         al final, muestra n bytes de memoria
           --text                   (C64) al final, muestra el texto de la pantalla
+          --rutinas <informe.json>  observa rutinas en la máquina de diagnóstico (direcciones de 16 bits)
+          --pasos-rutinas <n>       muestra acotada de 1 a 50000 pasos (por defecto, 12000)
         """);
     return 1;
 }
@@ -110,11 +112,11 @@ if (command == "studio")
     return RunStudio(mediaPath, Opt("games") ?? ".", Opt("seconds"), Opt("shots"));
 
 if (command == "compat")
-    return RunCompat(mediaPath, Opt("juegos") ?? @"C:\Users\mauro\Downloads\ROMs", Opt("salida"), Opt("md"), Opt("capturas") ?? "out/compat",
+    return RunCompat(mediaPath, Opt("juegos") ?? PlayerFolders.Find("ROMs") ?? ".", Opt("salida"), Opt("md"), Opt("capturas") ?? "out/compat",
         Opt("solo"), Opt("descubrir") != null, Opt("dos-veces") != null, int.Parse(Opt("paralelo") ?? "4"));
 
 if (command == "lab")
-    return RunLab(mediaPath, Opt("juegos") ?? @"C:\Users\mauro\Downloads\ROMs", Opt("salida"), int.Parse(Opt("cuadros") ?? "3000"),
+    return RunLab(mediaPath, Opt("juegos") ?? PlayerFolders.Find("ROMs") ?? ".", Opt("salida"), int.Parse(Opt("cuadros") ?? "3000"),
         Opt("sin-verificar") == null, opts.GetValueOrDefault("hipotesis") ?? new List<string>());
 
 if (command == "juegos")
@@ -403,6 +405,17 @@ if (wavPath != null)
 {
     WriteWav(wavPath, wav, 44100);
     Console.WriteLine($"Audio: {wavPath} ({wav.Count / 44100.0:F1} s)");
+}
+if (Opt("rutinas") is { } routineReport)
+{
+    if (machine.Memory.AddressBits != 16 || !int.TryParse(Opt("pasos-rutinas") ?? "12000", out int steps) || steps is < 1 or > 50000)
+    { Console.Error.WriteLine("Rutinas: se necesitan direcciones de 16 bits y de 1 a 50000 pasos."); return 2; }
+    var survey = RoutineFinder.Sample(machine, steps);
+    var report = new { format = 1, machine = machine.Id, editions = selectedFiles.Select(file => new { file.Name,
+        sha256 = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(file.Data)) }),
+        scope = "Muestra en una máquina de diagnóstico; agrupaciones candidatas, sin bytes del programa. No certifica el propósito ni la jugabilidad.", survey };
+    File.WriteAllText(routineReport, System.Text.Json.JsonSerializer.Serialize(report, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+    Console.WriteLine($"Rutinas candidatas: {survey.Routines.Count}; {survey.Steps} pasos. Informe: {routineReport}");
 }
 return 0;
 

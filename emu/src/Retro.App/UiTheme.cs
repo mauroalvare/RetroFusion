@@ -9,7 +9,7 @@ namespace Retro.App;
 /// <summary>Shared palette and legible system fonts. No font files are distributed.</summary>
 internal static class UiTheme
 {
-    public const float BaseFontSize = 16;
+    public const float BaseFontSize = 18;
     public static Vector4 Muted => HighContrast ? new(0.86f, 0.89f, 0.93f, 1) : new(0.64f, 0.69f, 0.76f, 1);
     public static Vector4 Accent => HighContrast ? new(0.55f, 0.86f, 1, 1) : new(0.48f, 0.78f, 1, 1);
     public static Vector4 Warning => HighContrast ? new(1, 0.82f, 0.36f, 1) : new(0.96f, 0.75f, 0.42f, 1);
@@ -24,6 +24,7 @@ internal static class UiTheme
     public static float StatusBarHeight => MathF.Round(24 * Scale);
     private static nint _fontContext;
     private static float _fontSize;
+    private static ImFontPtr _codeFont;
     private static ImGuiStyle? _baseStyle;
     // Atlas configurations retain this pointer for future rebuilds. One range table per process.
     private static readonly GCHandle Ranges = GCHandle.Alloc(new ushort[] { 0x20, 0xFF, 0x2000, 0x206F, 0 }, GCHandleType.Pinned);
@@ -38,10 +39,10 @@ internal static class UiTheme
         var style = ImGui.GetStyle();
         // ScaleAllSizes multiplies the current sizes, so every change starts again from the unscaled style.
         if (_baseStyle is { } unscaled) *style.NativePtr = unscaled; else _baseStyle = *style.NativePtr;
-        style.WindowRounding = 7; style.ChildRounding = 5; style.FrameRounding = 4;
+        style.WindowRounding = 10; style.ChildRounding = 8; style.FrameRounding = 5;
         style.PopupRounding = 6; style.GrabRounding = 4; style.TabRounding = 4;
         style.WindowPadding = new(14, 14); style.FramePadding = new(9, 6);
-        style.ItemSpacing = new(10, 8); style.CellPadding = new(9, 8);
+        style.ItemSpacing = new(10, 9); style.CellPadding = new(10, 10);
         style.WindowBorderSize = 1; style.FrameBorderSize = highContrast ? 1 : 0; style.ScrollbarSize = 14;
         // Tall entries (library sections, creator and code tabs) center their text vertically.
         style.SelectableTextAlign = new(0, 0.5f);
@@ -80,9 +81,9 @@ internal static class UiTheme
             colors[(int)ImGuiCol.FrameBg] = new(0.105f, 0.14f, 0.19f, 1);
             colors[(int)ImGuiCol.FrameBgHovered] = new(0.16f, 0.23f, 0.31f, 1);
             colors[(int)ImGuiCol.FrameBgActive] = new(0.19f, 0.29f, 0.40f, 1);
-            colors[(int)ImGuiCol.Button] = new(0.17f, 0.29f, 0.41f, 1);
-            colors[(int)ImGuiCol.ButtonHovered] = new(0.23f, 0.41f, 0.57f, 1);
-            colors[(int)ImGuiCol.ButtonActive] = new(0.27f, 0.48f, 0.65f, 1);
+            colors[(int)ImGuiCol.Button] = new(0.14f, 0.20f, 0.27f, 1);
+            colors[(int)ImGuiCol.ButtonHovered] = new(0.20f, 0.32f, 0.43f, 1);
+            colors[(int)ImGuiCol.ButtonActive] = new(0.23f, 0.39f, 0.53f, 1);
             colors[(int)ImGuiCol.Header] = new(0.15f, 0.28f, 0.40f, 1);
             colors[(int)ImGuiCol.HeaderHovered] = new(0.20f, 0.35f, 0.48f, 1);
             colors[(int)ImGuiCol.HeaderActive] = new(0.23f, 0.40f, 0.55f, 1);
@@ -93,13 +94,15 @@ internal static class UiTheme
             colors[(int)ImGuiCol.NavCursor] = Accent;
         }
         colors[(int)ImGuiCol.TextDisabled] = Muted;
+        colors[(int)ImGuiCol.ModalWindowDimBg] = new(0, 0, 0, highContrast ? 0.8f : 0.65f);
         colors[(int)ImGuiCol.ChildBg] = new(0, 0, 0, 0);
         ImGui.GetIO().FontGlobalScale = 1;
         float size = MathF.Round(BaseFontSize * Scale);
         if (!Raylib.IsWindowReady() || (_fontContext == ImGui.GetCurrentContext() && _fontSize == size)) return;
         bool replace = _fontContext == ImGui.GetCurrentContext();
         _fontContext = ImGui.GetCurrentContext(); _fontSize = size;
-        string? font = FontCandidates().FirstOrDefault(File.Exists);
+        string? font = FontCandidates(false).FirstOrDefault(File.Exists);
+        string? codeFont = FontCandidates(true).FirstOrDefault(File.Exists);
 
         var config = new ImFontConfigPtr(ImGuiNative.ImFontConfig_ImFontConfig());
         try
@@ -111,17 +114,57 @@ internal static class UiTheme
             var fontPtr = font == null ? ImGui.GetIO().Fonts.AddFontDefault(config)
                 : ImGui.GetIO().Fonts.AddFontFromFileTTF(font, size, config, Ranges.AddrOfPinnedObject());
             ImGui.GetIO().NativePtr->FontDefault = fontPtr.NativePtr;
+            _codeFont = codeFont == null ? fontPtr
+                : ImGui.GetIO().Fonts.AddFontFromFileTTF(codeFont, size, config, Ranges.AddrOfPinnedObject());
             rlImGui.ReloadFonts();
         }
         finally { ImGuiNative.ImFontConfig_destroy(config.NativePtr); }
     }
 
-    private static IEnumerable<string> FontCandidates()
+    private static IEnumerable<string> FontCandidates(bool code)
     {
-        if (OperatingSystem.IsWindows()) yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "consola.ttf");
-        if (OperatingSystem.IsMacOS()) yield return "/System/Library/Fonts/Menlo.ttc";
-        yield return "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf";
-        yield return "/usr/share/fonts/truetype/liberation2/LiberationMono-Regular.ttf";
+        if (OperatingSystem.IsWindows()) yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), code ? "consola.ttf" : "segoeui.ttf");
+        if (OperatingSystem.IsMacOS()) yield return code ? "/System/Library/Fonts/Menlo.ttc" : "/System/Library/Fonts/Supplemental/Arial.ttf";
+        yield return "/usr/share/fonts/truetype/dejavu/" + (code ? "DejaVuSansMono.ttf" : "DejaVuSans.ttf");
+        yield return "/usr/share/fonts/truetype/liberation2/" + (code ? "LiberationMono-Regular.ttf" : "LiberationSans-Regular.ttf");
+    }
+
+    public readonly struct FontScope : IDisposable
+    {
+        public void Dispose() => ImGui.PopFont();
+    }
+
+    /// <summary>Fixed-width text only where columns and addresses carry meaning.</summary>
+    public static FontScope FixedWidth() { ImGui.PushFont(_codeFont); return new(); }
+
+    public static void Heading(string title, string? description = null)
+    {
+        ImGui.SetWindowFontScale(1.35f); ImGui.PushTextWrapPos(0); ImGui.TextUnformatted(title); ImGui.PopTextWrapPos(); ImGui.SetWindowFontScale(1);
+        if (description != null) Hint(description);
+        ImGui.Spacing();
+    }
+
+    public static void Hint(string text)
+    {
+        ImGui.PushStyleColor(ImGuiCol.Text, Muted); ImGui.TextWrapped(text); ImGui.PopStyleColor();
+    }
+
+    public static void Section(string title, string? description = null)
+    {
+        ImGui.Spacing(); ImGui.SeparatorText(title);
+        if (description != null) Hint(description);
+    }
+
+    public static bool PrimaryButton(string label, Vector2 size = default)
+    {
+        ImGui.PushStyleColor(ImGuiCol.Button, HighContrast ? new Vector4(0, 0.32f, 0.68f, 1) : new Vector4(0.10f, 0.34f, 0.50f, 1));
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.15f, 0.43f, 0.61f, 1));
+        bool pressed = ImGui.Button(label, size); ImGui.PopStyleColor(2); return pressed;
+    }
+
+    public static void EmptyState(string title, string detail)
+    {
+        ImGui.Spacing(); ImGui.TextUnformatted(title); Hint(detail); ImGui.Spacing();
     }
 
     /// <summary>Keeps the next button on this row only if it fits, so rows of buttons wrap at large text sizes.</summary>

@@ -8,9 +8,11 @@ using Retro.Studio;
 
 namespace Retro.App;
 
+public sealed record HomeActions(Action Create, Action Fuse, Action FindAction);
+
 /// <summary>The main browser replaces the play area; it is never a floating window.</summary>
 public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal, Action<string> playFusion,
-    Action browse, Action<bool> visibility, Func<bool> canReturn, LibraryActivity? activity = null) : IDisposable
+    Action browse, Action<bool> visibility, Func<bool> canReturn, LibraryActivity? activity = null, HomeActions? actions = null) : IDisposable
 {
     private readonly LibraryActivity _activity = activity ?? new();
     private readonly ThumbnailCache _thumbnails = new();
@@ -139,9 +141,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         else
         {
             ImGui.BeginChild("navegacion", new Vector2(Math.Clamp(viewport.WorkSize.X * 0.22f, UiTheme.Px(156), UiTheme.Px(210)), 0));
-            ImGui.SetWindowFontScale(1.4f);
-            ImGui.TextUnformatted("RetroEmu");
-            ImGui.SetWindowFontScale(1);
+            UiTheme.Heading("RetroEmu", "Jugá · Creá · Explorá");
             ImGui.Spacing(); ImGui.Spacing();
             Nav("Inicio", "home");
             Nav("Todos los juegos", "all");
@@ -153,6 +153,12 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
             ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
             Nav("Fusionados", "fusions");
             Nav("Creados", "created");
+            if (actions != null)
+            {
+                ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
+                if (ImGui.Selectable("Buscar acción…", false, ImGuiSelectableFlags.None, new Vector2(0, UiTheme.Px(28)))) actions.FindAction();
+                if (ImGui.IsItemHovered()) UiTheme.Tooltip("Encontrá herramientas, controles y opciones por nombre.");
+            }
             ImGui.Spacing(); ImGui.Spacing();
             if (canReturn() && ImGui.Button("Volver al juego", new Vector2(-1, 0))) Close();
             ImGui.EndChild();
@@ -162,13 +168,12 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         string title = SectionTitle();
         if (!compact)
         {
-            ImGui.SetWindowFontScale(1.4f); ImGui.TextUnformatted(title); ImGui.SetWindowFontScale(1);
-            ImGui.Spacing();
+            UiTheme.Heading(title, _section == "home" ? "Tus juegos originales y tus creaciones, en un mismo lugar." : null);
         }
-        if (ImGui.Button("Abrir archivo...")) browse();
-        ImGui.SameLine();
+        if (UiTheme.PrimaryButton("Abrir archivo…")) browse();
+        UiTheme.SameLineIfFits("Actualizar biblioteca");
         ImGui.BeginDisabled(library.Scanning);
-        if (ImGui.Button(library.Scanning ? "Buscando..." : "Volver a buscar"))
+        if (ImGui.Button(library.Scanning ? "Buscando…" : "Actualizar biblioteca"))
         {
             library.Rescan(library.Folder);
             Refresh();
@@ -184,7 +189,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
                 (library.UnclassifiedCount > 0 ? $" · Sin clasificar: {library.UnclassifiedCount}" : ""));
             if (ImGui.IsItemHovered()) UiTheme.Tooltip("Los archivos cuyo sistema no se puede identificar quedan en ROMs.");
         }
-        if (_section == "home") DrawMachines();
+        if (_section == "home") { DrawMachines(); DrawCreativeActions(); }
         else
         {
             ImGui.SetNextItemWidth(Math.Max(UiTheme.Px(80), ImGui.GetContentRegionAvail().X - UiTheme.Px(92)));
@@ -208,7 +213,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
     {
         "machine" => Name(Machines.Single(m => m.Id == _machine)), "all" => "Todos los juegos",
         "favorites" => "Favoritos", "recent" => "Recientes", "fusions" => "Fusionados",
-        "created" => "Creados", "originals" => "Juegos originales", _ => "Elegí una máquina"
+        "created" => "Creados", "originals" => "Juegos originales", _ => "Tu biblioteca"
     };
 
     private void DrawCompactNavigation()
@@ -241,6 +246,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
 
     private void DrawMachines()
     {
+        UiTheme.Section("Explorá por sistema");
         int columns = ImGui.GetContentRegionAvail().X >= UiTheme.Px(700) ? 2 : 1;
         if (ImGui.BeginTable("maquinas", columns, ImGuiTableFlags.SizingStretchSame))
         {
@@ -266,11 +272,12 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
                 HardwareArt.Draw(draw, machine.Id, min + UiTheme.Px(12, 7), UiTheme.Px(100, 76));
                 float width = size.X - UiTheme.Px(136);
                 draw.AddText(min + UiTheme.Px(124, 18), ImGui.GetColorU32(ImGuiCol.Text), UiTheme.Fit(Name(machine), width));
-                draw.AddText(min + UiTheme.Px(124, 42), ImGui.GetColorU32(ImGuiCol.TextDisabled), UiTheme.Fit(machine.Cpu, width));
+                draw.AddText(min + UiTheme.Px(124, 42), ImGui.GetColorU32(ImGuiCol.TextDisabled), UiTheme.Fit(machine.Id switch
+                { "zx48" => "TAP · TZX · Z80 · SNA", "c64" => "PRG · T64", "nes" => "Cartuchos NES", "pcxt" => "EXE · COM · ZIP · IMG", _ => "ROMs de la placa arcade" }, width));
                 string summary = Summary(machine.Id);
                 draw.AddText(min + UiTheme.Px(124, 66), ImGui.GetColorU32(ImGuiCol.TextDisabled), UiTheme.Fit(summary, width));
                 draw.AddText(min + UiTheme.Px(18, 88), accent, "Ver juegos >");
-                if (hovered) UiTheme.Tooltip(Name(machine) + "\n" + summary);
+                if (hovered) UiTheme.Tooltip(Name(machine) + " · " + machine.Cpu + "\n" + summary);
                 if (selected) Select("machine", machine.Id);
                 ImGui.Spacing();
             }
@@ -278,6 +285,15 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         }
         ImGui.Spacing();
         if (ImGui.Button("Ver todos los juegos")) Select("all");
+    }
+
+    private void DrawCreativeActions()
+    {
+        if (actions == null) return;
+        UiTheme.Section("Dale forma a una idea", "Creá algo propio o combiná mecánicas de los originales que tenés.");
+        if (ImGui.Button("Crear desde cero…")) actions.Create();
+        UiTheme.SameLineIfFits("Fusionar juegos…");
+        if (ImGui.Button("Fusionar juegos…")) actions.Fuse();
     }
 
     private bool Ready(CreatedGame game) => _readyCreated.Get(_contentRevision,
@@ -294,7 +310,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         int count = originals.Count + created.Count;
         int ready = originals.Count(g => g.NotYet == null && g.Confidence >= 50) + created.Count(Ready);
         return count == 0 ? "Sin juegos agregados"
-            : ready == count ? $"{count} juego{(count == 1 ? "" : "s")}" : $"{count} archivos / {ready} admitidos";
+            : ready == count ? $"{count} archivo{(count == 1 ? "" : "s")}" : $"{count} archivos / {ready} admitidos";
     }
 
     private void DrawOriginals()
@@ -505,7 +521,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         if (ImGui.IsItemHovered()) UiTheme.Tooltip(favorite ? "Quitar de favoritos" : "Agregar a favoritos");
         ImGui.TableNextColumn();
         ImGui.BeginDisabled(!playable || library.Scanning);
-        if (ImGui.Button("Jugar", new Vector2(-1, 0))) { Close(); play(); }
+        if (UiTheme.PrimaryButton("Jugar", new Vector2(-1, 0))) { Close(); play(); }
         ImGui.EndDisabled();
         if (!playable && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
             UiTheme.Tooltip(hint ?? "Este formato todavía no se puede abrir.");

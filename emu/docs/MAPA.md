@@ -8,6 +8,8 @@ con `tools/workspace_cleanup.py`, verificar el historial y restaurar una prueba.
 El [bus8080](I8080.md) detalla su modo temporizado, READY y alcance de las pruebas.
 Las [esperas 6502/6510 y DMA NES](NES-DMA.md) describen el reloj durante RDY,
 el arbitraje OAM/DMC y los estados NES4 compatibles con NES2/3.
+La [guía de interfaz y herramientas](DISENO-INTERFAZ.md) describe el buscador de acciones,
+la adaptación de paneles y las referencias de rutinas por edición.
 
 ## Entrada para jugar
 

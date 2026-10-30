@@ -15,10 +15,10 @@ namespace Retro.App;
 /// </summary>
 public sealed class CreatorWindow
 {
-    private static readonly Vector4 Gold = new(1, 0.85f, 0.3f, 1);
-    private static readonly Vector4 Blue = new(0.6f, 0.8f, 1, 1);
-    private static readonly Vector4 Red = new(1, 0.5f, 0.4f, 1);
-    private static readonly Vector4 Green = new(0.5f, 0.9f, 0.5f, 1);
+    private static Vector4 Gold => UiTheme.Accent;
+    private static Vector4 Blue => UiTheme.Accent;
+    private static Vector4 Red => UiTheme.Error;
+    private static Vector4 Green => UiTheme.Success;
 
     private readonly string _romDir;
     private readonly AiSettings _ai;
@@ -69,6 +69,7 @@ public sealed class CreatorWindow
     }
 
     public bool IsWorking => Busy || _manualPrompt != null || _agentDir != null;
+    public bool IsOpen => _open;
     private bool _focusWork, _showSavedProjects;
     public void ShowWork() { _open = true; _focusWork = true; _showSavedProjects = false; }
 
@@ -99,6 +100,7 @@ public sealed class CreatorWindow
         var vp = ImGui.GetMainViewport();
         ImGui.SetNextWindowPos(new Vector2(vp.Pos.X + vp.Size.X - UiTheme.Px(540), vp.WorkPos.Y + 8), ImGuiCond.FirstUseEver);
         ImGui.SetNextWindowSize(new Vector2(UiTheme.Px(530), Math.Min(UiTheme.Px(760), vp.Size.Y - 70)), ImGuiCond.FirstUseEver);
+        WorkspaceLayout.ToolWindowConstraints();
         bool visible = ImGui.Begin("Crear un juego de 8 bits", ref _open);
         WorkspaceLayout.KeepOnScreen();
         if (!visible)
@@ -111,7 +113,14 @@ public sealed class CreatorWindow
         if (_focusWork) ImGui.SetScrollY(0);
         DrawPendingWork();
         if (Busy) { DrawProgress(); ImGui.Separator(); }
-        if (ImGui.BeginTable("proyectos-creador", 2, ImGuiTableFlags.SizingStretchSame))
+        int tabColumns = ImGui.GetContentRegionAvail().X >= ImGui.CalcTextSize("Proyectos guardados").X * 2 + UiTheme.Px(60) ? 2 : 1;
+        if (tabColumns == 1)
+        {
+            int page = _showSavedProjects ? 1 : 0;
+            ImGui.SetNextItemWidth(-1);
+            if (ImGui.Combo("##proyecto-creador", ref page, new[] { "Nuevo proyecto", "Proyectos guardados" }, 2)) _showSavedProjects = page == 1;
+        }
+        else if (ImGui.BeginTable("proyectos-creador", 2, ImGuiTableFlags.SizingStretchSame))
         {
             ImGui.TableNextColumn();
             if (ImGui.Selectable("Nuevo proyecto", !_showSavedProjects, ImGuiSelectableFlags.None, new(0, UiTheme.Px(30)))) _showSavedProjects = false;
@@ -127,13 +136,14 @@ public sealed class CreatorWindow
 
     private void DrawNew()
     {
-        ImGui.TextWrapped("Elegí una máquina y describí el juego que querés crear.");
-        ImGui.TextUnformatted("Máquina:");
-        for (int i = 0; i < Templates.All.Count; i++)
-        {
-            ImGui.SameLine();
-            ImGui.RadioButton(Templates.All[i].Name, ref _machine, i);
-        }
+        UiTheme.Heading("Un juego propio", "De una idea a un programa que podés jugar y seguir editando.");
+        UiTheme.Section("1 · Elegí la máquina");
+        ImGui.SetNextItemWidth(-1);
+        ImGui.Combo("##maquina-creador", ref _machine, Templates.All.Select(template => template.Name).ToArray(), Templates.All.Count);
+        UiTheme.Section("2 · Contá la idea", "Qué hace el jugador, qué busca y qué te gustaría que tenga de especial.");
+        ImGui.InputTextMultiline("##pedido-crear", ref _wish, 4000, new Vector2(-1, UiTheme.Px(86)));
+        AiPicker.Hint("También podés dejarla vacía para explorar una idea nueva.");
+        UiTheme.Section("3 · Elegí cómo crearlo");
         bool callable = AiPicker.IsApi(_ai.Provider);
         AiPicker.Choose(_ai, "crear", "La creación puede necesitar varios pedidos a la IA.",
             () => new(GameWriter.Guide(Templates.All[_machine]),
@@ -142,11 +152,8 @@ public sealed class CreatorWindow
             AiPicker.Hint("Copiá el pedido a tu chat y pegá la respuesta.");
         else if (_ai.Provider == "agent")
             AiPicker.Hint("Prepará la carpeta y pasale la tarea a tu agente.");
-        ImGui.TextUnformatted("Qué juego querés (opcional):");
-        ImGui.InputTextMultiline("##pedido-crear", ref _wish, 1000, new Vector2(-1, UiTheme.Px(44)));
-        AiPicker.Hint("Dejalo vacío si preferís que la IA elija la idea.");
         ImGui.BeginDisabled(Busy || _agentDir != null);
-        if (ImGui.Button(callable ? "Escribir el juego con IA" : _ai.Provider == "manual" ? "Preparar la consigna" : "Preparar la carpeta del agente"))
+        if (UiTheme.PrimaryButton(callable ? "Crear con IA" : _ai.Provider == "manual" ? "Preparar la consigna" : "Preparar la carpeta del agente"))
         {
             if (callable)
                 Write();
@@ -156,11 +163,12 @@ public sealed class CreatorWindow
                 StartAgent();
         }
         ImGui.EndDisabled();
-        ImGui.SameLine();
+        UiTheme.SameLineIfFits("Empezar desde una plantilla");
         ImGui.BeginDisabled(Busy);
-        if (ImGui.Button("Empezar desde la plantilla"))
+        if (ImGui.Button("Empezar desde una plantilla"))
             FromTemplate();
         ImGui.EndDisabled();
+        AiPicker.Hint("La plantilla se puede usar sin IA. La creación automática ensambla, ejecuta y revisa el resultado; aprobar esas pruebas no evalúa por sí solo la calidad del juego.");
         if (!Busy) DrawProgress();
         if (_manualPrompt != null)
             DrawManual();

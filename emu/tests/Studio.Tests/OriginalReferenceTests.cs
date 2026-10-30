@@ -83,6 +83,22 @@ public sealed class OriginalReferenceTests
     }
 
     [Test]
+    public void AReferenceNamesTheEditionAndObservationWithoutClaimingItsPurpose()
+    {
+        var picture = new VideoFrame(8, 8);
+        var survey = new RoutineSurvey(42, false, true, false,
+            [new(0x8010, 3, 9, new string('B', 64), [new(0x8012, 0x4000, true, false, 3)])]);
+        var references = new OriginalReferences([new("a", "Propio", new string('A', 64), picture, survey,
+            [new("propio.nes", 24, new string('C', 64))])]);
+        string text = references.Describe("a", false);
+        Assert.That(text, Does.Contain("archivos + perfil + firmware").And.Contain(new string('A', 64)));
+        Assert.That(text, Does.Contain("propio.nes").And.Contain("SHA-256 " + new string('C', 64)));
+        Assert.That(text, Does.Contain("42 pasos").And.Contain("sin monitor de lecturas E/S").And.Contain("Resumen acotado"));
+        Assert.That(text, Does.Contain("$8010").And.Contain("Sitio $8012").And.Contain("memoria $4000, 3 veces"));
+        Assert.That(text, Does.Contain("no demuestra qué mecánica").And.Contain("No se entregan bytes"));
+    }
+
+    [Test]
     public void ReferencesAreObservationsOfOriginals_NeverExecutionOfTheGeneratedScript()
     {
         var found = TestGames.Find() ?? throw new IgnoreException("Hacen falta los originales para la referencia nativa.");

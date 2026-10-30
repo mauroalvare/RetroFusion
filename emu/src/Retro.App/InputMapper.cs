@@ -150,7 +150,7 @@ public sealed class InputMapper
         return map.ToArray();
     }
     private static readonly KeyboardKey[] HostFunctionKeys = [KeyboardKey.F2, KeyboardKey.F4, KeyboardKey.F5, KeyboardKey.F8, KeyboardKey.F9, KeyboardKey.F10];
-    private static readonly KeyboardKey[] HostToolKeys = [KeyboardKey.O, KeyboardKey.K, KeyboardKey.L, KeyboardKey.M, KeyboardKey.S];
+    private static readonly KeyboardKey[] HostToolKeys = [KeyboardKey.O, KeyboardKey.K, KeyboardKey.L, KeyboardKey.M, KeyboardKey.S, KeyboardKey.P];
     public static HashSet<string> CollectPcKeys(Func<KeyboardKey, bool> down, bool enabled)
     {
         var now = new HashSet<string>();

@@ -13,6 +13,10 @@ internal static class WorkspaceLayout
     /// <summary>Call before Begin of an auto-sized window: its content scrolls instead of covering the status bar.</summary>
     public static void LimitNextWindow() => ImGui.SetNextWindowSizeConstraints(Vector2.Zero, Available());
 
+    /// <summary>A larger font also widens an existing panel. Small screens use the full available width.</summary>
+    public static void ToolWindowConstraints() => ImGui.SetNextWindowSizeConstraints(
+        Vector2.Min(UiTheme.Px(430, 240), Available()), Available());
+
     public static void KeepOnScreen()
     {
         if (ImGui.IsWindowDocked()) return;

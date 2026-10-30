@@ -26,6 +26,18 @@ la presentación pedida y agregá información solo cuando ayude a jugar. Los te
 jugador son breves, en castellano rioplatense y con los caracteres de la máquina. El
 diseño detallado queda en metadatos o comentarios, fuera de la ayuda del jugador.
 
+La presentación debe permitir reconocer qué se puede hacer, qué cambió y por qué.
+Definí una jerarquía: acción de la partida, información para decidir y opciones menos
+frecuentes. Comprobá inicio, juego, pausa, error o derrota y reinicio según correspondan.
+Usá señales por forma, posición, animación o sonido además del color. Una mejora visual
+conserva controles, guardados y reglas correctas; no agrega pantallas que retrasen jugar.
+
+Si recibís referencias de rutinas, citá ranura, edición SHA-256, dirección y observación
+concreta. La huella del conjunto también incluye perfil y firmware; no es el hash de
+una ROM. Una escritura o una agrupación por llamadas es evidencia parcial, no prueba
+del propósito de una rutina. Proponé cómo contrastar su función antes de usarla como
+base de una mecánica. Aprendé la técnica y escribí una implementación propia.
+
 Implementá una partida completa: objetivo entendible, controles consistentes, progreso,
 final cuando corresponda y reinicio que restaure posiciones, objetos, relojes, teclas,
 sonidos y estado de los originales. Movimiento, dibujo y choques usan las mismas

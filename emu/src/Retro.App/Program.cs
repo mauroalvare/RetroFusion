@@ -30,9 +30,19 @@ if (args.Contains("--hidden"))
 Raylib.SetConfigFlags(flags);
 Raylib.InitWindow(1280, 840, "RetroEmu");
 Raylib.SetWindowMinSize(640, 480);
+// Deterministic layout checks use an isolated hidden instance, never the user's desktop size.
+int sizeIndex = Array.IndexOf(args, "--ui-size");
+if (args.Contains("--autotest") && args.Contains("--hidden") && sizeIndex >= 0 && sizeIndex + 1 < args.Length)
+{
+    string[] dimensions = args[sizeIndex + 1].Split('x');
+    if (dimensions.Length == 2 && int.TryParse(dimensions[0], out int width) && int.TryParse(dimensions[1], out int height))
+        Raylib.SetWindowSize(Math.Clamp(width, 640, 3840), Math.Clamp(height, 480, 2160));
+}
 Raylib.SetExitKey(KeyboardKey.Null);
 Raylib.InitAudioDevice();
 rlImGui.Setup(true, true);
+if (args.Contains("--autotest"))
+    unsafe { ImGuiNET.ImGui.GetIO().NativePtr->IniFilename = null; }
 
 var appArgs = args.ToList();
 if (readyIndex >= 0 && readyIndex + 1 < args.Length) appArgs.RemoveRange(readyIndex, 2);

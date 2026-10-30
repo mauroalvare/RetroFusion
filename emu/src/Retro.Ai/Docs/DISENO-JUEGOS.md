@@ -98,6 +98,34 @@ Como metadatos, title es un nombre corto, pitch una oración y howToPlay el obje
 las teclas en dos o tres líneas. Las justificaciones extensas quedan en design o en
 comentarios de desarrollo. Respetá el juego de caracteres de la máquina.
 
+Diseñá también las transiciones: qué se ve al entrar, cómo empieza la partida, cómo
+se reconoce un cambio de estado y cómo se vuelve a intentar. El foco visual principal
+es la acción; después viene la información que permite decidir y luego las opciones
+ocasionales. Evitá instrucciones permanentes sobre el área de juego, avisos que oculten
+un peligro y botones o elementos decorativos que parezcan interactivos sin serlo.
+No dependas solo de una captura bonita: revisá una secuencia de movimiento, respuesta,
+choque y recuperación a resolución nativa. Conservá lo que ya resulta claro.
+
+## Referencias de técnicas y rutinas
+
+Las referencias locales pueden incluir una muestra acotada de ejecución en una máquina
+separada. Cada cita debe identificar el original, el SHA-256 de su archivo, la dirección
+y lo observado. La huella del conjunto incluye además perfil y firmware; la huella de
+código identifica una instantánea de instrucciones, no todo el archivo ni todas sus
+posibles variantes. No las intercambies.
+
+Una lectura de un puerto, una escritura de pantalla o una relación de llamadas no
+demuestran por sí solas que una rutina mueva al jugador, dibuje un sprite o controle
+un objetivo. Las agrupaciones son candidatas, con límites de observación, bancos y
+código cambiante. Separá la observación de la hipótesis y proponé una prueba que pueda
+refutarla: entrada concreta, cambio esperado y comparación con el estado anterior.
+La ausencia de accesos en una muestra corta no demuestra que una función no exista.
+
+Extraé una técnica general y escribí código propio. No copies bloques de instrucciones,
+gráficos o música del original en un juego autónomo. Si el pedido permite usar recursos
+de originales dentro de una fusión, usá solo la API documentada y los datos comprobados
+para esa edición. Una referencia parcial no habilita direcciones nuevas para g.set.
+
 ## 6. Presupuesto técnico
 
 En ensamblador, respetá el arranque documentado, el mapa de memoria, las zonas de

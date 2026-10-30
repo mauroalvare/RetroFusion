@@ -6,6 +6,13 @@ se trata de una limitación deducida que todavía necesita una prueba específic
 
 ## Análisis y modificaciones de partidas
 
+- El hallador de rutinas observa una muestra acotada en una máquina separada; agrupa
+  candidatos por llamadas y no certifica su propósito. Código cambiante impide ofrecer
+  un mapa estable. Solo ve los accesos que la máquina expone; las lecturas E/S no están
+  monitorizadas en todos los sistemas. Direcciones de 20 bits no están admitidas en
+  esta muestra. El visor puede citar una instantánea sin tener identificada la edición
+  de una ranura de fusión, y lo declara. Detalles en [DISENO-INTERFAZ.md](DISENO-INTERFAZ.md).
+
 - El significado de una variable propuesta por IA es una hipótesis. Ver escrituras y
   código no demuestra que su modificación produzca el efecto descrito.
 - El pedido lleva hasta 128 bytes candidatos y 160 instrucciones, a partir de una

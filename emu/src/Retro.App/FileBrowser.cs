@@ -148,10 +148,10 @@ public sealed class FileBrowser
         }
         ImGui.TextUnformatted(UiTheme.Fit(_selected == null ? "Seleccioná un archivo para abrirlo." : Path.GetFileName(_selected), ImGui.GetContentRegionAvail().X));
         ImGui.BeginDisabled(_selected == null);
-        if (ImGui.Button("Abrir", new(UiTheme.Px(110), 0))) OpenSelected(onPick);
-        ImGui.EndDisabled(); ImGui.SameLine();
+        if (UiTheme.PrimaryButton("Abrir", new(UiTheme.Px(110), 0))) OpenSelected(onPick);
+        ImGui.EndDisabled(); UiTheme.SameLineIfFits(UiTheme.Px(110));
         if (ImGui.Button("Cancelar", new(UiTheme.Px(110), 0))) _open = false;
-        ImGui.SameLine(); ImGui.TextDisabled($"{shown.Length} elementos");
+        UiTheme.SameLineIfFits(ImGui.CalcTextSize($"{shown.Length} elementos").X); ImGui.TextDisabled($"{shown.Length} elementos");
         if (ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows))
         {
             if (ImGui.IsKeyPressed(ImGuiKey.Escape)) _open = false;
