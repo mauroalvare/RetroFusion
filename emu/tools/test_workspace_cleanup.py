@@ -1,10 +1,11 @@
 import hashlib
 import json
+import stat
 from pathlib import Path
 import tempfile
 import unittest
 import zipfile
-from workspace_cleanup import archive_history, bounded, restore, verify
+from workspace_cleanup import archive_history, bounded, restore, verify, prune
 
 class ArchiveTests(unittest.TestCase):
     def setUp(self):
@@ -45,5 +46,16 @@ class ArchiveTests(unittest.TestCase):
         with zipfile.ZipFile(path,'a') as store:
             sha=hashlib.sha256(self.content).hexdigest();store.writestr('blobs/'+sha,b'corrupt')
         with self.assertRaises(ValueError):verify(path)
+    def test_readonly_original_is_removed_only_after_archiving_and_restores_its_mode(self):
+        path=self.root/'out/caso/binary.dll';path.chmod(stat.S_IREAD)
+        result=archive_history(self.root,True);self.assertEqual(result['Result'],'PASS')
+        self.assertFalse(path.exists());restore(self.root,Path(result['Archive']),'out/caso')
+        self.assertEqual(path.read_bytes(),self.content);self.assertFalse(path.stat().st_mode & stat.S_IWUSR)
+        path.chmod(stat.S_IWRITE|stat.S_IREAD)
+    def test_prune_refuses_to_remove_modified_content(self):
+        result=archive_history(self.root,True);path=self.root/'out/caso/binary.dll'
+        path.parent.mkdir();path.write_bytes(b'new')
+        report=prune(self.root,Path(result['Archive']),True)
+        self.assertEqual(report['Result'],'PARTIAL');self.assertEqual(path.read_bytes(),b'new')
 
 if __name__=='__main__':unittest.main()

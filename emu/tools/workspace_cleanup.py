@@ -96,6 +96,53 @@ def verify(archive: Path) -> dict:
                 raise ValueError("El contenido no coincide con su SHA-256: " + sha)
     return index
 
+def remove_originals(root: Path, files: list[dict]) -> tuple[int, int, list]:
+    deleted = 0; removed_bytes = 0; skipped = []
+    for row in files:
+        path = bounded(root, row["Path"])
+        if not path.exists():
+            continue
+        try:
+            if digest(path) != row["Sha256"]:
+                skipped.append(dict(Path=row["Path"], Reason="Cambió después de archivar")); continue
+            try:
+                path.unlink()
+            except PermissionError:
+                info = path.stat()
+                if not getattr(info, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_READONLY:
+                    raise
+                # Only a checked, archived original under out/dist may lose READONLY.
+                path.chmod(info.st_mode | stat.S_IWUSR); path.unlink()
+            deleted += 1; removed_bytes += row["Bytes"]
+        except OSError as ex:
+            skipped.append(dict(Path=row["Path"], Reason=str(ex)))
+    directories = {bounded(root, row["Path"]).parent for row in files}
+    # Empty QA trees may never have contained a file, so they are absent from the index.
+    for name in ("out", "dist"):
+        start = bounded(root, name)
+        stack = [start] if start.exists() else []
+        while stack:
+            folder = stack.pop()
+            with os.scandir(folder) as children:
+                for child in children:
+                    relative = Path(child.path).relative_to(root).as_posix()
+                    if is_kept(relative) or child.is_symlink() or getattr(child.stat(follow_symlinks=False), "st_file_attributes", 0) & 0x400:
+                        continue
+                    if child.is_dir(follow_symlinks=False):
+                        path = bounded(root, relative); directories.add(path); stack.append(path)
+    for parent in list(directories):
+        while parent != root and parent.relative_to(root).as_posix() not in ("out", "dist"):
+            directories.add(parent); parent = parent.parent
+    for directory in sorted(directories, key=lambda p: len(p.parts), reverse=True):
+        if directory == root or is_kept(directory.relative_to(root).as_posix()):
+            continue
+        bounded(root, directory.relative_to(root).as_posix())
+        try:
+            directory.rmdir()
+        except OSError:
+            pass
+    return deleted, removed_bytes, skipped
+
 def archive_history(root: Path, apply: bool = False) -> dict:
     root = root.resolve(); files = inventory(root); total = sum(row["Bytes"] for row in files)
     if not apply:
@@ -129,28 +176,7 @@ def archive_history(root: Path, apply: bool = False) -> dict:
     except BaseException:
         # A partial archive is retained for inspection; originals have not been deleted.
         raise
-    deleted = 0; removed_bytes = 0; skipped = []
-    for row in files:
-        path = bounded(root, row["Path"])
-        try:
-            if digest(path) != row["Sha256"]:
-                skipped.append(dict(Path=row["Path"], Reason="Cambió después de archivar")); continue
-            path.unlink(); deleted += 1; removed_bytes += row["Bytes"]
-        except OSError as ex:
-            skipped.append(dict(Path=row["Path"], Reason=str(ex)))
-    # Only empty, explicitly bounded directories are removed; no recursive delete.
-    directories = {bounded(root, row["Path"]).parent for row in files}
-    for parent in list(directories):
-        while parent != root and parent.relative_to(root).as_posix() not in ("out", "dist"):
-            directories.add(parent); parent = parent.parent
-    for directory in sorted(directories, key=lambda p: len(p.parts), reverse=True):
-        if directory == root or is_kept(directory.relative_to(root).as_posix()):
-            continue
-        bounded(root, directory.relative_to(root).as_posix())
-        try:
-            directory.rmdir()
-        except OSError:
-            pass
+    deleted, removed_bytes, skipped = remove_originals(root, files)
     report = dict(Result="PASS" if not skipped else "PARTIAL", Archive=str(archive), ArchiveSha256=digest(archive),
                   ArchiveBytes=archive.stat().st_size, OriginalBytes=total, UniqueBytes=unique_bytes,
                   ArchivedFiles=len(files), UniqueFiles=len(unique), DeletedFiles=deleted,
@@ -159,6 +185,17 @@ def archive_history(root: Path, apply: bool = False) -> dict:
     report_path = archive.with_suffix(".json")
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
     return report
+
+def prune(root: Path, archive: Path, apply: bool = False) -> dict:
+    index = verify(archive)
+    remaining = [row for row in index["Files"] if bounded(root, row["Path"]).exists()]
+    if not apply:
+        return dict(Apply=False, Files=len(remaining), Bytes=sum(row["Bytes"] for row in remaining))
+    deleted, removed_bytes, skipped = remove_originals(root, index["Files"])
+    result = dict(Result="PASS" if not skipped else "PARTIAL", Archive=str(archive), VerifiedBeforeDeletion=True,
+                  DeletedFiles=deleted, RemovedBytes=removed_bytes, Skipped=skipped)
+    archive.with_suffix(".prune.json").write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+    return result
 
 def restore(root: Path, archive: Path, prefix: str) -> dict:
     bounded(root, prefix); index = verify(archive)
@@ -181,12 +218,12 @@ def restore(root: Path, archive: Path, prefix: str) -> dict:
             if digest(temporary) != row["Sha256"]:
                 raise ValueError("Falló la verificación de la restauración.")
             temporary.rename(target)  # Fails if a Windows destination appeared meanwhile.
-            os.utime(target, ns=(row["MtimeNs"], row["MtimeNs"])); count += 1
+            os.utime(target, ns=(row["MtimeNs"], row["MtimeNs"])); target.chmod(row["Mode"]); count += 1
     return dict(Result="PASS", RestoredFiles=count, Prefix=prefix)
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Consolidar temporales sin perder el historial ni datos del usuario.")
-    parser.add_argument("command", choices=["archive", "verify", "restore"])
+    parser.add_argument("command", choices=["archive", "verify", "restore", "prune"])
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1], help="Raíz emu del repositorio")
     parser.add_argument("--apply", action="store_true", help="Archivar, verificar y quitar copias sueltas; por defecto solo informa")
     parser.add_argument("--archive", type=Path); parser.add_argument("--prefix", help="Ruta original out/... o dist/... para restaurar")
@@ -195,6 +232,9 @@ def main() -> None:
         if not (root / "RetroEmu.slnx").is_file():
             parser.error("--root debe señalar la raíz emu del repositorio.")
         result = archive_history(root, args.apply)
+    elif args.command == "prune":
+        if args.archive is None: parser.error("Falta --archive")
+        result = prune(root, args.archive, args.apply)
     elif args.command == "verify":
         if args.archive is None: parser.error("Falta --archive")
         index = verify(args.archive); result = dict(Result="PASS", Files=len(index["Files"]), UniqueFiles=index["UniqueFiles"])
@@ -202,6 +242,8 @@ def main() -> None:
         if args.archive is None or args.prefix is None: parser.error("Faltan --archive y --prefix")
         result = restore(root, args.archive, args.prefix)
     print(json.dumps(result, ensure_ascii=False, indent=2))
+    if result.get("Result") == "PARTIAL":
+        raise SystemExit(2)
 
 if __name__ == "__main__":
     main()

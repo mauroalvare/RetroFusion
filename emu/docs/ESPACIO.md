@@ -27,6 +27,13 @@ del archivo. Después se verifica cada original antes de borrarlo. Un archivo qu
 cambió se conserva; los directorios solo se eliminan si quedaron vacíos. El informe
 JSON junto al ZIP registra archivos, bytes recuperados, su SHA-256 y las excepciones.
 Una interrupción previa a la verificación deja los originales y un archivo `.partial`.
+Los originales de solo lectura pueden quitarse una vez comprobados; el índice conserva
+su modo para restaurarlo. Si hubo archivos ocupados o una interrupción después de
+guardar el archivo, `prune` reanuda solo la eliminación de copias idénticas:
+
+```powershell
+python tools/workspace_cleanup.py prune --archive out/historial/ARCHIVO.zip --apply
+```
 
 El ZIP contiene `index.json` y `blobs/`; para recuperar una ruta original usá la
 herramienta, que también verifica el contenido y evita sobrescribir trabajo distinto:
