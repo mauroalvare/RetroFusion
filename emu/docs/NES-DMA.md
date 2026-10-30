@@ -24,19 +24,30 @@ NES evita desplazar otra vez los mandos en cada dummy consecutivo. La APU conser
 su callback de lectura inmediata predeterminado para usos independientes; la NES
 configura explícitamente el arbitraje externo.
 
-Los estados de NES pasan a formato 4 para conservar la página OAM pendiente al final
-de una instrucción. Se siguen aceptando los formatos 2 y 3 con sus restricciones de
-mapper existentes; esos estados no contienen una petición OAM pendiente. El estado
+Al activar una muestra mediante $4015, la máquina demora la petición inicial dos o
+tres ciclos según la paridad de la escritura; esos ciclos incluyen el Tick de la
+escritura y preceden al intento de detener una lectura. Una petición madura conserva
+el recorrido de parada/dummy/alineación/GET. Este calendario se contrastó con el
+[modelo DMC de Mesen2, revisión b9fa69d](https://github.com/SourMesen/Mesen2/blob/b9fa69ddc6d0a331fb103fdb5eef6904305703c2/Core/NES/APU/DeltaModulationChannel.cpp)
+y se comprobó con programas propios en ambas paridades. No es una medición de silicio.
+
+Los estados de NES pasan a formato 5 para conservar la página OAM pendiente y la
+demora inicial DMC al final de una instrucción. Se siguen aceptando los formatos 2,
+3 y 4 con sus restricciones de mapper existentes; 2/3 no contienen una petición OAM
+pendiente y 2/3/4 restauran la demora DMC en cero (comportamiento anterior). El estado
 de APU y el de CPU conservan sus formatos. No se guardan puntos intermedios de una DMA
 ejecutada dentro de una instrucción.
 
 Catorce pruebas propias de NES cubren paridad, RMW, convivencia OAM/DMC, escrituras,
 cancelación, mandos, restauración y NMI transitoria; doce detectan el estado anterior.
-Se agregan pruebas de ciclos robados del núcleo y de RDY en el 6510. No se incorporan
-ROMs nuevas ni se presenta esto como una certificación completa del hardware.
+Se agregan pruebas de ciclos robados del núcleo y de RDY en el 6510. Siete casos nuevos
+verifican activación, guardado durante la espera, lectura de NES4 y demoras inválidas;
+los dos de activación detectan el inicio prematuro anterior. La suite [nestest](NESTEST.md)
+se usa localmente, con descarga autorizada; no se distribuye su ROM.
 
-Quedan la demora exacta de activación/aborto del DMC, casos límite de solapamiento
+Quedan el aborto y reinicio fino del DMC, casos límite de solapamiento
 al comienzo/final de OAM, conflictos del bus de registros internos, variantes Famicom/
 PAL y el instante preciso de aceptación de interrupciones al recuperar la CPU.
-La suite específica externa de NES sigue pendiente. Referencia primaria de comparación:
+La suite externa específica de DMA sigue pendiente: nestest contrasta CPU, no estos bordes.
+Referencia primaria adicional de comparación:
 [arbitraje de DMA de Mesen](https://github.com/SourMesen/Mesen2/blob/master/Core/NES/NesCpu.cpp).

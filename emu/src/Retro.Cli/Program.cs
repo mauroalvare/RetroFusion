@@ -20,6 +20,7 @@ static int Usage()
         RetroEmu CLI
 
           retro-cli info <archivo>
+          retro-cli nes verificar --rom diagnostico.nes --registro nestest.log [--salida informe.json]
           retro-cli cpu8088 verificar-bus --suite <carpeta-v2> [--opcodes A1,A3,80.0] [--casos 1000] [--salida informe.json]
           retro-cli cpu8088 verificar --suite <carpeta-v2> [--salida informe.json]
           retro-cli cpu8086 verificar --suite <carpeta-v1> [--salida informe.json]
@@ -97,6 +98,29 @@ for (int i = 2; i < args.Length; i++)
 string? Opt(string k) => opts.TryGetValue(k, out var v) ? v[^1] : null;
 if (Opt("modelo") is { } cliModel)
     Environment.SetEnvironmentVariable("RETROEMU_MODELO", cliModel);   // the model of the subscription tool, for this run
+
+if (command == "nes" && mediaPath == "verificar")
+{
+    try
+    {
+        byte[] image = File.ReadAllBytes(Opt("rom") ?? throw new ArgumentException("Falta --rom."));
+        string trace = Opt("registro") ?? throw new ArgumentException("Falta --registro.");
+        byte[] traceBytes = File.ReadAllBytes(trace);
+        var traceLines = new List<string>();
+        using (var reader = new StreamReader(new MemoryStream(traceBytes)))
+            while (reader.ReadLine() is { } line) traceLines.Add(line);
+        var result = Retro.Systems.Nes.NestestVerifier.Verify(image, traceLines);
+        if (Opt("salida") is { } output)
+            File.WriteAllText(output, System.Text.Json.JsonSerializer.Serialize(new { result,
+                romSha256 = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(image)),
+                traceSha256 = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(traceBytes)) },
+                new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+        Console.WriteLine($"NES: {result.States} estados coincidentes; último ciclo {result.LastCycle}. " + (result.Ok ? "Sin diferencias de CPU." : result.Difference));
+        return result.Ok ? 0 : 1;
+    }
+    catch (Exception error) when (error is IOException or ArgumentException or NotSupportedException)
+    { Console.Error.WriteLine("No se pudo verificar NES: " + error.Message); return 2; }
+}
 
 if (command is "cpu8088" or "cpu8086" && mediaPath == "verificar-bus")
     return I8088BusVerification.Run(Opt("suite") ?? "", Opt("salida"), Opt("opcodes"), Opt("casos"),

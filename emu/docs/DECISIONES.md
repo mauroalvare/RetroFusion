@@ -1489,3 +1489,25 @@ SHA-256. Visor y hallador comparten ese algoritmo. Es una instantánea de códig
 del hash del archivo y de la huella de conjunto. No cambia los formatos de juegos ni
 estados. Guías de diseño, carpetas de agentes y pedidos comparten la distinción entre
 presentación, evidencia, hipótesis y pruebas; los robots no certifican calidad creativa.
+
+## D-092 — Contraste nestest y petición inicial DMC
+
+NestestVerifier compara PC/A/X/Y/P/SP y ciclo absoluto antes de cada instrucción en el
+modo C000 del diagnóstico. No ignora flags ni interpreta entradas vacías como pruebas
+aprobadas. Se detiene en la primera diferencia, no ejecuta una instrucción sin estado
+posterior y el CLI identifica los mismos bytes que usó. El corpus externo autorizado,
+revisión95d8f62, coincide en8991 estados hasta26554T. Está excluido del repositorio;
+las regresiones propias detectan cambios de flags, registros y ciclos. La prueba es de
+CPU, no un contraste de DMA/PPU/APU ni de todas las variantes de silicio.
+
+La máquina NES retrasa2/3 ciclos el pedido inicial DMC al escribir$4015, según la
+paridad del reloj. Se conserva el arbitraje existente cuando el pedido madura. El
+calendario se contrastó conceptualmente con Mesen2 b9fa69d y dos programas propios
+reproducen el inicio prematuro anterior. La espera pertenece a la máquina, no a la
+APU independiente ni al núcleo6502. NES5 agrega un int al final del estado (0..3);
+sigue leyendo NES2/3/4 con espera cero. No cambian los formatos deCPU ni deAPU.
+Siete casos cubren las dos paridades, restauración, compatibilidad e inválidos.
+
+El aborto fino, la repetición de DMA cerca del contador de bits, bordes OAM y fases de
+registros internos requieren contraste específico. No se extiende la evidencia de
+nestest a esos comportamientos. 8088/8086 sigue pospuesto por pedido del usuario.

@@ -248,12 +248,13 @@ reutilizan ese motor con diferencias de placa. La NES conserva límites de DMA.
 - Corre en la app, el CLI y la matriz: CPU 2A03, PPU, APU, OAM DMA, dos mandos,
   PRG RAM y estados guardados. La compatibilidad depende también del mapper y del
   uso de vídeo, sonido y periféricos de cada cartucho; reconocerlo no acredita jugabilidad.
-- APU: el DMC roba tres/cuatro ciclos por byte y comparte el bus con OAM. Quedan
-  detalles de activación/aborto y conflictos de registros internos. Los registros de
+- APU: el DMC roba tres/cuatro ciclos por byte y comparte el bus con OAM. La activación
+  espera dos/tres ciclos según paridad; quedan abortos, reinicios finos y conflictos
+  de registros internos. Los registros de
   longitud no tienen la demora de un ciclo frente al contador
   de cuadros y no hay filtros de salida aparte del pasa altos (el sonido es algo más
   brillante que en una consola). Los estados guardados de la versión sin sonido no se
-  pueden cargar. El formato NES4 conserva la página OAM pendiente y acepta NES2/3
+  pueden cargar. El formato NES5 conserva la página OAM y la espera DMC y acepta NES2/3/4
   con sus restricciones de mapper. [Detalle de DMA y esperas](NES-DMA.md).
 - Mappers 0/1/2/3/4/7: NROM, MMC1, UxROM, CNROM, MMC3 y AxROM. Los demás se reconocen y se
   explica por qué no cargan. MMC1 admite bancos PRG/CHR, puerto serie, espejado,
@@ -283,8 +284,9 @@ reutilizan ese motor con diferencias de placa. La NES conserva límites de DMA.
   2C02 (no medida).
 - CNROM: no se emulan los conflictos de bus al elegir banco (los juegos bien hechos no
   dependen de eso).
-- Sin `nestest.nes` (prueba estándar de la CPU): hay que descargarla y espera la
-  confirmación del usuario.
+- [nestest](NESTEST.md) autorizado y contrastado localmente: 8991 estados de CPU y
+  ciclos coincidentes. No certifica PPU/APU/DMA ni todas las variantes de instrucciones.
+  El corpus es opcional y no se distribuye con el programa.
 
 ### Matriz de compatibilidad
 
