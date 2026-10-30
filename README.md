@@ -84,6 +84,9 @@ El selector muestra el hardware de cada máquina y las capturas o carátulas loc
 de los juegos. Una imagen PNG o JPG con el mismo nombre junto al juego sirve como miniatura.
 **Biblioteca** o **Ctrl+L** vuelve al selector y conserva la partida; en Spectrum, C64 y
 PC los atajos de herramientas usan **Ctrl+Shift**, porque Ctrl es una tecla del equipo.
+La barra permanente ofrece **Biblioteca, Jugar, Crear, Analizar, Herramientas y Ayuda**.
+Los talleres ocupan el área completa y Jugar vuelve a la máquina actual. Herramientas
+presenta las funciones con sus requisitos; Buscar encuentra acciones y atajos.
 **Juego > Recientes** reabre lo último que jugaste. **Crear** reúne las
 fusiones y los juegos nuevos; **Herramientas** reúne modificaciones, código y depurador.
 **Opciones** contiene las preferencias, la conexión de IA y los menús de sonido, pantalla
@@ -105,6 +108,9 @@ de audio. [Opciones de sonido](emu/docs/SONIDO.md).
 permite ajustar intentos y tope de texto, con una estimación orientativa y los tokens
 que informe el proveedor. Si se interrumpe un trabajo automático, podés continuarlo
 desde los pendientes del estudio o del creador con su último código y sus ediciones.
+La investigación guarda la idea antes de empezar y conserva cada original completado.
+Si faltan datos, presenta un plan de comprobación, acceso a jugar los originales y el
+analizador; las observaciones humanas se contrastan antes de tratarlas como hechos.
 
 | Código y depurador | Nintendo NES |
 |---|---|

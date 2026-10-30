@@ -4,6 +4,23 @@ Alcance implementado y comportamientos pendientes. Las comprobaciones por edici�
 de un juego no certifican compatibilidad universal. Cuando se indica **probable**,
 se trata de una limitación deducida que todavía necesita una prueba específica.
 
+## Investigación para crear juegos
+
+- La IA no puede garantizar el descubrimiento de todas las reglas de cualquier original.
+  Arranque, entradas reproducibles, escrituras y mecánica completa requieren pruebas distintas.
+  El plan de comprobación conserva los faltantes, ofrece instrucciones y muestra la evidencia
+  por original. Una nota del jugador no se promueve a dato verificado.
+- La investigación guarda la propuesta antes de empezar y los resultados completados por
+  original/revisión. No recupera el interior de una prueba interrumpida antes de su checkpoint.
+  Los registros antiguos pueden contener objetivos recortados sin orden de ranuras ni base;
+  requieren revisión y no contienen un juego ejecutable si nunca se escribió.
+- Observar bytes vecinos de variables conocidas ayuda a encontrar campos omitidos, pero
+  proximidad y cambio de valor no prueban su propósito. Se observa una máquina privada y se
+  restaura su estado; los candidatos necesitan contraste. Las funciones curadas solo se agregan
+  a un alias compatible cuando coincide el SHA-256 del programa completo conocido.
+- La revisión nueva usa proveedores simulados, programas propios y evidencia local por edición.
+  No valida que un proveedor real complete la idea reportada ni que la fusión sea divertida.
+
 ## Análisis y modificaciones de partidas
 
 - El hallador de rutinas observa una muestra acotada en una máquina separada; agrupa

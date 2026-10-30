@@ -131,8 +131,8 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
             _focusSearch = true;
         }
         var viewport = ImGui.GetMainViewport();
-        ImGui.SetNextWindowPos(viewport.WorkPos);
-        ImGui.SetNextWindowSize(new Vector2(viewport.WorkSize.X, Math.Max(1, viewport.WorkSize.Y - UiTheme.StatusBarHeight)));
+        ImGui.SetNextWindowPos(WorkspaceLayout.Origin);
+        ImGui.SetNextWindowSize(WorkspaceLayout.Size);
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, UiTheme.Px(18, 18));
         ImGui.Begin("##inicio", ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoDocking
             | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoBringToFrontOnFocus);

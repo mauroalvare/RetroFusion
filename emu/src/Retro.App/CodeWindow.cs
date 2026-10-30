@@ -17,6 +17,7 @@ namespace Retro.App;
 /// </summary>
 public sealed partial class CodeWindow : IDisposable
 {
+    public void Reopen() { _host.RefreshLoadedProfile(); OpenPage(_activePage); }
     // From the theme, so the listing stays legible in high contrast.
     private static Vector4 LabelColor => UiTheme.Accent;
     private static Vector4 CommentColor => UiTheme.Success;
@@ -28,6 +29,7 @@ public sealed partial class CodeWindow : IDisposable
     private readonly AiSettings _ai;
     private readonly Action<uint> _showInDebugger;
     private bool _open;
+    public bool IsOpen => _open;
 
     // game the analysis belongs to
     private IMachine? _machine;
@@ -98,18 +100,13 @@ public sealed partial class CodeWindow : IDisposable
         Update();
         var machine = _host.Machine;
         if (machine == null || !_open) { _modificationPanelLeft = null; return; }
-        var viewport = ImGui.GetMainViewport();
-        float width = Math.Min(UiTheme.Px(620), viewport.Size.X - 20);
-        ImGui.SetNextWindowPos(new Vector2(viewport.Pos.X + Math.Max(10, viewport.Size.X - width - 10), viewport.WorkPos.Y + 8), ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(width, Math.Min(UiTheme.Px(760), viewport.Size.Y - 70)), ImGuiCond.FirstUseEver);
-        WorkspaceLayout.ToolWindowConstraints();
-        bool visible = ImGui.Begin("Modificar y analizar###game-tools", ref _open);
-        WorkspaceLayout.KeepOnScreen();
+        WorkspaceLayout.NextEditor();
+        bool visible = ImGui.Begin("Modificar y analizar###game-tools", ref _open, WorkspaceLayout.EditorFlags);
         if (!visible)
         { _modificationPanelLeft = null; ImGui.End(); if (!_open) StopObservation(); return; }
-        _modificationPanelLeft = ImGui.GetWindowPos().X - viewport.Pos.X;
-        ImGui.TextColored(LabelColor, _gameName);
-        ImGui.TextDisabled(machine.DisplayName + " · " + machine.Cpu.CpuName);
+        _modificationPanelLeft = null;
+        UiTheme.Eyebrow("ANALIZAR / " + machine.DisplayName.ToUpperInvariant());
+        UiTheme.Heading(_gameName, "Buscá datos, entendé las rutinas y probá cambios sobre la máquina emulada.");
         if (_status.Length > 0)
         {
             ImGui.TextWrapped(_status);
@@ -240,12 +237,12 @@ public sealed partial class CodeWindow : IDisposable
     /// <summary>The system ROM (not part of the game) is hidden from the routine list by default.</summary>
     private static uint SystemRomEnd(IMachine m) => m is Spectrum48 ? 0x4000u : 0u;
 
-    private static (uint start, uint end) RamRange(IMachine m) => m switch
+    internal static (uint start,uint end) SearchRange(string machine)
     {
-        Spectrum48 => (0x5B00, 0xFFFF),          // after the screen and the system variables
-        { Id: "invaders" } => (0x2000, 0x23FF),  // work RAM (the rest is video)
-        _ => (0, 0xFFFF),
-    };
+        var range=Retro.Compat.MemoryLab.RangeFor(machine);
+        return ((uint)range.start,(uint)range.end);
+    }
+    private static (uint start,uint end) RamRange(IMachine m) => SearchRange(m.Id);
 
     // ------------------------------------------------------------------ analysis
     private void Analyze(IMachine m)
@@ -313,8 +310,21 @@ public sealed partial class CodeWindow : IDisposable
             ImGui.TextWrapped("Jugá un momento y pulsá Reconstruir rutinas. Para investigar cambios con IA usá la pestaña Analizar con IA.");
             return;
         }
-        float listWidth = Math.Clamp(ImGui.GetContentRegionAvail().X * 0.35f, 150, 300);
-        ImGui.BeginChild("routinelist", new Vector2(listWidth, 0), ImGuiChildFlags.Borders);
+        bool wide=ImGui.GetContentRegionAvail().X>=UiTheme.Px(700);
+        float listWidth = Math.Clamp(ImGui.GetContentRegionAvail().X * 0.26f, UiTheme.Px(160), UiTheme.Px(280));
+        if (!wide)
+        {
+            ImGui.SetNextItemWidth(-1);
+            if (ImGui.BeginCombo("##compact-routines",_selected is uint selected?Name(m,selected):"Elegí una rutina"))
+            {
+                foreach(var entry in _map.Routines.Values.OrderBy(r=>r.Start))
+                    if (ImGui.Selectable($"{entry.Start:X4} {Name(m,entry.Start)}",_selected==entry.Start)) Select(entry.Start);
+                ImGui.EndCombo();
+            }
+        }
+        if (wide)
+        {
+        ImGui.BeginChild("routinelist", new Vector2(listWidth, Math.Max(UiTheme.Px(240),ImGui.GetContentRegionAvail().Y)), ImGuiChildFlags.Borders);
         ImGui.SetNextItemWidth(-1);
         ImGui.InputTextWithHint("##filtro", "Buscar rutina", ref _filter, 64);
         ImGui.Checkbox("Solo ejecutadas", ref _onlyExecuted);
@@ -343,7 +353,8 @@ public sealed partial class CodeWindow : IDisposable
         ImGui.EndChild();
         ImGui.EndChild();
         ImGui.SameLine();
-        ImGui.BeginChild("routinedetail", Vector2.Zero, ImGuiChildFlags.Borders);
+        }
+        ImGui.BeginChild("routinedetail", new(0,Math.Max(UiTheme.Px(240),ImGui.GetContentRegionAvail().Y)), ImGuiChildFlags.Borders);
         if (_selected is uint sel && _map.Routines.TryGetValue(sel, out var routine))
             DrawRoutine(m, routine);
         else
@@ -363,7 +374,7 @@ public sealed partial class CodeWindow : IDisposable
         ImGui.TextColored(LabelColor, $"{Name(m, r.Start)}  (${r.Start:X4}-${r.End:X4}, {r.Instructions.Count} instrucciones)");
         if (_rename.Length == 0)
             _rename = _notes.Label(r.Start) ?? "";
-        ImGui.SetNextItemWidth(Math.Max(80, ImGui.GetContentRegionAvail().X - 100));
+        ImGui.SetNextItemWidth(Math.Max(UiTheme.Px(60), ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize("Renombrar").X - ImGui.GetStyle().FramePadding.X*2 - ImGui.GetStyle().ItemSpacing.X));
         if (ImGui.InputTextWithHint("##nombre", "nombre nuevo", ref _rename, 64, ImGuiInputTextFlags.EnterReturnsTrue))
             SetLabel(r.Start, _rename);
         ImGui.SameLine();
@@ -371,8 +382,8 @@ public sealed partial class CodeWindow : IDisposable
             SetLabel(r.Start, _rename);
         if (ImGui.Button("Ver en el depurador"))
             _showInDebugger(r.Start);
-        ImGui.SameLine();
         bool bp = _host.Debug.IsBreakpoint(r.Start);
+        UiTheme.SameLineIfFits(bp ? "Quitar breakpoint" : "Breakpoint al entrar");
         ImGui.BeginDisabled(_host.Fusion != null);
         if (ImGui.Button(bp ? "Quitar breakpoint" : "Breakpoint al entrar"))
             _host.Debug.Toggle(r.Start);
@@ -390,7 +401,7 @@ public sealed partial class CodeWindow : IDisposable
             ImGui.TextWrapped(summary);
         DrawRoutineLinks(m, "Llama a:", r.Calls);
         DrawRoutineLinks(m, "La llaman:", r.Callers);
-        DrawExplain(m, r);
+        if (ImGui.CollapsingHeader("Explicación con IA",IsWorking?ImGuiTreeNodeFlags.DefaultOpen:ImGuiTreeNodeFlags.None)) DrawExplain(m, r);
         ImGui.Separator();
 
         if (ImGui.BeginTabBar("routinetabs"))
@@ -422,7 +433,7 @@ public sealed partial class CodeWindow : IDisposable
         ImGui.TextDisabled(title);
         foreach (var t in targets.OrderBy(x => x).Take(24))
         {
-            ImGui.SameLine();
+            UiTheme.SameLineIfFits(Name(m,t));
             if (ImGui.SmallButton($"{Name(m, t)}##{title}{t}"))
                 Select(t);
         }
@@ -446,8 +457,8 @@ public sealed partial class CodeWindow : IDisposable
     private void DrawListing(IMachine m, Routine r)
     {
         using var font = UiTheme.FixedWidth();
-        float editHeight = _line != null ? 92 : 0;
-        ImGui.BeginChild("listing", new Vector2(0, -editHeight), ImGuiChildFlags.None, ImGuiWindowFlags.HorizontalScrollbar);
+        float editHeight = _line != null ? UiTheme.Px(130) : 0;
+        ImGui.BeginChild("listing", new Vector2(0, Math.Max(UiTheme.Px(140),ImGui.GetContentRegionAvail().Y-editHeight)), ImGuiChildFlags.None, ImGuiWindowFlags.HorizontalScrollbar);
         uint? expected = null;
         uint pc = m.Cpu.ProgramCounter;
         foreach (var a in r.Instructions.OrderBy(x => x))

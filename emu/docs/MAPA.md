@@ -14,7 +14,10 @@ la adaptación de paneles y las referencias de rutinas por edición.
 
 ## Entrada para jugar
 
-Al iniciar sin un archivo aparece **Biblioteca**, integrado en el área principal. Ofrece las
+La navegación permanente ofrece **Biblioteca, Jugar, Crear, Analizar, Herramientas y Ayuda**,
+con un selector equivalente al reducir el ancho. Los talleres usan el área completa y Jugar
+vuelve a la máquina actual sin cancelar un trabajo. Al iniciar sin un archivo aparece
+**Biblioteca**, integrada en el área principal. Ofrece las
 máquinas disponibles, sus juegos y **Todos los juegos**, con búsqueda por nombre.
 **Todos los juegos** reúne originales, creados y fusiones; cada máquina lista originales
 y creaciones para ese sistema. **Fusionados** y **Creados** tienen también secciones
@@ -83,8 +86,10 @@ incrusta con `GameDesignGuide.Compact`; `DISENO-JUEGOS.md` queda como consulta a
 Creador y estudio lo envían por todos los modos de trabajo. Las carpetas para agentes
 incluyen `CONTRATO.md` y el documento ampliado; la guía de
 fusión y la documentación técnica conservan sus archivos propios.
-Los borradores automáticos interrumpidos aparecen como **Trabajos pendientes** en el
-estudio; se guardan en `Juegos fusionados/.trabajos`. `StudioWork.cs` contiene el formato
+Las investigaciones interrumpidas aparecen en **Trabajos guardados** del estudio;
+`FusionResearchStore` guarda el objetivo y cada original completado en
+`ROMs/.retroemu/investigaciones`. El plan ofrece acceso a jugar, analizador y pasos de
+comprobación. Los borradores de escritura están en esa sección; se guardan en `Juegos fusionados/.trabajos`. `StudioWork.cs` contiene el formato
 y la escritura atómica, y `StudioDesigner.ResumeAsync` revalida antes de usar la IA.
 El creador desde cero ofrece sus pendientes en esa misma ventana: `GameWork.cs` guarda
 el estado en `Juegos creados/.trabajos` y `GameWriter.ResumeAsync` lo revalida sin sortear

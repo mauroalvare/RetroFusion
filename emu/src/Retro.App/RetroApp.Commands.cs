@@ -8,6 +8,11 @@ public sealed partial class RetroApp
     private IReadOnlyList<AppCommand>? _commandCatalog;
 
     private IReadOnlyList<AppCommand> Commands => _commandCatalog ??= [
+        new("create-hub", "Abrir el taller de creación", "Crear", "inicio proyectos", "", () => OpenHub(HubPage.Create)),
+        new("tools-hub", "Ver todas las herramientas", "Herramientas", "inicio opciones mesa", "", () => OpenHub(HubPage.Tools)),
+        new("help-hub", "Ver ayuda y controles", "Ayuda", "instrucciones teclado mando", "", () => OpenHub(HubPage.Help)),
+        new("play", "Volver a jugar", "Partida", "original continuar", "", OpenPlay),
+        new("replay-tools", "Rebobinado y grabación de entradas", "Partida", "replay historial", "", () => { OpenHub(HubPage.Tools); _showReplayTools=true; }),
         new("library", "Ir a la biblioteca", "Biblioteca", "inicio juegos", ToolShortcut("L"), () => { CloseEditors(); _home.Open(); }),
         new("open", "Abrir juego o programa…", "Biblioteca", "archivo rom cinta disco", ToolShortcut("O"), _browser.Open),
         new("favorites", "Ver favoritos", "Biblioteca", "juegos", "", () => { CloseEditors(); _home.ShowFavorites(); }),
@@ -19,9 +24,9 @@ public sealed partial class RetroApp
             () => _host.Machine != null, "Abrí una máquina o un juego."),
         new("code", "Ver código y rutinas…", "Herramientas", "desensamblador parches referencias", ToolShortcut("K"), () => { CloseEditors(); _home.Close(); _code.Open(); },
             () => _host.Machine != null, "Abrí una máquina o un juego."),
-        new("debugger", "Mostrar u ocultar el depurador", "Herramientas", "cpu memoria registros", "F12", () => { _home.Close(); _debugMode = !_debugMode; },
+        new("debugger", "Mostrar el depurador", "Herramientas", "cpu memoria registros", "F12", OpenDebugger,
             () => _host.Machine != null, "Abrí una máquina o un juego."),
-        new("layout", "Reorganizar paneles del depurador", "Herramientas", "ventanas orden", "", () => { _home.Close(); _debugMode = true; _arrangeDebugger = true; },
+        new("layout", "Reorganizar paneles del depurador", "Herramientas", "ventanas orden", "", () => { OpenDebugger(); _arrangeDebugger = true; },
             () => _host.Machine != null, "Abrí una máquina o un juego."),
         new("save", "Guardar estado rápido", "Partida", "partida progreso", Shortcut("F2"), _host.QuickSave, () => _host.CanUseStates, "Disponible en un original cargado."),
         new("load", "Cargar estado rápido", "Partida", "partida progreso", "", _host.QuickLoad, () => _host.CanUseStates, "Disponible en un original cargado."),

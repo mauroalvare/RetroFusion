@@ -5,6 +5,24 @@ archivo** y arrastrar un archivo siguen siendo las formas directas de empezar. L
 tarjetas por sistema muestran los formatos disponibles; reconocer un formato no
 certifica que un juego llegue a una partida controlable.
 
+## Navegación y espacios de trabajo
+
+La barra superior mantiene **Biblioteca, Jugar, Crear, Analizar, Herramientas y Ayuda**.
+En ventanas chicas se convierte en un selector con las mismas opciones. **Buscar**
+abre el catálogo de acciones. Los menús y sus atajos siguen disponibles.
+
+**Crear** presenta los tres puntos de partida: desde cero, fusionar originales y crear
+con originales. **Herramientas** reúne análisis, código, depuración, partidas guardadas,
+rebobinado, grabación de entradas, capturas, preferencias, sonido, IA y actualizaciones.
+**Ayuda** muestra controles de la máquina actual, atajos y cómo seguir si faltan datos.
+Las acciones que necesitan una partida explican su requisito.
+
+Los talleres y el analizador ocupan el espacio entre las barras, con tarjetas y columnas
+cuando hay ancho suficiente y desplazamiento vertical cuando hace falta. **Jugar** vuelve
+a la máquina actual; ocultar un taller no cancela la IA. Mientras la interfaz ocupa ese
+espacio, teclado y mando no envían acciones a la máquina y el sonido del juego se silencia.
+La biblioteca conserva su comportamiento de pausa y restaura la pausa anterior al salir.
+
 ## Encontrar una acción
 
 **Herramientas > Buscar acción** encuentra opciones por nombre o palabras relacionadas:
@@ -15,8 +33,7 @@ explican qué falta. Buscar no inicia tareas de IA ni cambia la partida.
 
 El menú completo se agrupa bajo **Menú** cuando no cabe. Preferencias conserva tamaños
 de texto de 100 a 200 %, alto contraste, controles, pausa por foco y ahorro de energía.
-Los paneles se ensanchan al aumentar el texto y usan desplazamiento vertical en pantallas
-pequeñas. La interfaz usa una fuente de lectura del sistema; código y registros conservan
+Los espacios se adaptan al texto y usan desplazamiento vertical en pantallas pequeñas. La interfaz usa una fuente de lectura del sistema; código y registros conservan
 tipografía de ancho fijo. No se distribuyen fuentes adicionales.
 Al seguir PC, el depurador retrocede solo por límites de instrucciones observadas que
 conducen a ese PC. Sin esa evidencia empieza en PC: no interpreta operandos anteriores
@@ -27,12 +44,21 @@ no un historial de los últimos saltos.
 
 El creador separa máquina, idea y método de creación. La plantilla sirve sin IA; la
 selección de proveedor, modelo y conexión sigue disponible. El estudio distingue
-originales, juego base y aportes. Una vista previa vacía explica dónde se probará el
-resultado; no muestra el arranque de una máquina que todavía no contiene un juego.
+originales, juego base y aportes. La máquina no se muestra detrás del taller.
+Los juegos terminados se abren desde Biblioteca o Jugar; **Trabajos guardados** permite
+retomar investigaciones y construcciones. La investigación parcial presenta acciones para
+jugar cada original y abrir su analizador, avances por original y guías con pasos/evidencia.
+Las notas del jugador se guardan como observaciones que deben reproducirse, sin convertirlas
+en variables verificadas. [Preparar una fusión](PREPARAR-FUSION.md) detalla la recuperación.
 
 Las guías compartidas de IA exigen conservar lo que funciona, diseñar transiciones y
 respuesta visual, y separar lo observado de lo supuesto. Los robots comprueban parte
 del funcionamiento; sus aprobaciones no certifican diversión, fidelidad ni calidad.
+
+El visor de rutinas mantiene la lista y el detalle en paralelo cuando hay ancho;
+con texto grande ofrece un selector de rutina. La explicación con IA se despliega a
+pedido y el listado conserva un área mínima con desplazamiento. Al volver de Jugar,
+Analizar conserva la página elegida para continuar una búsqueda.
 
 ## Referencias de rutinas
 

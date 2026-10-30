@@ -1511,3 +1511,38 @@ Siete casos cubren las dos paridades, restauración, compatibilidad e inválidos
 El aborto fino, la repetición de DMA cerca del contador de bits, bordes OAM y fases de
 registros internos requieren contraste específico. No se extiende la evidencia de
 nestest a esos comportamientos. 8088/8086 sigue pospuesto por pedido del usuario.
+
+## D-093 — Espacios de trabajo y recuperación de investigación
+
+La barra de navegación persiste entre Biblioteca, Jugar, Crear, Analizar, Herramientas y
+Ayuda; se convierte en selector al faltar ancho. Talleres y analizador usan el área común
+bajo menú/navegación y sobre estado, conservando desplazamiento y accesibilidad. La entrada
+de teclado/mando pertenece a la interfaz mientras ese espacio está activo. Abrir un original
+desde una investigación cierra el editor visible, sin cancelar su trabajo en segundo plano.
+
+FusionResearchWork formato1 registra la propuesta antes de investigar y resultados completados
+tras cada original/revisión. FusionResearchStore usa escritura atómica, bloqueo exclusivo,
+hasta 12 trabajos / 4 MB por archivo en la carpeta privada de originales .retroemu/investigaciones.
+No conserva archivos ROM, capturas, salida de proveedor ni rutas de perfil que un checkpoint
+portable pueda imponer. Conserva estados privados acotados y no reemplaza trabajos para hacer
+lugar. ConstructionId enlaza el borrador de StudioWork al pasar a escritura. La idea/data se
+preservan al cancelar; cambios de motor/perfil invalidan la continuación, edición/firmware
+cambiados impiden reusar el punto. Continuar requiere una acción explícita, con el proveedor
+actual. Notas humanas se marcan sin verificar y se mandan para contrastar, sin alterar perfiles.
+
+El límite de estancamiento depende de cambios en la evidencia del perfil, no de que una prueba
+se haya ejecutado con otra firma de estado. Los resultados parciales ofrecen originales,
+analizador, pruebas por tema y evidencia. La importación antigua lee objetivos de laboratorio
+como propuestas sin base ni orden inferidos y sin inventar un programa.
+
+ProfileLibrary.ForFiles resuelve funciones curadas ocultas por un alias automático únicamente
+si coincide SHA-256 del programa completo conocido; preserva identidad, arranque y datos del
+alias y no reemplaza funciones personalizadas. Las consultas del diseñador usan instantáneas
+de esos perfiles. PreparationNeighborhoods observa hasta 6 candidatos junto a datos conocidos
+en RAM de las 4 máquinas preparables, restaura estado/píxeles y no atribuye propósito por
+adyacencia. El planificador recibe direcciones/codificaciones/permisos ya disponibles como
+contexto, sin ampliar su contrato de salida: solo planes de entrada acotados, sin código ni
+escrituras de direcciones propuestas por IA. No cambian formatos deCPU, estados ni juegos.
+
+El buscador manual comparte el área conservadora de RAM del laboratorio: en NES limita
+la búsqueda a0000–07FF, evitando espejos, E/S y ROM como candidatos de variables.

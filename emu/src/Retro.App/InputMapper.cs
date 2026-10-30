@@ -12,6 +12,7 @@ public enum JoystickMode { Kempston, Cursor, Sinclair1 }
 public sealed class InputMapper
 {
     public JoystickMode Joystick { get; set; } = JoystickMode.Kempston;
+    public bool InterfaceActive { get; set; }
 
     private HashSet<string> _previous = new();
     public Action<string, bool>? KeySink { get; set; }
@@ -107,7 +108,7 @@ public sealed class InputMapper
     {
         if (!available) return false;
         if (_gamepadHeld) _gamepadHeld = GamepadButtons.Any(down);
-        return !_gamepadHeld;
+        return !InterfaceActive && !_gamepadHeld;
     }
 
     public void Update(Retro.Core.IMachine machine, bool keyboardEnabled)

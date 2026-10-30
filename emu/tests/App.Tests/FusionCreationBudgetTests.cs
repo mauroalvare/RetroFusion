@@ -48,10 +48,10 @@ public sealed class FusionCreationBudgetTests
         StudioLibrary.UserFolder = _fusionFolder; CreatedGames.UserFolder = _createdFolder;
         Directory.Delete(_folder, true);
     }
-    private StudioWindow Window(FusionPreparationWorkflow workflow, IAiProvider ai, TimeProvider clock)
+    private StudioWindow Window(FusionPreparationWorkflow workflow, IAiProvider ai, TimeProvider clock, Action<string>? play=null, Action<string>? analyze=null)
     {
         var window = new StudioWindow(new EmulatorHost(), "", _folder, new AiSettings { Provider = "test" }, workflow, () => ai,
-            timingPath: Path.Combine(_folder, "timing.json"), workClock: clock);
+            timingPath: Path.Combine(_folder, "timing.json"), workClock: clock, playOriginal:play, analyzeOriginal:analyze);
         var chosen = (List<string>)Get(window, "_chosen")!;
         var games = (List<GameSource>)Get(window, "_games")!;
         var paths = (Dictionary<string, string>)Get(window, "_originalPaths")!;
@@ -70,6 +70,54 @@ public sealed class FusionCreationBudgetTests
             await Task.Delay(Timeout.InfiniteTimeSpan, ct);
             throw new AssertionException("Canceled calls must not return an answer");
         }
+    }
+
+    [Test]
+    public void ABlockedInvestigationCanOpenBothOriginalsWithoutStartingAnAiJob()
+    {
+        var ai=new WaitingAi(); var played=new List<string>(); var analyzed=new List<string>();
+        var window=Window(new(),ai,TimeProvider.System,played.Add,analyzed.Add);
+        Set(window,"_researchWork",new FusionResearchWork {Concept=Idea,
+            Originals=_targets.Select((t,i)=>new ResearchOriginal(i==0?"a":"b",t.Path,new string('A',64),t.Source.Profile.Id,"")).ToList()});
+        Assert.That(window.OpenResearchOriginal("a"),Is.True);
+        Assert.That(window.OpenResearchOriginal("b",analyze:true),Is.True);
+        Assert.That(window.OpenResearchOriginal("unknown"),Is.False);
+        Assert.That(played,Is.EqualTo(new[]{_targets[0].Path}));
+        Assert.That(analyzed,Is.EqualTo(new[]{_targets[1].Path}));
+        Assert.That(ai.Entered.Task.IsCompleted,Is.False);
+        Assert.That(Get(window,"_fusionPrepareTask"),Is.Null);
+    }
+
+    [Test]
+    public async Task StartingResearchPersistsTheBriefBeforeTheFirstOriginalFinishes()
+    {
+        var entered=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var workflow=new FusionPreparationWorkflow {Prepare=async (_,_,_,ct)=> {entered.TrySetResult(); await Task.Delay(Timeout.InfiniteTimeSpan,ct); throw new AssertionException("Canceled");}};
+        var window=Window(workflow,new WaitingAi(),TimeProvider.System);
+        Call(window,"PrepareConcept",Idea);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        var saved=((FusionResearchStore)Get(window,"_researchStore")!).Pending().Single();
+        Assert.That(saved.Concept.Title,Is.EqualTo(Idea.Title));
+        Assert.That(saved.Originals,Has.Count.EqualTo(2));
+        Assert.That(saved.Preparations,Is.Empty);
+        try {await window.CancelWork();} catch(OperationCanceledException) {}
+        Call(window,"Poll");
+        Assert.That(((FusionResearchStore)Get(window,"_researchStore")!).Pending().Single().Status,Is.EqualTo("paused"));
+        Assert.That(Get(window,"_startTask"),Is.Null);
+    }
+
+    [Test]
+    public void ASeparateDirectProposalCannotOverwriteThePreviouslyViewedResearch()
+    {
+        var window=Window(new(),new WaitingAi(),TimeProvider.System);
+        var work=new FusionResearchWork {Concept=Idea,Slots=[new(){Slot="a",Profile="own0"},new(){Slot="b",Profile="own1"}],
+            Originals=_targets.Select((t,i)=>new ResearchOriginal(i==0?"a":"b",t.Path,new string('A',64),t.Source.Profile.Id,"")).ToList()};
+        var store=(FusionResearchStore)Get(window,"_researchStore")!;store.Save(work);Set(window,"_researchWork",work);Set(window,"_showResearch",false);
+        File.AppendAllText(_targets[0].Path,"changed");
+        Call(window,"Write",Idea with {Title="Otro proyecto",MissingData=""},null!);
+        Assert.That(Get(window,"_researchWork"),Is.Null);
+        Assert.That(store.Pending().Single().Concept.Title,Is.EqualTo(Idea.Title));
+        Assert.That(Get(window,"_referenceTask"),Is.Null);
     }
 
     [Test]

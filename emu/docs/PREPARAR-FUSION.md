@@ -39,19 +39,52 @@ El reloj muestra el tiempo total de ese trabajo: no vuelve a cero al pasar de
 preparación a referencias, escritura o una investigación adicional. El tiempo restante
 también respeta el máximo de una hora.
 
-La pantalla informa qué original y qué requisito se están investigando. Podés abrir
+La pantalla informa qué original se está investigando; el plan conserva los requisitos completos. Podés abrir
 la actividad de la IA o cancelar, incluso durante la prueba de jugabilidad. Los perfiles de las rondas completadas quedan
 guardados y los borradores de escritura siguen disponibles en trabajos pendientes.
-El punto de investigación se conserva en memoria durante ese trabajo; cerrar la
-aplicación no lo convierte en una partida guardada del jugador.
+La idea y las identidades de los originales se guardan antes de investigar. Después de
+cada original y revisión se conservan los avances completados en un checkpoint privado.
+Cancelar conserva esos puntos, incluso si el siguiente original aún no terminó. El trabajo
+actual no completado puede necesitar repetirse; cerrar no fabrica una partida del jugador.
+El reloj se detiene al terminar o pausar esa investigación.
 
 ## Si todavía falta información
+
+![Investigación parcial con originales, acciones y plan de comprobación](img/interfaz/investigacion.png)
+
+Vista de prueba con programas propios; no representa una fusión terminada.
+
 
 Una posición observada no demuestra por sí sola cámara, colisiones, daño ni progreso.
 El estudio conserva los requisitos hasta respaldarlos. Puede detenerse al alcanzar el
 tiempo disponible, ante un fallo de arranque, cuando la IA no encuentra pruebas nuevas
 ni datos nuevos, o si la escritura insiste en el mismo bloqueo sin evidencia adicional.
-El informe conserva los avances y explica el motivo.
+Tres rondas sin cambios en los datos detienen la repetición: ejecutar otra prueba sin
+obtener evidencia no cuenta como avance. El informe conserva los avances y explica el motivo.
+
+En **Trabajos guardados > Ver investigación** aparecen los originales con **Jugar original**
+y **Abrir analizador**, las comprobaciones disponibles y un plan por tema: reloj, movimiento,
+actores y transiciones. Cada guía explica la prueba y la evidencia requerida; también se
+puede copiar completa. **Guardar observación** conserva una nota para reproducir y contrastar.
+**Continuar investigación** inicia otro trabajo con el proveedor elegido y reutiliza lo
+guardado; no se ejecuta automáticamente al abrir la aplicación ni promete completarlo.
+Si ya comenzó la escritura, retoma el borrador asociado.
+
+**Buscar investigaciones de versiones anteriores** recupera objetivos comunes de los
+registros de laboratorio. Se revisan como propuestas: los registros pueden estar recortados
+y no conservan necesariamente la base ni el orden de los originales. No recupera código
+que nunca se guardó. El usuario revisa la selección y vuelve a proponer o preparar la idea.
+
+Los checkpoints están en `ROMs/.retroemu/investigaciones` junto a la carpeta elegida de
+originales. Son privados: contienen el objetivo, rutas, hashes, perfiles, resultados y
+estados de laboratorio; no incluyen los archivos ROM, capturas ni salida de proveedores.
+Hay hasta doce trabajos de 4 MB cada uno. No se borra un trabajo anterior para hacer lugar.
+No se suben ni se distribuyen. No los confundas con los estados personales de partida.
+
+Un cambio de motor o perfil descarta la continuación de máquina que ya no corresponde;
+se preserva la propuesta y se vuelve a comprobar desde los datos actuales. Un cambio de
+edición o firmware impide reutilizar ese punto. Los perfiles automáticos pueden recuperar
+funciones curadas solo si coincide el hash del programa completo de una edición conocida.
 
 Cambiar los originales, sus perfiles, el firmware o la configuración invalida resultados
 que ya no correspondan. Esto también se comprueba cuando la idea entra directamente

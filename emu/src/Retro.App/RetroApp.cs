@@ -69,6 +69,7 @@ public sealed partial class RetroApp
     private string? _autotestShot;
     private double _elapsed;
     private int _windowFrames;
+    private string? _autotestResearchAction;
 
     public RetroApp(string[] args)
     {
@@ -96,7 +97,7 @@ public sealed partial class RetroApp
         Retro.Studio.StudioLibrary.ExportBuiltIns();
         _browser = new FileBrowser(_prefs.LastFolder is { } last && Directory.Exists(last) ? last : games);
         _captureFolder = args.Contains("--autotest") ? Path.Combine(Environment.CurrentDirectory, "out", "autotest-capturas") : ScreenCapture.DefaultFolder;
-        _studio = new StudioWindow(_host, _romDir, games, _ai);
+        _studio = new StudioWindow(_host, _romDir, games, _ai, playOriginal:OpenFile, analyzeOriginal:OpenOriginalAnalysis);
         _code = new CodeWindow(_host, _ai, ShowInDebugger, EditCurrentStudioGame,
             new ModificationHistory(persist: !args.Contains("--autotest")));
         _creator = new CreatorWindow(_romDir, _ai, OpenFile);
@@ -164,6 +165,11 @@ public sealed partial class RetroApp
                 _preferencesOpen = true;
             else if (args[i] == "--actions-window" && args.Contains("--autotest"))
                 _commands.Open();
+            else if (args[i] == "--create-hub" && args.Contains("--autotest")) OpenHub(HubPage.Create);
+            else if (args[i] == "--tools-hub" && args.Contains("--autotest")) OpenHub(HubPage.Tools);
+            else if (args[i] == "--help-hub" && args.Contains("--autotest")) OpenHub(HubPage.Help);
+            else if (args[i] == "--research-window" && args.Contains("--autotest") && i+1<args.Length) { OpenFusionStudio(); _studio.ShowResearch(args[++i]); }
+            else if (args[i] == "--research-action" && args.Contains("--autotest") && args.Contains("--hidden") && i+1<args.Length) _autotestResearchAction=args[++i];
             else if (args[i] == "--text-size")
                 i++;
             else if (args[i] != "--hidden" && File.Exists(args[i]))
@@ -172,7 +178,7 @@ public sealed partial class RetroApp
                 openedFile = true;
             }
         }
-        if (!openedFile && !args.Any(a => a is "--studio" or "--preparar" or "--crear-window" or "--studio-window" or "--code" or "--mods-window" or "--states-window" or "--sound-window" or "--preferences-window" or "--debug"))
+        if (!openedFile && !args.Any(a => a is "--studio" or "--preparar" or "--crear-window" or "--studio-window" or "--code" or "--mods-window" or "--states-window" or "--sound-window" or "--preferences-window" or "--debug" or "--create-hub" or "--tools-hub" or "--help-hub" or "--research-window"))
             _home.Open();
         _updates = new UpdateWindow(args);
     }
@@ -184,6 +190,7 @@ public sealed partial class RetroApp
 
     private void ShowInDebugger(uint address)
     {
+        CloseEditors(); _home.Close();
         _followPc = false;
         _disasmAddr = address.ToString("X4");
         _debugMode = true;
@@ -248,7 +255,7 @@ public sealed partial class RetroApp
     {
         var io = ImGui.GetIO();
         // The focused debugger screen is itself an ImGui window, but owns game input.
-        return io.WantTextInput || _home.IsOpen || _commands.IsOpen || _pendingOpen != null || _browser.IsOpen
+        return io.WantTextInput || InterfaceWorkspace || _commands.IsOpen || _pendingOpen != null || _browser.IsOpen
             || (io.WantCaptureKeyboard && !(_debugMode && _screenFocused));
     }
 
@@ -274,6 +281,7 @@ public sealed partial class RetroApp
         PauseInBackground(m);
         if (m != null && !_updates.Blocking)
         {
+            _input.InterfaceActive=imguiKeyboard || _commands.IsOpen || _host.Paused;
             if (m.Id != _lastMachineId)
                 OnMachineChanged(m);
             bool keyboardToMachine = !imguiKeyboard && !_commands.IsOpen && (!_debugMode || _screenFocused);
@@ -290,7 +298,7 @@ public sealed partial class RetroApp
             _host.Update(dt);
             UploadScreen();
         }
-        s_mute = _sound.Muted || _host.IsFastForwarding || _host.Paused || _updates.Blocking
+        s_mute = _sound.Muted || InterfaceWorkspace || _host.IsFastForwarding || _host.Paused || _updates.Blocking
             || (_sound.MuteInBackground && !Raylib.IsWindowFocused());
         s_volume = _sound.VolumePercent / 100f;
         PaceFrames(m);
@@ -304,21 +312,28 @@ public sealed partial class RetroApp
             _studio.Prepare(_autoPrepare);
             _autoPrepare = null;
         }
+        if (_autotestResearchAction is { } action && _elapsed>1)
+        {
+            Console.WriteLine("acción investigación: "+_studio.OpenResearchOriginal("a",analyze:action=="analyze"));
+            _autotestResearchAction=null;
+        }
 
         // A new text size rebuilds the font atlas, which ImGui only allows between frames.
         if (_themeChanged) { ConfigureStyle(); _themeChanged = false; }
         SetKeyboardNavigation(m);
         Raylib.BeginDrawing();
         Raylib.ClearBackground(new Color(18, 18, 22, 255));
-        if (!_home.IsOpen && !_debugMode && _texW != 0 && !ShowEmptyPreview)
+        if (!InterfaceWorkspace && !_debugMode && _texW != 0)
             DrawPlayScreen();
         rlImGui.Begin(dt);
         ImGui.BeginDisabled(_updates.Blocking);
         DrawMenu();
-        if (_debugMode && !_home.IsOpen)
+        DrawNavigation();
+        if (_debugMode && !InterfaceWorkspace)
             DrawDebugger();
         DrawStatusBar();
         _home.Draw();
+        DrawHub();
         _browser.Draw(PickFromBrowser);
         if (!_home.IsOpen)
         {
@@ -327,7 +342,6 @@ public sealed partial class RetroApp
             _code.Draw();
             DrawStateWindow();
         }
-        DrawEmptyPreview();
         DrawPopups();
         DrawSoundWindow();
         DrawPreferencesWindow();
@@ -365,7 +379,7 @@ public sealed partial class RetroApp
     private void SetKeyboardNavigation(IMachine? m)
     {
         var io = ImGui.GetIO();
-        bool interfaceOnly = m == null || _host.Paused || _home.IsOpen || _browser.IsOpen || _pendingOpen != null
+        bool interfaceOnly = m == null || _host.Paused || InterfaceWorkspace || _browser.IsOpen || _pendingOpen != null
             || _errorPopup != null || _quitNotice != null || _updates.Blocking || _commands.IsOpen;
         // The gamepad moves through the same places (D-pad, A to choose, B to go back).
         var navigation = ImGuiConfigFlags.NavEnableKeyboard | ImGuiConfigFlags.NavEnableGamepad;
@@ -481,11 +495,8 @@ public sealed partial class RetroApp
     private void DrawPlayScreen()
     {
         // Bars measured on the previous frame, so a larger text size never covers the picture.
-        float top = _menuHeight, bottom = UiTheme.StatusBarHeight;
-        // the AI studio panel sits on the right while you play: the game uses the rest
-        float reserved = Math.Max(_code.RightReserve(Raylib.GetScreenWidth()),
-            Math.Max(_studio.RightReserve(Raylib.GetScreenWidth()), _creator.RightReserve(Raylib.GetScreenWidth())));
-        float w = Math.Max(1, Raylib.GetScreenWidth() - reserved), h = Math.Max(1, Raylib.GetScreenHeight() - top - bottom);
+        float top = _menuHeight + WorkspaceLayout.NavigationHeight, bottom = UiTheme.StatusBarHeight;
+        float w = Math.Max(1, Raylib.GetScreenWidth()), h = Math.Max(1, Raylib.GetScreenHeight() - top - bottom);
         float s = MathF.Min(w / _texW, h / _texH);
         if (_prefs.IntegerScale)
             s = MathF.Min(s, MathF.Max(1, MathF.Floor(s)));
@@ -507,7 +518,7 @@ public sealed partial class RetroApp
 
     private void OpenFile(string path)
     {
-        _home.Close();
+        CloseEditors(); _home.Close(); _debugMode=false;
         string fileName = Path.GetFileName(path);
         try
         {
@@ -610,12 +621,13 @@ public sealed partial class RetroApp
         if (_host.Fusion is Retro.Studio.StudioSession { Game.IsInspired: true }) OpenInspiredCreator();
         else OpenFusionStudio();
     }
-    private void CloseEditors() { _stateWindowOpen = false; _studio.Close(); _creator.Close(); _code.Close(); }
+    private void CloseEditors() { _hub=HubPage.None; _stateWindowOpen = false; _studio.Close(); _creator.Close(); _code.Close(); }
     private void OpenFusionStudio() { CloseEditors(); _home.Close(); _studio.Open(); }
     private void OpenCreator() { CloseEditors(); _home.Close(); _creator.Open(); }
     private void OpenInspiredCreator() { CloseEditors(); _home.Close(); _studio.Open(inspired: true); }
     private void PlayFusion(string id) { CloseEditors(); _home.Close(); _studio.PlayById(id); _studio.Close(); }
     private void OpenModifications() { CloseEditors(); _home.Close(); _code.OpenModifications(); }
+    private void OpenOriginalAnalysis(string path) { OpenFile(path); _code.OpenFinder(); }
 
     private IReadOnlyList<MediaFile> _openedMedia = [];
 
@@ -670,10 +682,7 @@ public sealed partial class RetroApp
         if (textInput)
             return;
         if (Raylib.IsKeyPressed(KeyboardKey.F12))
-        {
-            _home.Close();
-            _debugMode = !_debugMode;
-        }
+        { if (_debugMode && !InterfaceWorkspace) OpenPlay(); else OpenDebugger(); }
         if (Raylib.IsKeyPressed(KeyboardKey.F11))
             ToggleFullscreen();
         bool ctrl = Raylib.IsKeyDown(KeyboardKey.LeftControl) || Raylib.IsKeyDown(KeyboardKey.RightControl);
@@ -688,7 +697,7 @@ public sealed partial class RetroApp
         }
         if (toolModifier && Raylib.IsKeyPressed(KeyboardKey.L)) { CloseEditors(); _home.Open(); }
         if (toolModifier && Raylib.IsKeyPressed(KeyboardKey.M) && _host.Machine != null) OpenModifications();
-        if (_home.IsOpen) return;
+        if (InterfaceWorkspace) return;
         if (_host.Machine == null)
             return;
         if (toolModifier && Raylib.IsKeyPressed(KeyboardKey.S)) SaveCapture();
@@ -929,11 +938,11 @@ public sealed partial class RetroApp
             ImGui.Separator();
             if (ImGui.BeginMenu("Depuración"))
             {
-                if (ImGui.MenuItem("Mostrar depurador", "F12", _debugMode)) { _home.Close(); _debugMode = !_debugMode; }
-                if (ImGui.MenuItem("Paso (una instrucción)", Shortcut("F10"))) { _home.Close(); _host.StepInto(); _debugMode = true; }
-                if (ImGui.MenuItem("Paso por encima (CALL, bucles)", Shortcut("Shift+F10"))) { _home.Close(); _host.StepOver(); _debugMode = true; }
-                if (ImGui.MenuItem("Avanzar un cuadro")) { _home.Close(); _host.StepFrame(); _debugMode = true; }
-                if (ImGui.MenuItem("Reorganizar paneles")) { _home.Close(); _debugMode = true; _arrangeDebugger = true; }
+                if (ImGui.MenuItem("Mostrar depurador", "F12", _debugMode)) { if (_debugMode && !InterfaceWorkspace) OpenPlay(); else OpenDebugger(); }
+                if (ImGui.MenuItem("Paso (una instrucción)", Shortcut("F10"))) { OpenDebugger(); _host.StepInto(); }
+                if (ImGui.MenuItem("Paso por encima (CALL, bucles)", Shortcut("Shift+F10"))) { OpenDebugger(); _host.StepOver(); }
+                if (ImGui.MenuItem("Avanzar un cuadro")) { OpenDebugger(); _host.StepFrame(); }
+                if (ImGui.MenuItem("Reorganizar paneles")) { OpenDebugger(); _arrangeDebugger = true; }
                 if (ImGui.IsItemHovered()) UiTheme.Tooltip("Vuelve a ubicar los paneles para que entren en la ventana actual.");
                 if (ImGui.MenuItem("Borrar todos los breakpoints", "", false, _host.Debug.Breakpoints.Count > 0)) _host.Debug.Clear();
                 ImGui.EndMenu();
@@ -1139,6 +1148,7 @@ public sealed partial class RetroApp
             | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoScrollbar);
         string status;
         if (_home.IsOpen) status = _library.Scanning ? "Buscando juegos..." : $"{_home.GameCount} {(_home.GameCount == 1 ? "juego" : "juegos")} en la biblioteca";
+        else if (_hub!=HubPage.None) status = _hub==HubPage.Create ? "Taller de creación · Ideas, proyectos y trabajos guardados." : _hub==HubPage.Tools ? "Herramientas · Partida, análisis y configuración." : "Ayuda · Controles, atajos y próximos pasos.";
         else if (ShowEmptyPreview) status = _creator.IsOpen ? "Creación desde cero · Prepará una idea o empezá desde una plantilla."
             : "Creación con originales · Elegí los juegos y definí cómo se combinan.";
         else
@@ -1295,8 +1305,8 @@ public sealed partial class RetroApp
     private void PlacePanel(DebuggerLayout.Panel panel)
     {
         var viewport = ImGui.GetMainViewport();
-        var area = Vector2.Max(new Vector2(240, 180), viewport.WorkSize - new Vector2(8, 8 + UiTheme.StatusBarHeight));
-        var (position, size) = DebuggerLayout.Place(panel, viewport.WorkPos + new Vector2(4), area, _host.Zx != null);
+        var area = Vector2.Max(new Vector2(240, 180), WorkspaceLayout.Size - new Vector2(8, 8));
+        var (position, size) = DebuggerLayout.Place(panel, WorkspaceLayout.Origin + new Vector2(4), area, _host.Zx != null);
         var condition = _arrangeDebugger ? ImGuiCond.Always : ImGuiCond.FirstUseEver;
         if (_arrangeDebugger) ImGui.SetNextWindowDockID(0, ImGuiCond.Always);
         ImGui.SetNextWindowPos(position, condition);

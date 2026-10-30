@@ -13,7 +13,7 @@ namespace Retro.App;
 /// into ONE new game, writes it as a script over the real emulated games, tries it and
 /// fixes it; then the player asks for changes and every change is a new version.
 /// </summary>
-public sealed class StudioWindow
+public sealed partial class StudioWindow
 {
     private static Vector4 Gold => UiTheme.Accent;
     private static Vector4 Blue => UiTheme.Accent;
@@ -101,7 +101,8 @@ public sealed class StudioWindow
 
     public StudioWindow(EmulatorHost host, string romDir, string gamesFolder, AiSettings ai,
         FusionPreparationWorkflow? preparationWorkflow = null, Func<IAiProvider?>? preparationProvider = null,
-        string? timingPath = null, TimeProvider? workClock = null)
+        string? timingPath = null, TimeProvider? workClock = null, FusionResearchStore? researchStore = null,
+        Action<string>? playOriginal = null, Action<string>? analyzeOriginal = null)
     {
         _host = host;
         _workClock = workClock ?? TimeProvider.System;
@@ -109,6 +110,8 @@ public sealed class StudioWindow
         _build = new("estudio", timingPath: timingPath, clock: _workClock);
         _romDir = romDir;
         _folder = gamesFolder;
+        _researchStore=researchStore ?? new FusionResearchStore(Path.Combine(gamesFolder,".retroemu","investigaciones"));
+        _playOriginal=playOriginal; _analyzeOriginal=analyzeOriginal;
         _ai = ai;
         _preparationWorkflow = preparationWorkflow ?? new FusionPreparationWorkflow();
         _preparationProvider = preparationProvider ?? (() => ai.CreateProvider(FusionResearchPlan.TotalTime));
@@ -156,6 +159,7 @@ public sealed class StudioWindow
 
     private void Scan()
     {
+        _legacyIdeas=null;
         _libraryChanged = false;
         _games.Clear();
         _unprepared.Clear();
@@ -189,12 +193,19 @@ public sealed class StudioWindow
 
     private IReadOnlyDictionary<string, GameSource> Sources() => _games.ToDictionary(g => g.Profile.Id);
 
+    private Func<string,GameProfile?> ProfileFinder()
+    {
+        var profiles=_games.ToDictionary(g=>g.Profile.Id,g=>GameProfile.Parse(g.Profile.ToJson()));
+        return id=>profiles.GetValueOrDefault(id)??ProfileLibrary.Find(id);
+    }
+
     private List<RecipeGame> Slots() =>
         _chosen.Select((id, i) => new RecipeGame { Slot = SlotNames[i], Profile = id }).ToList();
 
     public bool IsWorking => Busy || _manual != null || _agentDir != null;
     private bool _focusWork;
-    public void ShowWork() { _open = true; _focusWork = true; }
+    public void ShowWork() { _open = true; _focusWork = true; _savedPage=false; }
+    public void ShowSavedWork() { Open(); _savedPage=true; }
 
     private bool Busy => _fusionPrepareTask != null || _prepareTask != null || _conceptTask != null || _designTask != null || _referenceTask != null || _validateTask != null || _startTask != null;
     public Task CancelWork()
@@ -224,29 +235,55 @@ public sealed class StudioWindow
             return;
         }
         if (_libraryChanged && !Busy && _manual == null) Scan();
-        var vp = ImGui.GetMainViewport();
-        ImGui.SetNextWindowPos(new Vector2(vp.Pos.X + vp.Size.X - UiTheme.Px(540), vp.WorkPos.Y + 8), ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(UiTheme.Px(530), Math.Min(UiTheme.Px(760), vp.Size.Y - 70)), ImGuiCond.FirstUseEver);
-        WorkspaceLayout.ToolWindowConstraints();
-        bool visible = ImGui.Begin(_inspiredMode ? "Crear con originales" : "Fusionar juegos", ref _open);
-        WorkspaceLayout.KeepOnScreen();
+        WorkspaceLayout.NextEditor();
+        bool visible = ImGui.Begin(_inspiredMode ? "Crear con originales" : "Fusionar juegos", ref _open, WorkspaceLayout.EditorFlags);
         if (!visible)
         {
             _panelLeft = null;
             ImGui.End();
             return;
         }
-        _panelLeft = ImGui.GetWindowPos().X - vp.Pos.X;
+        _panelLeft = null;
         if (_focusWork) { ImGui.SetScrollY(0); _focusWork = false; }
-        DrawPendingWork();
-        DrawProgress();
+        if (ImGui.GetWindowHeight()>=UiTheme.Px(360)) UiTheme.Eyebrow(_inspiredMode ? "CREAR / CON ORIGINALES" : "CREAR / FUSIÓN");
+        if (ImGui.GetContentRegionAvail().X<ImGui.CalcTextSize("Trabajos guardados").X*2+UiTheme.Px(40))
+        {
+            int page=_savedPage?1:0; ImGui.SetNextItemWidth(-1);
+            if (ImGui.Combo("##studio-page",ref page,new[]{"Proyecto","Trabajos guardados"},2)) _savedPage=page==1;
+        }
+        else if (ImGui.BeginTable("studio-pages",2,ImGuiTableFlags.SizingStretchSame))
+        {
+            ImGui.TableNextColumn();
+            if (ImGui.Selectable("Proyecto",!_savedPage,ImGuiSelectableFlags.None,new(0,UiTheme.Px(30)))) _savedPage=false;
+            ImGui.TableNextColumn();
+            if (ImGui.Selectable("Trabajos guardados",_savedPage,ImGuiSelectableFlags.None,new(0,UiTheme.Px(30)))) _savedPage=true;
+            ImGui.EndTable();
+        }
+        ImGui.Separator();
+        if (_savedPage)
+        {
+            UiTheme.Heading("Continuá donde quedaste", "Investigaciones y construcciones se conservan antes de tener un juego terminado.");
+            if (Busy) DrawProgress(); else
+            {
+                if (_researchReadProblem!=null) UiTheme.Hint(_researchReadProblem);
+                if (_researchStore.Problem.Length>0) UiTheme.Hint(_researchStore.Problem);
+                if (_pendingResearch.Count==0 && _pendingWork.Count==0) UiTheme.EmptyState("No hay trabajos guardados", "Los próximos proyectos se conservarán acá mientras se construyen.");
+                DrawPendingWork(); DrawLegacyRecovery();
+            }
+            ImGui.End(); return;
+        }
+        if (!_showResearch && (Busy || _problem!=null || _manual!=null || _agentDir!=null)) DrawProgress();
         if (_prepareTask != null) DrawPreparation();
-        if (_host.Fusion is StudioSession session && session.Game.IsInspired == _inspiredMode)
+        if (_showResearch && _researchWork!=null)
+            DrawResearchResult();
+        else if (_host.Fusion is StudioSession session && session.Game.IsInspired == _inspiredMode)
             DrawPlaying(session);
         else
             DrawSetup();
         ImGui.End();
     }
+
+    private bool _savedPage;
 
     /// <summary>Progress of "Preparar" (the buttons are next to the games without verified variables).</summary>
     private void DrawPreparation()
@@ -287,6 +324,17 @@ public sealed class StudioWindow
         UiTheme.Heading(_inspiredMode ? "Una nueva combinación" : "Un mundo, nuevas reglas",
             _inspiredMode ? "Creá un juego nuevo a partir de recursos o reglas de tus originales."
             : "Conservá el mundo de un juego base e incorporá mecánicas de los otros.");
+        int columns=ImGui.GetContentRegionAvail().X>=UiTheme.Px(900)?2:1;
+        if (!ImGui.BeginTable("fusion-layout",columns,ImGuiTableFlags.SizingStretchSame)) return;
+        ImGui.TableNextColumn(); UiTheme.BeginCard("originals-card"); DrawSetupOriginals(); UiTheme.EndCard();
+        ImGui.TableNextColumn(); UiTheme.BeginCard("design-card");
+        if (_chosen.Count<2) UiTheme.EmptyState("Elegí al menos dos originales", "Después vas a definir la base, los aportes y el método de trabajo.");
+        else DrawSetupDesign();
+        UiTheme.EndCard(); ImGui.EndTable();
+    }
+
+    private void DrawSetupOriginals()
+    {
         if (ImGui.TreeNode("Carpetas de juegos"))
         {
             ImGui.SetNextItemWidth(-90);
@@ -303,7 +351,6 @@ public sealed class StudioWindow
             ImGui.TreePop();
         }
         AiPicker.Hint(_status);
-        DrawAiChooser("La preparación y creación pueden usar varios pedidos a la IA elegida.");
         ImGui.Separator();
         UiTheme.Section($"1 · Elegí los originales ({_chosen.Count}/3)", "Seleccioná de 2 a 3 juegos. Preparar busca datos que la creación pueda usar.");
         ImGui.SetNextItemWidth(-1);
@@ -349,12 +396,10 @@ public sealed class StudioWindow
             ImGui.EndDisabled();
         }
         if (_prepareTask == null) DrawPreparation();
-        if (_chosen.Count < 2)
-        {
-            ImGui.Spacing();
-            return;
-        }
+    }
 
+    private void DrawSetupDesign()
+    {
         var wanted = _chosen.OrderBy(id => id).ToArray();
         var existing = _savedGames.Where(g => g.IsInspired == _inspiredMode && g.ProfileIds.OrderBy(id => id).SequenceEqual(wanted))
             .GroupBy(g => g.Id).Select(group => group.OrderByDescending(g => g.Version).First()).ToList();
@@ -371,9 +416,11 @@ public sealed class StudioWindow
         ImGui.Spacing();
         if (!_inspiredMode) UiTheme.Section("3 · Definí los aportes");
         ImGui.TextUnformatted(_inspiredMode ? "Tu propuesta para el juego (opcional):" : "Qué querés incorporar a la base (opcional):");
-        ImGui.InputTextMultiline("##deseo", ref _wish, 2000, new Vector2(-1, UiTheme.Px(64)));
+        ImGui.InputTextMultiline("##deseo", ref _wish, 8000, new Vector2(-1, UiTheme.Px(96)));
         AiPicker.Hint(FusionResearchPlan.EstimateText(_chosen.Count, true, CreationEstimate(true)));
         AiPicker.Hint("Puede trabajar hasta una hora en total. Podés ver el avance y cancelar.");
+        UiTheme.Section("Método de trabajo");
+        DrawAiChooser("La preparación y creación pueden usar varios pedidos a la IA elegida.");
         ImGui.BeginDisabled(Busy);
         if (UiTheme.PrimaryButton("Proponer 3 ideas")) AskConcepts();
         ImGui.EndDisabled();
@@ -471,8 +518,8 @@ public sealed class StudioWindow
     {
         bool canPreview = _chosen.Count >= 2 || _host.Fusion is StudioSession active && active.Game.IsInspired == _inspiredMode;
         AiPicker.Choose(_ai, "estudio", costNote, canPreview ? () => _host.Fusion is StudioSession current && current.Game.IsInspired == _inspiredMode
-            ? new(StudioDesigner.Guide, [new(true, StudioDesigner.RevisePrompt(current.Game, current.Game.Games, ProfileLibrary.Find, _request))], StudioDesigner.GameSchema())
-            : new(StudioDesigner.Guide, [new(true, StudioDesigner.WritePrompt(Slots(), ProfileLibrary.Find,
+            ? new(StudioDesigner.Guide, [new(true, StudioDesigner.RevisePrompt(current.Game, current.Game.Games, ProfileFinder(), _request))], StudioDesigner.GameSchema())
+            : new(StudioDesigner.Guide, [new(true, StudioDesigner.WritePrompt(Slots(), ProfileFinder(),
                 new("", "", _wish, "", Direction: SelectedDirection())))], StudioDesigner.GameSchema()) : null);
         if (_ai.Provider == "manual") AiPicker.Hint("Copiá el pedido a tu chat y pegá la respuesta.");
         else if (_ai.Provider == "agent") AiPicker.Hint("Prepará la carpeta y pasale la tarea a tu agente.");
@@ -721,6 +768,7 @@ public sealed class StudioWindow
 
     private void AskConcepts()
     {
+        _researchWork=null; _showResearch=false;
         _creationTiming?.Stop(false); _creationTiming = null;
         _creationInputs = null; _creationContext = null; _creationGuard = null;
         ClearProblem();
@@ -732,7 +780,7 @@ public sealed class StudioWindow
         {
             // agents work on whole games; ideas go through copy and paste
             _manual = new ManualStep("Ideas: pegá la consigna en tu chat de IA",
-                StudioDesigner.ManualConceptPrompt(slots, ProfileLibrary.Find, wish, direction),
+                StudioDesigner.ManualConceptPrompt(slots, ProfileFinder(), wish, direction),
                 answer =>
                 {
                     _concepts = StudioDesigner.ParseConcepts(answer, direction, wish);
@@ -746,7 +794,8 @@ public sealed class StudioWindow
         var token = _cts.Token;
         _progress = $"{ai.Name} está pensando ideas...";
         _build.Start(ai, "ideas", $"{_ai.CliEfforts.GetValueOrDefault(_ai.Provider)}/{_ai.DesignAttempts}");
-        _conceptTask = Task.Run(() => new StudioDesigner().ConceptsAsync(ai, slots, ProfileLibrary.Find, wish, token, direction));
+        var find=ProfileFinder();
+        _conceptTask = Task.Run(() => new StudioDesigner().ConceptsAsync(ai, slots, find, wish, token, direction));
     }
 
     private string PreparationContext()
@@ -825,6 +874,7 @@ public sealed class StudioWindow
     private void PrepareConcept(GameConcept concept)
     {
         if (Busy) return;
+        var resumed=_resumeResearch; _resumeResearch=null;
         bool continuing = _continueCreationResearch;
         _continueCreationResearch = false;
         if (!continuing) BeginCreationWork();
@@ -854,6 +904,7 @@ public sealed class StudioWindow
             targets[index] = targets[index] with { NeedsPreparation = true };
         }
         if (!CaptureCreationInputs()) return;
+        if (!continuing && !StartResearchCheckpoint(concept,slots,targets,resumed)) return;
         StartCreationTiming(true);
         var provider = continuing ? _creationOperation?.Provider : _preparationProvider();
         // Navigation, research, review and writing keep the same text/call/time budget.
@@ -872,12 +923,12 @@ public sealed class StudioWindow
         var ai = _fusionPrepareAi;
         if (ai != null) _build.Start(ai, "preparación de idea");
         bool economic = _ai.Economic;
-        var priorResearch = continuing ? _creationResearch?.Preparations : null;
+        var priorResearch = resumed?.Preparations ?? (continuing ? _creationResearch?.Preparations : null);
         TimeSpan researchTime = CreationRemaining - TimeSpan.FromMinutes(10);
         if (researchTime > FusionResearchPlan.ResearchTime) researchTime = FusionResearchPlan.ResearchTime;
         _fusionPrepareTask = Task.Run(() => _preparationWorkflow.RunAsync(concept, slots, targets, _romDir, advisor,
             ai == null ? null : (idea, freshSlots, find, ct) => new StudioDesigner().ReassessConceptAsync(ai, freshSlots, find, idea, ct),
-            economic, line => _progress = line, token, researchTime, priorResearch), token);
+            economic, line => _progress = line, token, researchTime, priorResearch, CheckpointResearch, _researchWork?.HumanObservation??""), token);
     }
 
     private void CompletePreparation(FusionPreparationResult result)
@@ -904,8 +955,9 @@ public sealed class StudioWindow
         }
         _preparationSummary = result.Summary;
         _creationResearch = result;
+        CheckpointResearch(result);
         if (result.Preparations.Any(r => !r.Ok || r.Profile == null))
-        { _build.Stop(false); Problem(result.Summary); return; }
+        { ResearchBlocked(result); return; }
         if (_fusionPrepareAi == null)
         {
             var snapshot = PreparationContext();
@@ -913,7 +965,7 @@ public sealed class StudioWindow
                 System.Text.Json.JsonSerializer.Serialize(ProfileLibrary.Find(slot.Profile), GameProfile.Json)));
             string profileStamp = ProfileStamp();
             _manual = new ManualStep("Revisar la idea con los datos comprobados",
-                StudioDesigner.ManualReassessPrompt(result.Slots, ProfileLibrary.Find, result.Concept),
+                StudioDesigner.ManualReassessPrompt(result.Slots, id=>result.Sources.GetValueOrDefault(id)?.Profile, result.Concept),
                 answer =>
                 {
                     try { result.EnsureOriginalsUnchanged(); }
@@ -922,10 +974,10 @@ public sealed class StudioWindow
                     if (profileStamp != ProfileStamp())
                     { _manual = null; Problem("Los datos de los originales cambiaron. Volvé a revisar la idea."); return; }
                     if (snapshot != PreparationContext()) { _manual = null; Problem("Cambió la selección o la configuración. La idea anterior se conserva."); return; }
-                    var reviewed = StudioDesigner.ParseReassessment(answer, result.Slots, ProfileLibrary.Find, result.Concept);
+                    var reviewed = StudioDesigner.ParseReassessment(answer, result.Slots, id=>result.Sources.GetValueOrDefault(id)?.Profile, result.Concept);
                     ReplaceIdea(reviewed); _manual = null;
                     if (!string.IsNullOrWhiteSpace(reviewed.MissingData))
-                        Problem("La preparación fue parcial. Todavía falta comprobar: " + reviewed.MissingData);
+                        ResearchBlocked(result with { Concept=reviewed });
                     else Write(reviewed);
                 });
             _progress = "El jugador automático terminó. Revisá la evidencia con tu chat o agente para continuar.";
@@ -934,8 +986,7 @@ public sealed class StudioWindow
         ReplaceIdea(result.Concept);
         if (!string.IsNullOrWhiteSpace(result.Concept.MissingData))
         {
-            _build.Stop(false);
-            Problem("La preparación fue parcial. Todavía falta comprobar: " + result.Concept.MissingData);
+            ResearchBlocked(result);
             return;
         }
         _build.Stop(true);
@@ -946,6 +997,7 @@ public sealed class StudioWindow
 
     private void Write(GameConcept concept, IAiProvider? operation = null)
     {
+        if (!_showResearch) _researchWork=null;
         ClearProblem();
         _activeWork = null;
         if (!string.IsNullOrWhiteSpace(concept.MissingData))
@@ -1006,7 +1058,7 @@ public sealed class StudioWindow
         {
             case "manual":
                 StartManual("Escribir el juego: pegá la consigna en tu chat de IA",
-                    StudioDesigner.ManualWritePrompt(slots, ProfileLibrary.Find, concept), template, first: true, references);
+                    StudioDesigner.ManualWritePrompt(slots, ProfileFinder(), concept), template, first: true, references);
                 break;
             case "agent":
                 StartAgent(template, $"Implementá esta unión respetando la dirección elegida.\n\nIdea: {concept.Title} ({concept.Approach})\n{concept.Pitch}\nCómo se juega: {concept.HowToPlay}\nDiseño: {concept.Design}", first: true, references);
@@ -1028,6 +1080,7 @@ public sealed class StudioWindow
 
     private void Revise(StudioGame current, string request)
     {
+        _researchWork=null; _showResearch=false;
         _creationTiming?.Stop(false); _creationTiming = null;
         _creationInputs = null; _creationContext = null; _creationGuard = null;
         ClearProblem();
@@ -1049,7 +1102,7 @@ public sealed class StudioWindow
         {
             case "manual":
                 StartManual("Versión nueva: pegá la consigna en tu chat de IA",
-                    StudioDesigner.ManualRevisePrompt(current, ProfileLibrary.Find, request), template, first: false, references);
+                    StudioDesigner.ManualRevisePrompt(current, ProfileFinder(), request), template, first: false, references);
                 break;
             case "agent":
                 StartAgent(template, $"El jugador probó la versión {current.Version} (está en juego.js) y pide:\n\n\"{request}\"\n\nHacé la versión siguiente.", first: false, references);
@@ -1062,7 +1115,7 @@ public sealed class StudioWindow
                 _progress = $"{ai!.Name} está preparando la corrección...";
                 _build.Start(ai, "cambios", $"{_ai.CliEfforts.GetValueOrDefault(_ai.Provider)}/{_ai.DesignAttempts}");
                 var designer = RecoverableDesigner(references);
-                _designTask = Task.Run(() => designer.ReviseAsync(ai, current, ProfileLibrary.Find, request,
+                _designTask = Task.Run(() => designer.ReviseAsync(ai, current, id=>sources.GetValueOrDefault(id)?.Profile, request,
                     game => StudioValidator.Run(game, sources, _romDir, ct: token), token, p => _progress = p, references));
                 break;
             }
@@ -1074,6 +1127,8 @@ public sealed class StudioWindow
     {
         work ??= new StudioWork { Originals = references.Items.ToDictionary(r => r.Slot, r => r.Fingerprint) };
         _activeWork = work.Id;
+        if (_researchWork!=null)
+        { _researchWork.ConstructionId=work.Id; _researchWork.Status="building"; _researchStore.Save(_researchWork); }
         var saved = work;
         return new StudioDesigner { AttemptLimit = _ai.DesignAttempts, Checkpoint = state =>
         {
@@ -1085,6 +1140,10 @@ public sealed class StudioWindow
 
     private void RefreshWork()
     {
+        _researchReadProblem=null;
+        try { _pendingResearch=_researchStore.Pending(); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        { _pendingResearch=[]; _researchReadProblem="No se pudieron leer las investigaciones: "+error.Message; }
         try { _pendingWork = StudioWorkStore.Pending(); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         { _pendingWork = Array.Empty<StudioWork>(); }
@@ -1092,6 +1151,7 @@ public sealed class StudioWindow
 
     private void DrawPendingWork()
     {
+        DrawResearchPending();
         var pending = _pendingWork.Where(w => w.State.Template.IsInspired == _inspiredMode).ToList();
         if (Busy || pending.Count == 0) return;
         if (!ImGui.CollapsingHeader($"Trabajos pendientes ({pending.Count})", pending.Count == 1 ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.None)) return;
@@ -1128,6 +1188,8 @@ public sealed class StudioWindow
 
     private void ResumeWork(StudioWork work)
     {
+        if (_researchWork?.ConstructionId!=work.Id) _researchWork=null;
+        _savedPage=false; _showResearch=false; _focusWork=true;
         _creationTiming?.Stop(false); _creationTiming = null;
         _creationInputs = null; _creationContext = null; _creationGuard = null;
         ClearProblem();
@@ -1205,7 +1267,7 @@ public sealed class StudioWindow
             template.Id = StudioLibrary.UniqueId(string.IsNullOrWhiteSpace(template.Id) ? "juego-nuevo" : template.Id);
         string? cli = FindCli();
         string? hint = cli != null ? $"\"{cli}\" studio juego.js --games \"{_folder}\" --shots prueba" : null;
-        _agentDir = StudioWorkspace.Create(template, task, ProfileLibrary.Find, hint, references: references);
+        _agentDir = StudioWorkspace.Create(template, task, ProfileFinder(), hint, references: references);
         _agentTemplate = template;
         _agentSeen = File.GetLastWriteTimeUtc(Path.Combine(_agentDir, StudioWorkspace.ScriptFile));
         _progress = "Esperando que tu agente escriba juego.js...";
@@ -1251,6 +1313,11 @@ public sealed class StudioWindow
             RefreshWork();
             Problem("No se pudo guardar el juego: " + e.Message + ". El trabajo pendiente sigue disponible.");
             return;
+        }
+        if (_researchWork!=null)
+        {
+            try { _researchStore.Remove(_researchWork.Id); _researchWork=null; _showResearch=false; }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
         }
         if (_activeWork != null)
         {
@@ -1306,13 +1373,13 @@ public sealed class StudioWindow
         {
             _fusionPrepareTask = null;
             if (_cts?.IsCancellationRequested == true || prepared.IsCanceled)
-            { _build.Stop(false); _progress = _creationDeadline?.IsCancellationRequested == true
+            { _build.Stop(false); _creationTiming?.Stop(false); PauseResearch(); _progress = _creationDeadline?.IsCancellationRequested == true
                 ? "Se alcanzó una hora de trabajo. Se conservaron la idea y los datos comprobados."
                 : "Preparación cancelada. La idea anterior y los datos comprobados se conservan."; }
             else if (_fusionPrepareContext != PreparationContext())
             { _build.Stop(false); Problem("Cambió la selección o la configuración. No se creó una fusión con datos anteriores."); }
             else if (prepared.IsFaulted)
-            { _build.Stop(false); Problem(Failure(prepared.Exception)); }
+            { _build.Stop(false); _creationTiming?.Stop(false); PauseResearch(); Problem(Failure(prepared.Exception)); }
             else
             {
                 try { CompletePreparation(prepared.Result); }
