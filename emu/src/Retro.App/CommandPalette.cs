@@ -37,10 +37,11 @@ public sealed class CommandPalette
         const string title = "Buscar acción###acciones";
         if (_request) { ImGui.OpenPopup(title); _request = false; _open = true; }
         var vp = ImGui.GetMainViewport();
-        ImGui.SetNextWindowPos(vp.WorkPos + vp.WorkSize * new Vector2(0.5f, 0.12f), ImGuiCond.Appearing, new Vector2(0.5f, 0));
-        ImGui.SetNextWindowSize(new Vector2(Math.Min(UiTheme.Px(620), vp.WorkSize.X - 24), Math.Min(UiTheme.Px(520), vp.WorkSize.Y - UiTheme.StatusBarHeight - 36)), ImGuiCond.Appearing);
+        ImGui.SetNextWindowPos(vp.Pos + new Vector2(vp.Size.X*0.5f,12), ImGuiCond.Appearing, new Vector2(0.5f, 0));
+        ImGui.SetNextWindowSize(new Vector2(Math.Min(UiTheme.Px(620), vp.Size.X - 24), Math.Min(UiTheme.Px(520), vp.Size.Y - UiTheme.StatusBarHeight - 24)), ImGuiCond.Appearing);
         if (!ImGui.BeginPopupModal(title, ref _open, ImGuiWindowFlags.NoDocking)) return;
-        WorkspaceLayout.KeepOnScreen();
+        // A modal owns the dimmed navigation area too; reserving it can leave no result row at 200%.
+        WorkspaceLayout.KeepOnScreen(modal:true);
         bool roomy = ImGui.GetWindowHeight() >= UiTheme.Px(400);
         if (roomy) UiTheme.Hint("Encontrá una herramienta, una opción o una acción de la partida.");
         if (_focus) { ImGui.SetKeyboardFocusHere(); _focus = false; }

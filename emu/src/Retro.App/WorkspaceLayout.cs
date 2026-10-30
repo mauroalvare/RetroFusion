@@ -31,11 +31,12 @@ internal static class WorkspaceLayout
     public static void ToolWindowConstraints() => ImGui.SetNextWindowSizeConstraints(
         Vector2.Min(UiTheme.Px(430, 240), Available()), Available());
 
-    public static void KeepOnScreen()
+    public static void KeepOnScreen(bool modal = false)
     {
         if (ImGui.IsWindowDocked()) return;
-        Vector2 minimum = Origin + new Vector2(8, 8);
-        Vector2 available = Available();
+        var viewport=ImGui.GetMainViewport();
+        Vector2 minimum = (modal?viewport.Pos:Origin) + new Vector2(8, 8);
+        Vector2 available = modal?Vector2.Max(new(100,80),viewport.Size-new Vector2(16,16+UiTheme.StatusBarHeight)):Available();
         Vector2 size = Vector2.Min(ImGui.GetWindowSize(), available);
         if (size != ImGui.GetWindowSize()) ImGui.SetWindowSize(size);
         Vector2 maximum = minimum + available - size;
