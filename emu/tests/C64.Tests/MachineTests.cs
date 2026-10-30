@@ -54,16 +54,21 @@ public class MachineTests
     {
         var m = Booted();
         long before = m.Cpu6510.Cycles;
-        // with the screen on, 25 bad lines take ~40 cycles each from the CPU
+        long instructions = m.Cpu6510.Instructions;
+        // The clock continues while RDY stalls reads; fewer instructions fit in the field.
         Frames(m, 1);
         long withScreen = m.Cpu6510.Cycles - before;
+        long activeOn = m.Cpu6510.Instructions - instructions;
         m.Vic.Write(0x11, 0x0B);   // display off: no bad lines
         Frames(m, 1);
         before = m.Cpu6510.Cycles;
+        instructions = m.Cpu6510.Instructions;
         Frames(m, 1);
         long screenOff = m.Cpu6510.Cycles - before;
+        long activeOff = m.Cpu6510.Instructions - instructions;
+        Assert.That(withScreen, Is.InRange(C64.CyclesPerFrame - 10, C64.CyclesPerFrame + 10));
         Assert.That(screenOff, Is.InRange(C64.CyclesPerFrame - 10, C64.CyclesPerFrame + 10));
-        Assert.That(screenOff - withScreen, Is.InRange(900, 1100));
+        Assert.That(activeOff, Is.GreaterThan(activeOn));
     }
 
     [Test]

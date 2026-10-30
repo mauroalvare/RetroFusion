@@ -1441,3 +1441,23 @@ del acceso. Sus guardados conservan formato: el modo forma parte de la configura
 de placa y no quedan transferencias pendientes entre instrucciones. Veinticinco
 regresiones propias (24 detectan antes), equivalencia de todos los opcodes con dos
 estados de flags y tres diagnósticos externos temporizados conservan los resultados.
+
+## D-090 — Ciclos robados del6502/6510 y arbitraje DMA del2A03
+
+M6502.ClockStall incrementa el reloj y muestrea IRQ/NMI después del avance de los
+periféricos, sin ejecutar una instrucción. C64.Read lo aplica durante la espera VIC-II;
+el contador6510 incluye RDY, conservando la ausencia de espera en escrituras y el
+calendario de dispositivos. El formato de CPU y el de C64 no cambian.
+
+NES.$4014 deja una página pendiente y la siguiente lectura arbitra OAM. RMW conserva
+su última escritura; GET/PUT se alinean en513/514 ciclos. El lector DMC externo de
+APU espera lectura, roba3/4 ciclos y tiene prioridad en GET sobre OAM. Los ciclos
+robados avanzan PPU/APU y muestras de interrupción. La lectura de parada afecta los
+mandos; los dummy consecutivos no vuelven a desplazar el registro en NES NTSC.
+
+NES4 agrega la página pendiente y sigue leyendo NES2/3; la configuración externa DMC
+es de la máquina, sin modificar el estado APU. Se comprueban guardados al límite de
+instrucción, no en mitad de la DMA. Catorce pruebas NES propias(12 fallan antes), dos
+de núcleo y dos de RDY6510(una detecta antes) comprueban el recorrido. Los detalles
+de activación/aborto DMC, conflictos de bus, bordes de solapamiento, Famicom/PAL y la
+aceptación exacta de interrupciones siguen pendientes de contraste externo.

@@ -53,6 +53,14 @@ public sealed class Apu
 
     /// <summary>Where the DMC fetches its samples (CPU address space, $8000-$FFFF).</summary>
     public Func<ushort, byte> ReadMemory { get; set; } = _ => 0;
+    /// <summary>Let the machine arbitrate DMC reads with CPU and OAM bus cycles.</summary>
+    public bool ExternalDmcDma { get; set; }
+    public ushort? DmcDmaAddress => ExternalDmcDma && _dmc.NeedsByte ? _dmc.Address : null;
+    public void CompleteDmcDma(byte value)
+    {
+        if (!ExternalDmcDma) throw new InvalidOperationException("El DMC no está conectado al arbitraje DMA externo.");
+        _dmc.CompleteRead(value);
+    }
 
     private readonly Pulse _pulse1 = new(onesComplement: true), _pulse2 = new(onesComplement: false);
     private readonly Triangle _triangle = new();
@@ -175,7 +183,7 @@ public sealed class Apu
             _pulse2.Clock();
             _noise.Clock();
         }
-        _dmc.Clock(ReadMemory);
+        _dmc.Clock(ExternalDmcDma ? null : ReadMemory);
         StepFrameCounter();
     }
 
@@ -461,19 +469,23 @@ public sealed class Apu
             BytesLeft = SampleLength;
         }
 
-        public void Clock(Func<ushort, byte> read)
+        public bool NeedsByte => _buffer < 0 && BytesLeft > 0;
+
+        public void CompleteRead(byte value)
         {
-            // memory reader: fills the one-byte buffer as soon as it is empty
-            if (_buffer < 0 && BytesLeft > 0)
+            if (!NeedsByte) throw new InvalidOperationException("No hay una lectura DMC pendiente.");
+            _buffer = value;
+            Address = Address == 0xFFFF ? (ushort)0x8000 : (ushort)(Address + 1);
+            if (--BytesLeft == 0)
             {
-                _buffer = read(Address);
-                Address = Address == 0xFFFF ? (ushort)0x8000 : (ushort)(Address + 1);
-                if (--BytesLeft == 0)
-                {
-                    if (Loop) Restart();
-                    else if (IrqEnabled) Irq = true;
-                }
+                if (Loop) Restart();
+                else if (IrqEnabled) Irq = true;
             }
+        }
+
+        public void Clock(Func<ushort, byte>? read)
+        {
+            if (NeedsByte && read != null) CompleteRead(read(Address));
             if (Timer > 0)
             {
                 Timer--;

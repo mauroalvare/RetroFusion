@@ -83,6 +83,8 @@ public class MachineTests
         nes.Write(0x2003, 0x10);   // DMA starts at the current OAM address
         long before = nes.Cpu2A03.CycleCount;
         nes.Write(0x4014, 0x02);
+        Assert.That(nes.Cpu2A03.CycleCount, Is.EqualTo(before), "la escritura pide DMA; solo una lectura puede detenerse");
+        nes.Read(0); // the next CPU read grants the DMA
         long stall = nes.Cpu2A03.CycleCount - before;
         Assert.That(stall, Is.InRange(513, 514));
         Assert.That(nes.Ppu.Oam[0x10], Is.EqualTo(0 ^ 0x5A));

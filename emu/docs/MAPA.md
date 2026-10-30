@@ -6,6 +6,8 @@ o rutas que debés adaptar a tus archivos. El diseño interno está en
 La [guía de espacio](ESPACIO.md) explica cómo consolidar paquetes y copias de QA
 con `tools/workspace_cleanup.py`, verificar el historial y restaurar una prueba.
 El [bus8080](I8080.md) detalla su modo temporizado, READY y alcance de las pruebas.
+Las [esperas 6502/6510 y DMA NES](NES-DMA.md) describen el reloj durante RDY,
+el arbitraje OAM/DMC y los estados NES4 compatibles con NES2/3.
 
 ## Entrada para jugar
 

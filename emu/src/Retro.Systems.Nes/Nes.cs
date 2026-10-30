@@ -37,6 +37,7 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
     private float _dcIn, _dcOut;   // high-pass filter state: removes the mixer's DC offset
     private bool _skipBreakpointOnce;
     private ushort _instructionPc;
+    private int _pendingOamPage = -1;
 
     public NesCartridge Cartridge { get; }
     public Ppu Ppu { get; }
@@ -48,6 +49,7 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         Ppu = new Ppu(cartridge);
         _cpu = new M6502(this) { Name = "Ricoh 2A03", DecimalEnabled = false };
         Apu.ReadMemory = a => CpuRead(a, sideEffects: false);
+        Apu.ExternalDmcDma = true;
         _disassembler.Symbols = a => SymbolFor(a);
         Reset(true);
     }
@@ -94,6 +96,7 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         _dcIn = Apu.Output;   // start the high-pass at rest: no click at power on
         _dcOut = 0;
         _strobe = false;
+        _pendingOamPage = -1;
         ReleaseAllKeys();
         _cpu.Reset();
         FrameCount = 0;
@@ -102,6 +105,7 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
     // ------------------------------------------------------------------ the bus
     public byte Read(ushort address)
     {
+        ServiceDma(address);
         byte v = CpuRead(address, sideEffects: true);
         Tick();
         return v;
@@ -171,7 +175,7 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         _openBus = v;
         if (a < 0x2000) _ram[a & 0x7FF] = v;
         else if (a < 0x4000) Ppu.WriteRegister(a, v);
-        else if (a == 0x4014) OamDma(v);
+        else if (a == 0x4014) _pendingOamPage = v;
         else if (a == 0x4016) WriteStrobe(v);
         else if (a < 0x4018) Apu.Write(a, v);
         else if (a < 0x6000) { }                       // test registers and expansion
@@ -180,23 +184,43 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
     }
 
     /// <summary>
-    /// $4014: the CPU stops while 256 bytes of page <paramref name="page"/> are copied to OAM
-    /// through $2004: one idle cycle (two on an odd cycle) and a read and a write per byte.
+    /// DMA can halt a read, never a write. OAM consumes GET/PUT pairs; DMC has priority
+    /// on GET and OAM retries that byte after the unused PUT. No cycle is counted twice.
     /// </summary>
-    private void OamDma(byte page)
+    private void ServiceDma(ushort haltedAddress)
     {
-        int idle = (_cpu.CycleCount & 1) == 1 ? 2 : 1;
-        for (int i = 0; i < idle; i++)
-            Tick();
-        for (int i = 0; i < 256; i++)
+        if (_pendingOamPage >= 0)
         {
-            byte v = CpuRead((ushort)(page << 8 | i), sideEffects: true);
-            Tick();
-            Ppu.WriteRegister(0x2004, v);
-            Tick();
+            int page = _pendingOamPage; _pendingOamPage = -1;
+            DmaIdle(haltedAddress, first: true);
+            if ((_cpu.CycleCount & 1) != 0) DmaIdle(haltedAddress);
+            for (int i = 0; i < 256; i++)
+            {
+                if (Apu.DmcDmaAddress != null) { DmcGet(); DmaIdle(haltedAddress); }
+                byte value = CpuRead((ushort)(page << 8 | i), sideEffects: true); DmaTick();
+                Ppu.WriteRegister(0x2004, value); DmaTick();
+            }
         }
-        _cpu.CycleCount += idle + 512;
+        while (Apu.DmcDmaAddress != null)
+        {
+            DmaIdle(haltedAddress, first: true); DmaIdle(haltedAddress);
+            if ((_cpu.CycleCount & 1) != 0) DmaIdle(haltedAddress);
+            DmcGet();
+        }
     }
+    private void DmaIdle(ushort address, bool first = false)
+    {
+        // NTSC NES repeats the halt read but does not clock controller bits on each
+        // consecutive dummy cycle. Famicom/internal-register bus conflicts need more detail.
+        CpuRead(address, sideEffects: first || address is not (0x4016 or 0x4017));
+        DmaTick();
+    }
+    private void DmcGet()
+    {
+        ushort address = Apu.DmcDmaAddress ?? throw new InvalidOperationException("No hay DMA DMC pendiente.");
+        byte value = CpuRead(address, sideEffects: true); DmaTick(); Apu.CompleteDmcDma(value);
+    }
+    private void DmaTick() { Tick(); _cpu.ClockStall(); }
 
     // ------------------------------------------------------------------ controllers
     private void WriteStrobe(byte v)
@@ -337,7 +361,7 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         using var ms = new MemoryStream();
         using var w = new BinaryWriter(ms);
         w.Write(StateMagic);
-        w.Write(3);
+        w.Write(4);
         w.Write(Cartridge.Identity);
         _cpu.Save(w);
         w.Write(_ram);
@@ -350,6 +374,7 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         w.Write(_openBus);
         w.Write(FrameCount);
         w.Write(_sampleCarry);
+        w.Write(_pendingOamPage);
         return ms.ToArray();
     }
 
@@ -358,8 +383,8 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         using var r = new BinaryReader(new MemoryStream(state));
         if (r.ReadString() != StateMagic) throw new InvalidDataException("No es un estado guardado de NES.");
         int version = r.ReadInt32();
-        if (version is not (2 or 3)) throw new InvalidDataException("La versión del estado NES no está soportada.");
-        if (version == 3 && r.ReadString() != Cartridge.Identity)
+        if (version is not (2 or 3 or 4)) throw new InvalidDataException("La versión del estado NES no está soportada.");
+        if (version >= 3 && r.ReadString() != Cartridge.Identity)
             throw new InvalidDataException("Este estado pertenece a otra edición del juego.");
         if (version == 2 && Cartridge.Mapper is not (0 or 3))
             throw new InvalidDataException("El estado anterior no contiene los bancos de este mapper.");
@@ -374,6 +399,8 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         _openBus = r.ReadByte();
         FrameCount = r.ReadInt64();
         _sampleCarry = r.ReadDouble();
+        _pendingOamPage = version >= 4 ? r.ReadInt32() : -1;
+        if (_pendingOamPage is < -1 or > 255) throw new InvalidDataException("La página DMA pendiente del estado NES no es válida.");
         _audioCount = 0;
         ReleaseAllKeys();
     }

@@ -72,6 +72,9 @@ public sealed partial class M6502 : ICpuDebugView
         _irqSampled = _bus.IrqLine && (P & FlagI) == 0;
     }
 
+    /// <summary>A machine clocks peripherals during a stolen DMA/RDY cycle, then samples CPU interrupt lines here.</summary>
+    public void ClockStall() => Cycle();
+
     private byte Fetch() => Read(PC++);
 
     private void Push(byte v)

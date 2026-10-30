@@ -241,11 +241,13 @@ reutilizan ese motor con diferencias de placa. La NES conserva límites de DMA.
 - Corre en la app, el CLI y la matriz: CPU 2A03, PPU, APU, OAM DMA, dos mandos,
   PRG RAM y estados guardados. La compatibilidad depende también del mapper y del
   uso de vídeo, sonido y periféricos de cada cartucho; reconocerlo no acredita jugabilidad.
-- APU: la lectura de muestras del DMC no le roba ciclos a la CPU (en el chip son hasta 4
-  por byte), los registros de longitud no tienen la demora de un ciclo frente al contador
+- APU: el DMC roba tres/cuatro ciclos por byte y comparte el bus con OAM. Quedan
+  detalles de activación/aborto y conflictos de registros internos. Los registros de
+  longitud no tienen la demora de un ciclo frente al contador
   de cuadros y no hay filtros de salida aparte del pasa altos (el sonido es algo más
   brillante que en una consola). Los estados guardados de la versión sin sonido no se
-  pueden cargar (formato 2).
+  pueden cargar. El formato NES4 conserva la página OAM pendiente y acepta NES2/3
+  con sus restricciones de mapper. [Detalle de DMA y esperas](NES-DMA.md).
 - Mappers 0/1/2/3/4/7: NROM, MMC1, UxROM, CNROM, MMC3 y AxROM. Los demás se reconocen y se
   explica por qué no cargan. MMC1 admite bancos PRG/CHR, puerto serie, espejado,
   PRG RAM de 8 KB y la selección exterior SUROM. No admite MMC1A, EEPROM ni RAM mayor;
@@ -262,8 +264,9 @@ reutilizan ese motor con diferencias de placa. La NES conserva límites de DMA.
 - Sin segundo jugador en la app (el mando 2 existe para el CLI y las fusiones) ni Zapper.
 - La sonda automática no sustituye un guion de arranque curado para intros, selección
   de controles u otros menús del cartucho.
-- La DMA de OAM no se alinea con los ciclos de lectura y escritura del 2A03 al detalle
-  (uno o dos ciclos de espera según la paridad del ciclo).
+- OAM espera una lectura y alinea513/514 ciclos; DMC tiene prioridad en GET. Quedan
+  los bordes del solapamiento, variantes Famicom/PAL y el momento preciso de recuperar
+  interrupciones. Las pruebas propias no sustituyen la suite externa específica.
 - PPU: cada línea visible se dibuja entera en su punto 1 con el scroll de ese momento.
   Las divisiones de pantalla hechas en el borrado horizontal o con sprite 0 funcionan;
   los cambios de scroll, paleta o patrones en mitad de una línea no se ven hasta la

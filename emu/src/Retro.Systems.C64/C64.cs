@@ -150,7 +150,10 @@ public sealed class C64 : IMachine, IM6502Bus, IMemoryView, IWriteWatch, IIoWatc
     {
         // the VIC-II takes the bus on bad lines: the CPU waits on read cycles
         while (Vic.BaLow)
+        {
             Tick();
+            _cpu.ClockStall();
+        }
         byte v = CpuRead(address, sideEffects: true);
         Tick();
         return v;
