@@ -57,6 +57,7 @@ foreach ($rid in $Runtimes) {
     Copy-Item (Join-Path $root "docs/NOVEDADES-0.3.5.md") (Join-Path $playerDocs "NOVEDADES-0.3.5.md")
     Copy-Item (Join-Path $root "docs/PRECISION-CPU.md") (Join-Path $playerDocs "PRECISION-CPU.md")
     Copy-Item (Join-Path $root "docs/PREFERENCIAS.md") (Join-Path $playerDocs "PREFERENCIAS.md")
+    Copy-Item (Join-Path $root "docs/REBOBINADO.md") (Join-Path $playerDocs "REBOBINADO.md")
     Copy-Item (Join-Path $root "docs/PC-DOS.md") (Join-Path $playerDocs "PC-DOS.md")
     Copy-Item (Join-Path $root "docs/PCXT.md") (Join-Path $playerDocs "PCXT.md")
     Copy-Item (Join-Path $root "docs/I8088.md") (Join-Path $playerDocs "I8088.md")

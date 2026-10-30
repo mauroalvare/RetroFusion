@@ -494,6 +494,12 @@ public sealed class Spectrum48 : IMachine, IZ80Bus, IMemoryView, IWriteWatch, II
     private string[]? _macroKeys;
 
     public void QueueKeys(int framesHeld, params string[] keys) => _macro.Enqueue((keys, framesHeld));
+    public void CancelQueuedKeys()
+    {
+        var held = _macroKeys; _macroKeys = null; _macroUntilFrame = -1; _macro.Clear();
+        if (held != null)
+            foreach (string key in held) SetKey(key, false);
+    }
 
     /// <summary>Types LOAD "" ENTER the way a user would (K mode: J = LOAD).</summary>
     public void TypeLoadCommand()

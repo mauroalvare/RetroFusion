@@ -1311,3 +1311,29 @@ Diez regresiones propias comprueban lecturas/escrituras, puertos, anchos, prelec
 restauración y HOLD/T4; nueve detectan el núcleo sin READY. Esto agrega un contrato
 lógico de esperas, sin afirmar precisión de pines, sincronizador 8284, reloj absoluto
 ni forma de onda INTA. PcBus conserva el nivel alto y su formato de placa.
+
+## D-083 — Historial acotado y reproducción de controles de originales
+
+EmulatorHost conserva opcionalmente estados/píxeles cada medio segundo en un anillo
+de hasta 64 MiB y 600 puntos. Rebobinar restaura mediante el cargador transaccional
+existente, pausa y poda el futuro. Cambiar de sesión, reiniciar o restaurar desde otro
+origen vacía el historial. No se cambia el formato de guardado de ninguna máquina.
+
+La grabación temporal conserva identidad de máquina/edición/firmware, estado inicial,
+transiciones de controles por cuadro y SHA-256 de cada pantalla. Su inicio normaliza
+el estado a través del mismo cargador usado al reproducir, liberando teclas y escritura
+pendiente. InputMapper entrega teclado y mando al SetInput del host; durante reproducción
+ese canal real queda retenido. La reproducción verifica cada cuadro, pausa al diferir
+y libera teclas al terminar o cancelar. Los estados cargados, depuración y cambios de
+sesión cancelan la captura activa; un medio nuevo descarta también la película terminada.
+
+Límites: cinco minutos, 100.000 transiciones totales y 1.024 pendientes por cuadro.
+No se persiste en disco ni se certifican acciones externas, mutaciones de herramientas
+o el JavaScript completo de fusiones. La UI lo ofrece en Juego > Rebobinado y entradas.
+Pruebas con programa propio verifican pantallas y estado final completo, poda/memoria,
+ediciones, límites, entradas reales retenidas y detección de divergencia.
+
+IMachine agrega CancelQueuedKeys opcional para máquinas sin escritura programada.
+Las cinco placas existentes lo implementan y KeySequencer.Clear libera sus teclas
+retenidas y vacía el resto. La app lo usa al restaurar o comenzar la grabación para
+no dejar una macro externa pendiente sobre el punto recuperado.

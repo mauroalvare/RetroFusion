@@ -532,6 +532,7 @@ public sealed class C64 : IMachine, IM6502Bus, IMemoryView, IWriteWatch, IIoWatc
     }
 
     public void QueueKeys(int framesHeld, params string[] keys) => _sequencer.Enqueue(framesHeld, keys);
+    public void CancelQueuedKeys() => _sequencer.Clear(SetKey);
 
     /// <summary>Rows pulled low by pressed keys in the columns CIA 1 drives low (and joystick 1, which shares port B).</summary>
     private byte KeyboardRows()

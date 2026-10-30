@@ -14,6 +14,8 @@ public sealed class InputMapper
     public JoystickMode Joystick { get; set; } = JoystickMode.Kempston;
 
     private HashSet<string> _previous = new();
+    public Action<string, bool>? KeySink { get; set; }
+    public void ForgetKeys() => _previous.Clear();
 
     private static readonly (KeyboardKey key, string[] zx)[] KeyMap = BuildKeyMap();
 
@@ -293,14 +295,14 @@ public sealed class InputMapper
         Apply(m, now);
     }
 
-    private void Apply(Retro.Core.IMachine m, HashSet<string> now)
+    internal void Apply(Retro.Core.IMachine m, HashSet<string> now)
     {
         foreach (var k in _previous)
             if (!now.Contains(k))
-                m.SetKey(k, false);
+                SendKey(m, k, false);
         foreach (var k in now)
             if (!_previous.Contains(k))
-                m.SetKey(k, true);
+                SendKey(m, k, true);
         _previous = now;
     }
 
@@ -366,7 +368,12 @@ public sealed class InputMapper
     public void ReleaseAll(Retro.Core.IMachine m)
     {
         foreach (var k in _previous)
-            m.SetKey(k, false);
+            SendKey(m, k, false);
         _previous.Clear();
+    }
+    private void SendKey(Retro.Core.IMachine machine, string key, bool pressed)
+    {
+        if (KeySink is { } sink) sink(key, pressed);
+        else machine.SetKey(key, pressed);
     }
 }

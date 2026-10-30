@@ -72,6 +72,8 @@ public sealed partial class RetroApp
 
     public RetroApp(string[] args)
     {
+        _input.KeySink = _host.SetInput;
+        _host.InputReset += _input.ForgetKeys;
         _prefs = new AppPreferences(persist: !args.Contains("--autotest"));
         // --text-size 150 and --high-contrast change this session, as --mute does with the sound.
         int textArg = Array.IndexOf(args, "--text-size");
@@ -793,6 +795,22 @@ public sealed partial class RetroApp
             if (ImGui.MenuItem("Guardar estado rápido", Shortcut("F2"), false, _host.CanUseStates)) _host.QuickSave();
             if (ImGui.MenuItem("Cargar estado rápido", _host.Pc != null ? Shortcut("F4") : _host.C64 != null ? "F4" : "F3", false, _host.CanUseStates)) _host.QuickLoad();
             if (ImGui.MenuItem("Partidas guardadas...", "", false, _host.CanUseStates)) OpenStateWindow();
+            if (ImGui.BeginMenu("Rebobinado y entradas", _host.CanUseStates))
+            {
+                bool rewind = _host.RewindEnabled;
+                if (ImGui.MenuItem("Conservar historial (hasta 64 MB)", "", ref rewind)) _host.SetRewindEnabled(rewind);
+                if (ImGui.MenuItem("Retroceder cinco segundos", "", false, _host.RewindPoints > 0 && !_host.IsRecordingInputs && !_host.IsReplayingInputs))
+                    TryStateAction(() => _host.Rewind());
+                if (ImGui.MenuItem("Vaciar historial", "", false, _host.RewindPoints > 0)) _host.ClearRewind();
+                ImGui.TextDisabled($"Historial: {_host.RewindPoints} puntos · {_host.RewindBytes / (1024 * 1024.0):F1} MB");
+                ImGui.Separator();
+                if (ImGui.MenuItem("Grabar entradas desde aquí", "", false, _host.CanRecordInputs)) TryStateAction(() => _host.StartInputRecording());
+                if (ImGui.MenuItem("Terminar grabación", "", false, _host.IsRecordingInputs)) _host.StopInputRecording();
+                if (ImGui.MenuItem("Reproducir última grabación", "", false, _host.CanReplayInputs)) TryStateAction(() => _host.StartInputReplay());
+                if (ImGui.MenuItem("Detener reproducción", "", false, _host.IsReplayingInputs)) _host.StopInputReplay();
+                ImGui.TextDisabled($"Grabación: {_host.RecordedFrames} cuadros (solo esta sesión)");
+                ImGui.EndMenu();
+            }
             ImGui.Separator();
             if (ImGui.MenuItem("Guardar captura de pantalla", ToolShortcut("S"), false, _host.CurrentVideo != null)) SaveCapture();
             if (ImGui.IsItemHovered()) UiTheme.Tooltip("PNG de la pantalla emulada, a su resolución, en " + _captureFolder);

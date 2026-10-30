@@ -133,6 +133,8 @@ public interface IMachine
     void ReleaseAllKeys();
     /// <summary>Presses keys for a number of frames (scripted input, typed commands).</summary>
     void QueueKeys(int framesHeld, params string[] keys);
+    /// <summary>Cancels scripted typing and releases its held keys. Machines without a queue need no action.</summary>
+    void CancelQueuedKeys() { }
 
     byte[] SaveState();
     void LoadState(byte[] state);
@@ -181,6 +183,12 @@ public sealed class KeySequencer
     public bool Busy => _queue.Count > 0 || _held != null;
 
     public void Enqueue(int frames, string[] keys) => _queue.Enqueue((keys, frames));
+    public void Clear(Action<string, bool> setKey)
+    {
+        var held = _held; _held = null; _until = -1; _queue.Clear();
+        if (held != null)
+            foreach (string key in held) setKey(key, false);
+    }
 
     /// <summary>Call once per emulated frame.</summary>
     public void Tick(long frame, Action<string, bool> setKey)

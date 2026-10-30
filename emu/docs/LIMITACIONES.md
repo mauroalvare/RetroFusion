@@ -144,6 +144,18 @@ reutilizan ese motor con diferencias de placa. La NES conserva límites de DMA.
 8088/8086 tienen pendientes explícitos de temporización y contraste.
 [Alcance y pruebas por procesador](PRECISION-CPU.md).
 
+## Rebobinado y reproducción de controles
+
+- Historial optativo, en memoria: hasta 64 MB y 600 estados, aproximadamente dos por
+  segundo. El tiempo disponible depende del tamaño del estado y la pantalla.
+- Una grabación de hasta cinco minutos conserva el estado inicial, entradas y hashes
+  de pantalla. Ignora controles reales durante reproducción y se pausa al discrepar.
+  No registra cambios externos, sesiones de IA, herramientas ni configuración de hardware.
+- Solo originales con estados guardados; no fusiones ni exportación de películas.
+  Empezar una grabación libera teclas y cancela escritura pendiente. El depurador,
+  reinicio y carga de estado cancelan la captura; abrir otro medio también descarta la
+  grabación terminada. [Guía](REBOBINADO.md).
+
 ## Máquinas
 
 ### IBM PC/XT

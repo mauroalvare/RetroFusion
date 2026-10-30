@@ -283,6 +283,7 @@ public sealed class SpaceInvaders : IMachine, I8080Bus, IMemoryView, ICodePatch,
     }
 
     public void QueueKeys(int framesHeld, params string[] keys) => _keys.Enqueue(framesHeld, keys);
+    public void CancelQueuedKeys() => _keys.Clear(SetKey);
 
     public bool TypingInProgress => _keys.Busy;
 

@@ -72,6 +72,7 @@ public sealed class PcXt : IMachine, IMemoryView
     public void StepInstruction() { Step(); _runtime.Present(); }
     public void ResumeFromBreakpoint() => _skipBreakpoint = true;
     public void QueueKeys(int framesHeld, params string[] keys) => _sequence.Enqueue(framesHeld, keys);
+    public void CancelQueuedKeys() => _sequence.Clear(SetKey);
     public IReadOnlyList<MachineKey> Keys => PcKeys.All;
     public void SetKey(string name, bool pressed)
     {

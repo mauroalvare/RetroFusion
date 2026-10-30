@@ -15,7 +15,7 @@ namespace Retro.App;
 /// stepping, breakpoints, save states and the audio queue. Works with any IMachine;
 /// machine specific extras (tape, DIP switches) are reached through Zx / Invaders.
 /// </summary>
-public sealed class EmulatorHost
+public sealed partial class EmulatorHost
 {
     private IMachine? _machine;
 
@@ -35,6 +35,7 @@ public sealed class EmulatorHost
 
     public void StartFusion(Retro.Fusion.IFusionRun session)
     {
+        TimelineStateChanged(newMedia: true);
         SessionChanging?.Invoke();
         MediaRevision++;
         DiscardQuickState();
@@ -49,6 +50,7 @@ public sealed class EmulatorHost
 
     public void StopFusion()
     {
+        TimelineStateChanged(newMedia: true);
         SessionChanging?.Invoke();
         MediaRevision++;
         DiscardQuickState();
@@ -205,6 +207,7 @@ public sealed class EmulatorHost
 
     private void SetMachine(IMachine m, MachineInfo info, string firmware = "")
     {
+        TimelineStateChanged(newMedia: true);
         SessionChanging?.Invoke();
         MediaRevision++;
         DiscardQuickState();
@@ -224,6 +227,7 @@ public sealed class EmulatorHost
 
     public void Load(MediaFile file, bool autoType)
     {
+        TimelineStateChanged(newMedia: true);
         var profile = ProfileLibrary.ForFiles([file]);
         SessionChanging?.Invoke();
         if (C64 is { } c64)
@@ -331,6 +335,7 @@ public sealed class EmulatorHost
 
     private bool RunOneFrame(IMachine m)
     {
+        ApplyReplayInputs(m);
         BeforeFrame?.Invoke(m);
         Debug.Temporary = _runToAddress;
         var reason = m.RunFrame(Debug.Enabled ? Debug : null);
@@ -359,10 +364,11 @@ public sealed class EmulatorHost
         }
         if (reason == RunStopReason.Breakpoint)
         {
+            StopTimelineForDebug();
             Pause($"Breakpoint en ${m.Cpu.ProgramCounter:X4}");
             return false;
         }
-        return true;
+        return CompleteTimelineFrame(m);
     }
 
     public void Pause(string reason)
@@ -385,6 +391,7 @@ public sealed class EmulatorHost
     {
         if (Machine == null)
             return;
+        StopTimelineForDebug();
         Paused = true;
         BeforeFrame?.Invoke(Machine);
         Machine.StepInstruction();
@@ -414,6 +421,7 @@ public sealed class EmulatorHost
     {
         if (Machine == null)
             return;
+        StopTimelineForDebug();
         _runToAddress = address;
         Machine.ResumeFromBreakpoint();
         Paused = false;
@@ -425,8 +433,7 @@ public sealed class EmulatorHost
             return;
         Paused = true;
         Machine.ResumeFromBreakpoint();
-        BeforeFrame?.Invoke(Machine);
-        Machine.RunFrame(Debug);
+        RunOneFrame(Machine);
         Machine.DrainAudio(_frameAudio);
     }
 
@@ -526,6 +533,7 @@ public sealed class EmulatorHost
     /// <summary>Invalidates game-bound work and clears sound/pacing after a state change.</summary>
     public void StateRestored()
     {
+        TimelineStateChanged();
         _pcDosBooting = _pcDosBootSeen = false; // A restored game must never resume boot acceleration.
         MediaRevision++;
         _accumulator = 0;

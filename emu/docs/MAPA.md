@@ -125,6 +125,12 @@ una ventana autoajustada tape la barra de estado. `SetKeyboardNavigation` habili
 navegación de ImGui solo cuando el juego no tiene el teclado; Alt izquierdo enfoca la
 barra principal. `FramePacing.TargetFps` baja los cuadros sin partida en curso y mantiene
 la frecuencia del monitor mientras se emula. [Preferencias y teclado](PREFERENCIAS.md).
+
+**Juego > Rebobinado y entradas**: historial optativo de 64 MB y grabación temporal de
+controles con SHA-256 de pantalla por cuadro. [Uso y límites](REBOBINADO.md).
+`EmulatorHost.Timeline.cs` integra captura/restauración; `SessionTimeline.cs` acota el
+historial y los registros. `tests/App.Tests/TimelineTests.cs` prueba reproducción
+exacta con un programa propio, divergencia, límites y cambios de sesión.
 `DebuggerLayout.Place` ubica los siete paneles del depurador como fracciones del área
 libre (primer uso y **Herramientas > Depuración > Reorganizar paneles**, que los desacopla).
 `UiTheme.SameLineIfFits` hace que filas de botones y flags continúen abajo; `Highlight`,

@@ -243,6 +243,7 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
     }
 
     public void QueueKeys(int framesHeld, params string[] keys) => _sequencer.Enqueue(framesHeld, keys);
+    public void CancelQueuedKeys() => _sequencer.Clear(SetKey);
 
     // ------------------------------------------------------------------ IMemoryView (debugger)
     public int AddressBits => 16;

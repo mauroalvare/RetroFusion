@@ -45,6 +45,9 @@ hay evidencia suficiente. Puede trabajar hasta una hora en total; si al escribir
 aparece otro faltante, vuelve a investigarlo. Podés ver el avance y cancelar.
 [Preparación automática y tiempos](docs/PREPARAR-FUSION.md).
 
+**Juego > Rebobinado y entradas** permite volver a estados recientes y reproducir
+controles con verificación de pantalla. [Rebobinado y grabación](docs/REBOBINADO.md).
+
 ## Preferencias, sonido y pantalla
 
 **Opciones > Preferencias** reúne tamaño del texto (100 a 200 %), alto contraste,
