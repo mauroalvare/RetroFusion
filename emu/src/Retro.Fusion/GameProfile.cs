@@ -310,7 +310,8 @@ public static class ProfileLibrary
     public static GameProfile? ForFiles(IReadOnlyList<MediaFile> files)
     {
         var all = All();
-        return all.FirstOrDefault(p => p.Match.MatchesHash(files)) ?? all.FirstOrDefault(p => p.Matches(files));
+        var selected = all.FirstOrDefault(p => p.Match.MatchesHash(files)) ?? all.FirstOrDefault(p => p.Matches(files));
+        return selected == null ? null : CuratedCapabilities.Resolve(selected, files);
     }
 
     public static void Save(GameProfile profile) => SaveTo(profile, UserFolder);

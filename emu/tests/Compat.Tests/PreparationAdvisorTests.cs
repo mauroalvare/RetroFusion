@@ -8,6 +8,14 @@ namespace Compat.Tests;
 [TestFixture]
 public sealed class PreparationAdvisorTests
 {
+    [Test]
+    public void PlannerReceivesKnownAddressesAndEncodingWithinABoundedContext()
+    {
+        var question=new PreparationExperimentQuestion {KnownData=["timer: $007A, digits/3, solo lectura",new string('X',20000)]};
+        string context=question.Describe();
+        Assert.That(context,Does.Contain("$007A").And.Contain("digits/3").And.Contain("no demuestra otras reglas"));
+        Assert.That(context.Length,Is.LessThan(3000));
+    }
     private const string Plan = """
         {"experiments":[{"kind":"change","description":"Comparar salto y avance",
         "frames":120,"repeatEvery":0,"steps":[{"frame":2,"keys":"p1 right+P1 A","hold":8}]}]}

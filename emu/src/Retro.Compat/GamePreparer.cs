@@ -474,6 +474,16 @@ public static class GamePreparer
         Say("Laboratorio: verificando cada hipótesis con un experimento...");
         LabVerifier.VerifyBest(m, lab, scores.Concat(livesInPlay).ToDictionary(f => f, _ => play), ct: ct);
         ct.ThrowIfCancellationRequested();
+        if (r.Goal.Length > 0 && previous?.Variables.Count > 0)
+        {
+            Say("Investigación dirigida: observando bytes vecinos de los datos ya conocidos...");
+            foreach (var candidate in PreparationNeighborhoods.Observe(m, previous, ct: ct))
+            {
+                if (lab.Findings.Any(f=>f.Address==candidate.Address && f.Bytes==1 && f.Status=="verified")) continue;
+                LabVerifier.Verify(m,candidate,ct:ct);
+                lab.Findings.Add(candidate);
+            }
+        }
         LabExperiment? advance = null;
         if (r.Goal.Length > 0 && o.Advisor is IPreparationExperimentAdvisor planner)
         {
@@ -486,6 +496,7 @@ public static class GamePreparer
                     Picture = Copy(m.Video), Controls = c, Keys = validKeys.ToList(), Candidates = Candidates(lab, m),
                     Pass = o.InvestigationPass, PreviousExperiments = o.PreviousExperiments.TakeLast(18).ToArray(),
                     KnownVariables = previous?.Variables.Keys.ToArray() ?? [],
+                    KnownData = previous?.Variables.Take(24).Select(p=>$"{p.Key}: ${p.Value.Address}, {p.Value.Encoding}/{p.Value.Bytes}, {(p.Value.ReadOnly ? "solo lectura" : "escritura comprobada")}; {p.Value.Description}").ToArray() ?? [],
                 }, ct);
                 foreach (var experiment in (experiments ?? new()).Take(PreparationExperiments.MaxExperiments))
                 {
