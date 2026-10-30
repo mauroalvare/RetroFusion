@@ -18,11 +18,12 @@ public sealed record RoutineExplanation(string Name, string Summary, string Pseu
 public static class CodeExplainer
 {
     /// <summary>A citation without original bytes; an edition hash is distinct from a memory snapshot.</summary>
-    public static string Reference(IMachine machine, Routine routine, IReadOnlyList<string> mediaHashes, string firmware)
+    public static string Reference(IMachine machine, Routine routine, IReadOnlyList<string> mediaHashes, string firmware, string? sourceName = null)
     {
         string identity = RoutineCodeIdentity.Compute(routine.Instructions.Select(address =>
             (address, machine.Disassembler.Disassemble(machine.Memory.Peek, address).Bytes)));
-        return $"Referencia de rutina candidata ${routine.Start:X4}-${routine.End:X4}; máquina {machine.DisplayName}.\n" +
+        return "Original: " + JsonSerializer.Serialize(sourceName ?? "Sin nombre identificado") + ".\n" +
+            $"Referencia de rutina candidata ${routine.Start:X4}-${routine.End:X4}; máquina {machine.DisplayName}.\n" +
             (mediaHashes.Count == 0 ? "Edición sin identificar; no extrapolar a otro archivo.\n" : "Archivos cargados SHA-256: " + string.Join(", ", mediaHashes) + ".\n") +
             $"Identidad de firmware: {firmware}.\nHuella de instantánea de código v1: {identity}.\n" +
             $"Agrupación estática: {routine.Instructions.Count} sitios. " + (routine.Executed ? "Se observaron instrucciones del grupo, no todos sus caminos." : "Sin ejecución observada.") +

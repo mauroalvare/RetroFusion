@@ -84,12 +84,12 @@ public sealed class RoutineFinderTests
         var machine = OwnProgram(); var routine = new Routine { Start = 0x8010, End = 0x8019, Executed = true };
         routine.Instructions.UnionWith([0x8010, 0x8012, 0x8015, 0x8017, 0x8019]);
         string edition = new('A', 64);
-        string before = CodeExplainer.Reference(machine, routine, [edition], "firmware propio");
+        string before = CodeExplainer.Reference(machine, routine, [edition], "firmware propio", "Original propio");
         machine.Memory.Poke(0x8011, 0x20);
-        string after = CodeExplainer.Reference(machine, routine, [edition], "firmware propio");
+        string after = CodeExplainer.Reference(machine, routine, [edition], "firmware propio", "Original propio");
         Assert.That(after, Is.Not.EqualTo(before));
         foreach (string citation in new[] { before, after })
-            Assert.That(citation, Does.Contain(edition).And.Contain("firmware propio").And.Contain("no todos sus caminos").And.Contain("no es el hash del archivo"));
+            Assert.That(citation, Does.Contain("Original propio").And.Contain(edition).And.Contain("firmware propio").And.Contain("no todos sus caminos").And.Contain("no es el hash del archivo"));
     }
 
     [Test]

@@ -299,7 +299,7 @@ internal static class TestGames
     {
         string? romDir = null;
         var sources = new Dictionary<string, GameSource>();
-        var expected = ProfileLibrary.BuiltIn.Where(p => p.Id is "invaders" or "manicminer").ToArray();
+        var expected = ProfileLibrary.BuiltIn.Where(p => p.Id is "invaders" or "manicminer" or "pacman-c64").ToArray();
         for (var d = new DirectoryInfo(AppContext.BaseDirectory); d != null; d = d.Parent)
         {
             if (romDir == null && File.Exists(Path.Combine(d.FullName, "roms", "48.rom")))
@@ -309,7 +309,7 @@ internal static class TestGames
                 continue;
             var options = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.ReparsePoint };
             foreach (var file in Directory.EnumerateFiles(games, "*.zip", options).Where(file =>
-                System.Text.RegularExpressions.Regex.IsMatch(Path.GetFileName(file), "invaders|manic.?miner", System.Text.RegularExpressions.RegexOptions.IgnoreCase)))
+                System.Text.RegularExpressions.Regex.IsMatch(Path.GetFileName(file), "invaders|manic.?miner|pac.?man", System.Text.RegularExpressions.RegexOptions.IgnoreCase)))
             {
                 List<MediaFile> files;
                 try { files = MediaArchive.Open(file); }

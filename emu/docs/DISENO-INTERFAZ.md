@@ -18,6 +18,10 @@ de texto de 100 a 200 %, alto contraste, controles, pausa por foco y ahorro de e
 Los paneles se ensanchan al aumentar el texto y usan desplazamiento vertical en pantallas
 pequeñas. La interfaz usa una fuente de lectura del sistema; código y registros conservan
 tipografía de ancho fijo. No se distribuyen fuentes adicionales.
+Al seguir PC, el depurador retrocede solo por límites de instrucciones observadas que
+conducen a ese PC. Sin esa evidencia empieza en PC: no interpreta operandos anteriores
+como si fueran instrucciones conocidas. El listado sigue siendo una vista secuencial,
+no un historial de los últimos saltos.
 
 ## Crear
 
@@ -49,6 +53,9 @@ original cargado, firmware e instantánea de código. En una fusión el visor de
 no tiene asociada la edición de la ranura; las referencias del proyecto sí la identifican.
 Una cita no autoriza copiar código de originales en una creación autónoma ni añadir
 direcciones sin comprobar al perfil.
+Podés pegar esa referencia en la idea del creador para estudiar una técnica, conservando
+nombre del original, edición y dirección. El juego autónomo sigue requiriendo código y
+recursos propios; el creador no importa instrucciones de la ROM.
 
 El mismo hallador está en el ejecutor sin ventana:
 

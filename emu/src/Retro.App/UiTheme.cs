@@ -17,7 +17,7 @@ internal static class UiTheme
     public static Vector4 Highlight => HighContrast ? new(1, 1, 0.2f, 1) : new(1, 1, 0.3f, 1);
     public static Vector4 Error => HighContrast ? new(1, 0.6f, 0.55f, 1) : new(1, 0.5f, 0.4f, 1);
     public static Vector4 Success => HighContrast ? new(0.6f, 1, 0.6f, 1) : new(0.55f, 0.85f, 0.55f, 1);
-    /// <summary>Text and spacing factor chosen in the preferences (1 = 16 px text).</summary>
+    /// <summary>Text and spacing factor chosen in the preferences (1 = 18 px text).</summary>
     public static float Scale { get; private set; } = 1;
     public static bool HighContrast { get; private set; }
     /// <summary>Height of the status bar at the bottom of the window.</summary>
@@ -115,7 +115,7 @@ internal static class UiTheme
                 : ImGui.GetIO().Fonts.AddFontFromFileTTF(font, size, config, Ranges.AddrOfPinnedObject());
             ImGui.GetIO().NativePtr->FontDefault = fontPtr.NativePtr;
             _codeFont = codeFont == null ? fontPtr
-                : ImGui.GetIO().Fonts.AddFontFromFileTTF(codeFont, size, config, Ranges.AddrOfPinnedObject());
+                : ImGui.GetIO().Fonts.AddFontFromFileTTF(codeFont, MathF.Round(16 * Scale), config, Ranges.AddrOfPinnedObject());
             rlImGui.ReloadFonts();
         }
         finally { ImGuiNative.ImFontConfig_destroy(config.NativePtr); }

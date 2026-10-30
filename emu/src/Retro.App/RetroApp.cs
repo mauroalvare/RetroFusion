@@ -1312,15 +1312,15 @@ public sealed partial class RetroApp
         {
             var avail = ImGui.GetContentRegionAvail();
             // Room for the hint below the picture, so it is not hidden under the next panel.
-            float hint = ImGui.GetTextLineHeightWithSpacing() + ImGui.GetStyle().ItemSpacing.Y;
+            float hint = ImGui.GetTextLineHeightWithSpacing() * 2 + ImGui.GetStyle().ItemSpacing.Y;
             float s = MathF.Max(0.5f, MathF.Min(avail.X / _texW, (avail.Y - hint) / _texH));
             rlImGui.ImageSize(_screenTex, (int)(_texW * s), (int)(_texH * s));
         }
         _screenFocused = ImGui.IsWindowFocused();
         if (_screenFocused)
-            ImGui.TextUnformatted("El teclado va a la máquina emulada.");
+            ImGui.TextWrapped("El teclado va a la máquina emulada.");
         else
-            ImGui.TextDisabled("Hacé clic en la pantalla para usar el teclado en la máquina.");
+            UiTheme.Hint("Hacé clic en la pantalla para usar el teclado en la máquina.");
         ImGui.End();
     }
 
@@ -1400,23 +1400,8 @@ public sealed partial class RetroApp
 
     private uint DisassemblyStart(IMachine m, uint pc, Func<uint, byte> peek)
     {
-        // Find an address before PC whose decoding lands exactly on PC.
-        for (int back = 24; back > 0; back--)
-        {
-            uint a = (uint)((pc - back) & ((1u << m.Memory.AddressBits) - 1));
-            int guard = 0;
-            while (a != pc && guard++ < 30)
-            {
-                var ins = m.Disassembler.Disassemble(peek, a);
-                uint next = (uint)((a + ins.Length) & ((1u << m.Memory.AddressBits) - 1));
-                if (((pc - a) & ((1u << m.Memory.AddressBits) - 1)) < ((next - a) & ((1u << m.Memory.AddressBits) - 1)))
-                    break;
-                a = next;
-            }
-            if (a == pc)
-                return (uint)((pc - back) & ((1u << m.Memory.AddressBits) - 1));
-        }
-        return pc;
+        return DisassemblyViewport.Start(pc, m.Memory.AddressBits,
+            address => m.Disassembler.Disassemble(peek, address).Length, m.ExecutedMap);
     }
 
     private void DrawDisassemblyWindow(IMachine m)
@@ -1432,7 +1417,7 @@ public sealed partial class RetroApp
         uint pc = m.Cpu.ProgramCounter;
         Func<uint, byte> peek = m.Memory.Peek;   // one delegate per frame instead of one per decoded instruction
         uint addr = _followPc ? DisassemblyStart(m, pc, peek) : uint.TryParse(_disasmAddr, NumberStyles.HexNumber, null, out var a0) ? a0 : 0;
-        ImGui.TextDisabled("Clic en ( ) para breakpoint. Clic derecho: ejecutar hasta ahí.");
+        UiTheme.Hint("Clic en ( ) para breakpoint. Clic derecho: ejecutar hasta ahí.");
         ImGui.BeginChild("dislist", Vector2.Zero, ImGuiChildFlags.None, ImGuiWindowFlags.HorizontalScrollbar);
         for (int i = 0; i < 48; i++)
         {

@@ -486,7 +486,7 @@ public sealed partial class CodeWindow : IDisposable
 
     private string RoutineReference(IMachine machine, Routine routine) => CodeExplainer.Reference(machine, routine,
         _host.Fusion == null ? _host.LoadedMediaHashes : [],
-        _host.Fusion == null ? _host.FirmwareIdentity : "No asociada a esta ranura desde el visor; consultá las referencias del proyecto.");
+        _host.Fusion == null ? _host.FirmwareIdentity : "No asociada a esta ranura desde el visor; consultá las referencias del proyecto.", _gameName);
 
     private void DrawLineEditor(IMachine m, Routine r, uint a)
     {
