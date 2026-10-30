@@ -25,7 +25,7 @@ public interface IZ80Bus
     /// <summary>T-states for the part of an I/O cycle after the data transfer (normally 3).</summary>
     int PortTimingPost(ushort port, long tstate);
 
-    /// <summary>Byte on the data bus during interrupt acknowledge (IM 2 vector low byte).</summary>
+    /// <summary>Byte on interrupt acknowledge: IM 0 opcode or IM 2 vector low byte. IM 1 ignores it.</summary>
     byte InterruptDataBus { get; }
 }
 

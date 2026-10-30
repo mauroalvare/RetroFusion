@@ -214,6 +214,15 @@ public sealed partial class Z80Cpu : ICpuDebugView
         _eiDelay = false;
         _prevQ = Q;
         Q = 0;
+        if (Halted)
+        {
+            // Keep the existing HALT PC/bus representation, but ignore the fetched byte:
+            // a memory change must not execute an instruction while HALT is latched.
+            ushort address = PC;
+            T += _bus.Contention(address, T);
+            T += 4; _bus.ReadMemory(address); IncR();
+            return (int)(T - start);
+        }
         ExecuteBase(FetchOpcode());
         return (int)(T - start);
     }
@@ -230,6 +239,15 @@ public sealed partial class Z80Cpu : ICpuDebugView
         }
         IFF1 = IFF2 = false;
         IncR();
+        if (IM == 0)
+        {
+            // Replace the first M1 by the six-clock acknowledge; PC was not fetched.
+            // Operand bytes and prefix tails use the ordinary memory cycles at PC.
+            T += 6;
+            _prevQ = Q; Q = 0;
+            ExecuteBase(_bus.InterruptDataBus);
+            return;
+        }
         T += 7; // acknowledge cycle is 2 T-states longer than a normal M1
         Push(PC);
         if (IM == 2)
@@ -241,7 +259,7 @@ public sealed partial class Z80Cpu : ICpuDebugView
         }
         else
         {
-            // IM 1, and IM 0 with $FF (RST 38h) on the data bus as on the Spectrum.
+            // IM 1 always selects RST 38h, regardless of the peripheral's data.
             PC = 0x0038;
         }
         WZ = PC;

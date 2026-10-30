@@ -1407,3 +1407,21 @@ pasadas. Las fuentes/Git, la instalación y los datos del usuario quedan fuera d
 alcance. La evidencia histórica se recupera por ruta con la herramienta; el archivo
 local no se distribuye. Se comprueban ida/vuelta, duplicados, corrupción, rutas y
 protección de trabajo posterior con fixtures propios.
+
+## D-088 — Z80 IM0 con opcode del bus y HALT latched
+
+IM0 sustituye el primer M1 por seis T de reconocimiento y ejecuta InterruptDataBus
+sin consumir PC ni apilar incondicionalmente. El recorrido normal de instrucciones
+lee operandos y colas de prefijos en memoria, actualiza Q/flags y conserva EI/DI.
+Un RST sigue durando13T; NOP6T, JP12T y CALL19T. IM1 ignora ese byte e IM2 conserva
+su tabla. El Spectrum sigue proporcionando FFh y conserva su RST38h.
+
+HALT conserva su representación PC de guardados/depuración y ciclos M1, pero ignora
+el byte leído mientras espera: un cambio de memoria no ejecuta una instrucción.
+No cambia el formato de estado. Veintitrés casos propios cubren vectores, datos,
+prefijos, pila, Q, R, EI, HALT y conservación de IM1/IM2;21 detectan el núcleo previo.
+Las1356 trazas FUSE conservan su resultado. No certifica señales ni todas las
+particularidades de silicio de la aceptación de interrupciones.
+
+Referencias primarias de implementación: [FUSE](https://github.com/fuse-emulator/fuse/blob/master/z80/z80.c)
+y [núcleo de ciclos chips](https://github.com/floooh/chips/blob/master/chips/z80.h).

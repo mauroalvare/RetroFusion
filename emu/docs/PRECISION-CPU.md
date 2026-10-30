@@ -9,7 +9,7 @@ señales y revisiones físicas. Tampoco equivale a completar la máquina que rod
 
 | Procesador | Implementación y evidencia | Límite que impide afirmar un 100 % general |
 |---|---|---|
-| Z80 | Instrucciones base y prefijadas, flags no documentados, MEMPTR y Q. FUSE: 1.356 casos con registros, memoria y tiempos de accesos; ZEXDOC y ZEXALL. | IM 0 se resuelve como RST 38h, el caso del Spectrum con FFh en el bus; no ejecuta una instrucción arbitraria suministrada por el periférico. El bus permite contención y demoras de E/S, sin un modelo general de todas las señales y revisiones del chip. |
+| Z80 | Instrucciones base y prefijadas, flags no documentados, MEMPTR y Q. FUSE: 1.356 casos con registros, memoria y tiempos de accesos; ZEXDOC y ZEXALL. IM 0 ejecuta el opcode del bus con reconocimiento de seis T; operandos y colas de prefijos se leen desde PC. HALT ignora cambios del byte leído mientras espera. | IM 0 se comprueba con programas propios, no con una campaña externa de señales. El bus permite contención y demoras de E/S, sin un modelo general de todas las señales y revisiones del chip. |
 | Intel 8080 | Los 256 opcodes, incluidos los alias. TST8080, 8080PRE, CPUTEST y 8080EXM comprueban resultados y totales exactos de instrucciones/ciclos. | El núcleo suma el tiempo al terminar cada instrucción. Su bus no expone el reloj de cada acceso ni READY/HOLD/INTA; los totales correctos no validan esas fases. |
 | MOS 6502 NMOS / 6510 | Los 256 opcodes, incluidos JAM y los no documentados; modo decimal y accesos de bus ciclo a ciclo. SingleStepTests: 1.000 casos por opcode; prueba funcional de Klaus Dormann. El C64 agrega el puerto del 6510 y la espera por la VIC-II. | Se verifica un modelo NMOS, no todas las revisiones ni el 65C02. ANE/LXA usan una constante fija EEh. El 6510 comparte el motor y tiene pruebas de placa, sin una suite externa independiente de esa variante. |
 | Ricoh 2A03 | Reutiliza el 6502 con aritmética decimal desactivada; una prueba propia conserva D y comprueba ADC/SBC binarios. Hay pruebas de integración de la NES. | Falta nestest; el DMC no roba ciclos a la CPU y la DMA de OAM no reproduce su alineación completa. Las pruebas del 6502 no certifican esas diferencias de la NES. |
@@ -23,8 +23,8 @@ de instrucciones. No se convierten esos conteos en un porcentaje de fidelidad.
 ## Qué se revisó en esta pasada
 
 Se contrastaron la documentación, los buses y los ejecutores de pruebas de los cuatro
-motores. El Z80 declara tres modos de interrupción, pero el recorrido de aceptación
-confirma el alcance limitado de IM 0 descrito arriba. El 8080 cuenta ciclos por
+motores. El Z80 ejecuta el opcode proporcionado por el periférico en IM 0, sin apilar
+un retorno salvo que lo requiera la instrucción. El 8080 cuenta ciclos por
 instrucción; el 6502 registra cada acceso, y las variantes 6510/2A03 se conectan en las
 placas C64/NES. La variante 8086 comparte su ejecución con el 8088.
 
