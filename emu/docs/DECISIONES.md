@@ -1425,3 +1425,19 @@ particularidades de silicio de la aceptación de interrupciones.
 
 Referencias primarias de implementación: [FUSE](https://github.com/fuse-emulator/fuse/blob/master/z80/z80.c)
 y [núcleo de ciclos chips](https://github.com/floooh/chips/blob/master/chips/z80.h).
+
+## D-089 — Reloj y transferencias del bus8080, con READY optativo
+
+I8080Cpu.TimingEnabled conserva por defecto el ejecutor funcional anterior. El modo
+temporizado incrementa Cycles y llama I8080Bus.Clock por T; memoria/E/S transfieren
+en T3 y READY bajo agrega esperas entre T2 y T3. Los miembros nuevos del bus tienen
+implementaciones predeterminadas, y el reconocimiento de Interrupt no lee RAM por
+el opcode proporcionado. M1 distingue4/5T antes de los operandos; la tabla nominal
+y resultados de los256 opcodes se conservan. El resto de trabajo interno queda al
+final, sin declarar exactitud de toda la microsecuencia ni HOLD/HLDA o pines.
+
+La placa arcade habilita el modo para que los accesos de vídeo/sonido vean el reloj
+del acceso. Sus guardados conservan formato: el modo forma parte de la configuración
+de placa y no quedan transferencias pendientes entre instrucciones. Veinticinco
+regresiones propias (24 detectan antes), equivalencia de todos los opcodes con dos
+estados de flags y tres diagnósticos externos temporizados conservan los resultados.

@@ -9,6 +9,12 @@ public interface I8080Bus
     void WriteMemory(ushort address, byte value);
     byte In(byte port);
     void Out(byte port, byte value);
+    /// <summary>One T-state in optional clocked mode.</summary>
+    void Clock() { }
+    /// <summary>READY is sampled between T2 and T3; false inserts wait states.</summary>
+    bool Ready => true;
+    /// <summary>Observation of the opcode supplied to Interrupt, without a memory fetch.</summary>
+    void InterruptAcknowledge(byte opcode) { }
 }
 
 /// <summary>
@@ -21,7 +27,7 @@ public interface I8080Bus
 /// subtraction done as addition of the complement. Validated with TST8080, 8080PRE,
 /// CPUTEST and 8080EXM, including their exact cycle totals.
 /// </summary>
-public sealed class I8080Cpu : ICpuDebugView
+public sealed partial class I8080Cpu : ICpuDebugView
 {
     public byte A, B, C, D, E, H, L;
     public ushort SP, PC;
@@ -105,7 +111,7 @@ public sealed class I8080Cpu : ICpuDebugView
     public ushort PSW { get => (ushort)((A << 8) | F); set { A = (byte)(value >> 8); F = (byte)value; } }
 
     // -- memory helpers ------------------------------------------------------------
-    private byte Next() => _bus.ReadMemory(PC++);
+    private byte Next() => ReadMemory(PC++);
 
     private ushort NextWord()
     {
@@ -117,21 +123,21 @@ public sealed class I8080Cpu : ICpuDebugView
     private void Push(ushort v)
     {
         SP--;
-        _bus.WriteMemory(SP, (byte)(v >> 8));
+        WriteMemory(SP, (byte)(v >> 8));
         SP--;
-        _bus.WriteMemory(SP, (byte)v);
+        WriteMemory(SP, (byte)v);
     }
 
     private ushort Pop()
     {
-        byte lo = _bus.ReadMemory(SP++);
-        byte hi = _bus.ReadMemory(SP++);
+        byte lo = ReadMemory(SP++);
+        byte hi = ReadMemory(SP++);
         return (ushort)(lo | (hi << 8));
     }
 
     private byte GetReg(int r) => r switch
     {
-        0 => B, 1 => C, 2 => D, 3 => E, 4 => H, 5 => L, 6 => _bus.ReadMemory(HL), _ => A,
+        0 => B, 1 => C, 2 => D, 3 => E, 4 => H, 5 => L, 6 => ReadMemory(HL), _ => A,
     };
 
     private void SetReg(int r, byte v)
@@ -144,7 +150,7 @@ public sealed class I8080Cpu : ICpuDebugView
             case 3: E = v; break;
             case 4: H = v; break;
             case 5: L = v; break;
-            case 6: _bus.WriteMemory(HL, v); break;
+            case 6: WriteMemory(HL, v); break;
             default: A = v; break;
         }
     }
@@ -253,13 +259,16 @@ public sealed class I8080Cpu : ICpuDebugView
     /// <summary>Executes one instruction. Returns the states (clock cycles) used.</summary>
     public int Step()
     {
+        BeginTiming();
         if (Halted)
         {
-            Cycles += 4;
+            if (TimingEnabled) Tick(4); else Cycles += 4;
             return 4;
         }
         _eiDelay = false;
-        return Execute(Next());
+        byte opcode = Next();
+        if (TimingEnabled) Tick(FirstCycleClocks(opcode) - 3);
+        return Execute(opcode);
     }
 
     /// <summary>
@@ -272,6 +281,12 @@ public sealed class I8080Cpu : ICpuDebugView
             return 0;
         INTE = false;
         Halted = false;
+        BeginTiming();
+        if (TimingEnabled)
+        {
+            TransferClocks(); _bus.InterruptAcknowledge(instruction);
+            Tick(FirstCycleClocks(instruction) - 3);
+        }
         return Execute(instruction);
     }
 
@@ -299,26 +314,26 @@ public sealed class I8080Cpu : ICpuDebugView
                     case 2:
                         switch (y)
                         {
-                            case 0: _bus.WriteMemory(BC, A); break;         // STAX B
-                            case 1: A = _bus.ReadMemory(BC); break;         // LDAX B
-                            case 2: _bus.WriteMemory(DE, A); break;         // STAX D
-                            case 3: A = _bus.ReadMemory(DE); break;         // LDAX D
+                            case 0: WriteMemory(BC, A); break;         // STAX B
+                            case 1: A = ReadMemory(BC); break;         // LDAX B
+                            case 2: WriteMemory(DE, A); break;         // STAX D
+                            case 3: A = ReadMemory(DE); break;         // LDAX D
                             case 4:                                         // SHLD
                             {
                                 ushort a = NextWord();
-                                _bus.WriteMemory(a, L);
-                                _bus.WriteMemory((ushort)(a + 1), H);
+                                WriteMemory(a, L);
+                                WriteMemory((ushort)(a + 1), H);
                                 break;
                             }
                             case 5:                                         // LHLD
                             {
                                 ushort a = NextWord();
-                                L = _bus.ReadMemory(a);
-                                H = _bus.ReadMemory((ushort)(a + 1));
+                                L = ReadMemory(a);
+                                H = ReadMemory((ushort)(a + 1));
                                 break;
                             }
-                            case 6: _bus.WriteMemory(NextWord(), A); break; // STA
-                            default: A = _bus.ReadMemory(NextWord()); break;// LDA
+                            case 6: WriteMemory(NextWord(), A); break; // STA
+                            default: A = ReadMemory(NextWord()); break;// LDA
                         }
                         break;
                     case 3:
@@ -408,14 +423,14 @@ public sealed class I8080Cpu : ICpuDebugView
                         switch (y)
                         {
                             case 0: case 1: PC = NextWord(); break;         // JMP (CB alias)
-                            case 2: _bus.Out(Next(), A); break;             // OUT
-                            case 3: A = _bus.In(Next()); break;             // IN
+                            case 2: Output(Next(), A); break;             // OUT
+                            case 3: A = Input(Next()); break;             // IN
                             case 4:                                         // XTHL
                             {
-                                byte lo = _bus.ReadMemory(SP);
-                                byte hi = _bus.ReadMemory((ushort)(SP + 1));
-                                _bus.WriteMemory(SP, L);
-                                _bus.WriteMemory((ushort)(SP + 1), H);
+                                byte lo = ReadMemory(SP);
+                                byte hi = ReadMemory((ushort)(SP + 1));
+                                WriteMemory(SP, L);
+                                WriteMemory((ushort)(SP + 1), H);
                                 L = lo;
                                 H = hi;
                                 break;
@@ -456,8 +471,7 @@ public sealed class I8080Cpu : ICpuDebugView
                 }
                 break;
         }
-        Cycles += cycles;
-        return cycles;
+        return FinishTiming(cycles);
     }
 
     // -- ICpuDebugView --------------------------------------------------------------------

@@ -52,7 +52,7 @@ public class CpmConformanceTests
         }
     }
 
-    private static (string output, long instructions, long cycles) Run(string file)
+    private static (string output, long instructions, long cycles) Run(string file, bool timed = false)
     {
         var bus = new CpmBus();
         string path = Path.Combine(DataDir, file);
@@ -64,11 +64,21 @@ public class CpmConformanceTests
         bus.Memory[0x0005] = 0xD3;   // OUT 1,A : BDOS call
         bus.Memory[0x0006] = 0x01;
         bus.Memory[0x0007] = 0xC9;   // RET
-        var cpu = new I8080Cpu(bus) { PC = 0x0100 };
+        var cpu = new I8080Cpu(bus) { PC = 0x0100, TimingEnabled = timed };
         bus.Cpu = cpu;
         while (!bus.Finished)
             cpu.Step();
         return (bus.Output.ToString(), cpu.Instructions, cpu.Cycles);
+    }
+
+    [TestCase("TST8080.COM", 651L, 4924L, "CPU IS OPERATIONAL")]
+    [TestCase("8080PRE.COM", 1061L, 7817L, "8080 Preliminary tests complete")]
+    [TestCase("CPUTEST.COM", 33971311L, 255653383L, "CPU TESTS OK")]
+    public void ClockedModeKeepsTheExternalDiagnosticResultAndExactTotals(string file, long instructions, long cycles, string message)
+    {
+        var result = Run(file, timed: true);
+        Assert.That(result.output, Does.Contain(message));
+        Assert.That(result.instructions, Is.EqualTo(instructions)); Assert.That(result.cycles, Is.EqualTo(cycles));
     }
 
     [Test]

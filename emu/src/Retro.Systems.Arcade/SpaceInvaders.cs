@@ -50,7 +50,7 @@ public sealed class SpaceInvaders : IMachine, I8080Bus, IMemoryView, ICodePatch,
         if (rom.Length != 0x2000)
             throw new ArgumentException("La ROM de Space Invaders debe tener 8192 bytes (invaders.h, .g, .f, .e).");
         _rom = (byte[])rom.Clone();
-        _cpu = new I8080Cpu(this);
+        _cpu = new I8080Cpu(this) { TimingEnabled = true };
         _disassembler.Symbols = a => SymbolFor(a);
         Video = new VideoFrame(ScreenWidth, ScreenHeight);
         Audio = new AudioBuffer(SampleRate, 4096);

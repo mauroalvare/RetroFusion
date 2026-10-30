@@ -139,8 +139,8 @@ se trata de una limitación deducida que todavía necesita una prueba específic
 
 Los conjuntos de instrucciones y las suites aprobadas no acreditan un 100 % general
 de fidelidad. El Z80 tiene IM 0 con opcode del bus y cola en memoria, probado con
-programas propios; falta contraste externo de señales. El 8080 cuenta tiempos por
-instrucción sin exponer cada fase de bus. El 6502 se contrasta como NMOS; 6510/2A03
+programas propios; falta contraste externo de señales. El8080 tiene bus temporizado
+optativo y READY, sin certificar todos los ciclos internos ni pines. El6502 se contrasta como NMOS;6510/2A03
 reutilizan ese motor con diferencias de placa. La NES conserva límites de DMA.
 8088/8086 tienen pendientes explícitos de temporización y contraste.
 [Alcance y pruebas por procesador](PRECISION-CPU.md).
