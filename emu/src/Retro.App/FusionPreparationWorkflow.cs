@@ -28,7 +28,7 @@ public sealed class FusionPreparationWorkflow
         IReadOnlyList<FusionPreparationTarget> targets, string firmware, IPlayAdvisor? advisor,
         Func<GameConcept, IReadOnlyList<RecipeGame>, Func<string, GameProfile?>, CancellationToken, Task<GameConcept>>? review,
         bool economic, Action<string>? progress, CancellationToken ct, TimeSpan? availableTime = null,
-        IReadOnlyList<PrepareResult>? priorResearch = null)
+        IReadOnlyList<PrepareResult>? priorResearch = null, Action<FusionPreparationResult>? checkpoint = null, string humanObservation = "")
     {
         ct.ThrowIfCancellationRequested();
         if (targets.Count is < 2 or > 3 || targets.Select(t => t.Source.Profile.Id).Distinct().Count() != targets.Count)
@@ -74,6 +74,16 @@ public sealed class FusionPreparationWorkflow
             if (stop.Length > 0) summary += "\n" + stop;
             return new(current, sources.Values.ToDictionary(s => s.Profile.Id), results, summary, CurrentSlots(), fingerprints, passes, stop);
         }
+        void Publish()
+        {
+            if (checkpoint == null) return;
+            // The writer receives completed observations only, before a timeout can discard the next round.
+            EnsureUnchanged(fingerprints);
+            foreach (var pair in latest) pair.Value.Experiments = history[pair.Key].TakeLast(144).ToList();
+            checkpoint(new(current, sources.Values.ToDictionary(s => s.Profile.Id), latest.Values.ToArray(),
+                string.Join("\n", latest.Values.Select(r => $"{r.Game}: {r.Profile?.Variables.Count ?? 0} datos disponibles.")),
+                CurrentSlots(), new Dictionary<string, string>(fingerprints), passes, stop));
+        }
         try
         {
             for (int pass = 1; pass <= (automatic ? FusionResearchPlan.MaxPasses : 1); pass++)
@@ -82,7 +92,6 @@ public sealed class FusionPreparationWorkflow
                 if (Clock.GetElapsedTime(started) >= budget) { stop = "Se alcanzó el tiempo de investigación. Se conservaron los datos comprobados; faltan requisitos."; break; }
                 passes = pass;
                 string before = EvidenceStamp(sources.Values);
-                bool newExperiment = false;
                 foreach (var target in targets.Where(t => pass > 1 || t.NeedsPreparation))
                 {
                     token.ThrowIfCancellationRequested();
@@ -90,11 +99,11 @@ public sealed class FusionPreparationWorkflow
                     string id = target.Source.Profile.Id;
                     var source = sources[id];
                     latest.TryGetValue(id, out var previous);
-                    progress?.Invoke($"Investigación {pass}: {source.Profile.Name}. Faltantes: {current.MissingData}");
+                    progress?.Invoke($"Investigación {pass}: {source.Profile.Name}. Comprobando los requisitos de la idea.");
                     var result = await Prepare(target.Path, new PrepareOptions
                     {
                         FirmwareDirectory = firmware, Advisor = advisor,
-                        Goal = Goal(current), PreviousProfile = source.Profile,
+                        Goal = (humanObservation.Length>0?"Observación humana sin verificar (reproducir antes de usar): "+humanObservation[..Math.Min(800,humanObservation.Length)]+"\n":"")+Goal(current), PreviousProfile = source.Profile,
                         Resume = previous?.Continuation, PreviousExperiments = history[id].ToArray(),
                         ContinueResearch = automatic, InvestigationPass = pass, TrialRounds = FusionResearchPlan.TrialRounds,
                         MaxRounds = FusionResearchPlan.NavigationRounds,
@@ -103,7 +112,6 @@ public sealed class FusionPreparationWorkflow
                     EnsureUnchanged(fingerprints.Where(p => p.Key != previous?.ProfilePath).ToDictionary());
                     latest[id] = result;
                     history[id].AddRange(result.Experiments);
-                    newExperiment |= result.Experiments.Any(e => !e.Skipped);
                     if (!result.Ok || result.Profile == null)
                     {
                         stop = $"No se pudo completar la preparación de {source.Profile.Name}: {result.Problem ?? "no se verificó un arranque reproducible"}";
@@ -117,6 +125,7 @@ public sealed class FusionPreparationWorkflow
                     mappedIds[id] = profile.Id;
                     sources[id] = source with { Profile = profile };
                     if (result.ProfilePath is { } profilePath) fingerprints[profilePath] = Fingerprint(profilePath);
+                    Publish();
                     token.ThrowIfCancellationRequested();
                     if (Clock.GetElapsedTime(started) >= budget)
                     {
@@ -140,16 +149,19 @@ public sealed class FusionPreparationWorkflow
                     return Finish();
                 }
                 current = reviewed;
+                Publish();
                 if (string.IsNullOrWhiteSpace(current.MissingData)) break;
                 if (!automatic) break;
                 bool changed = before != EvidenceStamp(sources.Values);
-                stalled = changed || newExperiment ? 0 : stalled + 1;
+                // A new state/experiment signature is not new evidence. Otherwise repeated
+                // unsuccessful input plans consume the entire research budget indefinitely.
+                stalled = changed ? 0 : stalled + 1;
                 if (stalled >= 3)
                 {
-                    stop = "La IA no encontró una prueba nueva ni datos nuevos en tres rondas. Se conservaron los avances y los requisitos pendientes.";
+                    stop = "No se obtuvieron datos nuevos en tres rondas. Se conservaron los avances; revisá los requisitos pendientes y la guía para comprobarlos.";
                     break;
                 }
-                progress?.Invoke($"Todavía hay datos por comprobar. Continúo la investigación desde la partida observada: {current.MissingData}");
+                progress?.Invoke("Todavía hay datos por comprobar. Continúo desde la partida observada; los requisitos están en el plan de comprobación.");
                 if (pass == FusionResearchPlan.MaxPasses)
                     stop = "Se completaron las rondas de investigación. Se conservaron los avances; la idea sigue requiriendo los datos indicados.";
             }
@@ -158,6 +170,8 @@ public sealed class FusionPreparationWorkflow
         {
             stop = "Se alcanzó el tiempo de investigación. Se conservaron los datos de las rondas completadas y los requisitos pendientes.";
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        { stop = "Investigación pausada. Se conservaron las rondas completadas."; Publish(); throw; }
         ct.ThrowIfCancellationRequested();
         EnsureUnchanged(fingerprints);
         return Finish();

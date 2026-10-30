@@ -324,6 +324,16 @@ public sealed class FusionPreparationWorkflowTests
     }
 
     [Test]
+    public async Task HumanObservationsAreSentForReproductionWithoutClearingMissingRequirements()
+    {
+        var goals=new List<string>();
+        var workflow=new FusionPreparationWorkflow {Prepare=(path,options,_,_)=> {goals.Add(options.Goal);return Task.FromResult(Prepared(path));}};
+        var result=await workflow.RunAsync(Idea,_slots,_targets,"",null,null,false,null,CancellationToken.None,humanObservation:"La cifra cambia después de dos saltos.");
+        Assert.That(goals.All(g=>g.Contains("sin verificar") && g.Contains("reproducir") && g.Contains("dos saltos")),Is.True);
+        Assert.That(result.Concept.MissingData,Is.EqualTo(Idea.MissingData));
+    }
+
+    [Test]
     public async Task EmptyPlansAndIdenticalEvidenceStopRatherThanRetryingTheSameWorkForever()
     {
         int reviews = 0;
@@ -334,6 +344,40 @@ public sealed class FusionPreparationWorkflowTests
         Assert.That(result.StopReason, Does.Contain("tres rondas"));
         Assert.That(result.Concept.MissingData, Is.EqualTo(Idea.MissingData));
         Assert.That(result.Preparations, Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public async Task ExecutedPlansWithoutNewEvidenceDoNotResetTheStallLimit()
+    {
+        int reviews = 0;
+        var workflow = new FusionPreparationWorkflow { Prepare = (path, options, _, _) =>
+        {
+            var result = Prepared(path);
+            result.Experiments.Add(new("different-state-" + options.InvestigationPass, "Probar la misma acción", "Sin candidatos nuevos."));
+            return Task.FromResult(result);
+        } };
+        var result = await workflow.RunAsync(Idea, _slots, _targets, "", new ResearchAdvisor(),
+            (idea, _, _, _) => { reviews++; return Task.FromResult(idea); }, false, null, CancellationToken.None);
+        Assert.That(reviews, Is.EqualTo(4), "Ejecutar otra vez una acción no prueba progreso.");
+        Assert.That(result.StopReason, Does.Contain("tres rondas"));
+        Assert.That(result.Concept.MissingData, Is.EqualTo(Idea.MissingData));
+    }
+
+    [Test]
+    public void CancellationKeepsTheCompletedOriginalInACheckpoint()
+    {
+        using var cancel = new CancellationTokenSource(); int prepared = 0;
+        var saved = new List<FusionPreparationResult>();
+        var workflow = new FusionPreparationWorkflow { Prepare = (path, _, _, _) =>
+        {
+            if (++prepared == 2) { cancel.Cancel(); throw new OperationCanceledException(cancel.Token); }
+            return Task.FromResult(Prepared(path));
+        } };
+        Assert.ThrowsAsync<OperationCanceledException>(async () => await workflow.RunAsync(Idea,_slots,_targets,"",null,null,false,null,cancel.Token,
+            checkpoint: result => saved.Add(result)));
+        Assert.That(saved, Is.Not.Empty); Assert.That(saved.Last().Preparations, Has.Count.EqualTo(1));
+        Assert.That(saved.Last().Concept, Is.EqualTo(Idea));
+        Assert.That(saved.Last().StopReason, Does.Contain("pausada"));
     }
 
     [Test]
