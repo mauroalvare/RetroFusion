@@ -1392,3 +1392,18 @@ definidos erróneos y RAM ajena al marco. Ocho detectan el verificador anterior:
 cuatro falsos rechazos de flags indefinidos y cuatro falsos aprobados de memoria.
 Una división normal que termine en 0000:0400 no obtiene una excepción. Este hito
 modifica únicamente el oráculo; no cambia el núcleo ni los tiempos o los guardados.
+
+## D-087 — Historial local de pruebas deduplicado y verificable
+
+workspace_cleanup.py administra exclusivamente emu/out y emu/dist. Por defecto solo
+informa; --apply archiva el historial en un ZIP con contenidos únicos por SHA-256 e
+índice de rutas. Conserva corpus de CPU, último runtime de QA e informes actuales.
+Verifica todos los contenidos antes de borrar originales, vuelve a comprobar cada
+original y elimina únicamente directorios vacíos. No sigue puntos de reanálisis.
+
+La restauración selecciona un prefijo del índice, verifica SHA-256 y no sobrescribe
+archivos distintos. El ZIP y su informe quedan en out/historial, excluido de próximas
+pasadas. Las fuentes/Git, la instalación y los datos del usuario quedan fuera del
+alcance. La evidencia histórica se recupera por ruta con la herramienta; el archivo
+local no se distribuye. Se comprueban ida/vuelta, duplicados, corrupción, rutas y
+protección de trabajo posterior con fixtures propios.

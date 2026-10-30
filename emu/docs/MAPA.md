@@ -3,6 +3,8 @@
 Mapa de rutas y comandos de desarrollo. Los ejemplos usan carpetas de la instalación
 o rutas que debés adaptar a tus archivos. El diseño interno está en
 [ARQUITECTURA.md](ARQUITECTURA.md).
+La [guía de espacio](ESPACIO.md) explica cómo consolidar paquetes y copias de QA
+con `tools/workspace_cleanup.py`, verificar el historial y restaurar una prueba.
 
 ## Entrada para jugar
 
