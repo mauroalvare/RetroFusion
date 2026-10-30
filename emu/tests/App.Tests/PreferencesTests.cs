@@ -135,17 +135,17 @@ public sealed class PreferencesTests
         {
             UiTheme.Apply(1, false);
             var style = ImGui.GetStyle();
-            var padding = style.WindowPadding; float scrollbar = style.ScrollbarSize; var text = style.Colors[(int)ImGuiCol.Text];
+            var padding = style.WindowPadding; float scrollbar = style.ScrollbarSize, border = style.FrameBorderSize; var text = style.Colors[(int)ImGuiCol.Text];
             UiTheme.Apply(2, true);
             Assert.That(style.WindowPadding, Is.EqualTo(padding * 2));
             Assert.That(style.ScrollbarSize, Is.EqualTo(scrollbar * 2));
             Assert.That(style.FrameBorderSize, Is.EqualTo(1));
-            Assert.That(UiTheme.StatusBarHeight, Is.EqualTo(48));
+            Assert.That(UiTheme.StatusBarHeight, Is.EqualTo((UiTheme.BaseFontSize+8)*2));
             Assert.That(style.Colors[(int)ImGuiCol.Text], Is.Not.EqualTo(text));
             UiTheme.Apply(2, true);
             Assert.That(style.WindowPadding, Is.EqualTo(padding * 2), "Applying the same size again must not grow the layout.");
             UiTheme.Apply(1, false);
-            Assert.That((style.WindowPadding, style.ScrollbarSize, style.FrameBorderSize), Is.EqualTo((padding, scrollbar, 0f)));
+            Assert.That((style.WindowPadding, style.ScrollbarSize, style.FrameBorderSize), Is.EqualTo((padding, scrollbar, border)));
             Assert.That(style.Colors[(int)ImGuiCol.Text], Is.EqualTo(text));
             Assert.That(UiTheme.Px(10), Is.EqualTo(10));
         }

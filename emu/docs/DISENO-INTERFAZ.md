@@ -5,6 +5,22 @@ archivo** y arrastrar un archivo siguen siendo las formas directas de empezar. L
 tarjetas por sistema muestran los formatos disponibles; reconocer un formato no
 certifica que un juego llegue a una partida controlable.
 
+## Identidad de banco de electrónica
+
+La interfaz toma referencias de instrumentos, placas y equipos domésticos: grafito,
+marfil, ámbar, rotulado monoespaciado y controles rectos. La biblioteca muestra cada
+máquina con su ilustración y sus formatos; el taller y el instrumental usan filas de
+herramientas en lugar de una cuadrícula de tarjetas idénticas.
+
+RetroArt dibuja la marca, conectores, instrumentos y el panel de osciloscopio con vectores
+propios. El osciloscopio es una ilustración, no una lectura de rendimiento. No requiere
+imágenes, descargas ni fuentes distribuidas. Las pantallas de los juegos conservan sus
+píxeles; esta identidad pertenece a la interfaz. Los títulos usan Agency FB Bold, el texto Gill Sans MT y el rotulado OCR A Extended
+cuando están instaladas; hay alternativas locales para los demás equipos. La composición
+tiene carácter industrial sin convertir los párrafos en texto de terminal. Código y
+direcciones conservan una fuente de ancho fijo separada.
+El alto contraste mantiene su paleta accesible y omite detalles decorativos secundarios.
+
 ## Navegación y espacios de trabajo
 
 La barra superior mantiene **Biblioteca, Jugar, Crear, Analizar, Herramientas y Ayuda**.

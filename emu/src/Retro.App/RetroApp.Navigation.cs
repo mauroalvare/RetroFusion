@@ -22,7 +22,8 @@ public sealed partial class RetroApp
     private void DrawNavigation()
     {
         WorkspaceLayout.MenuHeight=_menuHeight;
-        float height=ImGui.GetFrameHeight()+UiTheme.Px(20);
+        float height;
+        using(UiTheme.Label()) height=ImGui.GetFrameHeight()+UiTheme.Px(20);
         WorkspaceLayout.NavigationHeight=height;
         var viewport=ImGui.GetMainViewport();
         ImGui.SetNextWindowPos(viewport.Pos+new Vector2(0,_menuHeight));
@@ -30,30 +31,32 @@ public sealed partial class RetroApp
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding,UiTheme.Px(18,10));
         ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding,0);
         ImGui.Begin("##app-navigation",ImGuiWindowFlags.NoDecoration|ImGuiWindowFlags.NoMove|ImGuiWindowFlags.NoDocking|ImGuiWindowFlags.NoSavedSettings);
-        string[] labels=["Biblioteca","Jugar","Crear","Analizar","Herramientas","Ayuda"];
-        int selected=_home.IsOpen?0:_hub==HubPage.Create || _creator.IsOpen || _studio.IsOpen?2:_code.IsOpen || _debugMode?3:_hub==HubPage.Tools || _stateWindowOpen?4:_hub==HubPage.Help?5:1;
-        float required=labels.Sum(label=>ImGui.CalcTextSize(label).X+ImGui.GetStyle().FramePadding.X*2+ImGui.GetStyle().ItemSpacing.X)+UiTheme.Px(230);
-        if (ImGui.GetContentRegionAvail().X<required)
+        using (UiTheme.Label())
         {
-            ImGui.SetNextItemWidth(Math.Max(UiTheme.Px(100),ImGui.GetContentRegionAvail().X-UiTheme.Px(106)));
-            if (ImGui.Combo("##workspace",ref selected,labels,labels.Length)) Navigate(selected);
-            ImGui.SameLine();
-        }
-        else
-        {
-            ImGui.AlignTextToFramePadding(); ImGui.TextColored(UiTheme.Accent,"RETROEMU"); ImGui.SameLine(0,UiTheme.Px(28));
-            for (int i=0;i<labels.Length;i++)
+            string[] labels=["Biblioteca","Jugar","Crear","Analizar","Herramientas","Ayuda"];
+            int selected=_home.IsOpen?0:_hub==HubPage.Create || _creator.IsOpen || _studio.IsOpen?2:_code.IsOpen || _debugMode?3:_hub==HubPage.Tools || _stateWindowOpen?4:_hub==HubPage.Help?5:1;
+            float required=labels.Select((label,i)=>$"{i+1:00} {label.ToUpperInvariant()}").Sum(label=>ImGui.CalcTextSize(label).X+ImGui.GetStyle().FramePadding.X*2+ImGui.GetStyle().ItemSpacing.X)+UiTheme.Px(285);
+            if (ImGui.GetContentRegionAvail().X<required)
             {
-                if (i>0) ImGui.SameLine();
-                ImGui.PushID(i);
-                ImGui.PushStyleColor(ImGuiCol.Button,selected==i?ImGui.GetStyle().Colors[(int)ImGuiCol.Header]:Vector4.Zero);
-                if (ImGui.Button(labels[i])) Navigate(i);
-                ImGui.PopStyleColor(); ImGui.PopID();
+                ImGui.SetNextItemWidth(Math.Max(UiTheme.Px(100),ImGui.GetContentRegionAvail().X-UiTheme.Px(106)));
+                if (ImGui.Combo("##workspace",ref selected,labels,labels.Length)) Navigate(selected);
+                ImGui.SameLine();
             }
-            ImGui.SameLine(Math.Max(ImGui.GetCursorPosX(),ImGui.GetWindowWidth()-UiTheme.Px(106)));
+            else
+            {
+                RetroArt.Brand(); ImGui.SameLine(0,UiTheme.Px(20));
+                for (int i=0;i<labels.Length;i++)
+                {
+                    if (i>0) ImGui.SameLine();
+                    ImGui.PushID(i);
+                    if (RetroArt.ModeButton($"{i+1:00} {labels[i].ToUpperInvariant()}",selected==i)) Navigate(i);
+                    ImGui.PopID();
+                }
+                ImGui.SameLine(Math.Max(ImGui.GetCursorPosX(),ImGui.GetWindowWidth()-UiTheme.Px(106)));
+            }
+            if (ImGui.Button("Buscar…",new(UiTheme.Px(88),0))) _commands.Open();
+            if (ImGui.IsItemHovered()) UiTheme.Tooltip("Todas las acciones y sus atajos · "+ToolShortcut("P"));
         }
-        if (ImGui.Button("Buscar…",new(UiTheme.Px(88),0))) _commands.Open();
-        if (ImGui.IsItemHovered()) UiTheme.Tooltip("Todas las acciones y sus atajos · "+ToolShortcut("P"));
         ImGui.End(); ImGui.PopStyleVar(2);
 
         void Navigate(int page)
@@ -87,8 +90,8 @@ public sealed partial class RetroApp
     private void DrawCreateHub()
     {
         UiTheme.Eyebrow("TU TALLER");
-        UiTheme.Heading("¿Qué querés crear?","Elegí un punto de partida. Cada espacio reúne el proyecto, las pruebas y los trabajos guardados.");
-        Cards("create-paths",[
+        UiTheme.Heading("Banco de creación","Plantillas, originales y proyectos en curso.");
+        ToolRows("create-paths",[
             ("Desde cero","Un juego original para una máquina de 8 bits. Empezá con una idea o una plantilla editable, también sin IA.","new"),
             ("Fusionar originales","Elegí un mundo base e incorporá reglas de otros juegos. La investigación comprueba los datos antes de construir.","fusion"),
             ("Crear con originales","Diseñá un juego nuevo a partir de las mecánicas y recursos disponibles en tus originales.","inspired")]);
@@ -97,28 +100,28 @@ public sealed partial class RetroApp
         UiTheme.SameLineIfFits("Mis proyectos desde cero");
         if (ImGui.Button("Mis proyectos desde cero")) { OpenCreator(); _creator.ShowSavedProjects(); }
         UiTheme.Section("Prepará tu método de trabajo");
-        Cards("creation-method",[("IA y modelos","Conectá una CLI, elegí el modelo y revisá el método de trabajo. También hay copiar y pegar y carpeta de agente.","ai")]);
+        ToolRows("creation-method",[("IA y modelos","Conectá una CLI, elegí el modelo y revisá el método de trabajo. También hay copiar y pegar y carpeta de agente.","ai")]);
     }
 
     private void DrawToolsHub()
     {
         UiTheme.Eyebrow("MESA DE HERRAMIENTAS");
-        UiTheme.Heading("Todo a mano","Guardá una partida, investigá el programa o ajustá tu experiencia.");
+        UiTheme.Heading("Instrumental","Partidas, memoria, código y ajustes del equipo.");
         UiTheme.BeginCard("current-context");
         ImGui.TextWrapped(HasGame?"En uso: "+(_host.LoadedMedia!=null?Path.GetFileNameWithoutExtension(_host.LoadedMedia):"Creación en ejecución"):"Abrí un original para trabajar sobre una partida. La configuración está disponible siempre.");
         if (ImGui.Button(HasGame?"Volver a jugar":"Abrir un juego…")) { if (HasGame) OpenPlay(); else _browser.Open(); }
         UiTheme.EndCard();
         UiTheme.Section("Investigar y modificar");
-        Cards("analysis-tools",[("Cambios y análisis","Buscá variables, probá propuestas de la IA y revisá el historial de cambios.","modify"),
+        ToolRows("analysis-tools",[("Cambios y análisis","Buscá variables, probá propuestas de la IA y revisá el historial de cambios.","modify"),
             ("Código y rutinas","Recorré el desensamblado, exportá código, anotá funciones y probá parches.","code"),
             ("Depurador","Seguí registros, memoria y ejecución. Incluye breakpoints y avance por instrucción o cuadro.","debugger")]);
         UiTheme.Section("Partida y capturas");
-        Cards("play-tools",[("Partidas guardadas","Ranuras separadas por juego y edición, con guardado y recuperación entre sesiones.","slots"),
+        ToolRows("play-tools",[("Partidas guardadas","Ranuras separadas por juego y edición, con guardado y recuperación entre sesiones.","slots"),
             ("Rebobinado y entradas","Volvé a un momento anterior o grabá y reproducí las entradas de esta sesión.","replay-tools"),
             ("Capturar pantalla","Guardá la imagen del juego a su resolución original.","capture")]);
         if (ImGui.CollapsingHeader("Rebobinado y grabación de entradas",_showReplayTools?ImGuiTreeNodeFlags.DefaultOpen:ImGuiTreeNodeFlags.None)) DrawReplayTools();
         UiTheme.Section("Configuración");
-        Cards("settings-tools",[("Pantalla, controles y accesibilidad","Tamaño del texto, alto contraste, joystick, rendimiento y pantalla completa.","preferences"),
+        ToolRows("settings-tools",[("Pantalla, controles y accesibilidad","Tamaño del texto, alto contraste, joystick, rendimiento y pantalla completa.","preferences"),
             ("Sonido","Volumen, silencio y ajustes de salida de audio.","sound"),
             ("Conexión de IA","Proveedor, modelo, sesión y opciones de trabajo.","ai"),
             ("Actualizaciones","Consultá la versión instalada y las entregas disponibles.","updates")]);
@@ -150,7 +153,7 @@ public sealed partial class RetroApp
     private void DrawHelpHub()
     {
         UiTheme.Eyebrow("AYUDA Y CONTROLES");
-        UiTheme.Heading("Encontrá tu próximo paso","La navegación de arriba siempre permite volver a la biblioteca, al juego o al taller.");
+        UiTheme.Heading("Manual de operación","Controles, atajos y ayuda para los trabajos del taller.");
         UiTheme.BeginCard("play-help");
         UiTheme.Section("Abrir y jugar");
         ImGui.TextWrapped("En Biblioteca elegí un sistema, buscá el archivo y pulsá Jugar. También podés abrir un archivo o arrastrarlo a la ventana. Jugar vuelve a la máquina actual.");
@@ -172,21 +175,40 @@ public sealed partial class RetroApp
             { ImGui.TextWrapped(machine.Name+" · "+machine.Cpu+(machine.Status==Retro.Machines.MachineStatus.Available?" · disponible":" · en desarrollo")); UiTheme.Hint(machine.Needs); }
     }
 
-    private void Cards(string id,(string Title,string Detail,string Command)[] items)
+    private void ToolRows(string id,(string Title,string Detail,string Command)[] items)
     {
-        int columns=ImGui.GetContentRegionAvail().X>=UiTheme.Px(800)?2:1;
-        if (!ImGui.BeginTable(id,columns,ImGuiTableFlags.SizingStretchSame)) return;
+        bool compact=ImGui.GetContentRegionAvail().X<UiTheme.Px(560);
+        if (!compact && !ImGui.BeginTable(id,3,ImGuiTableFlags.SizingStretchProp)) return;
+        if (!compact)
+        {
+            ImGui.TableSetupColumn("##instrument",ImGuiTableColumnFlags.WidthFixed,UiTheme.Px(58));
+            ImGui.TableSetupColumn("##description",ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn("##action",ImGuiTableColumnFlags.WidthFixed,UiTheme.Px(98));
+        }
         foreach(var item in items)
         {
-            ImGui.TableNextColumn(); ImGui.PushID(item.Command); UiTheme.BeginCard("card");
-            ImGui.TextColored(UiTheme.Accent,item.Title); ImGui.TextWrapped(item.Detail); ImGui.Spacing();
+            ImGui.PushID(item.Command);
+            if (!compact)
+            {
+                ImGui.TableNextRow(); ImGui.TableNextColumn();
+                RetroArt.Tool(ImGui.GetWindowDrawList(),item.Command,ImGui.GetCursorScreenPos(),UiTheme.Px(44));
+                ImGui.Dummy(UiTheme.Px(44,48)); ImGui.TableNextColumn();
+            }
+            using(UiTheme.Display()) { ImGui.PushTextWrapPos(0); ImGui.TextUnformatted(item.Title); ImGui.PopTextWrapPos(); }
             var command=Commands.Single(c=>c.Id==item.Command);
-            bool enabled=command.Enabled;
-            ImGui.BeginDisabled(!enabled); if (UiTheme.PrimaryButton("Abrir")) command.Execute(); ImGui.EndDisabled();
-            if (!enabled) UiTheme.Hint(command.Unavailable);
-            else if (command.Shortcut.Length>0) { UiTheme.SameLineIfFits(command.Shortcut); ImGui.TextDisabled(command.Shortcut); }
-            UiTheme.EndCard(); ImGui.PopID();
+            if(command.Shortcut.Length>0)
+            {
+                using(UiTheme.FixedWidth()) { UiTheme.SameLineIfFits(command.Shortcut); ImGui.TextDisabled(command.Shortcut); }
+            }
+            UiTheme.Hint(item.Detail);
+            if (!command.Enabled) UiTheme.Hint(command.Unavailable);
+            if (!compact) ImGui.TableNextColumn();
+            ImGui.BeginDisabled(!command.Enabled);
+            if (UiTheme.PrimaryButton("Abrir >")) command.Execute();
+            ImGui.EndDisabled();
+            if(compact) { ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing(); }
+            ImGui.PopID();
         }
-        ImGui.EndTable();
+        if(!compact) ImGui.EndTable();
     }
 }

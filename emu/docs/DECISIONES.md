@@ -1546,3 +1546,21 @@ escrituras de direcciones propuestas por IA. No cambian formatos deCPU, estados 
 
 El buscador manual comparte el área conservadora de RAM del laboratorio: en NES limita
 la búsqueda a0000–07FF, evitando espejos, E/S y ROM como candidatos de variables.
+
+## D-094 — Identidad visual de electrónica retro
+
+El pedido del usuario reemplaza la estética genérica de paneles redondeados por un banco
+de electrónica: superficies de grafito, marfil/ámbar, controles rectos, rotulado técnico,
+marca de circuito e ilustraciones originales de hardware. RetroArt usa vectores de ImGui;
+no agrega texturas, fuentes redistribuidas ni dependencias. El panel de osciloscopio es
+ilustración; no se presenta como telemetría. Los originales conservan el render sin filtros.
+
+Los modos de navegación tienen numeración y una señal activa visible. Catálogo mantiene
+los cinco sistemas, teclado/foco, formatos y acceso a archivos; talleres e instrumental
+presentan herramientas en filas, con requisitos y atajos visibles. El selector compacto,
+escalas de texto y alto contraste se conservan. La composición usa Gill Sans MT para lectura, Agency FB Bold para títulos y OCR A
+Extended para rótulos, desde las fuentes instaladas. Si faltan, se usan alternativas
+locales (Trebuchet, Bahnschrift o fuentes del sistema). Los archivos de fuente no se
+redistribuyen. El cuerpo parte de 20 px y las barras/márgenes se adaptan al tamaño elegido;
+el listado conserva una fuente monoespaciada separada. No cambian contratos, estados,
+IA, investigación, formatos ni emulación de D093.

@@ -9,23 +9,25 @@ namespace Retro.App;
 /// <summary>Shared palette and legible system fonts. No font files are distributed.</summary>
 internal static class UiTheme
 {
-    public const float BaseFontSize = 18;
-    public static Vector4 Muted => HighContrast ? new(0.86f, 0.89f, 0.93f, 1) : new(0.64f, 0.69f, 0.76f, 1);
-    public static Vector4 Accent => HighContrast ? new(0.55f, 0.86f, 1, 1) : new(0.46f, 0.88f, 0.79f, 1);
+    public const float BaseFontSize = 20;
+    public static Vector4 Muted => HighContrast ? new(0.86f, 0.89f, 0.93f, 1) : new(0.67f, 0.69f, 0.63f, 1);
+    public static Vector4 Accent => HighContrast ? new(0.55f, 0.86f, 1, 1) : new(0.88f, 0.67f, 0.36f, 1);
+    public static Vector4 Panel => HighContrast ? new(0,0,0,1) : new(0.09f,0.115f,0.10f,1);
     public static Vector4 Warning => HighContrast ? new(1, 0.82f, 0.36f, 1) : new(0.96f, 0.75f, 0.42f, 1);
     /// <summary>Current instruction, PC and SP in the debugger.</summary>
     public static Vector4 Highlight => HighContrast ? new(1, 1, 0.2f, 1) : new(1, 1, 0.3f, 1);
     public static Vector4 Error => HighContrast ? new(1, 0.6f, 0.55f, 1) : new(1, 0.5f, 0.4f, 1);
     public static Vector4 Success => HighContrast ? new(0.6f, 1, 0.6f, 1) : new(0.55f, 0.85f, 0.55f, 1);
-    /// <summary>Text and spacing factor chosen in the preferences (1 = 18 px text).</summary>
+    /// <summary>Text and spacing factor chosen in the preferences (1 = 20 px body text).</summary>
     public static float Scale { get; private set; } = 1;
     public static bool HighContrast { get; private set; }
     /// <summary>Height of the status bar at the bottom of the window.</summary>
-    public static float StatusBarHeight => MathF.Round(24 * Scale);
+    public static float StatusBarHeight => MathF.Round((BaseFontSize + 8) * Scale);
     private static nint _fontContext;
     private static float _fontSize;
     private static ImFontPtr _codeFont;
     private static ImFontPtr _titleFont;
+    private static ImFontPtr _labelFont;
     private static ImGuiStyle? _baseStyle;
     // Atlas configurations retain this pointer for future rebuilds. One range table per process.
     private static readonly GCHandle Ranges = GCHandle.Alloc(new ushort[] { 0x20, 0xFF, 0x2000, 0x206F, 0 }, GCHandleType.Pinned);
@@ -40,11 +42,11 @@ internal static class UiTheme
         var style = ImGui.GetStyle();
         // ScaleAllSizes multiplies the current sizes, so every change starts again from the unscaled style.
         if (_baseStyle is { } unscaled) *style.NativePtr = unscaled; else _baseStyle = *style.NativePtr;
-        style.WindowRounding = 10; style.ChildRounding = 8; style.FrameRounding = 5;
-        style.PopupRounding = 6; style.GrabRounding = 4; style.TabRounding = 4;
+        style.WindowRounding = 3; style.ChildRounding = 2; style.FrameRounding = 2;
+        style.PopupRounding = 3; style.GrabRounding = 1; style.TabRounding = 1;
         style.WindowPadding = new(14, 14); style.FramePadding = new(9, 6);
         style.ItemSpacing = new(10, 9); style.CellPadding = new(10, 10);
-        style.WindowBorderSize = 1; style.FrameBorderSize = highContrast ? 1 : 0; style.ScrollbarSize = 14;
+        style.WindowBorderSize = 1; style.FrameBorderSize = 1; style.ScrollbarSize = 14;
         // Tall entries (library sections, creator and code tabs) center their text vertically.
         style.SelectableTextAlign = new(0, 0.5f);
         if (Scale != 1) style.ScaleAllSizes(Scale);
@@ -74,26 +76,38 @@ internal static class UiTheme
         }
         else
         {
-            colors[(int)ImGuiCol.Text] = new(0.91f, 0.93f, 0.96f, 1);
-            colors[(int)ImGuiCol.WindowBg] = new(0.045f, 0.061f, 0.082f, 1);
-            colors[(int)ImGuiCol.PopupBg] = new(0.07f, 0.095f, 0.125f, 1);
-            colors[(int)ImGuiCol.Border] = new(0.22f, 0.27f, 0.34f, 0.75f);
-            colors[(int)ImGuiCol.Separator] = new(0.22f, 0.27f, 0.34f, 0.75f);
-            colors[(int)ImGuiCol.FrameBg] = new(0.105f, 0.14f, 0.19f, 1);
-            colors[(int)ImGuiCol.FrameBgHovered] = new(0.16f, 0.23f, 0.31f, 1);
-            colors[(int)ImGuiCol.FrameBgActive] = new(0.19f, 0.29f, 0.40f, 1);
-            colors[(int)ImGuiCol.Button] = new(0.14f, 0.20f, 0.27f, 1);
-            colors[(int)ImGuiCol.ButtonHovered] = new(0.20f, 0.32f, 0.43f, 1);
-            colors[(int)ImGuiCol.ButtonActive] = new(0.23f, 0.39f, 0.53f, 1);
-            colors[(int)ImGuiCol.Header] = new(0.10f, 0.28f, 0.29f, 1);
-            colors[(int)ImGuiCol.HeaderHovered] = new(0.14f, 0.35f, 0.36f, 1);
-            colors[(int)ImGuiCol.HeaderActive] = new(0.17f, 0.41f, 0.40f, 1);
-            colors[(int)ImGuiCol.TitleBg] = new(0.08f, 0.11f, 0.15f, 1);
-            colors[(int)ImGuiCol.TitleBgActive] = new(0.12f, 0.21f, 0.30f, 1);
-            colors[(int)ImGuiCol.MenuBarBg] = new(0.075f, 0.095f, 0.125f, 1);
-            colors[(int)ImGuiCol.CheckMark] = Accent;
+            colors[(int)ImGuiCol.Text] = new(0.91f, 0.89f, 0.82f, 1);
+            colors[(int)ImGuiCol.WindowBg] = new(0.065f, 0.080f, 0.070f, 1);
+            colors[(int)ImGuiCol.PopupBg] = new(0.09f, 0.115f, 0.10f, 1);
+            colors[(int)ImGuiCol.Border] = new(0.29f, 0.32f, 0.27f, 1);
+            colors[(int)ImGuiCol.Separator] = new(0.27f, 0.30f, 0.25f, 1);
+            colors[(int)ImGuiCol.FrameBg] = new(0.115f, 0.145f, 0.12f, 1);
+            colors[(int)ImGuiCol.FrameBgHovered] = new(0.18f, 0.21f, 0.17f, 1);
+            colors[(int)ImGuiCol.FrameBgActive] = new(0.22f, 0.25f, 0.19f, 1);
+            colors[(int)ImGuiCol.Button] = new(0.17f, 0.20f, 0.16f, 1);
+            colors[(int)ImGuiCol.ButtonHovered] = new(0.26f, 0.29f, 0.22f, 1);
+            colors[(int)ImGuiCol.ButtonActive] = new(0.34f, 0.31f, 0.22f, 1);
+            colors[(int)ImGuiCol.Header] = new(0.30f, 0.25f, 0.16f, 1);
+            colors[(int)ImGuiCol.HeaderHovered] = new(0.37f, 0.31f, 0.20f, 1);
+            colors[(int)ImGuiCol.HeaderActive] = new(0.43f, 0.35f, 0.22f, 1);
+            colors[(int)ImGuiCol.TitleBg] = new(0.10f, 0.12f, 0.10f, 1);
+            colors[(int)ImGuiCol.TitleBgActive] = new(0.22f, 0.23f, 0.18f, 1);
+            colors[(int)ImGuiCol.MenuBarBg] = new(0.085f, 0.10f, 0.085f, 1);
+            colors[(int)ImGuiCol.CheckMark] = new(0.63f,0.80f,0.52f,1);
             colors[(int)ImGuiCol.NavCursor] = Accent;
+            colors[(int)ImGuiCol.ScrollbarBg]=new(0.06f,0.075f,0.065f,1);
+            colors[(int)ImGuiCol.ScrollbarGrab]=new(0.34f,0.38f,0.31f,1);
         }
+        foreach(string name in new[]{"Tab","TabDimmed","TabUnfocused"})
+            if (Enum.TryParse<ImGuiCol>(name,out var key)) colors[(int)key]=highContrast?new(0.03f,0.03f,0.04f,1):new(0.13f,0.16f,0.13f,1);
+        foreach(string name in new[]{"TabSelected","TabActive","TabHovered","TabDimmedSelected","TabUnfocusedActive"})
+            if (Enum.TryParse<ImGuiCol>(name,out var key)) colors[(int)key]=highContrast?new(0,0.27f,0.55f,1):new(0.33f,0.28f,0.18f,1);
+        colors[(int)ImGuiCol.ResizeGrip]=new(Accent.X,Accent.Y,Accent.Z,0.25f);
+        colors[(int)ImGuiCol.ResizeGripHovered]=new(Accent.X,Accent.Y,Accent.Z,0.7f);
+        colors[(int)ImGuiCol.ResizeGripActive]=Accent;
+        colors[(int)ImGuiCol.SliderGrab]=Accent;
+        colors[(int)ImGuiCol.SliderGrabActive]=Accent;
+
         colors[(int)ImGuiCol.TextDisabled] = Muted;
         colors[(int)ImGuiCol.ModalWindowDimBg] = new(0, 0, 0, highContrast ? 0.8f : 0.65f);
         colors[(int)ImGuiCol.ChildBg] = new(0, 0, 0, 0);
@@ -117,8 +131,10 @@ internal static class UiTheme
             ImGui.GetIO().NativePtr->FontDefault = fontPtr.NativePtr;
             _codeFont = codeFont == null ? fontPtr
                 : ImGui.GetIO().Fonts.AddFontFromFileTTF(codeFont, MathF.Round(16 * Scale), config, Ranges.AddrOfPinnedObject());
-            string titleFont = OperatingSystem.IsWindows() ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "seguisb.ttf") : font ?? "";
-            _titleFont = File.Exists(titleFont) ? ImGui.GetIO().Fonts.AddFontFromFileTTF(titleFont, MathF.Round(28 * Scale), config, Ranges.AddrOfPinnedObject()) : fontPtr;
+            string? titleFont = DisplayCandidates().FirstOrDefault(File.Exists);
+            _titleFont = titleFont!=null ? ImGui.GetIO().Fonts.AddFontFromFileTTF(titleFont, MathF.Round(32 * Scale), config, Ranges.AddrOfPinnedObject()) : fontPtr;
+            string? labelFont=LabelCandidates().FirstOrDefault(File.Exists);
+            _labelFont=labelFont!=null?ImGui.GetIO().Fonts.AddFontFromFileTTF(labelFont,MathF.Round(16*Scale),config,Ranges.AddrOfPinnedObject()):fontPtr;
             rlImGui.ReloadFonts();
         }
         finally { ImGuiNative.ImFontConfig_destroy(config.NativePtr); }
@@ -126,10 +142,36 @@ internal static class UiTheme
 
     private static IEnumerable<string> FontCandidates(bool code)
     {
-        if (OperatingSystem.IsWindows()) yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), code ? "consola.ttf" : "segoeui.ttf");
-        if (OperatingSystem.IsMacOS()) yield return code ? "/System/Library/Fonts/Menlo.ttc" : "/System/Library/Fonts/Supplemental/Arial.ttf";
+        if (OperatingSystem.IsWindows())
+        {
+            string folder=Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
+            if(!code) { yield return Path.Combine(folder,"GIL_____.TTF"); yield return Path.Combine(folder,"trebuc.ttf"); }
+            yield return Path.Combine(folder,code?"consola.ttf":"segoeui.ttf");
+        }
+        if (OperatingSystem.IsMacOS())
+        { if(!code) yield return "/System/Library/Fonts/Supplemental/GillSans.ttc"; yield return code ? "/System/Library/Fonts/Menlo.ttc" : "/System/Library/Fonts/Supplemental/Trebuchet MS.ttf"; }
         yield return "/usr/share/fonts/truetype/dejavu/" + (code ? "DejaVuSansMono.ttf" : "DejaVuSans.ttf");
         yield return "/usr/share/fonts/truetype/liberation2/" + (code ? "LiberationMono-Regular.ttf" : "LiberationSans-Regular.ttf");
+    }
+
+    private static IEnumerable<string> DisplayCandidates()
+    {
+        if(OperatingSystem.IsWindows())
+        {
+            string folder=Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
+            yield return Path.Combine(folder,"AGENCYB.TTF"); yield return Path.Combine(folder,"bahnschrift.ttf");
+        }
+        yield return "/System/Library/Fonts/Supplemental/DIN Condensed Bold.ttf";
+        yield return "/usr/share/fonts/truetype/dejavu/DejaVuSansCondensed-Bold.ttf";
+    }
+
+    private static IEnumerable<string> LabelCandidates()
+    {
+        if(OperatingSystem.IsWindows())
+        {
+            string folder=Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
+            yield return Path.Combine(folder,"OCRAEXT.TTF"); yield return Path.Combine(folder,"bahnschrift.ttf");
+        }
     }
 
     public readonly struct FontScope : IDisposable
@@ -139,6 +181,8 @@ internal static class UiTheme
 
     /// <summary>Fixed-width text only where columns and addresses carry meaning.</summary>
     public static FontScope FixedWidth() { ImGui.PushFont(_codeFont); return new(); }
+    public static FontScope Display() { ImGui.PushFont(_titleFont); return new(); }
+    public static FontScope Label() { ImGui.PushFont(_labelFont); return new(); }
 
     public static void Heading(string title, string? description = null)
     {
@@ -154,15 +198,18 @@ internal static class UiTheme
 
     public static void Section(string title, string? description = null)
     {
-        ImGui.Spacing(); ImGui.SeparatorText(title);
+        ImGui.Spacing();
+        using (Label()) { ImGui.PushStyleColor(ImGuiCol.Text,Accent); ImGui.SeparatorText(title); ImGui.PopStyleColor(); }
         if (description != null) Hint(description);
     }
 
     public static bool PrimaryButton(string label, Vector2 size = default)
     {
-        ImGui.PushStyleColor(ImGuiCol.Button, HighContrast ? new Vector4(0, 0.32f, 0.68f, 1) : new Vector4(0.08f, 0.35f, 0.33f, 1));
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, HighContrast ? new Vector4(0, 0.44f, 0.84f, 1) : new Vector4(0.11f, 0.45f, 0.41f, 1));
-        bool pressed = ImGui.Button(label, size); ImGui.PopStyleColor(2); return pressed;
+        ImGui.PushStyleColor(ImGuiCol.Button, HighContrast ? new Vector4(0, 0.32f, 0.68f, 1) : new Vector4(0.83f, 0.62f, 0.32f, 1));
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, HighContrast ? new Vector4(0, 0.44f, 0.84f, 1) : new Vector4(0.94f, 0.76f, 0.47f, 1));
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, HighContrast ? new Vector4(0, 0.44f, 0.84f, 1) : new Vector4(0.72f,0.54f,0.29f,1));
+        ImGui.PushStyleColor(ImGuiCol.Text,HighContrast?new Vector4(1,1,1,1):new Vector4(0.065f,0.08f,0.07f,1));
+        bool pressed = ImGui.Button(label, size); ImGui.PopStyleColor(4); return pressed;
     }
 
     public static void EmptyState(string title, string detail)
@@ -170,13 +217,14 @@ internal static class UiTheme
         ImGui.Spacing(); ImGui.TextUnformatted(title); Hint(detail); ImGui.Spacing();
     }
 
-    public static void Eyebrow(string text) { ImGui.TextColored(Accent, text); ImGui.Spacing(); }
+    public static void Eyebrow(string text) { using(Label()) ImGui.TextColored(Accent, text); ImGui.Spacing(); }
 
     public static void BeginCard(string id, Vector2 size = default)
     {
-        ImGui.PushStyleColor(ImGuiCol.ChildBg, HighContrast ? new Vector4(0, 0, 0, 1) : new Vector4(0.072f, 0.095f, 0.125f, 1));
+        ImGui.PushStyleColor(ImGuiCol.ChildBg, Panel);
         ImGui.BeginChild(id, size, ImGuiChildFlags.Borders | ImGuiChildFlags.AutoResizeY);
         ImGui.PopStyleColor();
+        if (!HighContrast) RetroArt.Screw(ImGui.GetWindowDrawList(),ImGui.GetWindowPos()+new Vector2(ImGui.GetWindowWidth()-UiTheme.Px(7),UiTheme.Px(7)));
     }
     public static void EndCard() => ImGui.EndChild();
 

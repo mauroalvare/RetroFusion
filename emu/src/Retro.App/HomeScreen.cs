@@ -141,7 +141,8 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         else
         {
             ImGui.BeginChild("navegacion", new Vector2(Math.Clamp(viewport.WorkSize.X * 0.22f, UiTheme.Px(156), UiTheme.Px(210)), 0));
-            UiTheme.Heading("RetroEmu", "Jugá · Creá · Explorá");
+            UiTheme.Eyebrow("CATÁLOGO");
+            UiTheme.Heading("Mis máquinas", "Originales y creaciones");
             ImGui.Spacing(); ImGui.Spacing();
             Nav("Inicio", "home");
             Nav("Todos los juegos", "all");
@@ -159,8 +160,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
                 if (ImGui.Selectable("Buscar acción…", false, ImGuiSelectableFlags.None, new Vector2(0, UiTheme.Px(28)))) actions.FindAction();
                 if (ImGui.IsItemHovered()) UiTheme.Tooltip("Encontrá herramientas, controles y opciones por nombre.");
             }
-            ImGui.Spacing(); ImGui.Spacing();
-            if (canReturn() && ImGui.Button("Volver al juego", new Vector2(-1, 0))) Close();
+            if (canReturn()) { ImGui.Spacing(); if (ImGui.Button("Volver al juego", new Vector2(-1, 0))) Close(); }
             ImGui.EndChild();
             ImGui.SameLine();
         }
@@ -168,7 +168,8 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         string title = SectionTitle();
         if (!compact)
         {
-            UiTheme.Heading(title, _section == "home" ? "Tus juegos originales y tus creaciones, en un mismo lugar." : null);
+            if (_section=="home") RetroArt.LibraryMasthead(Machines.Count(),library.Entries.Count);
+            else UiTheme.Heading(title);
         }
         if (UiTheme.PrimaryButton("Abrir archivo…")) browse();
         UiTheme.SameLineIfFits("Actualizar biblioteca");
@@ -189,7 +190,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
                 (library.UnclassifiedCount > 0 ? $" · Sin clasificar: {library.UnclassifiedCount}" : ""));
             if (ImGui.IsItemHovered()) UiTheme.Tooltip("Los archivos cuyo sistema no se puede identificar quedan en ROMs.");
         }
-        if (_section == "home") { DrawMachines(); DrawCreativeActions(); }
+        if (_section == "home") { if(compact) RetroArt.LibraryMasthead(Machines.Count(),library.Entries.Count); DrawMachines(); DrawCreativeActions(); }
         else
         {
             ImGui.SetNextItemWidth(Math.Max(UiTheme.Px(80), ImGui.GetContentRegionAvail().X - UiTheme.Px(92)));
@@ -246,44 +247,42 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
 
     private void DrawMachines()
     {
-        UiTheme.Section("Explorá por sistema");
+        UiTheme.Section("Máquinas", "El hardware de cada época. Elegí un sistema para ver sus archivos.");
         int columns = ImGui.GetContentRegionAvail().X >= UiTheme.Px(700) ? 2 : 1;
         if (ImGui.BeginTable("maquinas", columns, ImGuiTableFlags.SizingStretchSame))
         {
+            int index=0;
             foreach (var machine in Machines)
             {
-                ImGui.TableNextColumn();
-                var size = new Vector2(ImGui.GetContentRegionAvail().X, UiTheme.Px(116));
-                bool selected = ImGui.InvisibleButton("maquina-" + machine.Id, size);
-                bool hovered = ImGui.IsItemHovered();
-                var min = ImGui.GetItemRectMin();
-                var max = ImGui.GetItemRectMax();
-                var draw = ImGui.GetWindowDrawList();
-                uint accent = machine.Id switch
+                index++; ImGui.TableNextColumn();
+                var size = new Vector2(ImGui.GetContentRegionAvail().X, UiTheme.Px(122));
+                bool selected = ImGui.Button("##maquina-" + machine.Id, size);
+                bool hovered = ImGui.IsItemHovered() || ImGui.IsItemFocused();
+                var min = ImGui.GetItemRectMin(); var max = ImGui.GetItemRectMax(); var draw = ImGui.GetWindowDrawList();
+                uint accent=ImGui.ColorConvertFloat4ToU32(UiTheme.Accent);
+                draw.AddRectFilled(min, max, ImGui.GetColorU32(ImGuiCol.ChildBg)==0?ImGui.ColorConvertFloat4ToU32(UiTheme.Panel):ImGui.GetColorU32(ImGuiCol.ChildBg),UiTheme.Px(2));
+                draw.AddRect(min,max,hovered?accent:ImGui.GetColorU32(ImGuiCol.Border),UiTheme.Px(2),ImDrawFlags.None,hovered?UiTheme.Px(2):1);
+                draw.AddRectFilled(min+UiTheme.Px(1,1),min+new Vector2(size.X-UiTheme.Px(1),UiTheme.Px(4)),accent);
+                float artWidth=Math.Min(UiTheme.Px(144),size.X*0.29f);
+                HardwareArt.Draw(draw,machine.Id,min+UiTheme.Px(8,12),new(artWidth,UiTheme.Px(80)));
+                float textX=artWidth+UiTheme.Px(22),width=size.X-textX-UiTheme.Px(12);
+                draw.AddText(min+new Vector2(textX,UiTheme.Px(18)),ImGui.GetColorU32(ImGuiCol.Text),UiTheme.Fit(Name(machine),width));
+                string formats=machine.Id switch {"zx48"=>"TAP / TZX / Z80 / SNA","c64"=>"PRG / T64","nes"=>"CARTUCHOS NES","pcxt"=>"EXE / COM / ZIP / IMG",_=>"ROM DE PLACA ARCADE"};
+                using(UiTheme.Label()) draw.AddText(min+new Vector2(textX,UiTheme.Px(46)),ImGui.GetColorU32(ImGuiCol.TextDisabled),UiTheme.Fit(formats,width));
+                draw.AddText(min+new Vector2(textX,UiTheme.Px(72)),ImGui.GetColorU32(ImGuiCol.TextDisabled),UiTheme.Fit(Summary(machine.Id),width));
+                draw.AddLine(min+UiTheme.Px(14,96),new(max.X-UiTheme.Px(14),min.Y+UiTheme.Px(96)),ImGui.GetColorU32(ImGuiCol.Border));
+                using(UiTheme.Label())
                 {
-                    "zx48" => ImGui.ColorConvertFloat4ToU32(new Vector4(0.4f, 0.75f, 1, 1)),
-                    "c64" => ImGui.ColorConvertFloat4ToU32(new Vector4(0.7f, 0.65f, 1, 1)),
-                    "nes" => ImGui.ColorConvertFloat4ToU32(new Vector4(1, 0.5f, 0.45f, 1)),
-                    "pcxt" => ImGui.ColorConvertFloat4ToU32(new Vector4(0.88f, 0.75f, 0.48f, 1)),
-                    _ => ImGui.ColorConvertFloat4ToU32(new Vector4(0.55f, 0.85f, 0.55f, 1)),
-                };
-                draw.AddRectFilled(min, max, ImGui.GetColorU32(hovered ? ImGuiCol.HeaderHovered : ImGuiCol.FrameBg), 5);
-                draw.AddRectFilled(min, new Vector2(min.X + UiTheme.Px(4), max.Y), accent, 3);
-                HardwareArt.Draw(draw, machine.Id, min + UiTheme.Px(12, 7), UiTheme.Px(100, 76));
-                float width = size.X - UiTheme.Px(136);
-                draw.AddText(min + UiTheme.Px(124, 18), ImGui.GetColorU32(ImGuiCol.Text), UiTheme.Fit(Name(machine), width));
-                draw.AddText(min + UiTheme.Px(124, 42), ImGui.GetColorU32(ImGuiCol.TextDisabled), UiTheme.Fit(machine.Id switch
-                { "zx48" => "TAP · TZX · Z80 · SNA", "c64" => "PRG · T64", "nes" => "Cartuchos NES", "pcxt" => "EXE · COM · ZIP · IMG", _ => "ROMs de la placa arcade" }, width));
-                string summary = Summary(machine.Id);
-                draw.AddText(min + UiTheme.Px(124, 66), ImGui.GetColorU32(ImGuiCol.TextDisabled), UiTheme.Fit(summary, width));
-                draw.AddText(min + UiTheme.Px(18, 88), accent, "Ver juegos >");
-                if (hovered) UiTheme.Tooltip(Name(machine) + " · " + machine.Cpu + "\n" + summary);
-                if (selected) Select("machine", machine.Id);
+                    draw.AddText(min+UiTheme.Px(14,102),accent,UiTheme.Fit($"{index:00} / {machine.Cpu}",size.X-UiTheme.Px(108)));
+                    draw.AddText(new(max.X-UiTheme.Px(78),min.Y+UiTheme.Px(102)),ImGui.GetColorU32(ImGuiCol.Text),"ABRIR >");
+                }
+                if(!UiTheme.HighContrast) RetroArt.Screw(draw,new(max.X-UiTheme.Px(8),min.Y+UiTheme.Px(12)));
+                if (hovered) UiTheme.Tooltip(Name(machine)+" · "+machine.Cpu+"\n"+Summary(machine.Id));
+                if (selected) Select("machine",machine.Id);
                 ImGui.Spacing();
             }
             ImGui.EndTable();
         }
-        ImGui.Spacing();
         if (ImGui.Button("Ver todos los juegos")) Select("all");
     }
 

@@ -15,8 +15,9 @@ internal static class WorkspaceLayout
 
     public static void NextEditor()
     {
-        ImGui.SetNextWindowPos(Origin + UiTheme.Px(12, 12));
-        ImGui.SetNextWindowSize(Vector2.Max(UiTheme.Px(100, 80), Size - UiTheme.Px(24, 24)));
+        float margin=Size.Y<UiTheme.Px(360)?6:12;
+        ImGui.SetNextWindowPos(Origin + UiTheme.Px(margin,margin));
+        ImGui.SetNextWindowSize(Vector2.Max(UiTheme.Px(100, 80), Size - UiTheme.Px(margin*2,margin*2)));
         ImGui.SetNextWindowDockID(0);
     }
 

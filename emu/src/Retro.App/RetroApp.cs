@@ -322,7 +322,7 @@ public sealed partial class RetroApp
         if (_themeChanged) { ConfigureStyle(); _themeChanged = false; }
         SetKeyboardNavigation(m);
         Raylib.BeginDrawing();
-        Raylib.ClearBackground(new Color(18, 18, 22, 255));
+        Raylib.ClearBackground(new Color(15, 18, 16, 255));
         if (!InterfaceWorkspace && !_debugMode && _texW != 0)
             DrawPlayScreen();
         rlImGui.Begin(dt);
