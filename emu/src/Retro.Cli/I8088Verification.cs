@@ -2,18 +2,20 @@ using System.IO.Compression;
 using System.Reflection;
 using System.Text.Json;
 using Retro.Cpu.I8088;
-/// <summary>Functional state/memory oracle for the separately obtained SingleStepTests 8088 v2 files.</summary>
+/// <summary>Functional state/memory oracle for model-specific SingleStepTests format-2 files.</summary>
 internal static class I8088Verification
 {
-    public static int Run(string folder, string? report)
+    public static int Run(string folder, string? report, I8088Model model = I8088Model.Intel8088)
     {
-        if (string.IsNullOrWhiteSpace(folder)) { Console.Error.WriteLine("Indicá --suite con la carpeta v2 de SingleStepTests/8088."); return 1; }
+        string cpuName = model switch { I8088Model.Intel8088 => "8088", I8088Model.Intel8086 => "8086", _ => "" };
+        if (cpuName.Length == 0) { Console.Error.WriteLine("Modelo de CPU no válido para el contraste."); return 1; }
+        if (string.IsNullOrWhiteSpace(folder)) { Console.Error.WriteLine($"Indicá --suite con una carpeta de SingleStepTests/{cpuName} de formato 2."); return 1; }
         try
         {
             var root = Path.GetFullPath(folder);
             using var metadata = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "metadata.json")));
-            if (metadata.RootElement.GetProperty("syntax_version").GetInt32() != 2 || metadata.RootElement.GetProperty("cpu").GetString() != "8088")
-                throw new InvalidDataException("Se requiere SingleStepTests/8088 formato 2.");
+            if (metadata.RootElement.GetProperty("syntax_version").GetInt32() != 2 || metadata.RootElement.GetProperty("cpu").GetString() != cpuName)
+                throw new InvalidDataException($"Se requiere SingleStepTests/{cpuName} formato 2.");
             var files = Directory.GetFiles(root, "*.json.gz").Order().ToArray();
             if (files.Length == 0) throw new InvalidDataException("La carpeta no contiene pruebas .json.gz.");
             var props = typeof(I8088Cpu).GetProperties().Where(p => p.CanWrite && p.PropertyType == typeof(ushort)).ToDictionary(p => p.Name.ToLowerInvariant());
@@ -22,15 +24,19 @@ internal static class I8088Verification
             {
                 using var zipped = File.OpenRead(file); using var gzip = new GZipStream(zipped, CompressionMode.Decompress); using var document = JsonDocument.Parse(gzip);
                 string opcode = Path.GetFileName(file).Split('.')[0]; var info = metadata.RootElement.GetProperty("opcodes").GetProperty(opcode);
-                int passed = 0, failed = 0, skipped = 0; var errors = new List<object>();
+                int passed = 0, failed = 0, skipped = 0, position = 0; var errors = new List<object>();
                 foreach (var test in document.RootElement.EnumerateArray())
                 {
+                    int testPosition = position++;
                     var bytes = test.GetProperty("bytes").EnumerateArray().Select(v => v.GetByte()).ToArray(); int actualOpcode = 0;
                     while (actualOpcode < bytes.Length && bytes[actualOpcode] is 0x26 or 0x2E or 0x36 or 0x3E or 0xF0 or 0xF2 or 0xF3) actualOpcode++;
+                    if (actualOpcode >= bytes.Length) throw new InvalidDataException("Caso sin opcode después de los prefijos.");
                     var detail = info;
+                    if (info.TryGetProperty("reg", out _) && actualOpcode + 1 >= bytes.Length)
+                        throw new InvalidDataException("Caso de grupo sin ModR/M.");
                     if (info.TryGetProperty("reg", out var group) && group.TryGetProperty(((bytes[actualOpcode + 1] >> 3) & 7).ToString(), out var member)) detail = member;
                     if (detail.TryGetProperty("status", out var status) && status.GetString() is not "normal") { skipped++; continue; }
-                    Array.Fill(bus.Ram, (byte)0x90); var cpu = new I8088Cpu(bus);
+                    Array.Fill(bus.Ram, (byte)0x90); var cpu = new I8088Cpu(bus, model);
                     var initial = test.GetProperty("initial");
                     foreach (var reg in initial.GetProperty("regs").EnumerateObject()) props[reg.Name].SetValue(cpu, reg.Value.GetUInt16());
                     foreach (var cell in initial.GetProperty("ram").EnumerateArray()) bus.Ram[cell[0].GetInt32()] = cell[1].GetByte();
@@ -57,12 +63,20 @@ internal static class I8088Verification
                         }
                     }
                     catch (Exception error) { problem = error.Message; }
-                    if (problem == null) passed++; else { failed++; if (errors.Count < 5) errors.Add(new { Test = test.GetProperty("name").GetString(), Index = test.GetProperty("idx").GetInt32(), Problem = problem, Initial = initial.ToString(), Bytes = bytes }); }
+                    if (problem == null) passed++; else { failed++; if (errors.Count < 5) errors.Add(new { Test = test.GetProperty("name").GetString(), Index = test.TryGetProperty("idx", out var idx) ? idx.GetInt32() : testPosition, Problem = problem, Initial = initial.ToString(), Bytes = bytes }); }
                 }
                 totalPassed += passed; totalFailed += failed; totalSkipped += skipped;
                 results.Add(new { File = Path.GetFileName(file), Opcode = opcode, Passed = passed, Failed = failed, Skipped = skipped, Errors = errors }); Console.WriteLine($"{opcode}: {passed} PASS, {failed} FAIL, {skipped} no documentadas");
             }
-            if (report != null) { string path = Path.GetFullPath(report); Directory.CreateDirectory(Path.GetDirectoryName(path)!); File.WriteAllText(path, JsonSerializer.Serialize(new { Passed = totalPassed, Failed = totalFailed, Excluded = totalSkipped, Scope = "Registros y memoria; sin validar ciclos, cola de prelectura ni flags indefinidos.", Files = results }, new JsonSerializerOptions { WriteIndented = true })); }
+            if (totalPassed + totalFailed == 0) throw new InvalidDataException("La selección no contiene casos documentados para contrastar.");
+            if (report != null)
+            {
+                string path = Path.GetFullPath(report); Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                const string scope = "Registros y memoria; sin validar ciclos, cola de prelectura ni flags indefinidos.";
+                object summary = new { Passed = totalPassed, Failed = totalFailed, Excluded = totalSkipped, Scope = scope, Files = results };
+                if (model == I8088Model.Intel8086) summary = new { Cpu = cpuName, Passed = totalPassed, Failed = totalFailed, Excluded = totalSkipped, Scope = scope, Files = results };
+                File.WriteAllText(path, JsonSerializer.Serialize(summary, new JsonSerializerOptions { WriteIndented = true }));
+            }
             Console.WriteLine($"Aprobados: {totalPassed}; fallidos: {totalFailed}; excluidos por metadatos: {totalSkipped}.");
             Console.WriteLine("Se contrastaron registros y memoria. Esta prueba no valida ciclos ni la cola de prelectura.");
             return totalFailed == 0 ? 0 : 2;

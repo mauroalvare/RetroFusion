@@ -13,6 +13,7 @@
     <PackageReference Include="NUnit3TestAdapter" Version="5.0.0" />
     <Using Include="NUnit.Framework" />
     <Compile Include="../../src/Retro.Cli/I8088BusVerification.cs" Link="I8088BusVerification.cs" />
+    <Compile Include="../../src/Retro.Cli/I8088Verification.cs" Link="I8088Verification.cs" />
     <ProjectReference Include="../../src/Retro.Cpu.I8088/Retro.Cpu.I8088.csproj" />
   </ItemGroup>
 </Project>

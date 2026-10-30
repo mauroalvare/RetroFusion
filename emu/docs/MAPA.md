@@ -364,6 +364,14 @@ El bus puede implementar `Ready` (por defecto alto). Las pruebas propias comprue
 memoria, puertos, ancho/alineación 8086, prelectura guardada y HOLD durante una espera.
 El verificador externo compara sus trazas; no inyecta niveles READY de la suite.
 
+Contraste propio 8086: `retro-cli cpu8086 verificar --suite RUTA-A-V1 --salida out/estado-8086.json`.
+El directorio v1 usa JSON de sintaxis 2 y metadatos cpu=8086: no se reutilizan los de 8088.
+`cpu8086 verificar-bus` acepta los mismos selectores, aplica A0/BHE y distingue bancos
+activos y transferencias simultáneas. Resultado funcional: 552.744 correctos, 93.256
+excluidos; movimientos/E/S: 32.000 casos/15.025 pares correctos. El resto del bus tiene
+diferencias documentadas en [I8088.md](I8088.md). `FunctionalVerificationTests.cs` y
+`WordBusVerificationTests.cs` verifican selección de modelo, errores e interpretación.
+
 Diagnóstico de interrupciones 8088+8259A (programa propio, sin BIOS/DOS): desde emu,
 `dotnet run --project src/Retro.Cli -c Release -- cpu8088 irq-demo --steps 1000`.
 Detalles y resultado esperado en [I8088.md](I8088.md).

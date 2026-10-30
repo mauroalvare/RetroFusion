@@ -1337,3 +1337,23 @@ IMachine agrega CancelQueuedKeys opcional para máquinas sin escritura programad
 Las cinco placas existentes lo implementan y KeySequencer.Clear libera sus teclas
 retenidas y vacía el resto. La app lo usa al restaurar o comenzar la grabación para
 no dejar una macro externa pendiente sobre el punto recuperado.
+
+## D-084 — Contraste independiente del 8086 y lectura de su bus de palabra
+
+cpu8086 acepta verificar y verificar-bus con el corpus propio SingleStepTests/8086,
+revisión e71c68d215a6bb8c356bd4cb3842de3bef345ca9. Fue descargado por autorización
+expresa, con licencia MIT y hashes de todos los archivos. v1 declara sintaxis JSON 2
+y cpu=8086; los comandos rechazan metadatos de otro modelo y usan Intel8086.
+
+El lector retiene dirección/BHE de T1 y compara únicamente los bancos activos por
+A0/BHE. Expande una palabra par a dos bytes en el mismo reloj; no compara los bits
+del banco inactivo. Los casos sin idx conservan su posición de archivo como índice.
+El informe 8086 agrega Cpu y, para el bus, TransferUnits=bytes. El formato del informe
+8088 se conserva. Una selección funcional vacía o totalmente excluida devuelve 1.
+
+El núcleo no cambia en este hito. 552.744 casos funcionales coinciden, con 93.256
+excluidos. Todo el bus coincide en tipo/orden/dirección: 4.787 casos difieren solo en
+valores de flags indefinidos y 15.144 conservan diferencias de intervalos. Los 32.000
+movimientos/E/S coinciden también en sus 15.025 pares. No se presenta este contraste
+como certificación de reloj absoluto, prelectura final, pines ni todas las revisiones
+del 8086; el corpus identifica un P80C86A-2. La placa propia sigue pendiente.

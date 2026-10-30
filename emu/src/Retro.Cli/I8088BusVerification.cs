@@ -15,11 +15,11 @@ internal static class I8088BusVerification
         public byte In(ushort port) => 255;
         public void Out(ushort port, byte value) { }
     }
-    internal static List<I8088BusAccess> ReadTransfers(JsonElement cycles)
+    internal static List<I8088BusAccess> ReadTransfers(JsonElement cycles, I8088Model model = I8088Model.Intel8088)
     {
         var rows = cycles.EnumerateArray().ToArray();
         var result = new List<I8088BusAccess>();
-        uint address = 0; string? kind = null;
+        uint address = 0; string? kind = null; bool highBank = false;
         for (int i = 0; i < rows.Length; i++)
         {
             var row = rows[i];
@@ -28,6 +28,12 @@ internal static class I8088BusVerification
             {
                 address = row[1].GetUInt32(); kind = row[7].GetString();
                 if (address > 0xFFFFF) throw new InvalidDataException("Dirección de bus fuera de 20 bits.");
+                if (model == I8088Model.Intel8086)
+                {
+                    int bhe = row[5].GetInt32();
+                    if (bhe is not (0 or 1)) throw new InvalidDataException("BHE debe ser cero o uno.");
+                    highBank = bhe == 0; // BHE/S7 is latched with the address on T1.
+                }
             }
             // A trace may start inside a prefetch whose ALE was earlier. Its status is still driven in T2;
             // code is not compared, so its unknown address is harmless. Data without ALE stays invalid.
@@ -44,15 +50,27 @@ internal static class I8088BusVerification
                 "IOW" when ports[1] == 'A' => I8088BusAccessKind.Output,
                 _ => null
             };
-            if (access is { } value) result.Add(new(i + 1, value, address, row[6].GetByte()));
+            if (access is { } value)
+            {
+                if (model == I8088Model.Intel8088) result.Add(new(i + 1, value, address, row[6].GetByte()));
+                else
+                {
+                    ushort data = row[6].GetUInt16(); bool lowBank = (address & 1) == 0;
+                    if (!lowBank && !highBank) throw new InvalidDataException("Transferencia 8086 sin banco de datos activo.");
+                    if (lowBank) result.Add(new(i + 1, value, address, (byte)data));
+                    if (highBank) result.Add(new(i + 1, value, address | 1u, (byte)(data >> 8)));
+                }
+            }
             else if (kind == null && (memory != "---" || ports != "---"))
                 throw new InvalidDataException("Transferencia sin dirección retenida por ALE.");
         }
         return result;
     }
 
-    public static int Run(string folder, string? report, string? opcodes, string? cases)
+    public static int Run(string folder, string? report, string? opcodes, string? cases, I8088Model model = I8088Model.Intel8088)
     {
+        string cpuName = model switch { I8088Model.Intel8088 => "8088", I8088Model.Intel8086 => "8086", _ => "" };
+        if (cpuName.Length == 0) { Console.Error.WriteLine("Modelo de CPU no válido para el contraste."); return 1; }
         if (!int.TryParse(cases ?? "1000", out int limit) || limit is < 1 or > 10000)
         { Console.Error.WriteLine("--casos debe estar entre 1 y 10000 por archivo."); return 1; }
         try
@@ -63,11 +81,11 @@ internal static class I8088BusVerification
             if (selected.Length == 0 || selected.Any(v => v.Length is not (2 or 4) || v.Length == 4 && (v[2] != '.' || v[3] is < '0' or > '7') ||
                     !byte.TryParse(v.AsSpan(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _)))
                 throw new InvalidDataException("--opcodes requiere bytes hexadecimales o grupos XX.R separados por coma.");
-            if (string.IsNullOrWhiteSpace(folder)) throw new InvalidDataException("Indicá --suite con la carpeta v2 de SingleStepTests/8088.");
+            if (string.IsNullOrWhiteSpace(folder)) throw new InvalidDataException($"Indicá --suite con una carpeta de SingleStepTests/{cpuName} de formato 2.");
             string root = Path.GetFullPath(folder);
             using var metadata = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "metadata.json")));
-            if (metadata.RootElement.GetProperty("syntax_version").GetInt32() != 2 || metadata.RootElement.GetProperty("cpu").GetString() != "8088")
-                throw new InvalidDataException("Se requiere SingleStepTests/8088 formato 2.");
+            if (metadata.RootElement.GetProperty("syntax_version").GetInt32() != 2 || metadata.RootElement.GetProperty("cpu").GetString() != cpuName)
+                throw new InvalidDataException($"Se requiere SingleStepTests/{cpuName} formato 2.");
             var properties = typeof(I8088Cpu).GetProperties().Where(p => p.CanWrite && p.PropertyType == typeof(ushort)).ToDictionary(p => p.Name.ToLowerInvariant());
             var bus = new Bus(); var files = new List<object>();
             int checkedCases = 0, sequenceFailures = 0, valueFailures = 0, timingFailures = 0, timingCompared = 0, pairs = 0, excluded = 0, noPairs = 0;
@@ -95,7 +113,7 @@ internal static class I8088BusVerification
                     if (info.TryGetProperty("reg", out var groups)) detail = groups.GetProperty(((bytes[operation + 1] >> 3) & 7).ToString());
                     if (detail.TryGetProperty("status", out var status) && status.GetString() != "normal") { excluded++; continue; }
                     Array.Fill(bus.Ram, (byte)0x90);
-                    var cpu = new I8088Cpu(bus);
+                    var cpu = new I8088Cpu(bus, model);
                     var initial = test.GetProperty("initial");
                     foreach (var reg in initial.GetProperty("regs").EnumerateObject()) properties[reg.Name].SetValue(cpu, reg.Value.GetUInt16());
                     foreach (var cell in initial.GetProperty("ram").EnumerateArray()) bus.Ram[cell[0].GetInt32()] = cell[1].GetByte();
@@ -104,7 +122,7 @@ internal static class I8088BusVerification
                     cpu.InitializePrefetchQueue(initial.GetProperty("queue").EnumerateArray().Select(v => v.GetByte()).ToArray());
                     var actual = new List<I8088BusAccess>();
                     cpu.BusAccessed += access => { if (access.Kind != I8088BusAccessKind.Code) actual.Add(access); };
-                    var expected = ReadTransfers(test.GetProperty("cycles"));
+                    var expected = ReadTransfers(test.GetProperty("cycles"), model);
                     string? error = null;
                     try
                     {
@@ -133,7 +151,7 @@ internal static class I8088BusVerification
                     else if (shape) noPairs++;
                     checkedCases++; fileChecked++;
                     if ((!sequence || timing == false) && differences.Count < 5)
-                        differences.Add(new { Index = test.GetProperty("idx").GetInt32(), Name = test.GetProperty("name").GetString(),
+                        differences.Add(new { Index = test.TryGetProperty("idx", out var idx) ? idx.GetInt32() : n * tests.GetArrayLength() / take, Name = test.GetProperty("name").GetString(),
                             SequenceMatches = sequence, RelativeTimingMatches = timing, Error = error, Expected = expected, Actual = actual });
                 }
                 files.Add(new { Opcode = opcode, Checked = fileChecked, SequenceFailures = fileSequenceFailures, ValueOnlyFailures = fileValueFailures,
@@ -148,7 +166,11 @@ internal static class I8088BusVerification
             {
                 string path = Path.GetFullPath(report); Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                 var options = new JsonSerializerOptions { WriteIndented = true }; options.Converters.Add(new JsonStringEnumConverter());
-                File.WriteAllText(path, JsonSerializer.Serialize(result, options));
+                object summary = result;
+                if (model == I8088Model.Intel8086) summary = new { Cpu = cpuName, TransferUnits = "bytes", result.Checked, result.SequenceFailures,
+                    result.ValueOnlyFailures, result.RelativeTimingFailures, result.TimingComparedCases, result.TimingComparedPairs,
+                    result.NoTimingPairs, result.Excluded, result.Scope, result.Files };
+                File.WriteAllText(path, JsonSerializer.Serialize(summary, options));
             }
             Console.WriteLine($"Casos: {checkedCases}; diferencias de accesos: {sequenceFailures} (solo valores: {valueFailures}); de intervalos: {timingFailures}; pares contrastados: {pairs}.");
             Console.WriteLine(result.Scope);

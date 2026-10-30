@@ -180,8 +180,10 @@ reutilizan ese motor con diferencias de placa. La NES conserva límites de DMA.
   READY permite esperas lógicas en memoria/E/S/prelectura, probadas con buses propios;
   no se certifica su sincronización eléctrica ni la fase de INTA.
   La variante 8086
-  existe como núcleo/API y diagnóstico, con bus de 16 bits y cola de seis bytes; aún
-  sin contraste externo propio ni placa 8086 en la biblioteca. PC/XT usa 8088; sin 8087/AT.
+  existe como núcleo/API y diagnóstico, con bus de 16 bits y cola de seis bytes,
+  y contraste funcional propio (552.744 correctos y 93.256 excluidos). El relevamiento
+  del bus conserva 15.144 casos con intervalos distintos y 4.787 con flags indefinidos
+  distintos. Sin placa 8086 en la biblioteca. PC/XT usa 8088; sin 8087/AT.
 - CGA RGBI, 83 teclas, altavoz y capa privada de disco incluida en guardados completos.
   Sin EGA/VGA, disco duro, AdLib, Sound Blaster, serie ni impresora. Los caracteres
   extendidos necesitan una fuente completa aportada por API.
