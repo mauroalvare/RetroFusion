@@ -296,7 +296,8 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
                 gap += (word ? 135 : 71) + System.Numerics.BitOperations.PopCount(magnitude) + 2 * (int)(magnitude & 1);
             }
         }
-        // T4 + three bus clocks and the six entry clocks account for ten clocks of the gap.
+        // T4 + three bus clocks and six entry clocks account for ten clocks of the 8088 gap.
+        // The 8086 spends one more entry clock, hence its operand-to-vector gap is one longer.
         EuClocks(gap - 10, request: true);
         EnterInterrupt(0);
     }
@@ -314,9 +315,11 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
         if (hardware) { DataBusCycle(); EndDataBusCycle(); DataBusCycle(); EndDataBusCycle(); }
         // Hardware traces of INT and divide errors read the vector before pushing the return frame.
         int spent = _euSpent;
-        if (!hardware) EuClocks(6, request: true);
+        if (!hardware) EuClocks(WideBus ? 7 : 6, request: true);
         ushort ip = ReadWord(0, (ushort)(vector * 4));
-        if (!hardware) EuClocks(_queueCount == _queue.Length ? 3 : 4, request: true);
+        // The 8086 requests the second vector word early enough to block a new prefetch.
+        if (!hardware) EuClocks(WideBus ? 3 : _queueCount == _queue.Length ? 3 : 4,
+            request: true, requestLead: WideBus ? 3 : 2);
         ushort cs = ReadWord(0, (ushort)(vector * 4 + 2));
         if (!hardware) EuClocks(4, request: true);
         Push(Flags);
@@ -414,7 +417,8 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
                 var (operation, rm) = Decode(); word = (op & 1) != 0;
                 // Microcode reads a memory operand before taking the immediate from the queue.
                 int value = Read(rm, word); bool memory = rm.Register < 0;
-                ModifyClocks(rm, 2);
+                // The 8086's aligned immediate word needs one more queue-consumption clock.
+                ModifyClocks(rm, 2 + (WideBus && op == 0x81 && (IP & 1) == 0 ? 1 : 0));
                 int immediate = memory ? FetchOperand() : Fetch();
                 if (op == 0x81) immediate |= (memory ? FetchOperand() : Fetch()) << 8;
                 else if (op == 0x83) immediate = (ushort)(short)(sbyte)immediate;
@@ -446,7 +450,8 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
             {
                 var (reg, rm) = Decode(); if (reg != 0) throw Unsupported(op);
                 // Finish the longer displacement work before reading the stack, within the EA budget.
-                ModifyClocks(rm, (_modRm & 0xC7) is 0x81 or 0x82 ? 3 : 2);
+                // The word-bus form can complete a prefetch during this work, before the stack read.
+                ModifyClocks(rm, (_modRm & 0xC7) is 0x81 or 0x82 ? 3 : 2, request: !WideBus);
                 ushort value = Pop(); PopWriteClocks(rm); Write(rm, true, value); break;
             }
             case 0x90: break;
@@ -561,7 +566,7 @@ public sealed partial class I8088Cpu(I8088Bus bus, I8088InterruptSource? interru
                     ushort target = (ushort)Read(rm, true), segment = CS;
                     // Indirect control transfers correct the saved return address while the BIU
                     // finishes filling the queue. Keep that work between the observed words.
-                    int queueSpace = _queue.Length - _queueCount;
+                    int queueSpace = IndirectRefillSlots();
                     if (operation is 3 or 5)
                     {
                         if (rm.Register >= 0) throw Unsupported(op, "puntero lejano requiere memoria");

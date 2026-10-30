@@ -368,9 +368,11 @@ Contraste propio 8086: `retro-cli cpu8086 verificar --suite RUTA-A-V1 --salida o
 El directorio v1 usa JSON de sintaxis 2 y metadatos cpu=8086: no se reutilizan los de 8088.
 `cpu8086 verificar-bus` acepta los mismos selectores, aplica A0/BHE y distingue bancos
 activos y transferencias simultáneas. Resultado funcional: 552.744 correctos, 93.256
-excluidos; movimientos/E/S: 32.000 casos/15.025 pares correctos. El resto del bus tiene
-diferencias documentadas en [I8088.md](I8088.md). `FunctionalVerificationTests.cs` y
-`WordBusVerificationTests.cs` verifican selección de modelo, errores e interpretación.
+excluidos; bus completo: 1.475.052 pares sin diferencias de intervalos, tipos ni
+direcciones. Conserva 4.787 casos con valores de flags indefinidos distintos; detalles
+en [I8088.md](I8088.md). `FunctionalVerificationTests.cs` y `WordBusVerificationTests.cs`
+verifican selección de modelo, errores e interpretación. `WordIntervalTimingTests.cs`
+comprueba intervalos de RMW, POP, indirectos e interrupciones en programas propios.
 
 Diagnóstico de interrupciones 8088+8259A (programa propio, sin BIOS/DOS): desde emu,
 `dotnet run --project src/Retro.Cli -c Release -- cpu8088 irq-demo --steps 1000`.

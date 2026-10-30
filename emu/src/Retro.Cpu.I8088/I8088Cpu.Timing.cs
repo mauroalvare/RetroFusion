@@ -152,6 +152,19 @@ public sealed partial class I8088Cpu
         while (_prefetchTicks != 0) IdleClocks(1);
         EuClocks(2, request: true);
     }
+    private int IndirectRefillSlots()
+    {
+        int space = _queue.Length - _queueCount;
+        if (!WideBus) return space;
+        int slots = space / 2, mod = _modRm >> 6, rm = _modRm & 7;
+        // Trace-derived correction for displaced pointers: the approximate BIU can complete
+        // a refill earlier than the 8086. An odd-start prefixed word displacement changes
+        // that phase between the single-base and the two-base EA paths.
+        bool prefixedWord = (_startIp & 1) != 0 && (ushort)(IP - _startIp) == 5;
+        bool pending = mod == 1 && rm >= 4 && (IP & 1) == 0 ||
+            mod == 2 && (rm >= 4 ? !prefixedWord : rm is 0 or 3 && prefixedWord);
+        return pending ? Math.Max(1, slots) : slots;
+    }
     private void StartTimingStep()
     {
         _eaClocks = _euSpent = _requestClocks = 0; _modRm = -1; _repeatAgain = false;

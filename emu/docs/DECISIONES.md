@@ -1357,3 +1357,23 @@ valores de flags indefinidos y 15.144 conservan diferencias de intervalos. Los 3
 movimientos/E/S coinciden también en sus 15.025 pares. No se presenta este contraste
 como certificación de reloj absoluto, prelectura final, pines ni todas las revisiones
 del 8086; el corpus identifica un P80C86A-2. La placa propia sigue pendiente.
+
+## D-085 — Intervalos de datos del bus de palabra 8086
+
+El modelo 8086 coloca un T adicional al consumir un inmediato de palabra alineado,
+y uno al entrar a INT/INTO/AAM 0/errores de división. El segundo pedido de vector
+retiene tres T para impedir una prelectura nueva. POP permite prelectura en su trabajo
+anterior a la lectura de pila. Los indirectos cuentan slots de palabra y corrigen la
+fase observada de punteros desplazados, incluidas las variantes con prefijo e IP impar.
+
+Estas ubicaciones se descuentan del presupuesto EU existente. No se cambia la tabla
+nominal, el estado CPU3, los resultados funcionales ni la ruta de interrupción hardware.
+El modelo 8088 conserva sus recorridos. La BIU sigue siendo aproximada: los ajustes de
+fase de indirectos son empíricos y no equivalen a reproducir su microcódigo completo.
+
+En el corpus 8086 completo coinciden los intervalos de 1.475.052 pares y los tipos,
+direcciones y orden de 552.744 casos. Resuelve los 15.144 casos con intervalos distintos
+de D-084. Permanecen los 4.787 casos con flags indefinidos distintos. No certifica reloj
+absoluto, cola final, pines/INTA, interrupciones externas ni todas las revisiones del chip.
+Veintisiete regresiones con programas propios cubren paridad de instrucción/operando/
+pila, prefijos, rutas de dirección y errores; 26 fallan con el núcleo D-084.
