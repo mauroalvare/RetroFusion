@@ -353,6 +353,11 @@ los intervalos de 80.000 casos y 488.394 pares, pero devuelve 2 por los 25.049 c
 con flags indefinidos distintos en la pila. `RepIndirectInterruptTimingTests.cs` cubre
 arranques, restauración de REP, pila solapada, marcos y errores tempranos/tardíos.
 
+Esperas READY: `dotnet test tests/I8088.Tests -c Release --filter FullyQualifiedName~ReadyTimingTests`.
+El bus puede implementar `Ready` (por defecto alto). Las pruebas propias comprueban
+memoria, puertos, ancho/alineación 8086, prelectura guardada y HOLD durante una espera.
+El verificador externo compara sus trazas; no inyecta niveles READY de la suite.
+
 Diagnóstico de interrupciones 8088+8259A (programa propio, sin BIOS/DOS): desde emu,
 `dotnet run --project src/Retro.Cli -c Release -- cpu8088 irq-demo --steps 1000`.
 Detalles y resultado esperado en [I8088.md](I8088.md).

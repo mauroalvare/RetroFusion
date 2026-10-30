@@ -62,6 +62,8 @@ public sealed partial class I8088Cpu
             if (prefetch && _prefetchTicks == 0 && _queueCount <= _queue.Length - (WideBus ? 2 : 1) && !grant) _prefetchTicks = 1;
             Clock();
             if (_prefetchTicks == 0) continue;
+            // Keep the pending T3 across idle slices and saved states until READY allows the read.
+            if (_prefetchTicks == 3 && !bus.Ready) continue;
             if (_prefetchTicks == 3) LatchPrefetch();
             if (_prefetchTicks++ < 4) continue;
             // Old format-2 snapshots did not latch until T4. Finish those once, without rereading new states.
@@ -93,6 +95,7 @@ public sealed partial class I8088Cpu
         while (bus.HoldRequested && !_busLocked && !continuation) { bus.SetBusGranted(true); Clock(); }
         bus.SetBusGranted(false);
         for (int n = 0; n < 3; n++) Clock();
+        while (!bus.Ready) Clock();
     }
     private void EndDataBusCycle() { if (TimingEnabled) Clock(); }
     private byte FetchTimed()

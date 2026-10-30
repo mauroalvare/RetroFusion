@@ -12,6 +12,8 @@ public interface I8088Bus
     void SetLock(bool locked) { }
     /// <summary>One CPU T-state. Only the clocked execution mode calls this.</summary>
     void Clock() { }
+    /// <summary>READY sampled at T3 and each wait clock. Low extends memory, I/O and prefetch cycles.</summary>
+    bool Ready => true;
     /// <summary>DMA bus request; waits between completed bus cycles, except while LOCK is active.</summary>
     bool HoldRequested => false;
     /// <summary>CPU acknowledges HOLD only between completed bus cycles.</summary>

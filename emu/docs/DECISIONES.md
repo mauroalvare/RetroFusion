@@ -1293,3 +1293,21 @@ siguen siendo conservadores. Las fórmulas de estos grupos proceden de las traza
 8088; no acreditan reloj absoluto, prelectura completa, señales ni tiempos del 8086.
 Las 45 pruebas propias incluyen restauración de REP y pila solapada en ambos modelos;
 39 detectan el núcleo anterior. Las notas D-078 a D-080 se conservan como antecedentes.
+
+## D-082 — READY lógico del bus 8088/8086
+
+I8088Bus agrega la propiedad opcional Ready, alta por defecto. Solo en modo temporizado,
+una transferencia espera después de T3 mientras READY esté bajo; cada T de espera
+mantiene activo el ciclo y avanza Clock. El acceso y su observación ocurren al recibir
+READY alto; T4 termina el ciclo. Una bajada en T4 no repite el acceso. La prelectura
+conserva su T3 pendiente entre llamadas y estados CPU3, sin cambios de formato.
+
+HOLD permanece sin concesión durante las esperas y hasta cerrar T4. Una palabra
+alineada del 8086 sigue siendo un solo ciclo; la impar mantiene el bus entre mitades.
+La placa es responsable de guardar su nivel/dispositivo externo. Los buses existentes
+conservan su tiempo al usar Ready=true, y el modo funcional no consulta la señal.
+
+Diez regresiones propias comprueban lecturas/escrituras, puertos, anchos, prelectura,
+restauración y HOLD/T4; nueve detectan el núcleo sin READY. Esto agrega un contrato
+lógico de esperas, sin afirmar precisión de pines, sincronizador 8284, reloj absoluto
+ni forma de onda INTA. PcBus conserva el nivel alto y su formato de placa.

@@ -165,6 +165,8 @@ reutilizan ese motor con diferencias de placa. La NES conserva límites de DMA.
   De estos últimos, 25.049 conservan diferencias solo en flags indefinidos apilados.
   No valida reloj absoluto
   ni prelectura; verificar-bus informa cada diferencia por separado.
+  READY permite esperas lógicas en memoria/E/S/prelectura, probadas con buses propios;
+  no se certifica su sincronización eléctrica ni la fase de INTA.
   La variante 8086
   existe como núcleo/API y diagnóstico, con bus de 16 bits y cola de seis bytes; aún
   sin contraste externo propio ni placa 8086 en la biblioteca. PC/XT usa 8088; sin 8087/AT.
