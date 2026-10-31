@@ -20,9 +20,10 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   a un alias compatible cuando coincide el SHA-256 del programa completo conocido.
 - La revisión combina proveedores simulados, programas propios y evidencia por edición.
   La primera campaña real contrastó análisis individual. La siguiente, limitada a25minutos,
-  produjo un borrador de fusión y se detuvo durante su corrección: no se declara una
-  generación de la CLI aprobada. Las implementaciones locales se prueban por separado;
-  que una pase robots y experimentos dirigidos no certifica diversión ni todos los finales.
+  produjo un borrador de fusión y se detuvo durante su corrección. El mismo guion pudo
+  revalidarse localmente sin nuevos pedidos tras corregir el validador, con observaciones
+  de dificultad. Es una aprobación técnica, no de diversión ni de todos los finales.
+  Las implementaciones locales y sus experimentos dirigidos se prueban por separado.
 
 ## Análisis y modificaciones de partidas
 
