@@ -163,6 +163,6 @@ public class StudioGameTests
         TestContext.Out.WriteLine(report.Summary);
         Assert.That(report.Ok, Is.False);
         Assert.That(string.Join(" ", report.Problems), Does.Contain("game.state"));
-        Assert.That(string.Join(" ", report.Problems), Does.Contain("game.score"));
+        Assert.That(report.Notes, Has.Some.Contains("puntaje"));
     }
 }

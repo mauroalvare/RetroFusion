@@ -163,6 +163,18 @@ public class DesignerTests
     }
 
     [Test]
+    public async Task AValidationFailureWithoutASummaryStillExplainsItsCauseToTheProvider()
+    {
+        var ai = new ScriptedAi(Answer("Primer intento", "bad();"), Answer("Corregido", "// bien"));
+        var failure = new ValidationReport(false, "No se pudo arrancar el original: medio ausente.", ["Falta el recurso comprobado."], 0, "", null);
+        var outcome = await new StudioDesigner().WriteAsync(ai, Slots, ProfileLibrary.Find, new("Pedido", "", "Regla", ""),
+            game => game.Script.Contains("bien") ? Fake(game) : failure, CancellationToken.None);
+        Assert.That(outcome.Game, Is.Not.Null);
+        string correction = ai.Requests[1].Turns.Single().Text;
+        Assert.That(correction, Does.Contain(failure.Error).And.Contain(failure.Problems.Single()));
+    }
+
+    [Test]
     public async Task CorrectionsCarryOnlyTheLatestDraftButRetainThePlayersIntentAndBase()
     {
         var ai = new ScriptedAi(Answer("Primero", "obsoleteDraft1();"), Answer("Segundo", "latestDraft2();"), Answer("Final", "// bien"));

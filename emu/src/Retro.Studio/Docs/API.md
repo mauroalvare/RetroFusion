@@ -105,8 +105,15 @@ Estos estados son instrumentación: no obligan a usar el mismo menú, carteles, 
 estructura de niveles en todas las fusiones. Una introducción puede estar integrada en
 el mundo; un nivel puede representar una ronda o fase sin una tarjeta de transición.
 Con `baseSlot` declarado podés empezar directamente con `game.state('playing')` y
-conservar el arranque y la interfaz del original. No agregues un título ni puntaje
-artificial para pasar la prueba. Informá los puntos y objetivos reales cuando existan.
+conservar el arranque y la interfaz del original. En cualquier modalidad, no agregues
+puntaje artificial para pasar la prueba. Informá los puntos y objetivos reales cuando
+existan; que los robots no sumen puntos es una observación, no prueba un fallo por sí sola.
+
+El informe distingue fallos técnicos de observaciones. Los patrones quieto, explorador y
+tirador no comprueban todos los objetivos ni la unión mecánica: contrastá controles,
+progreso, consecuencias, final y reinicio con experimentos dirigidos al diseño. El
+resultado técnico no certifica fidelidad, equilibrio ni diversión, ni exige una partida
+manual del jugador para seguir investigando.
 
 La prueba automática y la ventana del emulador necesitan saber qué pasa en el juego:
 

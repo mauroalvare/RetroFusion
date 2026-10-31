@@ -23,7 +23,7 @@ public sealed class StudioWork
     public int Format { get; set; } = 1;
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public DateTime Updated { get; set; } = DateTime.UtcNow;
-    public string Engine { get; set; } = typeof(StudioSession).Module.ModuleVersionId.ToString();
+    public string Engine { get; set; } = StudioSession.EngineFingerprint;
     public Dictionary<string, string> Originals { get; set; } = new();
     public DesignCheckpoint State { get; set; } = new();
 

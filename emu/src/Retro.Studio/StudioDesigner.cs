@@ -598,6 +598,7 @@ public sealed class StudioDesigner
             progress?.Invoke("Volviendo a probar el borrador guardado, sin llamar a la IA...");
             report = await Task.Run(() => validate(draft), ct);
             Save();
+            ct.ThrowIfCancellationRequested();
             if (report.Ok) { draft.Usage = (ai as AiOperation)?.Stats ?? resume?.Usage; return new(draft, report, 0, null); }
             prompt = brief + "\n\n" + CurrentDraft(draft) + "\n\n" + FixRequest(report);
         }
@@ -636,6 +637,7 @@ public sealed class StudioDesigner
             progress?.Invoke("Probando el juego con tres jugadores robot...");
             report = await Task.Run(() => validate(game), ct);
             Save();
+            ct.ThrowIfCancellationRequested();
             if (report.Ok)
             {
                 game.Usage = (ai as AiOperation)?.Stats;
@@ -651,9 +653,16 @@ public sealed class StudioDesigner
         "Último borrador (reemplaza los anteriores; conservá lo que funciona):\n" +
         $"Nombre: {game.Title}\nIdea: {game.Pitch}\nCómo se juega: {game.HowToPlay}\nDiseño: {game.Design}\n```javascript\n{game.Script}\n```";
 
-    public static string FixRequest(ValidationReport report) =>
-        "Probé el guion en el emulador y falló:\n" + report.Summary +
-        "\nCorregilo y devolvé el juego completo de nuevo. " + AnswerShape;
+    public static string FixRequest(ValidationReport report)
+    {
+        var details = new StringBuilder(report.Summary);
+        if (report.Error is { Length: > 0 } error && !report.Summary.Contains(error, StringComparison.Ordinal))
+            details.AppendLine("\nError: " + error);
+        foreach (string problem in report.Problems.Where(p => !report.Summary.Contains(p, StringComparison.Ordinal)))
+            details.AppendLine("\nProblema: " + problem);
+        return "Probé el guion en el emulador y falló:\n" + details +
+            "\nCorregilo y devolvé el juego completo de nuevo. " + AnswerShape;
+    }
 
     /// <summary>
     /// Reads an answer: the JSON of the schema, or (from a chat) a JSON with the texts plus a

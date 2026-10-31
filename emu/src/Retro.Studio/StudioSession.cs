@@ -17,6 +17,7 @@ namespace Retro.Studio;
 /// </summary>
 public sealed class StudioSession : IFusionRun
 {
+    public static string EngineFingerprint => MachineFactory.RuntimeFingerprint + ";" + typeof(StudioSession).Module.ModuleVersionId + ";" + typeof(Engine).Module.ModuleVersionId;
     public const int TicksPerSecond = 60;
     public IReadOnlyList<string> MediaSources { get; private init; } = Array.Empty<string>();
     public static readonly string[] InputNames = { "left", "right", "up", "down", "fire", "jump", "start", "coin" };
@@ -326,6 +327,7 @@ public sealed class StudioSession : IFusionRun
         Deaths.Clear();
         _tones.Clear();
         _canvas.Resize(256, 192);
+        DrawNativeBase();
         StartScript();
     }
 

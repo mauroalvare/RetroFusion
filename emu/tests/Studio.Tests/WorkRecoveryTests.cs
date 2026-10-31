@@ -41,6 +41,39 @@ public sealed class WorkRecoveryTests
         Assert.That(outcome.Attempts, Is.Zero);
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task CancellationDuringSuccessfulValidationKeepsTheDraftWithoutApprovingIt(bool resuming)
+    {
+        using var cancellation = new CancellationTokenSource();
+        DesignCheckpoint? saved = null;
+        var designer = new StudioDesigner { Checkpoint = state => saved = state };
+        var ai = new Fake(_ => Task.FromResult("""{"script":"function draw() {}"}"""));
+        var template = new StudioGame { Games = Slots, BaseSlot = "b", Script = "function draw() {}", PlayerRequest = "Conservar el recorrido" };
+        ValidationReport CancelWhileValidating(StudioGame game)
+        {
+            cancellation.Cancel();
+            return Ok(game);
+        }
+        Assert.ThrowsAsync<OperationCanceledException>(async () =>
+        {
+            if (resuming)
+                await designer.ResumeAsync(ai, new DesignCheckpoint { Template = template.Copy(), Draft = template.Copy(), Brief = "Pedido estable" },
+                    CancelWhileValidating, cancellation.Token);
+            else
+                await designer.WriteAsync(ai, Slots, ProfileLibrary.Find,
+                    new("Pedido", "", "Regla", "", Direction: new("b"), PlayerRequest: template.PlayerRequest),
+                    CancelWhileValidating, cancellation.Token);
+        });
+        Assert.That(saved!.Draft!.Script, Is.EqualTo(template.Script));
+        Assert.That(saved.Report!.Ok, Is.True, "The completed evidence survives the pause without approving a save");
+        var noAi = new Fake(_ => throw new AssertionException("No debía llamar a la IA"));
+        var outcome = await designer.ResumeAsync(noAi, saved, Ok, CancellationToken.None);
+        Assert.That(outcome.Game!.PlayerRequest, Is.EqualTo(template.PlayerRequest));
+        Assert.That(outcome.Attempts, Is.Zero);
+        Assert.That(noAi.Calls, Is.Zero);
+    }
+
     [Test]
     public async Task AnInterruptedRevisionKeepsTheRequestButNeverApprovesTheUnchangedOldVersion()
     {

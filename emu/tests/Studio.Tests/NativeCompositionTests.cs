@@ -53,6 +53,66 @@ public sealed class NativeCompositionTests
         Assert.That(session.Video.Pixels[5 * 256 + 4] & 0xFFFFFF, Is.Not.EqualTo(0x123456), "la escena nativa se repone aunque el guion no llame a screen.base");
     }
 
+    [Test]
+    public void RestartRestoresTheNativePictureAndResolutionBeforeInitRuns()
+    {
+        var rom = new byte[0x2000];
+        // MVI A,FF; STA 2400; HLT: an original test program draws eight pixels.
+        new byte[] { 0x3E, 0xFF, 0x32, 0x00, 0x24, 0x76 }.CopyTo(rom, 0);
+        var profile = new GameProfile { Id = "own-arcade-" + Guid.NewGuid().ToString("N"), Machine = "invaders", Boot = ["wait 1"] };
+        var game = new StudioGame { BaseSlot = "a", Games = [new() { Slot = "a", Profile = profile.Id }],
+            Script = "function init(){ games.a.pause(); log(screen.width + 'x' + screen.height); game.state('playing'); }" };
+        var source = new GameSource(profile, [new MediaFile("own-invaders.bin", rom, "own-test")], null);
+        var session = StudioSession.Start(game, new Dictionary<string, GameSource> { [profile.Id] = source }, _folder);
+        Assert.That(session.Log.Last(), Is.EqualTo("224x256"));
+        int[] original = session.Video.Pixels.ToArray();
+        Assert.That(original.Distinct().Count(), Is.GreaterThan(1));
+
+        session.Restart();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(session.Error, Is.Null);
+            Assert.That(session.Log.Last(), Is.EqualTo("224x256"), "init must see the same native canvas at every start");
+            Assert.That(session.Video.Width, Is.EqualTo(224));
+            Assert.That(session.Video.Height, Is.EqualTo(256));
+            Assert.That(session.Video.Pixels, Is.EqualTo(original), "the native picture must be present before the first update");
+        });
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void AGameWithoutPointsIsNotRejectedOrGivenInventedScoringRequirements(bool reportsZero)
+    {
+        _game.Kind = "inspired";
+        _game.BaseSlot = null;
+        _game.Script = """
+            var x = 80, actor;
+            function init(){
+                games.a.pause(); games.b.pause(); actor=games.a.capture(0,0,8,8);
+                game.state('title');
+            }
+            function tick(i){
+                if(i.start || i.fire || i.jump) game.state('playing');
+                if(i.left) x=clamp(x-1,0,240);
+                if(i.right) x=clamp(x+1,0,240);
+                game.level(Math.floor(x/16)+1);
+            }
+            function draw(){ screen.clear(0); screen.sprite(actor,x,60); }
+            """ + (reportsZero ? "\nfunction scoreNothing(){ game.score(0); } scoreNothing();" : "");
+
+        var report = StudioValidator.Run(_game, _sources, _folder, 4);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(report.Ok, Is.True, report.Summary);
+            Assert.That(report.Problems, Has.None.Contains("puntos").And.None.Contains("game.score"));
+            Assert.That(report.Notes, Has.Some.Contains("puntaje"));
+            Assert.That(report.Summary, Does.Contain("prueba técnica").And.Contain("no certifica"));
+            Assert.That(report.Summary, Does.Not.Contain("Pasó la prueba automática de jugabilidad"));
+        });
+    }
+
     [TestCase("screen.clear(0);")]
     [TestCase("try { screen.clear(0); } catch(e) {}")]
     public void ABaseGameCannotReplaceTheSceneWithClear(string drawing)

@@ -70,7 +70,7 @@ public static class StudioWorkspace
             5. Probalo: {test}
             6. Corregí los fallos conservando el pedido y lo que funciona. Revisá la lista de
                control y las capturas; probá también inicio, progreso, final, reinicio y estrategias
-               que anulen el reto. Un informe LISTO no demuestra originalidad ni diversión.
+               que anulen el reto. Una prueba técnica aprobada no demuestra originalidad ni diversión.
 
             Cada vez que guardes `{ScriptFile}`, RetroEmu también lo prueba con tres jugadores robot y
             escribe `{ReportFile}`. Distinguí qué comprobó el robot y qué falta jugar u observar.
@@ -116,7 +116,7 @@ public static class StudioWorkspace
     public static void WriteReport(string dir, ValidationReport report)
     {
         string text = report.Ok
-            ? "# Listo\n\nPasó la prueba automática. Falta comprobar manualmente la originalidad, las decisiones, el equilibrio y la calidad visual.\n\n" + report.Summary
+            ? "# Prueba técnica aprobada\n\nContrastá las decisiones, el progreso, el equilibrio y la identidad visual con el diseño y experimentos dirigidos. Este resultado no certifica originalidad ni diversión.\n\n" + report.Summary
             : "# Hay que corregir\n\n" + report.Summary + "\nCorregí juego.js y guardalo de nuevo.\n";
         File.WriteAllText(Path.Combine(dir, ReportFile), text);
     }

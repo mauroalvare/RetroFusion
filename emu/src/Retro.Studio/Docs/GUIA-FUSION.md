@@ -174,9 +174,15 @@ Los robots quieto, caminante y tirador ayudan a detectar fallos, pero no juzgan 
 ni entienden todos los géneros. Interpretá el informe según el diseño: un puzle puede no
 tener disparos y una carrera puede no tener muertes. Explicá los límites de la prueba y
 probá a propósito las decisiones difíciles; no conviertas todo en un shooter para aprobar.
+La ausencia de puntaje queda como observación en cualquier modalidad; no autoriza a
+inventar puntos ni demuestra que el objetivo esté roto. El informe técnico tampoco
+certifica una unión mecánica por haber leído un recurso del aportante: comprobá una
+consecuencia observable de la regla transferida y comparala con un control sin esa regla.
 
 Mirá las capturas y verificá controles, progreso, final y reinicio. Si el jugador no puede
 entender la regla nueva, simplificá o enseñala mejor antes de sumar más elementos.
+Las comprobaciones pendientes se investigan con experimentos acotados; no exijas una
+partida manual del jugador como condición para continuar el trabajo autónomo.
 
 ## Lista de control
 

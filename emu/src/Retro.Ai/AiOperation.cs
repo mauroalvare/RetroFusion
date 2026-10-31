@@ -92,38 +92,63 @@ public sealed record AiEstimate(long Characters, int Images, long LowTokens, lon
 
 public sealed record AiOperationStats(int Calls, int CallsWithUsage, long TextCharacters, long InputTokens, long OutputTokens, long? CachedInputTokens);
 
-/// <summary>One user operation: limits whole requests, never truncates instructions or source.</summary>
+/// <summary>
+/// One user operation: limits whole requests, never truncates instructions or source.
+/// Calls through this instance are serialized; separate operations or direct calls to
+/// the same provider need their own coordination because LastUsage is shared state.
+/// </summary>
 public sealed class AiOperation(IAiProvider provider, int maxCalls, long maxTextCharacters = 0, AiOperationStats? previous = null) : IAiProvider
 {
     private readonly object _gate = new();
+    private readonly SemaphoreSlim _requests = new(1, 1);
     private AiOperationStats _stats = previous ?? new(0, 0, 0, 0, 0, null);
+    private AiUsage? _lastUsage;
     public IAiProvider Provider => provider;
     public string Name => provider.Name;
     public bool SupportsImages => provider.SupportsImages;
-    public AiUsage? LastUsage => provider.LastUsage;
+    public AiUsage? LastUsage { get { lock (_gate) return _lastUsage; } }
     public AiOperationStats Stats { get { lock (_gate) return _stats; } }
     public async Task<string> CompleteAsync(AiRequest request, CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        var estimate = AiEstimate.For(request);
-        lock (_gate)
+        // Waiting requests have not been sent and must not reserve calls or text.
+        await _requests.WaitAsync(ct);
+        try
         {
-            if (_stats.Calls - (previous?.Calls ?? 0) >= maxCalls) throw new AiException("Se alcanzó el límite de pedidos de este trabajo. Podés continuar con el borrador.");
-            if (maxTextCharacters > 0 && _stats.TextCharacters + estimate.Characters > maxTextCharacters)
-                throw new AiException("Se alcanzó el límite de texto de este trabajo. No se envió este pedido. Ampliá el límite para continuar.");
-            _stats = _stats with { Calls = _stats.Calls + 1, TextCharacters = _stats.TextCharacters + estimate.Characters };
+            ct.ThrowIfCancellationRequested();
+            var estimate = AiEstimate.For(request);
+            lock (_gate)
+            {
+                if (_stats.Calls - (previous?.Calls ?? 0) >= maxCalls) throw new AiException("Se alcanzó el límite de pedidos de este trabajo. Podés continuar con el borrador.");
+                if (maxTextCharacters > 0 && _stats.TextCharacters + estimate.Characters > maxTextCharacters)
+                    throw new AiException("Se alcanzó el límite de texto de este trabajo. No se envió este pedido. Ampliá el límite para continuar.");
+                _stats = _stats with { Calls = _stats.Calls + 1, TextCharacters = _stats.TextCharacters + estimate.Characters };
+                _lastUsage = null;
+            }
+            AiUsage? before = provider.LastUsage;
+            bool answered = false;
+            try
+            {
+                string answer = await provider.CompleteAsync(request, ct);
+                if (string.IsNullOrWhiteSpace(answer)) throw new AiException("La IA no devolvió ninguna respuesta.");
+                answered = true;
+                return answer;
+            }
+            finally
+            {
+                // Equal counts can be legitimate. After a failure, only a new immutable
+                // metadata object can be attributed to this call; otherwise usage stays
+                // unknown, never estimated or copied from the preceding request.
+                if (provider.LastUsage is { } usage && (answered || !ReferenceEquals(usage, before)))
+                    lock (_gate)
+                    {
+                        _lastUsage = usage;
+                        _stats = _stats with { CallsWithUsage = _stats.CallsWithUsage + 1,
+                            InputTokens = _stats.InputTokens + usage.InputTokens, OutputTokens = _stats.OutputTokens + usage.OutputTokens,
+                            CachedInputTokens = usage.CachedInputTokens is long cached && (_stats.CallsWithUsage == 0 || _stats.CachedInputTokens != null)
+                                ? (_stats.CachedInputTokens ?? 0) + cached : null };
+                    }
+            }
         }
-        try { return await provider.CompleteAsync(request, ct); }
-        finally
-        {
-            if (provider.LastUsage is { } usage)
-                lock (_gate)
-                {
-                    _stats = _stats with { CallsWithUsage = _stats.CallsWithUsage + 1,
-                        InputTokens = _stats.InputTokens + usage.InputTokens, OutputTokens = _stats.OutputTokens + usage.OutputTokens,
-                        CachedInputTokens = usage.CachedInputTokens is long cached && (_stats.CallsWithUsage == 0 || _stats.CachedInputTokens != null)
-                            ? (_stats.CachedInputTokens ?? 0) + cached : null };
-                }
-        }
+        finally { _requests.Release(); }
     }
 }

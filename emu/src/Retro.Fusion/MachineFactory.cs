@@ -9,6 +9,14 @@ public sealed record GameSource(GameProfile Profile, IReadOnlyList<MediaFile> Fi
 /// <summary>Creates the right emulated machine for a game and boots it to playing.</summary>
 public static class MachineFactory
 {
+    /// <summary>State compatibility depends on the CPU and hardware too, not just its caller.</summary>
+    public static readonly string RuntimeFingerprint = string.Join(";", new[]
+    {
+        typeof(IMachine), typeof(MachineFactory), typeof(Retro.Machines.MachineLauncher),
+        typeof(Retro.Cpu.Z80.Z80Cpu), typeof(Retro.Cpu.I8080.I8080Cpu), typeof(Retro.Cpu.M6502.M6502), typeof(Retro.Cpu.I8088.I8088Cpu),
+        typeof(Spectrum48), typeof(Retro.Systems.C64.C64), typeof(Retro.Systems.Arcade.SpaceInvaders), typeof(Retro.Systems.Nes.Nes), typeof(Retro.Systems.Pc.PcXt)
+    }.Select(t => t.Module).Distinct().OrderBy(m => m.Name, StringComparer.Ordinal).Select(m => m.Name + ":" + m.ModuleVersionId));
+
     /// <summary>Firmware content used by the supported preparation machines, independent of game/profile edits.</summary>
     public static string FirmwareFingerprint(string machine, string directory)
     {

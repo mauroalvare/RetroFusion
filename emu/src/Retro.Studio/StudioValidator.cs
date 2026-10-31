@@ -249,18 +249,13 @@ public static class StudioValidator
                 problems.Add("La pantalla quedó de un solo color mientras se jugaba: draw() no dibuja nada visible.");
             if (frozen)
                 problems.Add("La imagen no cambia mientras se juega: ¿los juegos quedaron en pausa o draw() dibuja siempre lo mismo?");
-            if (!s.ReportsScore && s.Game.BaseSlot == null)
-                problems.Add("El guion nunca llamó a game.score(puntos): informá los puntos cada vez que el jugador los gana.");
             var active = robots.Where(r => r.Name != "quieto").ToList();
-            if (s.ReportsScore && active.Count > 0 && active.All(r => r.Score == 0) && s.Game.BaseSlot == null)
-                problems.Add($"Ningún robot pudo sumar puntos en {secondsPerRobot} segundos (el tirador dispara sin parar y se mueve de lado a lado): revisá que los disparos, los choques o el objetivo funcionen y que no sea imposible.");
+            if (!s.ReportsScore || active.Count > 0 && active.All(r => r.Score == 0))
+                notes.Add("No se observó puntaje en esta prueba. Comprobá los objetivos y el progreso reales con un experimento dirigido al diseño; no agregues puntos ni un menú artificial para conformar al robot.");
             if (s.Game.BaseSlot != null)
             {
                 foreach (var donor in s.Game.Games.Where(g => g.Slot != s.Game.BaseSlot && !s.ReferencedSlots.Contains(g.Slot)))
                     problems.Add($"El guion no usa datos, recursos ni controles de games.{donor.Slot}: falta integrar ese original en las reglas del juego base.");
-                if (!s.ReportsScore || active.All(r => r.Score == 0))
-                    notes.Add("No se observó puntaje en esta prueba. Comprobá los objetivos y el progreso del juego base; no agregues puntos ni un menú artificial para conformar al robot.");
-                notes.Add("La prueba técnica no certifica que se hayan conservado los mapas, la estética ni una interacción mecánica real: hay que comparar capturas y jugar la fusión.");
             }
             if (active.Count > 0 && active.All(r => r.FirstDeathSeconds.HasValue))
             {
@@ -277,8 +272,10 @@ public static class StudioValidator
             if (deaths >= 4 && allCauses.Max(c => c.Value) >= deaths * 0.8)
                 notes.Add($"Casi todas las muertes son por \"{allCauses.MaxBy(c => c.Value).Key}\": quizás hay demasiado de eso.");
             if (deaths == 0)
-                notes.Add($"Ningún robot perdió una vida en {robots.Count * secondsPerRobot} segundos de juego: si hay peligros, ¿se llama a game.death(causa)? Si no los hay, falta tensión.");
+                notes.Add($"No se informaron vidas perdidas durante {robots.Sum(r => r.PlayedSeconds):F1} segundos observados. Si el diseño incluye peligros, comprobá sus consecuencias y game.death(causa) con una prueba dirigida; hay géneros sin muertes.");
         }
+
+        notes.Add("La prueba técnica usa patrones de entrada fijos y estados informados por el guion; no certifica objetivos completos, una interacción mecánica real, fidelidad visual, equilibrio ni diversión. Contrastá lo observado con el diseño y las capturas y comprobá lo pendiente con experimentos dirigidos.");
 
         bool ok = error == null && problems.Count == 0;
         string summary = Summarize(s, error, problems, notes, robots);
@@ -296,8 +293,8 @@ public static class StudioValidator
     {
         var sb = new StringBuilder();
         sb.AppendLine(error != null ? "Falló: " + error
-            : problems.Count == 0 ? "Pasó la prueba automática de jugabilidad."
-            : "No pasó la prueba automática de jugabilidad.");
+            : problems.Count == 0 ? "Pasó la prueba técnica automática."
+            : "No pasó la prueba técnica automática.");
         foreach (var p in problems)
             sb.AppendLine("Problema: " + p);
         foreach (var n in notes)

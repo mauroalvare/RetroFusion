@@ -11,7 +11,12 @@ public sealed class AiOperationTests
         public string Name => "IA simulada";
         public AiUsage? LastUsage { get; set; }
         public List<AiRequest> Requests { get; } = [];
-        public Task<string> CompleteAsync(AiRequest request, CancellationToken ct) { Requests.Add(request); return Task.FromResult("respuesta"); }
+        public Func<CancellationToken, Task<string>>? Response { get; set; }
+        public Task<string> CompleteAsync(AiRequest request, CancellationToken ct)
+        {
+            Requests.Add(request);
+            return Response?.Invoke(ct) ?? Task.FromResult("respuesta");
+        }
     }
     private static AiRequest Request() => new("Contrato", [new(true, "Pedido"), new(false, "Código previo")],
         JsonSerializer.SerializeToElement(new { type = "object" }), ["original-a.png", "original-b.png"]);
@@ -46,6 +51,140 @@ public sealed class AiOperationTests
         Assert.That(operation.Stats, Is.EqualTo(new AiOperationStats(2, 1, AiEstimate.For(Request()).Characters * 2, 120, 30, 90)));
         Assert.ThrowsAsync<AiException>(() => operation.CompleteAsync(Request(), CancellationToken.None));
         Assert.That(fake.Requests, Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public async Task AFailedCallCannotCountThePreviousCallsUsageAgain()
+    {
+        var fake = new Fake { LastUsage = new(120, 30, 90) };
+        var operation = new AiOperation(fake, 2);
+        await operation.CompleteAsync(Request(), CancellationToken.None);
+        fake.Response = _ => throw new AiException("Falló sin nuevos contadores");
+
+        Assert.ThrowsAsync<AiException>(() => operation.CompleteAsync(Request(), CancellationToken.None));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(operation.Stats, Is.EqualTo(new AiOperationStats(2, 1, AiEstimate.For(Request()).Characters * 2, 120, 30, 90)));
+            Assert.That(operation.LastUsage, Is.Null, "This failed request has unknown usage, rather than the preceding call's usage");
+        });
+    }
+
+    [Test]
+    public async Task NewReportedUsageCountsEvenWhenTheCallFailsAndItsValuesMatchThePreviousCall()
+    {
+        var fake = new Fake { LastUsage = new(120, 30, 90) };
+        var operation = new AiOperation(fake, 2);
+        await operation.CompleteAsync(Request(), CancellationToken.None);
+        fake.Response = _ =>
+        {
+            fake.LastUsage = new(120, 30, 90);
+            throw new AiException("Se informó consumo antes del fallo");
+        };
+
+        Assert.ThrowsAsync<AiException>(() => operation.CompleteAsync(Request(), CancellationToken.None));
+
+        Assert.That(operation.Stats, Is.EqualTo(new AiOperationStats(2, 2, AiEstimate.For(Request()).Characters * 2, 240, 60, 180)));
+        Assert.That(operation.LastUsage, Is.SameAs(fake.LastUsage));
+    }
+
+    [Test]
+    public async Task SuccessfulCallsMayLegitimatelyReportEqualUsageWithoutReplacingTheMetadataObject()
+    {
+        var fake = new Fake { LastUsage = new(120, 30, 90) };
+        var operation = new AiOperation(fake, 2);
+        await operation.CompleteAsync(Request(), CancellationToken.None);
+        await operation.CompleteAsync(Request(), CancellationToken.None);
+        Assert.That(operation.Stats.CallsWithUsage, Is.EqualTo(2));
+        Assert.That(operation.Stats.InputTokens, Is.EqualTo(240));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task BlankAnswersFailWhileOnlyNewUsageMayBeAttributedToThem(bool newUsage)
+    {
+        var fake = new Fake { LastUsage = new(120, 30, 90) };
+        var operation = new AiOperation(fake, 2);
+        await operation.CompleteAsync(Request(), CancellationToken.None);
+        fake.Response = _ =>
+        {
+            if (newUsage) fake.LastUsage = new(20, 0, 10);
+            return Task.FromResult(" \r\n\t");
+        };
+
+        Assert.ThrowsAsync<AiException>(() => operation.CompleteAsync(Request(), CancellationToken.None));
+
+        Assert.That(operation.Stats, Is.EqualTo(new AiOperationStats(2, newUsage ? 2 : 1,
+            AiEstimate.For(Request()).Characters * 2, newUsage ? 140 : 120, 30, newUsage ? 100 : 90)));
+        Assert.That(operation.LastUsage, Is.EqualTo(newUsage ? new AiUsage(20, 0, 10) : null));
+    }
+
+    [Test]
+    public async Task ConcurrentRequestsAreSerializedBeforeTheyReserveBudgetOrReadProviderUsage()
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var fake = new Fake();
+        fake.Response = async ct =>
+        {
+            int call = fake.Requests.Count;
+            fake.LastUsage = new(call * 10, call);
+            if (call == 1) { entered.TrySetResult(); await release.Task.WaitAsync(ct); }
+            return "respuesta " + call;
+        };
+        var operation = new AiOperation(fake, 2);
+        Task<string> first = operation.CompleteAsync(Request(), CancellationToken.None);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        Task<string> second = operation.CompleteAsync(Request(), CancellationToken.None);
+        int callsWhileWaiting = operation.Stats.Calls;
+        long textWhileWaiting = operation.Stats.TextCharacters;
+        int dispatchesWhileWaiting = fake.Requests.Count;
+        release.TrySetResult();
+        await Task.WhenAll(first, second).WaitAsync(TimeSpan.FromSeconds(3));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(dispatchesWhileWaiting, Is.EqualTo(1));
+            Assert.That(callsWhileWaiting, Is.EqualTo(1));
+            Assert.That(textWhileWaiting, Is.EqualTo(AiEstimate.For(Request()).Characters));
+            Assert.That(operation.Stats.InputTokens, Is.EqualTo(30), "Each call must keep its own provider metadata");
+            Assert.That(operation.Stats.OutputTokens, Is.EqualTo(3));
+        });
+        Assert.ThrowsAsync<AiException>(() => operation.CompleteAsync(Request(), CancellationToken.None));
+        Assert.That(fake.Requests, Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public async Task CancellingAQueuedRequestDoesNotDispatchItOrConsumeTheRemainingBudget()
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var fake = new Fake();
+        fake.Response = async ct =>
+        {
+            if (fake.Requests.Count == 1) { entered.TrySetResult(); await release.Task.WaitAsync(ct); }
+            return "respuesta";
+        };
+        long text = AiEstimate.For(Request()).Characters;
+        var operation = new AiOperation(fake, 2, text * 2);
+        Task<string> first = operation.CompleteAsync(Request(), CancellationToken.None);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        using var cancellation = new CancellationTokenSource();
+        Task<string> queued = operation.CompleteAsync(Request(), cancellation.Token);
+        cancellation.Cancel();
+        try
+        {
+            Assert.ThrowsAsync<OperationCanceledException>(async () => await queued.WaitAsync(TimeSpan.FromSeconds(3)));
+            Assert.That(fake.Requests, Has.Count.EqualTo(1));
+            Assert.That(operation.Stats.Calls, Is.EqualTo(1));
+            Assert.That(operation.Stats.TextCharacters, Is.EqualTo(text));
+        }
+        finally { release.TrySetResult(); await first.WaitAsync(TimeSpan.FromSeconds(3)); }
+
+        await operation.CompleteAsync(Request(), CancellationToken.None);
+        Assert.That(fake.Requests, Has.Count.EqualTo(2));
+        Assert.That(operation.Stats.Calls, Is.EqualTo(2));
+        Assert.That(operation.Stats.TextCharacters, Is.EqualTo(text * 2));
     }
 
     [Test]
