@@ -41,7 +41,7 @@ public sealed partial class M6502 : ICpuDebugView
     public bool Jammed { get; private set; }
     public string Name { get; init; } = "MOS 6502";
 
-    private bool _nmiPending, _nmiPrevious;
+    private bool _nmiPending, _nmiPrevious, _nmiSampledPrevious;
     private bool _irqSampled, _irqSampledPrevious;
 
     public M6502(IM6502Bus bus) => _bus = bus;
@@ -64,6 +64,7 @@ public sealed partial class M6502 : ICpuDebugView
     private void Cycle()
     {
         CycleCount++;
+        _nmiSampledPrevious = _nmiPending;
         bool nmi = _bus.NmiLine;
         if (nmi && !_nmiPrevious)
             _nmiPending = true;
@@ -103,7 +104,7 @@ public sealed partial class M6502 : ICpuDebugView
         byte lo = Read(0xFFFC);
         byte hi = Read(0xFFFD);
         PC = (ushort)(lo | (hi << 8));
-        _nmiPending = false;
+        _nmiPending = _nmiSampledPrevious = _irqPendingCheck = false;
     }
 
     /// <summary>Executes one instruction, or takes a pending interrupt.</summary>
@@ -114,13 +115,18 @@ public sealed partial class M6502 : ICpuDebugView
             Read(0xFFFF);
             return;
         }
-        if (_nmiPending || _irqSampledPrevious && _irqPendingCheck)
+        if (_nmiSampledPrevious || _irqSampledPrevious && _irqPendingCheck)
         {
             Interrupt();
+            // Interrupt sequences do not poll: execute a handler instruction
+            // before recognizing another edge that arrived during vector reads.
+            _nmiSampledPrevious = false;
             _irqPendingCheck = false;
             return;
         }
-        Execute(Fetch());
+        byte opcode = Fetch();
+        Execute(opcode);
+        if (opcode == 0x00) _nmiSampledPrevious = false;
         Instructions++;
         // the IRQ decision of the next boundary uses the next-to-last cycle of this instruction
         _irqPendingCheck = true;
@@ -304,13 +310,26 @@ public sealed partial class M6502 : ICpuDebugView
 
     private void Branch(bool taken)
     {
+        // Branches always poll after the opcode fetch. A taken branch does not
+        // poll at its operand fetch; crossing a page adds a second polling point.
+        bool firstIrq = _irqSampled;
+        bool firstNmi = _nmiPending;
         sbyte offset = (sbyte)Fetch();
         if (!taken)
             return;
         Read(PC);
         ushort target = (ushort)(PC + offset);
         if ((target & 0xFF00) != (PC & 0xFF00))
+        {
             Read((ushort)((PC & 0xFF00) | (target & 0xFF)));
+            _irqSampledPrevious |= firstIrq;
+            _nmiSampledPrevious |= firstNmi;
+        }
+        else
+        {
+            _irqSampledPrevious = firstIrq;
+            _nmiSampledPrevious = firstNmi;
+        }
         PC = target;
     }
 
@@ -349,13 +368,16 @@ public sealed partial class M6502 : ICpuDebugView
         w.Write(A); w.Write(X); w.Write(Y); w.Write(S); w.Write(P); w.Write(PC);
         w.Write(CycleCount); w.Write(Instructions); w.Write(Jammed);
         w.Write(_nmiPending); w.Write(_nmiPrevious); w.Write(_irqSampled); w.Write(_irqSampledPrevious); w.Write(_irqPendingCheck);
+        w.Write(_nmiSampledPrevious);
     }
 
-    public void Load(BinaryReader r)
+    /// <summary>Legacy machine states omit the NMI polling latch and retain their pending-edge decision.</summary>
+    public void Load(BinaryReader r, bool hasNmiPoll = true)
     {
         A = r.ReadByte(); X = r.ReadByte(); Y = r.ReadByte(); S = r.ReadByte(); P = r.ReadByte(); PC = r.ReadUInt16();
         CycleCount = r.ReadInt64(); Instructions = r.ReadInt64(); Jammed = r.ReadBoolean();
         _nmiPending = r.ReadBoolean(); _nmiPrevious = r.ReadBoolean(); _irqSampled = r.ReadBoolean(); _irqSampledPrevious = r.ReadBoolean(); _irqPendingCheck = r.ReadBoolean();
+        _nmiSampledPrevious = hasNmiPoll ? r.ReadBoolean() : _nmiPending;
     }
 
     // ------------------------------------------------------------------ ICpuDebugView

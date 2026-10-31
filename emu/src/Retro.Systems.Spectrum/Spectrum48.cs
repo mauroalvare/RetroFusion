@@ -575,7 +575,7 @@ public sealed class Spectrum48 : IMachine, IZ80Bus, IMemoryView, IWriteWatch, II
 
     // ------------------------------------------------------------------ save states
     private const string StateMagic = "RETRO-ZX48";
-    private const int StateVersion = 1;
+    private const int StateVersion = 2;
 
     public byte[] SaveState()
     {
@@ -593,6 +593,7 @@ public sealed class Spectrum48 : IMachine, IZ80Bus, IMemoryView, IWriteWatch, II
         w.Write(_border); w.Write(_earOut); w.Write(_micOut); w.Write(_flashPhase); w.Write(FrameCount);
         var tape = Tape.Capture(c.T);
         w.Write(tape.segment); w.Write(tape.remaining); w.Write(tape.playing); w.Write(tape.level);
+        w.Write(c.InterruptDelayPending); w.Write(c.NmiPending);
         return ms.ToArray();
     }
 
@@ -601,7 +602,8 @@ public sealed class Spectrum48 : IMachine, IZ80Bus, IMemoryView, IWriteWatch, II
         using var r = new BinaryReader(new MemoryStream(state));
         if (r.ReadString() != StateMagic)
             throw new InvalidDataException("No es un estado guardado de ZX Spectrum 48K.");
-        if (r.ReadInt32() != StateVersion)
+        int version = r.ReadInt32();
+        if (version is not (1 or StateVersion))
             throw new InvalidDataException("Versión de estado guardado no soportada.");
         var c = _cpu;
         c.AF = r.ReadUInt16(); c.BC = r.ReadUInt16(); c.DE = r.ReadUInt16(); c.HL = r.ReadUInt16();
@@ -618,6 +620,9 @@ public sealed class Spectrum48 : IMachine, IZ80Bus, IMemoryView, IWriteWatch, II
         int seg = r.ReadInt32(); long remaining = r.ReadInt64(); bool playing = r.ReadBoolean(); bool level = r.ReadBoolean();
         if (Tape.IsLoaded)
             Tape.Restore(seg, remaining, playing, level, c.T);
+        bool interruptDelay = version >= 2 && r.ReadBoolean();
+        bool nmiPending = version >= 2 && r.ReadBoolean();
+        c.RestoreInterruptLatches(interruptDelay, nmiPending);
         _renderedT = 0;
         _audioLastT = rel;
         _audioNextSample = rel + TPerSample;

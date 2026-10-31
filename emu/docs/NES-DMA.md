@@ -3,7 +3,8 @@
 M6502.ClockStall permite que la máquina avance primero sus periféricos y después
 muestree las líneas de interrupción de la CPU durante un ciclo robado. Incrementa
 el reloj sin ejecutar instrucciones ni acceder a memoria por cuenta del procesador.
-Conserva las NMI transitorias y usa el formato de estado existente del núcleo.
+Conserva las NMI transitorias. El estado del núcleo distingue el flanco NMI pendiente
+de la muestra que permite aceptarlo; su formato actual incluye ambos.
 
 El C64 lo usa mientras VIC-II mantiene BA/RDY bajo en las lecturas. El contador
 del 6510 ahora incluye esas esperas: un cuadro completo sigue teniendo un campo PAL
@@ -31,12 +32,15 @@ el recorrido de parada/dummy/alineación/GET. Este calendario se contrastó con 
 [modelo DMC de Mesen2, revisión b9fa69d](https://github.com/SourMesen/Mesen2/blob/b9fa69ddc6d0a331fb103fdb5eef6904305703c2/Core/NES/APU/DeltaModulationChannel.cpp)
 y se comprobó con programas propios en ambas paridades. No es una medición de silicio.
 
-Los estados de NES pasan a formato 5 para conservar la página OAM pendiente y la
-demora inicial DMC al final de una instrucción. Se siguen aceptando los formatos 2,
-3 y 4 con sus restricciones de mapper existentes; 2/3 no contienen una petición OAM
-pendiente y 2/3/4 restauran la demora DMC en cero (comportamiento anterior). El estado
-de APU y el de CPU conservan sus formatos. No se guardan puntos intermedios de una DMA
-ejecutada dentro de una instrucción.
+Los estados de NES usan el formato 6: conservan la página OAM pendiente, la demora
+inicial DMC y la muestra NMI del núcleo al final de una instrucción. Se siguen aceptando
+los formatos 2, 3, 4 y 5 con sus restricciones de edición y mapper existentes; 2/3 no
+contienen una petición OAM pendiente y 2/3/4 restauran la demora DMC en cero
+(comportamiento anterior). El bloque CPU pasa de 29 a 30 bytes; al leer NES2–5 la muestra
+NMI toma la decisión de flanco pendiente que guardaba el núcleo anterior, sin consumir
+bytes del estado de RAM. El formato APU no cambia. Un estado antiguo no permite recuperar
+un punto de muestreo que nunca almacenó, y no se promete que un programa anterior lea NES6.
+No se guardan puntos intermedios de una DMA ejecutada dentro de una instrucción.
 
 Catorce pruebas propias de NES cubren paridad, RMW, convivencia OAM/DMC, escrituras,
 cancelación, mandos, restauración y NMI transitoria; doce detectan el estado anterior.
@@ -44,6 +48,13 @@ Se agregan pruebas de ciclos robados del núcleo y de RDY en el 6510. Siete caso
 verifican activación, guardado durante la espera, lectura de NES4 y demoras inválidas;
 los dos de activación detectan el inicio prematuro anterior. La suite [nestest](NESTEST.md)
 se usa localmente, con descarga autorizada; no se distribuye su ROM.
+
+La revisión de interrupciones agrega 27 casos del núcleo: IRQ en ramas con y sin cruce
+de página, NMI en el último ciclo y durante IRQ/BRK, bus y pila de la entrada, reset y
+restauración de muestras. Cuatro fixtures de NES2–5 comprueban la alineación de CPU, RAM
+y periféricos y la siguiente instrucción al cargarlos en el formato actual. Son pruebas
+por ciclo entero; no una campaña de señales físicas. Los detalles y comandos están en
+[Precisión de CPU](PRECISION-CPU.md).
 
 Quedan el aborto y reinicio fino del DMC, casos límite de solapamiento
 al comienzo/final de OAM, conflictos del bus de registros internos, variantes Famicom/

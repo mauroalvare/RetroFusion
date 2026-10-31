@@ -67,11 +67,8 @@ public class BankedCartridgeTests
     {
         var machine = new Retro.Systems.Nes.Nes(NesCartridge.Load(Image(0, 1)));
         machine.Ram[17] = 99; byte[] modern = machine.SaveState();
-        using var input = new BinaryReader(new MemoryStream(modern));
-        string magic = input.ReadString(); _ = input.ReadInt32(); _ = input.ReadString();
-        using var old = new MemoryStream(); using (var writer = new BinaryWriter(old, System.Text.Encoding.UTF8, leaveOpen: true))
-        { writer.Write(magic); writer.Write(2); writer.Write(modern[(int)input.BaseStream.Position..]); }
-        machine.Ram[17] = 0; machine.LoadState(old.ToArray());
+        byte[] old = LegacyNesState.FromCurrent(modern, 2);
+        machine.Ram[17] = 0; machine.LoadState(old);
         Assert.That(machine.Ram[17], Is.EqualTo(99));
     }
 }

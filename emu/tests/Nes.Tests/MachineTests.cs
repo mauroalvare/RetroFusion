@@ -109,6 +109,20 @@ public class MachineTests
         Assert.That(nes.Ram[0], Is.EqualTo(count));
     }
 
+    [TestCase(2)] [TestCase(3)] [TestCase(4)] [TestCase(5)]
+    public void LegacyStatesKeepCpuRamAndPeripheralPayloadsAligned(int version)
+    {
+        byte[] code = [0xEA, 0x4C, 0, 0xC0];
+        var nes = Machine(code); nes.RunFrame(null);
+        nes.Ram[17] = 99; nes.Write(0x6123, 0xA5);
+        byte[] modern = nes.SaveState();
+        var restored = Machine(code);
+        restored.LoadState(LegacyNesState.FromCurrent(modern, version));
+        Assert.That(restored.SaveState(), Is.EqualTo(modern));
+        nes.StepInstruction(); restored.StepInstruction();
+        Assert.That(restored.SaveState(), Is.EqualTo(nes.SaveState()));
+    }
+
     [Test]
     public void TheCpuHasNoDecimalMode()
     {

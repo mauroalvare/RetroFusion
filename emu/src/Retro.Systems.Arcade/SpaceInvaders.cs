@@ -342,7 +342,7 @@ public sealed class SpaceInvaders : IMachine, I8080Bus, IMemoryView, ICodePatch,
         using var ms = new MemoryStream();
         using var w = new BinaryWriter(ms);
         w.Write(StateMagic);
-        w.Write(1);
+        w.Write(2);
         w.Write(_cpu.PSW); w.Write(_cpu.BC); w.Write(_cpu.DE); w.Write(_cpu.HL); w.Write(_cpu.SP); w.Write(_cpu.PC);
         w.Write(_cpu.INTE); w.Write(_cpu.Halted);
         w.Write(FrameCycle);
@@ -352,14 +352,18 @@ public sealed class SpaceInvaders : IMachine, I8080Bus, IMemoryView, ICodePatch,
         w.Write(_midFired); w.Write(_vblankFired);
         w.Write(FrameCount);
         w.Write(Sound.Port3); w.Write(Sound.Port5);
+        w.Write(_cpu.InterruptDelayPending);
         return ms.ToArray();
     }
 
     public void LoadState(byte[] state)
     {
         using var r = new BinaryReader(new MemoryStream(state));
-        if (r.ReadString() != StateMagic || r.ReadInt32() != 1)
+        if (r.ReadString() != StateMagic)
             throw new InvalidDataException("No es un estado guardado de Space Invaders.");
+        int version = r.ReadInt32();
+        if (version is not (1 or 2))
+            throw new InvalidDataException("La versión del estado arcade no está soportada.");
         _cpu.PSW = r.ReadUInt16(); _cpu.BC = r.ReadUInt16(); _cpu.DE = r.ReadUInt16(); _cpu.HL = r.ReadUInt16();
         _cpu.SP = r.ReadUInt16(); _cpu.PC = r.ReadUInt16();
         _cpu.INTE = r.ReadBoolean(); _cpu.Halted = r.ReadBoolean();
@@ -373,6 +377,7 @@ public sealed class SpaceInvaders : IMachine, I8080Bus, IMemoryView, ICodePatch,
         _midFired = r.ReadBoolean(); _vblankFired = r.ReadBoolean();
         FrameCount = r.ReadInt64();
         byte p3 = r.ReadByte(), p5 = r.ReadByte();
+        _cpu.RestoreInterruptLatches(version >= 2 && r.ReadBoolean());
         Sound.Reset();
         Sound.WritePort3(p3, 0);
         Sound.WritePort5(p5, 0);

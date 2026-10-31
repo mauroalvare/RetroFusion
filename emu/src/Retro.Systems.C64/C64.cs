@@ -611,7 +611,7 @@ public sealed class C64 : IMachine, IM6502Bus, IMemoryView, IWriteWatch, IIoWatc
         using var ms = new MemoryStream();
         using var w = new BinaryWriter(ms);
         w.Write(StateMagic);
-        w.Write(1);
+        w.Write(2);
         _cpu.Save(w);
         w.Write(_ram);
         w.Write(_colorRam);
@@ -630,9 +630,12 @@ public sealed class C64 : IMachine, IM6502Bus, IMemoryView, IWriteWatch, IIoWatc
     public void LoadState(byte[] state)
     {
         using var r = new BinaryReader(new MemoryStream(state));
-        if (r.ReadString() != StateMagic || r.ReadInt32() != 1)
+        if (r.ReadString() != StateMagic)
             throw new InvalidDataException("No es un estado guardado de Commodore 64.");
-        _cpu.Load(r);
+        int version = r.ReadInt32();
+        if (version is not (1 or 2))
+            throw new InvalidDataException("La versión del estado C64 no está soportada.");
+        _cpu.Load(r, hasNmiPoll: version >= 2);
         r.Read(_ram, 0, _ram.Length);
         r.Read(_colorRam, 0, _colorRam.Length);
         _portDdr = r.ReadByte();

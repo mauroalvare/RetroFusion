@@ -256,6 +256,11 @@ public sealed partial class I8080Cpu : ICpuDebugView
     /// <summary>True when an interrupt request would be accepted now.</summary>
     public bool InterruptsAccepted => INTE && !_eiDelay;
 
+    public bool InterruptDelayPending => _eiDelay;
+
+    /// <summary>Restores the EI latch alongside the public CPU registers.</summary>
+    public void RestoreInterruptLatches(bool interruptDelay) => _eiDelay = interruptDelay;
+
     /// <summary>Executes one instruction. Returns the states (clock cycles) used.</summary>
     public int Step()
     {

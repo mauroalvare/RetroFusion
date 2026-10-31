@@ -373,7 +373,7 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         using var ms = new MemoryStream();
         using var w = new BinaryWriter(ms);
         w.Write(StateMagic);
-        w.Write(5);
+        w.Write(6);
         w.Write(Cartridge.Identity);
         _cpu.Save(w);
         w.Write(_ram);
@@ -396,12 +396,12 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         using var r = new BinaryReader(new MemoryStream(state));
         if (r.ReadString() != StateMagic) throw new InvalidDataException("No es un estado guardado de NES.");
         int version = r.ReadInt32();
-        if (version is not (2 or 3 or 4 or 5)) throw new InvalidDataException("La versión del estado NES no está soportada.");
+        if (version is not (2 or 3 or 4 or 5 or 6)) throw new InvalidDataException("La versión del estado NES no está soportada.");
         if (version >= 3 && r.ReadString() != Cartridge.Identity)
             throw new InvalidDataException("Este estado pertenece a otra edición del juego.");
         if (version == 2 && Cartridge.Mapper is not (0 or 3))
             throw new InvalidDataException("El estado anterior no contiene los bancos de este mapper.");
-        _cpu.Load(r);
+        _cpu.Load(r, hasNmiPoll: version >= 6);
         r.Read(_ram, 0, _ram.Length);
         r.Read(_prgRam, 0, _prgRam.Length);
         Ppu.Load(r);

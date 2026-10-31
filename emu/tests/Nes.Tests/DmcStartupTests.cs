@@ -41,17 +41,11 @@ public sealed class DmcStartupTests
         Assert.That(restored.SaveState(), Is.EqualTo(machine.SaveState()));
     }
 
-    private static void Version(byte[] state, int version)
-    {
-        using var stream = new MemoryStream(state); using var reader = new BinaryReader(stream); reader.ReadString();
-        BinaryPrimitives.WriteInt32LittleEndian(state.AsSpan((int)stream.Position, 4), version);
-    }
-
     [Test]
     public void PreviousVersionFourLoadsWithItsImmediateRequestSemantics()
     {
         var machine = OwnMachine(false); machine.StepInstruction();
-        byte[] old = machine.SaveState()[..^4]; Version(old, 4);
+        byte[] old = LegacyNesState.FromCurrent(machine.SaveState(), 4);
         var restored = OwnMachine(false); restored.LoadState(old); long before = restored.Cpu2A03.CycleCount;
         restored.StepInstruction(); Assert.That(restored.Cpu2A03.CycleCount - before, Is.EqualTo(6));
     }

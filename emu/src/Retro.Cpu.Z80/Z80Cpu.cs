@@ -230,6 +230,16 @@ public sealed partial class Z80Cpu : ICpuDebugView
     /// <summary>True when the next Step would accept a maskable interrupt.</summary>
     public bool InterruptsAccepted => IFF1 && !_eiDelay;
 
+    public bool InterruptDelayPending => _eiDelay;
+    public bool NmiPending => _nmiPending;
+
+    /// <summary>Restores instruction-boundary latches alongside the public CPU registers.</summary>
+    public void RestoreInterruptLatches(bool interruptDelay, bool nmiPending)
+    {
+        _eiDelay = interruptDelay;
+        _nmiPending = nmiPending;
+    }
+
     private void AcceptInterrupt()
     {
         if (Halted)

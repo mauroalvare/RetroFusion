@@ -76,7 +76,7 @@ public sealed class DmaTests
     {
         byte[] code=[0xA9,2,0x8D,0x14,0x40,0xEA];var nes=Machine(code);
         nes.StepInstruction();nes.StepInstruction();EnableDmc(nes);byte[] state=nes.SaveState();
-        using(var r=new BinaryReader(new MemoryStream(state))){r.ReadString();Assert.That(r.ReadInt32(),Is.EqualTo(5));}
+        using(var r=new BinaryReader(new MemoryStream(state))){r.ReadString();Assert.That(r.ReadInt32(),Is.EqualTo(6));}
         var clone=Machine(code);clone.LoadState(state);long before=nes.Cpu2A03.CycleCount;
         nes.StepInstruction();clone.StepInstruction();
         Assert.That(nes.Cpu2A03.CycleCount-before,Is.EqualTo(517));Assert.That(clone.SaveState(),Is.EqualTo(nes.SaveState()));
@@ -84,9 +84,7 @@ public sealed class DmaTests
     [Test]
     public void VersionThreeStatesHaveNoPendingOam()
     {
-        var nes=Machine([0xEA]);byte[] state=nes.SaveState();
-        using(var r=new BinaryReader(new MemoryStream(state)))
-        {r.ReadString();int p=(int)r.BaseStream.Position;int version=r.ReadInt32();BitConverter.GetBytes(3).CopyTo(state,p);if(version>=4)state=state[..^(4*(version-3))];}
+        var nes=Machine([0xEA]);byte[] state=LegacyNesState.FromCurrent(nes.SaveState(), 3);
         nes.LoadState(state);long before=nes.Cpu2A03.CycleCount;nes.StepInstruction();
         Assert.That(nes.Cpu2A03.CycleCount-before,Is.EqualTo(2));
     }
