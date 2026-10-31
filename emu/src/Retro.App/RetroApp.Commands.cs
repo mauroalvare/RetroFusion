@@ -8,6 +8,8 @@ public sealed partial class RetroApp
     private IReadOnlyList<AppCommand>? _commandCatalog;
 
     private IReadOnlyList<AppCommand> Commands => _commandCatalog ??= [
+        new("auto-analysis","Investigar variables automáticamente…","Herramientas","memoria candidatos evidencia presupuesto hexadecimal", "",OpenAutomaticAnalysis,
+            ()=>_host.LoadedMediaSource!=null && _host.Fusion==null && _host.Machine?.Memory.AddressBits<=16,"Abrí un original de 8 bits."),
         new("create-hub", "Abrir el taller de creación", "Crear", "inicio proyectos", "", () => OpenHub(HubPage.Create)),
         new("tools-hub", "Ver todas las herramientas", "Herramientas", "inicio opciones mesa", "", () => OpenHub(HubPage.Tools)),
         new("help-hub", "Ver ayuda y controles", "Ayuda", "instrucciones teclado mando", "", () => OpenHub(HubPage.Help)),

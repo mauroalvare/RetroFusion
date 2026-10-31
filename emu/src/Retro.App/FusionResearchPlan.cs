@@ -11,9 +11,9 @@ public static class FusionResearchPlan
     public const int NavigationRounds = 24;
     public const int TrialRounds = 3;
 
+    // A real operation budget, rather than thousands of theoretical navigation calls.
     public static int Calls(int originals, int writingAttempts) =>
-        MaxPasses * (Math.Clamp(originals, 2, 3) * (NavigationRounds - TrialRounds + 2) + 1)
-        + Math.Clamp(writingAttempts, 1, 10);
+        Math.Clamp(originals,2,3)*24+Math.Clamp(writingAttempts,1,10)+4;
 
     public static AiTimeRange Estimate(int originals, bool needsResearch) => needsResearch
         ? new(TimeSpan.FromMinutes(originals >= 3 ? 30 : 20), TotalTime, 0)

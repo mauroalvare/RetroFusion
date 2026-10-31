@@ -29,6 +29,7 @@ internal sealed class AiBuildWindow(string id, string title = "Construcción del
         _displayTiming = wholeWork ?? _timing;
         if ((!_started && wholeWork == null) || _displayTiming == null) return;
         if (!busy) _timing?.Stop(false);
+        if(busy)RetroArt.Activity();
         ImGui.TextDisabled($"Transcurrido: {Duration(_displayTiming.Elapsed)}");
         if (busy && (_estimate || wholeWork != null)) ImGui.TextWrapped(_displayTiming.RemainingText);
         if (ImGui.SmallButton($"{openLabel}##{id}")) _open = true;

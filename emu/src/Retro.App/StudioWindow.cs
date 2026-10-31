@@ -1133,7 +1133,7 @@ public sealed partial class StudioWindow
         return new StudioDesigner { AttemptLimit = _ai.DesignAttempts, Checkpoint = state =>
         {
             saved.State = state;
-            saved.Engine = typeof(StudioSession).Module.ModuleVersionId.ToString();
+            saved.Engine = StudioSession.EngineFingerprint;
             StudioWorkStore.Save(saved);
         } };
     }

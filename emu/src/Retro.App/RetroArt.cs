@@ -8,6 +8,18 @@ internal static class RetroArt
 {
     private static uint Ink => ImGui.GetColorU32(ImGuiCol.Text);
     private static uint Copper => ImGui.ColorConvertFloat4ToU32(UiTheme.Accent);
+    public static void Activity()
+    {
+        var at=ImGui.GetCursorScreenPos();var draw=ImGui.GetWindowDrawList();
+        float phase=(float)ImGui.GetTime()*MathF.PI/0.9f;
+        for(int i=0;i<3;i++)
+        {
+            float glow=UiTheme.HighContrast?1:0.45f+0.55f*(0.5f+0.5f*MathF.Sin(phase-i*1.5f));
+            var color=UiTheme.Accent;color.W=glow;
+            draw.AddCircleFilled(at+UiTheme.Px(4+i*8,10),UiTheme.Px(2),ImGui.ColorConvertFloat4ToU32(color),8);
+        }
+        ImGui.Dummy(UiTheme.Px(26,20));ImGui.SameLine();
+    }
 
     public static void Screw(ImDrawListPtr draw,Vector2 center)
     {

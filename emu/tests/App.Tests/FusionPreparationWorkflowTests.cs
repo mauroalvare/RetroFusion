@@ -434,8 +434,8 @@ public sealed class FusionPreparationWorkflowTests
         Assert.That(range.High, Is.EqualTo(TimeSpan.FromHours(1)));
         Assert.That(FusionResearchPlan.EstimateText(2, true), Does.Contain("20–60"));
         Assert.That(FusionResearchPlan.Estimate(2, false).High, Is.LessThan(range.High));
-        Assert.That(FusionResearchPlan.Calls(3, 3),
-            Is.GreaterThan(FusionResearchPlan.MaxPasses * 3 * (FusionResearchPlan.NavigationRounds - FusionResearchPlan.TrialRounds + 2)));
+        Assert.That(FusionResearchPlan.Calls(3, 3), Is.InRange(3 * FusionResearchPlan.NavigationRounds + 3, 100),
+            "Research and writing share a practical operation cap rather than thousands of theoretical calls");
     }
 
     [Test]

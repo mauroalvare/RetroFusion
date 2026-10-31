@@ -30,7 +30,8 @@ internal static class UiTheme
     private static ImFontPtr _labelFont;
     private static ImGuiStyle? _baseStyle;
     // Atlas configurations retain this pointer for future rebuilds. One range table per process.
-    private static readonly GCHandle Ranges = GCHandle.Alloc(new ushort[] { 0x20, 0xFF, 0x2000, 0x206F, 0 }, GCHandleType.Pinned);
+    private static readonly GCHandle Ranges = GCHandle.Alloc(new ushort[] { 0x20, 0xFF, 0x2000, 0x206F, 0x2190, 0x2199, 0x2260, 0x2265, 0x25A0, 0x25FF, 0x2713, 0x2717, 0 }, GCHandleType.Pinned);
+    private static readonly GCHandle SymbolRanges = GCHandle.Alloc(new ushort[] { 0x2190, 0x2199, 0x2260, 0x2265, 0x25A0, 0x25FF, 0x2713, 0x2717, 0 }, GCHandleType.Pinned);
 
     public static float Px(float value) => value * Scale;
     public static Vector2 Px(float x, float y) => new(x * Scale, y * Scale);
@@ -128,16 +129,35 @@ internal static class UiTheme
             if (replace) ImGui.GetIO().Fonts.Clear();
             var fontPtr = font == null ? ImGui.GetIO().Fonts.AddFontDefault(config)
                 : ImGui.GetIO().Fonts.AddFontFromFileTTF(font, size, config, Ranges.AddrOfPinnedObject());
+            string? symbols = SymbolCandidates().FirstOrDefault(File.Exists);
+            void MergeSymbols(float fontSize)
+            {
+                if (symbols == null) return;
+                config.MergeMode = true;
+                ImGui.GetIO().Fonts.AddFontFromFileTTF(symbols, fontSize, config, SymbolRanges.AddrOfPinnedObject());
+                config.MergeMode = false;
+            }
+            MergeSymbols(size);
             ImGui.GetIO().NativePtr->FontDefault = fontPtr.NativePtr;
             _codeFont = codeFont == null ? fontPtr
                 : ImGui.GetIO().Fonts.AddFontFromFileTTF(codeFont, MathF.Round(16 * Scale), config, Ranges.AddrOfPinnedObject());
+            if (codeFont != null) MergeSymbols(MathF.Round(16 * Scale));
             string? titleFont = DisplayCandidates().FirstOrDefault(File.Exists);
             _titleFont = titleFont!=null ? ImGui.GetIO().Fonts.AddFontFromFileTTF(titleFont, MathF.Round(32 * Scale), config, Ranges.AddrOfPinnedObject()) : fontPtr;
+            if (titleFont != null) MergeSymbols(MathF.Round(32 * Scale));
             string? labelFont=LabelCandidates().FirstOrDefault(File.Exists);
             _labelFont=labelFont!=null?ImGui.GetIO().Fonts.AddFontFromFileTTF(labelFont,MathF.Round(16*Scale),config,Ranges.AddrOfPinnedObject()):fontPtr;
+            if (labelFont != null) MergeSymbols(MathF.Round(16 * Scale));
             rlImGui.ReloadFonts();
         }
         finally { ImGuiNative.ImFontConfig_destroy(config.NativePtr); }
+    }
+
+    private static IEnumerable<string> SymbolCandidates()
+    {
+        if (OperatingSystem.IsWindows()) yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "seguisym.ttf");
+        yield return "/System/Library/Fonts/Apple Symbols.ttf";
+        yield return "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
     }
 
     private static IEnumerable<string> FontCandidates(bool code)

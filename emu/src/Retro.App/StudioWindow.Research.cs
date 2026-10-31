@@ -79,7 +79,7 @@ public sealed partial class StudioWindow
                 Originals=slots.Select(slot=> { var target=targets.Single(t=>t.Source.Profile.Id==slot.Profile);
                     return new ResearchOriginal(slot.Slot,target.Path,FileIdentity(target.Path),slot.Profile,
                         MachineFactory.FirmwareFingerprint(target.Source.Profile.Machine,_romDir)); }).ToList() };
-            _researchWork.Status="research"; _researchWork.Engine=typeof(StudioSession).Module.ModuleVersionId.ToString();
+            _researchWork.Status="research"; _researchWork.Engine=FusionResearchWork.CurrentEngine;
             _researchStore.Save(_researchWork); _showResearch=true; return true;
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException)
@@ -131,7 +131,7 @@ public sealed partial class StudioWindow
                     throw new InvalidDataException("Cambió la edición o el firmware. El trabajo sigue guardado; requiere una investigación nueva.");
                 mapped[original.Slot]=source;
             }
-            bool sameEngine=work.Engine==typeof(StudioSession).Module.ModuleVersionId.ToString();
+            bool sameEngine=work.Engine==FusionResearchWork.CurrentEngine;
             foreach (var preparation in work.Preparations)
             {
                 var original=work.Originals.FirstOrDefault(o=>o.Profile==preparation.Profile?.Id);

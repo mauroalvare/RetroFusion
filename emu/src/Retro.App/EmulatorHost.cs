@@ -71,6 +71,7 @@ public sealed partial class EmulatorHost
     public string Status { get; set; } = "Arrastrá un juego a la ventana o usá Juego > Abrir.";
     public string? LastStopReason { get; private set; }
     public string? LoadedMedia { get; private set; }
+    public string? LoadedMediaSource => _loadedFiles.FirstOrDefault()?.Source;
     public GameProfile? LoadedProfile { get; private set; }
     public string FirmwareIdentity { get; private set; } = "";
     private IReadOnlyList<MediaFile> _loadedFiles = [];

@@ -112,7 +112,8 @@ public sealed partial class RetroApp
         if (ImGui.Button(HasGame?"Volver a jugar":"Abrir un juego…")) { if (HasGame) OpenPlay(); else _browser.Open(); }
         UiTheme.EndCard();
         UiTheme.Section("Investigar y modificar");
-        ToolRows("analysis-tools",[("Cambios y análisis","Buscá variables, probá propuestas de la IA y revisá el historial de cambios.","modify"),
+        ToolRows("analysis-tools",[("Investigación automática","El laboratorio juega secuencias y contrasta variables en una máquina privada; elegí el objetivo y el presupuesto.","auto-analysis"),
+            ("Cambios y análisis","Buscá variables, probá propuestas de la IA y revisá el historial de cambios.","modify"),
             ("Código y rutinas","Recorré el desensamblado, exportá código, anotá funciones y probá parches.","code"),
             ("Depurador","Seguí registros, memoria y ejecución. Incluye breakpoints y avance por instrucción o cuadro.","debugger")]);
         UiTheme.Section("Partida y capturas");

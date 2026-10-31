@@ -66,18 +66,20 @@ public sealed partial class CodeWindow : IDisposable
     private string _newVarDescription = "";
     private string _bootText = "";
 
-    public CodeWindow(EmulatorHost host, AiSettings ai, Action<uint> showInDebugger, Action? openStudio = null, ModificationHistory? history = null)
+    public CodeWindow(EmulatorHost host, AiSettings ai, Action<uint> showInDebugger, Action? openStudio = null, ModificationHistory? history = null, string? firmwareDirectory = null)
     {
         _host = host;
         _ai = ai;
         _showInDebugger = showInDebugger;
         _openStudio = openStudio;
         _history = history ?? new ModificationHistory();
+        _researchFirmwareDirectory = firmwareDirectory ?? "";
         _host.BeforeFrame += ApplyFrozen;
         _host.SessionChanging += LeaveModificationSession;
+        _host.SessionChanging += StopAutonomousSession;
     }
 
-    public bool IsWorking => _explainTask != null || _modificationTask != null || _manualModification || _manualExplanation;
+    public bool IsWorking => _explainTask != null || _modificationTask != null || _autonomousTask != null || _manualModification || _manualExplanation;
     public void ShowWork() => OpenPage(_explainTask != null || _manualExplanation ? ToolPage.Code : ToolPage.Analysis);
 
     public void Open() => OpenPage(ToolPage.Code);
@@ -91,6 +93,7 @@ public sealed partial class CodeWindow : IDisposable
             SwitchGame(m);
         PollExplain(m);
         PollModificationAdvice();
+        PollAutonomousAnalysis();
         if (_open && _host.Fusion == null && m.Memory.AddressBits <= 16) _observation ??= new ModificationObservation(m);
         else StopObservation();
     }
@@ -114,7 +117,16 @@ public sealed partial class CodeWindow : IDisposable
         }
         if (_requestedPage is { } requested) { _activePage = requested; _requestedPage = null; }
         bool variablesSupported = machine.Memory.AddressBits <= 16;
-        if (variablesSupported && ImGui.BeginTable("navegacion-herramientas", ImGui.GetContentRegionAvail().X < 660 ? 2 : 4, ImGuiTableFlags.SizingStretchSame))
+        float pageWidth = new[] { "Cambios", "Análisis con IA", "Buscar variables", "Código" }
+            .Max(label => ImGui.CalcTextSize(label).X) + ImGui.GetStyle().CellPadding.X * 2 + ImGui.GetStyle().ItemSpacing.X;
+        int pageColumns = AnalysisNavigationColumns(ImGui.GetContentRegionAvail().X, pageWidth);
+        if (variablesSupported && pageColumns == 1)
+        {
+            int page = (int)_activePage;
+            ImGui.SetNextItemWidth(-1);
+            if (ImGui.Combo("##pagina-herramientas", ref page, new[] { "Cambios", "Análisis con IA", "Buscar variables", "Código" }, 4)) _activePage = (ToolPage)page;
+        }
+        else if (variablesSupported && ImGui.BeginTable("navegacion-herramientas", pageColumns, ImGuiTableFlags.SizingStretchSame))
         {
             Page("Cambios", ToolPage.Changes);
             Page("Análisis con IA", ToolPage.Analysis);
@@ -167,6 +179,7 @@ public sealed partial class CodeWindow : IDisposable
     // ------------------------------------------------------------------ game identity
     private void SwitchGame(IMachine m)
     {
+        StopAutonomousSession();
         RetireWork(ref _explainTask, ref _cts);
         RetireWork(ref _modificationTask, ref _modificationCts);
         StopObservation();
@@ -761,29 +774,56 @@ public sealed partial class CodeWindow : IDisposable
     private void DrawVariableValues(IMachine m, bool addresses)
     {
         if (_profile == null) return;
+        bool compact = ImGui.GetContentRegionAvail().X < UiTheme.Px(860);
+        if (!compact) ScrollAnalysisAutotest("values");
         var flags = ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.ScrollY;
         var size = new Vector2(0, Math.Clamp(ImGui.GetWindowHeight() * 0.32f, UiTheme.Px(130), UiTheme.Px(245)));
-        if (ImGui.BeginTable("vars", addresses ? 5 : 4, flags, size))
+        if (compact)
+        {
+            foreach (var (name, variable) in _profile.Variables) DrawValue(name, variable);
+        }
+        else if (ImGui.BeginTable("vars", addresses ? 6 : 5, flags, size))
         {
             ImGui.TableSetupScrollFreeze(0, 1);
             ImGui.TableSetupColumn("Variable", ImGuiTableColumnFlags.WidthStretch, 2);
-            if (addresses) ImGui.TableSetupColumn("Dirección", ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(70));
-            ImGui.TableSetupColumn("Valor", ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(72));
-            ImGui.TableSetupColumn("Congelar", ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(64));
+            if (addresses) ImGui.TableSetupColumn("Dirección", ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(110));
+            ImGui.TableSetupColumn("Valor", ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(90));
+            ImGui.TableSetupColumn("RAM actual → propuesta", ImGuiTableColumnFlags.WidthStretch, 3);
+            ImGui.TableSetupColumn("Congelar", ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(90));
             ImGui.TableSetupColumn("Qué es", ImGuiTableColumnFlags.WidthStretch, 3);
             ImGui.TableHeadersRow();
             foreach (var (name, v) in _profile.Variables)
             {
+                ImGui.TableNextRow();
+                DrawValue(name, v);
+            }
+            ImGui.EndTable();
+        }
+        AiPicker.Hint("Revisá los bytes antes de Enter o Aplicar. La prueba modifica RAM temporalmente; Deshacer y Restaurar partida recuperan el estado anterior.");
+
+        void Field(string label)
+        {
+            if (compact) ImGui.TextWrapped(label);
+            else ImGui.TableNextColumn();
+        }
+
+        void DrawValue(string name, GameVariable v)
+        {
                 int value = 0; bool readable = true;
                 try { value = v.Read(m.Memory); }
                 catch (Exception error) when (error is FormatException or OverflowException or IndexOutOfRangeException or ArgumentException or InvalidDataException)
                 { readable = false; }
-                ImGui.TableNextRow();
-                ImGui.TableNextColumn(); ImGui.TextWrapped(VariableLabel(name));
+                if (compact) UiTheme.Section(VariableLabel(name));
+                else { ImGui.TableNextColumn(); ImGui.TextWrapped(VariableLabel(name)); }
                 if (ImGui.IsItemHovered()) UiTheme.Tooltip(name + "\n" + v.Description);
-                if (addresses) { ImGui.TableNextColumn(); ImGui.TextUnformatted("$" + v.Address); }
-                ImGui.TableNextColumn();
-                ImGui.SetNextItemWidth(-1);
+                if (addresses)
+                {
+                    Field("Dirección / formato");
+                    using (UiTheme.FixedWidth()) ImGui.TextUnformatted("$" + v.Address);
+                    ImGui.TextWrapped(v.Encoding);
+                }
+                Field("Valor propuesto");
+                ImGui.SetNextItemWidth(compact ? Math.Min(UiTheme.Px(160), ImGui.GetContentRegionAvail().X) : -1);
                 ImGui.BeginDisabled(v.ReadOnly || !readable);
                 string input = _variableInputs.GetValueOrDefault(name, value.ToString(CultureInfo.InvariantCulture));
                 // InputScalar/InputInt rejects EnterReturnsTrue in this ImGui version.
@@ -791,15 +831,51 @@ public sealed partial class CodeWindow : IDisposable
                 bool enter = ImGui.InputText("##v" + name, ref input, 16, ImGuiInputTextFlags.CharsDecimal | ImGuiInputTextFlags.EnterReturnsTrue);
                 if (ImGui.IsItemActive()) _variableInputs[name] = input;
                 else _variableInputs.Remove(name);
-                if (enter)
+                IReadOnlyList<VariableBytePreview>? preview = null;
+                string previewProblem = "";
+                bool parsed = int.TryParse(input, NumberStyles.Integer, CultureInfo.InvariantCulture, out int requested);
+                if (parsed && readable && !v.ReadOnly)
                 {
-                    if (int.TryParse(input, NumberStyles.Integer, CultureInfo.InvariantCulture, out int requested))
-                        ApplyModifications([new(name, requested, _modifications?.Frozen.ContainsKey(name) == true)]);
-                    else _status = "Escribí un número entero válido.";
+                    try { preview = PreviewVariable(_profile, name, requested, m.Memory); }
+                    catch (Exception error) when (error is InvalidOperationException or InvalidDataException or ArgumentException or FormatException or OverflowException or IndexOutOfRangeException)
+                    { previewProblem = error.Message; }
                 }
+                else if (!parsed) previewProblem = "Escribí un número entero válido.";
                 if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled)) UiTheme.Tooltip($"Rango: {v.Min} a {v.Max}");
+                ImGui.BeginDisabled(preview == null);
+                bool apply = ImGui.SmallButton("Aplicar##" + name);
                 ImGui.EndDisabled();
-                ImGui.TableNextColumn();
+                ImGui.EndDisabled();
+                if (enter || apply)
+                {
+                    if (preview != null) ApplyModifications([new(name, requested, _modifications?.Frozen.ContainsKey(name) == true)]);
+                    else _status = previewProblem.Length > 0 ? previewProblem : "No se pudo previsualizar esta codificación. No se aplicó el cambio.";
+                }
+                if (compact) ScrollAnalysisAutotest("values");
+                Field("RAM actual → propuesta");
+                if (preview != null)
+                {
+                    using (UiTheme.FixedWidth())
+                        foreach (var cell in preview)
+                        {
+                            ImGui.PushStyleColor(ImGuiCol.Text, cell.Before == cell.After ? UiTheme.Muted : UiTheme.Accent);
+                            ImGui.TextWrapped($"${cell.Address:X4}: {cell.Before:X2} → {cell.After:X2}");
+                            ImGui.PopStyleColor();
+                        }
+                }
+                else
+                {
+                    try
+                    {
+                        using (UiTheme.FixedWidth())
+                            foreach (var cell in VariableMemory.Cells(v, m.Memory.AddressBits))
+                                ImGui.TextUnformatted($"${cell.Address:X4}: {m.Memory.Peek(cell.Address):X2}");
+                    }
+                    catch (Exception error) when (error is InvalidOperationException or ArgumentException or IndexOutOfRangeException)
+                    { previewProblem = error.Message; }
+                    if (previewProblem.Length > 0) ImGui.TextWrapped(previewProblem);
+                }
+                Field("Congelar");
                 ImGui.BeginDisabled(v.ReadOnly || !readable);
                 bool frozen = _modifications?.Frozen.ContainsKey(name) == true;
                 if (ImGui.Checkbox("##f" + name, ref frozen))
@@ -807,14 +883,11 @@ public sealed partial class CodeWindow : IDisposable
                     ApplyModifications([new(name, v.Read(m.Memory), frozen)]);
                 }
                 ImGui.EndDisabled();
-                ImGui.TableNextColumn();
+                Field("Interpretación");
                 string description = readable ? v.Description + (v.ReadOnly ? " (solo lectura)" : "") : "Este dato tiene un formato o dirección inválidos en el perfil.";
-                ImGui.TextWrapped(description.Length > 140 ? description[..137] + "..." : description);
-                if (description.Length > 140 && ImGui.IsItemHovered()) UiTheme.Tooltip(description);
-            }
-            ImGui.EndTable();
+                ImGui.TextWrapped(!compact && description.Length > 140 ? description[..137] + "..." : description);
+                if (!compact && description.Length > 140 && ImGui.IsItemHovered()) UiTheme.Tooltip(description);
         }
-
     }
 
     private void DrawFinder(IMachine m)

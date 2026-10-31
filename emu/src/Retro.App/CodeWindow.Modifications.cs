@@ -127,6 +127,12 @@ public sealed partial class CodeWindow
     private void DrawModificationAnalysis(IMachine machine)
     {
         if (!OriginalAvailable()) return;
+        int mode = _automaticAnalysis ? 0 : 1;
+        ImGui.BeginDisabled(_autonomousTask != null || _modificationTask != null);
+        ImGui.SetNextItemWidth(-1);
+        if (ImGui.Combo("##modo-analisis", ref mode, new[] { "Automático", "Observación avanzada de mi partida" }, 2)) _automaticAnalysis = mode == 0;
+        ImGui.EndDisabled();
+        if (_automaticAnalysis) { DrawAutonomousAnalysis(machine); return; }
         AiPicker.Hint("Jugá unos segundos para reunir datos. El análisis propone cambios; aplicarlos queda a tu elección.");
         bool busy = _modificationTask != null;
         ImGui.BeginDisabled(busy);
@@ -191,7 +197,7 @@ public sealed partial class CodeWindow
             if (ImGui.SmallButton("Copiar pedido enviado")) ImGui.SetClipboardText(_analysisPrompt);
             if (_analysisAnswer.Length > 0)
             {
-                ImGui.SameLine();
+                UiTheme.SameLineIfFits("Copiar respuesta");
                 if (ImGui.SmallButton("Copiar respuesta")) ImGui.SetClipboardText(_analysisAnswer);
             }
             if (_analysisError.Length > 0)
@@ -204,7 +210,7 @@ public sealed partial class CodeWindow
                 ImGui.TextUnformatted("Respuesta recibida (podés seleccionar texto):");
                 string response = _analysisAnswer;
                 ImGui.InputTextMultiline("##respuesta-del-analisis", ref response, (uint)System.Text.Encoding.UTF8.GetByteCount(response) + 1,
-                    new Vector2(-1, 180), ImGuiInputTextFlags.ReadOnly);
+                    new Vector2(-1, UiTheme.Px(180)), ImGuiInputTextFlags.ReadOnly);
             }
             else if (!busy) AiPicker.Hint("Este intento no devolvió una respuesta utilizable. Ver actividad conserva la salida del CLI.");
         }
@@ -212,10 +218,11 @@ public sealed partial class CodeWindow
         {
             ImGui.TextDisabled($"{_analysisSnapshot.FramesObserved} cuadros observados · {_analysisSnapshot.Candidates.Count} bytes de RAM · recorte de código");
             ImGui.BeginChild("evidencia", new Vector2(0, UiTheme.Px(180)), ImGuiChildFlags.Borders);
-            foreach (var candidate in _analysisSnapshot.Candidates)
-                ImGui.TextUnformatted($"0x{candidate.Address:X4} = {candidate.Value} · {candidate.Writes} escrituras" +
-                    (candidate.Writer is uint pc ? $" · instrucción 0x{pc:X4}" : "") +
-                        (candidate.WriteMinimum is byte min ? $" · escritos {min}..{candidate.WriteMaximum} · cambios {candidate.ValueChanges}" : ""));
+            using (UiTheme.FixedWidth())
+                foreach (var candidate in _analysisSnapshot.Candidates)
+                    ImGui.TextWrapped($"0x{candidate.Address:X4} = {candidate.Value} · {candidate.Writes} escrituras" +
+                        (candidate.Writer is uint pc ? $" · instrucción 0x{pc:X4}" : "") +
+                            (candidate.WriteMinimum is byte min ? $" · escritos {min}..{candidate.WriteMaximum} · cambios {candidate.ValueChanges}" : ""));
             ImGui.EndChild();
         }
     }
@@ -386,13 +393,15 @@ public sealed partial class CodeWindow
         PersistModifications();
         StopObservation(); _modifications?.Dispose();
         _host.BeforeFrame -= ApplyFrozen; _host.SessionChanging -= LeaveModificationSession;
+        _host.SessionChanging -= StopAutonomousSession;
+        StopAutonomousSession();
         RetireWork(ref _explainTask, ref _cts);
         RetireWork(ref _modificationTask, ref _modificationCts);
     }
 
     public Task CancelWork()
     {
-        _cts?.Cancel(); _modificationCts?.Cancel();
-        return Task.WhenAll(_retiredWork.Concat(new Task?[] { _explainTask, _modificationTask }.OfType<Task>()));
+        _cts?.Cancel(); _modificationCts?.Cancel(); _autonomousCts?.Cancel();
+        return Task.WhenAll(_retiredWork.Concat(new Task?[] { _explainTask, _modificationTask, _autonomousTask }.OfType<Task>()));
     }
 }

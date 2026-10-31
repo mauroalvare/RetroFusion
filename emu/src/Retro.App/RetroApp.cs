@@ -70,6 +70,7 @@ public sealed partial class RetroApp
     private double _elapsed;
     private int _windowFrames;
     private string? _autotestResearchAction;
+    private bool _autotestGeometry;
 
     public RetroApp(string[] args)
     {
@@ -99,7 +100,7 @@ public sealed partial class RetroApp
         _captureFolder = args.Contains("--autotest") ? Path.Combine(Environment.CurrentDirectory, "out", "autotest-capturas") : ScreenCapture.DefaultFolder;
         _studio = new StudioWindow(_host, _romDir, games, _ai, playOriginal:OpenFile, analyzeOriginal:OpenOriginalAnalysis);
         _code = new CodeWindow(_host, _ai, ShowInDebugger, EditCurrentStudioGame,
-            new ModificationHistory(persist: !args.Contains("--autotest")));
+            new ModificationHistory(persist: !args.Contains("--autotest")),firmwareDirectory:_romDir);
         _creator = new CreatorWindow(_romDir, _ai, OpenFile);
         _home = new HomeScreen(_library, OpenFile, PlayFusion, _browser.Open,
             visible =>
@@ -170,6 +171,9 @@ public sealed partial class RetroApp
             else if (args[i] == "--help-hub" && args.Contains("--autotest")) OpenHub(HubPage.Help);
             else if (args[i] == "--research-window" && args.Contains("--autotest") && i+1<args.Length) { OpenFusionStudio(); _studio.ShowResearch(args[++i]); }
             else if (args[i] == "--research-action" && args.Contains("--autotest") && args.Contains("--hidden") && i+1<args.Length) _autotestResearchAction=args[++i];
+            else if(args[i]=="--auto-analysis-window" && args.Contains("--autotest")) {CloseEditors();_home.Close();_code.OpenAutomaticAnalysis();}
+            else if (args[i] is "--auto-analysis-action" or "--auto-analysis-section" && args.Contains("--autotest") && i + 1 < args.Length)
+                i++;
             else if (args[i] == "--text-size")
                 i++;
             else if (args[i] != "--hidden" && File.Exists(args[i]))
@@ -178,7 +182,13 @@ public sealed partial class RetroApp
                 openedFile = true;
             }
         }
-        if (!openedFile && !args.Any(a => a is "--studio" or "--preparar" or "--crear-window" or "--studio-window" or "--code" or "--mods-window" or "--states-window" or "--sound-window" or "--preferences-window" or "--debug" or "--create-hub" or "--tools-hub" or "--help-hub" or "--research-window"))
+        if (args.Contains("--autotest") && args.Contains("--hidden") && args.Contains("--auto-analysis-window"))
+        {
+            string AnalysisArgument(string flag)
+            { int index = Array.IndexOf(args, flag); return index >= 0 && index + 1 < args.Length ? args[index + 1] : ""; }
+            _code.ConfigureAnalysisAutotest(AnalysisArgument("--auto-analysis-action"), AnalysisArgument("--auto-analysis-section"), enabled: true);
+        }
+        if (!openedFile && !args.Any(a => a is "--studio" or "--preparar" or "--crear-window" or "--studio-window" or "--code" or "--mods-window" or "--states-window" or "--sound-window" or "--preferences-window" or "--debug" or "--create-hub" or "--tools-hub" or "--help-hub" or "--research-window" or "--auto-analysis-window"))
             _home.Open();
         _updates = new UpdateWindow(args);
     }
@@ -353,6 +363,12 @@ public sealed partial class RetroApp
         Raylib.EndDrawing();
 
         _elapsed += dt; _windowFrames++;
+        if(_autotestSeconds>=0 && !_autotestGeometry && _elapsed>=1)
+        {
+            _autotestGeometry=true;
+            var viewport=ImGui.GetMainViewport();var io=ImGui.GetIO();
+            Console.WriteLine($"geometria: ventana={Raylib.GetScreenWidth()}x{Raylib.GetScreenHeight()} render={Raylib.GetRenderWidth()}x{Raylib.GetRenderHeight()} dpi={Raylib.GetWindowScaleDPI()} viewport={viewport.Pos}/{viewport.Size} imgui={io.DisplaySize}/{io.DisplayFramebufferScale}");
+        }
         // Frames drawn during the last second: Raylib.GetFPS averages samples taken per call, so read once per second it overstated the rate.
         if (_autotestSeconds >= 0 && (int)_elapsed != (int)(_elapsed - dt))
         {
@@ -361,7 +377,7 @@ public sealed partial class RetroApp
         }
         if (_autotestSeconds >= 0 && _elapsed >= _autotestSeconds && _autotestShot != null)
         {
-            Raylib.TakeScreenshot(_autotestShot);
+            FramebufferCapture.Save(_autotestShot);
             // The emulated screen too, through the same path as Juego > Guardar captura (out/autotest-capturas).
             if (!_home.IsOpen) { SaveCapture(); Console.WriteLine("captura: " + _host.Status); }
             foreach (var group in _library.Entries.GroupBy(e => e.Machine.Name))
@@ -627,7 +643,8 @@ public sealed partial class RetroApp
     private void OpenInspiredCreator() { CloseEditors(); _home.Close(); _studio.Open(inspired: true); }
     private void PlayFusion(string id) { CloseEditors(); _home.Close(); _studio.PlayById(id); _studio.Close(); }
     private void OpenModifications() { CloseEditors(); _home.Close(); _code.OpenModifications(); }
-    private void OpenOriginalAnalysis(string path) { OpenFile(path); _code.OpenFinder(); }
+    private void OpenOriginalAnalysis(string path) { OpenFile(path); _code.OpenAutomaticAnalysis(); }
+    private void OpenAutomaticAnalysis() {CloseEditors();_home.Close();_debugMode=false;_code.OpenAutomaticAnalysis();}
 
     private IReadOnlyList<MediaFile> _openedMedia = [];
 
@@ -934,6 +951,7 @@ public sealed partial class RetroApp
             ImGui.Separator();
             ImGui.BeginDisabled(_host.Machine == null);
             if (ImGui.MenuItem("Modificar y analizar...", ToolShortcut("M"))) OpenModifications();
+            if(ImGui.MenuItem("Investigar variables automáticamente...","",false,_host.LoadedMediaSource!=null && _host.Fusion==null)) OpenAutomaticAnalysis();
             if (ImGui.MenuItem("Código y rutinas...", ToolShortcut("K"))) { CloseEditors(); _home.Close(); _code.Open(); }
             ImGui.Separator();
             if (ImGui.BeginMenu("Depuración"))

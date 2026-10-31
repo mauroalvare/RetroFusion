@@ -12,7 +12,8 @@ public sealed class FusionResearchWork
     public int Format { get; set; } = 1;
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public DateTime Updated { get; set; } = DateTime.UtcNow;
-    public string Engine { get; set; } = typeof(StudioSession).Module.ModuleVersionId.ToString();
+    public static string CurrentEngine => StudioSession.EngineFingerprint + ";" + AutonomousResearch.EngineFingerprint;
+    public string Engine { get; set; } = CurrentEngine;
     public bool Inspired { get; set; }
     public string Status { get; set; } = "research";
     public GameConcept Concept { get; set; } = new("", "", "", "");
