@@ -10,6 +10,11 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   Arranque, entradas reproducibles, escrituras y mecánica completa requieren pruebas distintas.
   El plan de comprobación conserva los faltantes, ofrece instrucciones y muestra la evidencia
   por original. Una nota del jugador no se promueve a dato verificado.
+- Los recorridos dirigidos de una fusión repiten entradas y comparan cambios de variables
+  desde el host. Solo acreditan esos intervalos y situaciones, con el alcance semántico
+  del perfil. No prueban por sí solos causalidad entre originales ni todos los finales.
+  Los juegos anteriores sin planes conservan la comprobación general de robots y ese límite
+  explícito; [formato y límites](../src/Retro.Studio/Docs/GUIA-FUSION.md#recorridos-dirigidos).
 - La investigación guarda la propuesta antes de empezar y los resultados completados por
   original/revisión. No recupera el interior de una prueba interrumpida antes de su checkpoint.
   Los registros antiguos pueden contener objetivos recortados sin orden de ranuras ni base;
@@ -201,7 +206,10 @@ el instante exacto de aceptación al recuperar RDY/DMA. La NES conserva sus lím
 amplió sus modelos.
 
 Spectrum y arcade guardan los latches de EI en formato 2; Spectrum también la NMI pendiente.
-C64 formato 2 y NES formato 6 agregan la muestra NMI del núcleo 6502. Se leen los formatos
+C64 formato 2 y NES desde formato 6 agregan la muestra NMI del núcleo 6502. NES7 conserva
+también integración y filtro de audio; NES2–6 reinician esa historia en reposo al cargarla.
+El reinicio descarta muestras anteriores; no modela por ello todos los detalles del filtro
+analógico ni el aborto fino DMC. Se leen los formatos
 anteriores soportados con valores de recuperación definidos: los latches que nunca se
 almacenaron no se pueden reconstruir. Los estados se toman al terminar instrucciones,
 sin reanudación del interior de una instrucción o DMA. La lectura de un formato anterior

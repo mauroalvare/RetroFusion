@@ -150,5 +150,16 @@ de investigación y no modifica las ROMs.
 En intercambio manual o por carpeta, el chat o agente tiene que responder a las
 consignas. Ese modo no simula una revisión automática.
 
+Al crear o corregir una fusión también se pueden guardar recorridos de entradas:
+el emulador los repite y compara cambios de memoria del original, además de los robots
+generales. El informe muestra lo observado y las discrepancias que vuelven a corrección.
+Si faltan datos para comprobar una regla, debe decirlo; pasar unos casos no demuestra
+todos sus niveles o finales. El [formato de recorridos](../src/Retro.Studio/Docs/GUIA-FUSION.md#recorridos-dirigidos)
+sirve también en `juego.json` de la carpeta del agente.
+
+No comprobar un movimiento no demuestra que el juego siga en el título. Puede usar
+otras teclas o movimientos que la prueba general no reconoce. En Spectrum se prueban
+también pares de letras; si solo se reconoce un eje, el perfil no inventa un disparo.
+
 [Volver al mapa](https://github.com/mauroalvare/RetroFusion/blob/main/emu/docs/MAPA.md) · [Límites actuales](https://github.com/mauroalvare/RetroFusion/blob/main/emu/docs/LIMITACIONES.md) ·
 [Cómo se diseña una fusión](https://github.com/mauroalvare/RetroFusion/blob/main/emu/src/Retro.Studio/Docs/GUIA-FUSION.md)

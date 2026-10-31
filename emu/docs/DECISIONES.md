@@ -1682,3 +1682,54 @@ Las muertes rápidas de patrones fijos sobre una base nativa se presentan como r
 de dificultad, no como un fallo técnico inventado: esos controles pueden morir también
 en el original. No se elimina el aviso ni se certifica equilibrio. La regla estricta de
 creación libre y los errores reales de ejecución, escena/reinicio se mantienen.
+
+## D-100 — Recorridos dirigidos con observaciones del host
+
+StudioGame admite `playtests` opcionales, hasta tres recorridos de entradas abstractas.
+Cada uno reinicia la sesión completa y declara pasos y cambios esperados de variables
+existentes del perfil entre dos ticks. El host lee la memoria: los mensajes y contadores
+declarados por el guion no sustituyen estas observaciones. Los planes no ejecutan código,
+no escriben memoria, no aceptan direcciones ni cargan estados. Tienen límites de pasos,
+duración y observaciones; se pueden cancelar y liberan entradas al terminar o fallar.
+
+El validador los ejecuta además de los robots generales y envía discrepancias a la misma
+corrección recuperable. La respuesta de diseño incluye la lista, que puede estar vacía
+si faltan datos observables. Archivos anteriores conservan la lista vacía; una revisión
+que no suministra planes no hereda expectativas del guion anterior. La copia y los
+checkpoints conservan los planes. El informe distingue cambios medidos del propósito
+declarado o hipotético del perfil; pasar esos casos no acredita todos los niveles,
+finales, equilibrio ni diversión. Sin planes se informa explícitamente ese límite.
+La detección de reintentos compara guion y comprobaciones ejecutables; corregir una
+observación no exige reescribir código que funciona. Renombrar un caso no habilita
+repetir el mismo fallo. Los candidatos sin planes conservan las huellas anteriores;
+los nuevos usan el prefijo `playtest-v1:` en el historial de intentos. Las consignas de
+corrección incluyen las entradas y expectativas actuales, además del guion y el informe.
+
+## D-101 — Continuidad del audio en los estados NES
+
+NES7 agrega 16 bytes al final del estado: suma y cantidad de ciclos del integrador de
+audio, entrada anterior y salida del filtro que elimina continua. Conservar solo la APU
+y la fase de muestreo hacía que cargar una partida produjera muestras distintas según
+el audio reproducido después de guardarla. El reinicio también descarta muestras ya
+encoladas, suma parcial y fase antes de ejecutar los ciclos de reset.
+
+Se siguen leyendo NES2–6; mantienen CPU, RAM, mapper, periféricos y los campos que
+guardaban. Como no contenían la historia del filtro, ese audio se inicia en reposo y
+el integrador vacío. No se promete reproducir el transitorio que esos archivos nunca
+guardaron. NES7 valida fase finita, acumuladores finitos y cantidad acotada de ciclos.
+La cola de salida ya emitida no forma parte de la continuación. Este cambio no resuelve
+el aborto fino DMC ni certifica un modelo físico del filtro analógico.
+
+## D-102 — Ejes de teclado adicionales sin inventar acciones
+
+El detector conserva los mandos conocidos y, si no responden en Spectrum, prueba los
+pares Z/X, Q/P y 1/0 con el mismo contraste de RAM, imagen y duración. Son candidatos
+de movimiento: no declaran disparo ni otras acciones. Los controles vacíos no se
+enumeran ni se exportan al perfil. El resto del laboratorio sigue distinguiendo los
+efectos observados del propósito propuesto.
+
+Una prueba negativa de movimiento ya no afirma que el juego necesariamente sigue en
+el título: puede usar otras teclas, movimientos discretos o reglas que ese contraste no
+reconoce. La preparación informa que no comprobó controles en su presupuesto. El
+encabezado de diagnóstico de entrada usa una etiqueta corta cuando no cabe, manteniendo
+el mismo identificador al redimensionar la ventana.

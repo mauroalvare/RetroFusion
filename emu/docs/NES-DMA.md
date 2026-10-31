@@ -32,13 +32,15 @@ el recorrido de parada/dummy/alineación/GET. Este calendario se contrastó con 
 [modelo DMC de Mesen2, revisión b9fa69d](https://github.com/SourMesen/Mesen2/blob/b9fa69ddc6d0a331fb103fdb5eef6904305703c2/Core/NES/APU/DeltaModulationChannel.cpp)
 y se comprobó con programas propios en ambas paridades. No es una medición de silicio.
 
-Los estados de NES usan el formato 6: conservan la página OAM pendiente, la demora
+Los estados de NES usan el formato 7: conservan la página OAM pendiente, la demora
 inicial DMC y la muestra NMI del núcleo al final de una instrucción. Se siguen aceptando
-los formatos 2, 3, 4 y 5 con sus restricciones de edición y mapper existentes; 2/3 no
+los formatos 2, 3, 4, 5 y 6 con sus restricciones de edición y mapper existentes; 2/3 no
 contienen una petición OAM pendiente y 2/3/4 restauran la demora DMC en cero
 (comportamiento anterior). El bloque CPU pasa de 29 a 30 bytes; al leer NES2–5 la muestra
 NMI toma la decisión de flanco pendiente que guardaba el núcleo anterior, sin consumir
-bytes del estado de RAM. El formato APU no cambia. Un estado antiguo no permite recuperar
+bytes del estado de RAM. NES7 agrega 16 bytes con integración y filtro de audio; NES2–6
+no guardaban esa historia y la restauran en reposo. La cola ya emitida se descarta.
+El formato APU no cambia. Un estado antiguo no permite recuperar
 un punto de muestreo que nunca almacenó, y no se promete que un programa anterior lea NES6.
 No se guardan puntos intermedios de una DMA ejecutada dentro de una instrucción.
 
@@ -60,5 +62,11 @@ Quedan el aborto y reinicio fino del DMC, casos límite de solapamiento
 al comienzo/final de OAM, conflictos del bus de registros internos, variantes Famicom/
 PAL y el instante preciso de aceptación de interrupciones al recuperar la CPU.
 La suite externa específica de DMA sigue pendiente: nestest contrasta CPU, no estos bordes.
+La revisión del lector DMC comprueba en la APU aislada que detener la lectura conserva
+el byte ya almacenado y su reproducción, y que reactivar espera a liberar ese búfer
+antes de leer desde la nueva dirección. Un reset completo, en cambio, limpia búfer,
+desplazamiento y temporizador: antes podía reproducir bits anteriores tras reiniciar.
+Se contrastó con el estado de reset y el lector del modelo Mesen citado arriba, mediante
+programas propios. Estas pruebas no afirman el instante de aborto de una DMA en la NES.
 Referencia primaria adicional de comparación:
 [arbitraje de DMA de Mesen](https://github.com/SourMesen/Mesen2/blob/master/Core/NES/NesCpu.cpp).
