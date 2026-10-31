@@ -277,7 +277,11 @@ public static class StudioValidator
             {
                 double avg = active.Average(r => r.FirstDeathSeconds!.Value);
                 if (avg < 6)
-                    problems.Add($"Demasiado difícil: los robots activos pierden la primera vida a los {avg:F1} segundos en promedio. Empezá con menos enemigos, más lentos, más huecos o cobertura, y medio segundo de invulnerabilidad al aparecer.");
+                {
+                    if (s.Game.BaseSlot != null)
+                        notes.Add($"Revisar dificultad: los robots activos pierden la primera vida a los {avg:F1} segundos en promedio. Contrastá controles, causa y recorrido del original; estos patrones fijos pueden fallar también sin el injerto. Esto no certifica equilibrio ni diversión.");
+                    else problems.Add($"Demasiado difícil: los robots activos pierden la primera vida a los {avg:F1} segundos en promedio. Empezá con menos enemigos, más lentos, más huecos o cobertura, y medio segundo de invulnerabilidad al aparecer.");
+                }
                 else if (avg < 10)
                     notes.Add($"Algo difícil al principio: primera vida perdida a los {avg:F1} segundos en promedio.");
             }

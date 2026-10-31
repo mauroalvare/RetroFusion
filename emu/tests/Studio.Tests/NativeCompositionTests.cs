@@ -73,6 +73,8 @@ public sealed class NativeCompositionTests
             Assert.That(robot.Deaths, Is.EqualTo(1)); Assert.That(robot.Score, Is.EqualTo(7));
             Assert.That(robot.Causes["prueba"], Is.EqualTo(1)); Assert.That(robot.RestartWorked, Is.True);
         }
+        Assert.That(report.Ok, Is.True, "Short deaths in fixed input patterns on a native base require design review, not a fabricated technical failure: " + report.Summary);
+        Assert.That(report.Notes, Has.Some.Contains("Revisar dificultad"));
     }
 
     [TestCase(false)] [TestCase(true)]
