@@ -1564,3 +1564,81 @@ locales (Trebuchet, Bahnschrift o fuentes del sistema). Los archivos de fuente n
 redistribuyen. El cuerpo parte de 20 px y las barras/márgenes se adaptan al tamaño elegido;
 el listado conserva una fuente monoespaciada separada. No cambian contratos, estados,
 IA, investigación, formatos ni emulación de D093.
+
+## D-095 — Muestreo de interrupciones y estados internos al restaurar
+
+6502 conserva la muestra de IRQ del fetch de opcode para ramas tomadas sin cruce y la
+combina con el punto de corrección al cruzar página. NMI usa el punto de muestreo de la
+instrucción, no solo el latch de borde; una NMI tardía espera la instrucción siguiente y
+no se anida dentro de la entrada IRQ/BRK. El estadoCPU añade el bool de muestra NMI;
+M6502.Load explicita si ese campo está presente. NES guarda6/lee2–6 y C64 guarda2/lee1–2;
+los lectores legacy conservan alineación y reconstruyen la decisión disponible antigua.
+
+Spectrum y arcade guardan formato2, leyendo1: conservan inhibición EI y NMI pendiente
+cuando corresponde, y restaurar no hereda latches de la ejecución abandonada. Los formatos
+viejos no registraban esos flags y no permiten reconstruirlos fielmente: se inicializan
+explícitamente, en lugar de conservar basura del estado actual. Reset limpia las muestras.
+
+Las regresiones usan programas propios, comparan ciclos/bus/pila y restauración/legacy.
+No certifican bordes de media fase, todas las variantes ni toda la máquina. Referencias:
+[Visual6502](https://www.nesdev.org/wiki/Visual6502wiki/6502_Timing_of_Interrupt_Handling) y
+[notas de interrupciones](https://www.nesdev.org/wiki/Interrupts).
+
+## D-096 — Investigación autónoma privada, evidencia y presupuestos
+
+AutonomousResearch usa GamePreparer en máquinas descartables con Save=false: arranca,
+reproduce entradas y contrasta escrituras sin exigir una partida manual previa. Un trabajo
+formato1 conserva objetivo/opciones, huellas de original/firmware/perfil/motor, perfil de
+trabajo, continuación acotada, experimentos, comprobaciones y LabReport. El hash del
+contenedor y el de la edición seleccionada son identidades distintas; GamePreparer.Choose
+admite un perfil preferido y prioriza el miembro reconocido por su hash y máquina.
+EditionSha256 agrega la identidad del miembro al registro formato1. Los anteriores usan
+la identidad disponible en evidencia, continuación o perfil; sin identidad de miembro
+no se reusan para otra edición del mismo contenedor. La huella de motor incluye módulos
+de CPU, máquinas, núcleo y laboratorio; las fusiones incluyen también Studio y JavaScript.
+Abrir datos de otro contexto conserva evidencia histórica sin contarla como efecto actual.
+
+AutonomousResearchStore guarda hasta12 trabajos/4MB en .retroemu/analisis junto al original,
+con reemplazo atómico, Flush y bloqueo exclusivo compartido de carpeta (.store.lock vacío).
+No borra trabajos por cuota ni confía rutas externas de un checkpoint. Un inválido se
+conserva y se informa; descartar exige un ID válido y una acción explícita. La UI intercambia
+copias JSON por cola y generaciones de sesión, sin leer listas mutables del trabajador.
+Cambiar de juego cancela el trabajo anterior; el checkpoint final puede terminar en segundo
+plano y su resultado no se incorpora a otra partida. La gestión espera esos guardados.
+
+Cada ejecución explícita agrega minutos/pedidos/rondas a los contadores acumulados. El
+asesor comparte el máximo entre navegación, experimentos y nombres. Cero pedidos conserva
+pruebas deterministas. Dos rondas sin evidencia nueva cortan la repetición. Pausa, error y
+límite guardan lo completado; una ronda interrumpida puede repetirse. No hay porcentajes
+de descubrimiento ni número garantizado de variables.
+
+LabVerification amplía JSON de forma compatible con valor/bytes iniciales y probados,
+cantidad de bytes RAM finales distintos y hasta8 diferencias de muestra. Las corridas
+restauran estado, imagen y entradas en finally. Un efecto comprobado no certifica el
+nombre ni la semántica propuesta. Los candidatos no se promueven a perfiles del usuario.
+La misma restauración de imagen se aplica a MemoryLab y LabExperiments, también al cancelar.
+VerifyBest no excluye un candidato por su frecuencia de escritura: la clasificación de
+copia se contrasta antes de decidir si admite modificaciones. La prueba puede refutar
+esa clasificación sin certificar el propósito del campo.
+La vista Cambios previsualiza bytes mediante GameVariable.Write en memoria sombra y
+conserva la aplicación/undo existente; el análisis no escribe archivos originales.
+
+AiOperation serializa consultas por instancia y atribuye metadata a la llamada que la
+produjo. Una espera cancelada no reserva cupo; una llamada fallida no hereda el uso anterior
+y una respuesta vacía falla. Las operaciones distintas necesitan coordinación separada.
+Los tokens desconocidos siguen desconocidos; caché informada es parte de entrada, no se
+suma otra vez. La fusión usa un máximo práctico de pedidos compartidos, además del reloj.
+Studio valida mecánica/errores/estados y evidencias disponibles sin exigir puntuación a
+todos los diseños. La aprobación técnica sigue separada de valoración creativa o diversión.
+
+## D-097 — Captura nativa y escalas de interfaz
+
+La QA captura con LoadImageFromScreen/ExportImageToMemory y escritura .NET, respetando
+GetRenderWidth/Height y rutas Unicode. Evita el doble escalado de TakeScreenshot en la
+combinación raylib6/DPI125%. No altera el video de las máquinas ni ScreenCapture.WritePng.
+Pruebas nativas explícitas verifican dimensiones, orientación y cuatro esquinas a100/125%.
+Los controles del analizador se adaptan al ancho real del texto; el desplazamiento mantiene
+accesibles presupuesto y evidencia con escala200% en la ventana mínima.
+Las flechas y símbolos técnicos se cargan en el atlas; si faltan en la fuente elegida,
+se combinan únicamente esos glifos desde una fuente de símbolos instalada. La fuente de
+lectura, títulos y rótulos se conserva. No se descargan ni redistribuyen tipografías.

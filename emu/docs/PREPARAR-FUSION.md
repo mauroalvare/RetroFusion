@@ -28,6 +28,34 @@ Cuando hay evidencia suficiente, continúa con la escritura y la validación. Si
 escribir aparece otro dato pendiente, vuelve a investigarlo automáticamente y retoma
 el trabajo. No hace falta volver a pulsar el botón por cada faltante.
 
+La investigación puede arrancar los originales, ensayar entradas y comparar ejecuciones
+sin pedirte una partida manual como condición previa. Una cantidad objetivo de variables
+orienta la búsqueda; aumentar el tiempo o los pedidos no garantiza encontrar esa cantidad
+ni resolver todos los requisitos de una idea.
+
+## Qué demuestra cada comprobación
+
+Llegar al título, responder a los controles y repetir el arranque en una máquina nueva
+son comprobaciones distintas. El laboratorio conserva candidatos y los contrasta desde
+el mismo estado, con y sin entradas o escrituras. El informe distingue una hipótesis,
+un efecto de escritura observado y el significado propuesto de una variable. Que una
+escritura se conserve, cambie RAM o altere píxeles no confirma por sí solo posición física,
+colisión, daño, cámara ni progreso.
+
+Después de escribir, la prueba técnica de la fusión ejecuta patrones de entrada quieto,
+explorador y tirador. Comprueba errores, estados informados por el guion, comienzo y
+reinicio cuando se alcanzan, imagen y restricciones de la escena base. Los puntos y
+las muertes se observan cuando existen: no sumar puntos es una observación, no obliga a
+inventar un marcador ni a cambiar de género para aprobar.
+
+Para evaluar la experiencia hace falta contrastar el diseño con situaciones concretas:
+si se entiende la acción, si sus consecuencias son visibles, si los controles permiten
+progresar y si una regla del aportante cambia una decisión de la base. Comparar esa
+situación con la misma sin el aporte ayuda a comprobar la unión mecánica. El trabajo
+autónomo puede preparar y ejecutar estos contrastes; lo que no se observó queda pendiente.
+Una prueba técnica aprobada no certifica fidelidad visual, equilibrio, originalidad ni
+diversión. Las valoraciones se distinguen de las observaciones reproducibles.
+
 ## Tiempo, progreso y cancelación
 
 El trabajo automático puede dedicar hasta una hora al conjunto de preparación,
@@ -40,13 +68,38 @@ preparación a referencias, escritura o una investigación adicional. El tiempo 
 también respeta el máximo de una hora.
 
 La pantalla informa qué original se está investigando; el plan conserva los requisitos completos. Podés abrir
-la actividad de la IA o cancelar, incluso durante la prueba de jugabilidad. Los perfiles de las rondas completadas quedan
+la actividad de la IA o cancelar, incluso durante la prueba técnica de la fusión. Los perfiles de las rondas completadas quedan
 guardados y los borradores de escritura siguen disponibles en trabajos pendientes.
 La idea y las identidades de los originales se guardan antes de investigar. Después de
 cada original y revisión se conservan los avances completados en un checkpoint privado.
 Cancelar conserva esos puntos, incluso si el siguiente original aún no terminó. El trabajo
 actual no completado puede necesitar repetirse; cerrar no fabrica una partida del jugador.
 El reloj se detiene al terminar o pausar esa investigación.
+
+## Pedidos, texto y tokens de IA
+
+Los límites de pedidos y texto se comprueban antes de enviar cada solicitud completa;
+no se recorta el código ni el contrato para hacerla entrar. Un pedido enviado cuenta
+como intento aunque falle. El texto acumulado se conserva al retomar el trabajo; abrir
+un pendiente no inicia pedidos. Las correcciones llevan el último borrador y el objetivo,
+sin acumular todas las versiones anteriores. Repetir un guion ya fallido detiene ese ciclo.
+
+El texto medido localmente y los tokens informados por el proveedor son datos distintos.
+La CLI puede añadir contexto propio; las imágenes y la salida también tienen consumo que
+el contador de caracteres no mide. Si falta metadata, el consumo queda desconocido o
+parcial. Los tokens de entrada en caché ya forman parte de la entrada informada: no se
+suman otra vez. Estos contadores no representan saldo de cuenta, precio ni cuota restante.
+
+En la API, `AiOperation` serializa las solicitudes de una misma instancia. Esperar en su
+cola y cancelar antes de enviar no reserva pedidos ni texto. Una respuesta vacía falla;
+un fallo no vuelve a sumar los contadores que quedaron de la llamada anterior. Si el
+proveedor informa consumo nuevo antes de fallar, se conserva esa metadata. Operaciones
+distintas y llamadas directas que compartan un proveedor necesitan coordinación propia;
+esta serialización no es un bloqueo global de la cuenta.
+
+La caché local de arranque del emulador es independiente de la caché de tokens. Reutiliza
+estados solo para el mismo contenido, perfil y firmware; no demuestra que una hipótesis
+sea correcta ni evita por sí sola nuevos pedidos a la IA.
 
 ## Si todavía falta información
 

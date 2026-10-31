@@ -28,7 +28,7 @@ En ventanas chicas se convierte en un selector con las mismas opciones. **Buscar
 abre el catálogo de acciones. Los menús y sus atajos siguen disponibles.
 
 **Crear** presenta los tres puntos de partida: desde cero, fusionar originales y crear
-con originales. **Herramientas** reúne análisis, código, depuración, partidas guardadas,
+con originales. **Herramientas** reúne investigación automática, análisis, código, depuración, partidas guardadas,
 rebobinado, grabación de entradas, capturas, preferencias, sonido, IA y actualizaciones.
 **Ayuda** muestra controles de la máquina actual, atajos y cómo seguir si faltan datos.
 Las acciones que necesitan una partida explican su requisito.
@@ -75,6 +75,16 @@ El visor de rutinas mantiene la lista y el detalle en paralelo cuando hay ancho;
 con texto grande ofrece un selector de rutina. La explicación con IA se despliega a
 pedido y el listado conserva un área mínima con desplazamiento. Al volver de Jugar,
 Analizar conserva la página elegida para continuar una búsqueda.
+
+## Investigación automática
+
+La [investigación automática](ANALISIS-AUTOMATICO.md) muestra etapas, tiempo, candidatos y
+efectos comprobados, con pausa y continuación. Usa máquinas privadas y distingue una
+hipótesis de un experimento; no exige jugar antes ni promete una cantidad de hallazgos.
+Las direcciones y comparaciones conservan tipografía monoespaciada. Los indicadores de
+actividad acompañan trabajos reales sin representar porcentajes; son estáticos en alto
+contraste. Las capturas de QA guardan el framebuffer con su tamaño físico, sin aplicar
+dos veces la escala DPI.
 
 ## Referencias de rutinas
 

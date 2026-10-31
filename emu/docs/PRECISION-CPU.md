@@ -75,6 +75,10 @@ por datos opcionales ausentes. El 6502 incluye los 256.000 casos de SingleStepTe
 Dormann; NES incluye nestest local. Esta pasada dirigida omitió las pruebas `Long`
 de Z80/8080 y no añadió código ni corpus externo al 8088/8086. La batería completa
 sigue siendo una comprobación separada.
+La ejecución integral posterior incluyó también `Long`: Z80 aprobó 1.381 casos y
+8080 aprobó 32. Los quince proyectos terminaron sin fallos; las correcciones posteriores
+de interfaz y laboratorio tuvieron revalidaciones propias. Esos resultados mantienen
+los límites de señales y variantes indicados arriba.
 
 Quedan sin certificar las medias fases, anchos mínimos de pulso y coincidencias de
 IRQ/NMI/BRK/reset, la decisión al recuperar RDY/DMA y todas las variantes físicas.

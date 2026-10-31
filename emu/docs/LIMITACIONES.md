@@ -18,10 +18,23 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   proximidad y cambio de valor no prueban su propósito. Se observa una máquina privada y se
   restaura su estado; los candidatos necesitan contraste. Las funciones curadas solo se agregan
   a un alias compatible cuando coincide el SHA-256 del programa completo conocido.
-- La revisión nueva usa proveedores simulados, programas propios y evidencia local por edición.
-  No valida que un proveedor real complete la idea reportada ni que la fusión sea divertida.
+- La revisión usa proveedores simulados, programas propios y evidencia local por edición.
+  Una campaña real de dos pedidos contrastó el análisis individual sobre un programa propio;
+  no valida que el proveedor complete la idea de fusión reportada ni que sea divertida.
 
 ## Análisis y modificaciones de partidas
+
+- La [investigación automática](ANALISIS-AUTOMATICO.md) arranca y prueba entradas en máquinas
+  privadas de los cuatro sistemas con laboratorio. No requiere jugar antes, pero tampoco
+  garantiza encontrar todas las variables o certificar su semántica. La meta cuenta efectos
+  observados de escritura. Los cambios se contrastan con una corrida de control; las
+  diferencias finales de RAM incluyen el dato probado y consecuencias, sin distinguir
+  automáticamente todas las copias ni todos los efectos que aparecen más tarde.
+- La pausa conserva etapas completadas, no el interior de una prueba interrumpida. Continuar
+  agrega el presupuesto elegido; abrir un guardado no gasta IA. Edición/firmware distintos
+  impiden mezclar datos; cambios de CPU, hardware, laboratorio o perfil invalidan estados
+  y marcan los efectos anteriores como históricos hasta repetir el contraste. Los guardados
+  tienen límites de tamaño/cantidad y se administran explícitamente, sin borrar los antiguos.
 
 - El hallador de rutinas observa una muestra acotada en una máquina separada; agrupa
   candidatos por llamadas y no certifica su propósito. Código cambiante impide ofrecer
@@ -32,9 +45,9 @@ se trata de una limitación deducida que todavía necesita una prueba específic
 
 - El significado de una variable propuesta por IA es una hipótesis. Ver escrituras y
   código no demuestra que su modificación produzca el efecto descrito.
-- El pedido lleva hasta 128 bytes candidatos y 160 instrucciones, a partir de una
+- En observación avanzada de la partida, el pedido lleva hasta 128 bytes candidatos y 160 instrucciones, a partir de una
   observación acotada a 2.048 direcciones. No es un análisis completo de la ROM.
-  Si faltan datos, jugá con la ventana abierta y formulá una pregunta más concreta.
+  Ese modo usa la partida actual; el automático genera sus propias entradas y estados.
 - Las nuevas variables admiten bytes o palabras little endian en RAM de trabajo.
   Se excluyen firmware, hardware y regiones reservadas de dirección fija; una pila
   dinámica o código en RAM pueden entrar en la evidencia. Las áreas conservadoras
@@ -44,7 +57,9 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   Ambos restauran el progreso de partida desde ese punto. Abrir, recargar o reiniciar
   un juego o cargar un estado externo descarta los puntos de regreso de esa sesión;
   el historial optativo y la selección guardada se pueden recuperar.
-- La comprobación nueva usa IA simulada. No demuestra que todos los proveedores
+- La comprobación usa IA simulada y una campaña real acotada sobre un programa propio.
+  Esa campaña obtuvo siete candidatos y cero efectos verificados dentro de dos pedidos;
+  no alcanzó su objetivo de dos efectos. No demuestra que todos los proveedores
   encuentren variables útiles ni valida semántica o calidad creativa de sus respuestas.
 - Las listas de proyectos se actualizan al abrir, guardar o pulsar Actualizar.
   Los cambios externos no se descubren leyendo todos sus archivos en cada cuadro.
@@ -71,6 +86,16 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   g.set sigue siendo una escritura puntual. No hay undo completo del guion.
 
 ## Tiempo de creación con IA
+
+- Los pedidos por una instancia de operación se serializan y la espera cancelada no reserva
+  cupo. Operaciones distintas que compartan un proveedor necesitan coordinación separada.
+  Una respuesta fallida sin metadata nueva deja su uso desconocido; no se copia el consumo
+  anterior. El límite de texto mide caracteres enviados, no tokens del contexto interno del
+  CLI, salida, saldo o coste. La caché informada pertenece a los tokens de entrada.
+- La validación de creación comprueba ejecución, controles y evidencias disponibles.
+  No exige puntaje a géneros que no lo usan ni demuestra por sí sola objetivos alcanzables,
+  equilibrio, originalidad o diversión. Las pruebas específicas del diseño siguen siendo
+  necesarias; falta una campaña amplia de generaciones reales de distintas mecánicas.
 
 - El estimado es un intervalo orientativo de trabajos completos anteriores, incluida
   la validación y los reintentos. No es una ETA informada por el proveedor ni mide su
@@ -163,10 +188,21 @@ se trata de una limitación deducida que todavía necesita una prueba específic
 
 Los conjuntos de instrucciones y las suites aprobadas no acreditan un 100 % general
 de fidelidad. El Z80 tiene IM 0 con opcode del bus y cola en memoria, probado con
-programas propios; falta contraste externo de señales. El8080 tiene bus temporizado
-optativo y READY, sin certificar todos los ciclos internos ni pines. El6502 se contrasta como NMOS;6510/2A03
-reutilizan ese motor con diferencias de placa. La NES conserva límites de DMA.
-8088/8086 tienen pendientes explícitos de temporización y contraste.
+programas propios; falta contraste externo de señales. El 8080 tiene bus temporizado
+optativo y READY, sin certificar todos los ciclos internos ni pines. El 6502 se contrasta
+como NMOS; 6510/2A03 reutilizan ese motor con diferencias de placa. IRQ en ramas tomadas,
+NMI tardía y anidación durante IRQ/BRK tienen regresiones por ciclo entero, con bus/pila
+y restauración. No certifican medias fases, todas las coincidencias entre señales ni
+el instante exacto de aceptación al recuperar RDY/DMA. La NES conserva sus límites de DMA.
+8088/8086 tienen pendientes explícitos de temporización y contraste; esta revisión no
+amplió sus modelos.
+
+Spectrum y arcade guardan los latches de EI en formato 2; Spectrum también la NMI pendiente.
+C64 formato 2 y NES formato 6 agregan la muestra NMI del núcleo 6502. Se leen los formatos
+anteriores soportados con valores de recuperación definidos: los latches que nunca se
+almacenaron no se pueden reconstruir. Los estados se toman al terminar instrucciones,
+sin reanudación del interior de una instrucción o DMA. La lectura de un formato anterior
+en el programa nuevo no promete lectura de formatos nuevos en programas anteriores.
 [Alcance y pruebas por procesador](PRECISION-CPU.md).
 
 ## Rebobinado y reproducción de controles
@@ -222,6 +258,9 @@ reutilizan ese motor con diferencias de placa. La NES conserva límites de DMA.
 
 ### ZX Spectrum
 
+- Los estados en formato 2 conservan la demora tras EI y la NMI pendiente. Se acepta el
+  formato 1, que las restaura en falso porque no las almacenaba. No se recupera la fase
+  de interrupción perdida en un guardado antiguo; no se certifican todas las señales del Z80.
 - Solo el modelo 48K. El software que necesita paginación de 128K o AY no es compatible
   con este modelo. Spectrum 128K sigue previsto.
 - Una protección que pide códigos u otro material original no implica un fallo del cargador.
@@ -235,13 +274,19 @@ reutilizan ese motor con diferencias de placa. La NES conserva límites de DMA.
 - Las cargas por partes, intros y controles no incluidos en la sonda necesitan un guion
   curado. Un resultado sin respuesta no identifica por sí solo un fallo de emulación.
 
-### Placa Space Invaders
+### Placa arcade 8080
 
+- Los estados en formato 2 conservan la demora tras EI. El formato 1 sigue admitido y
+  la inicializa en falso; no puede reconstruirse una demora que nunca se guardó.
 - Sin samples de MAME, los sonidos son sintetizados (aproximan los circuitos analógicos).
-- Otros juegos de la placa (Part II, Lunar Rescue) no están soportados.
+- Otros juegos de esta placa no están soportados.
 
 ### Commodore 64
 
+- El formato 2 del estado agrega la muestra NMI del 6510. El formato 1 sigue admitido
+  con la decisión NMI pendiente anterior. La alineación de CPU/RAM/periféricos y la siguiente
+  instrucción se comprueban con un fixture propio; no con todos los guardados existentes.
+  La aceptación de interrupciones al recuperar RDY y las medias fases siguen sin certificar.
 - Solo PAL. Carga `.t64` y `.prg`; los `.d64`, `.crt` y `.tap` de pulsos se reconocen y se
   explican, pero no cargan (T-032). Sin disquetera 1541.
 - Con Open ROMs, los juegos que llaman rutinas internas del KERNAL no cubiertas fallan;
@@ -271,8 +316,10 @@ reutilizan ese motor con diferencias de placa. La NES conserva límites de DMA.
   longitud no tienen la demora de un ciclo frente al contador
   de cuadros y no hay filtros de salida aparte del pasa altos (el sonido es algo más
   brillante que en una consola). Los estados guardados de la versión sin sonido no se
-  pueden cargar. El formato NES5 conserva la página OAM y la espera DMC y acepta NES2/3/4
-  con sus restricciones de mapper. [Detalle de DMA y esperas](NES-DMA.md).
+  pueden cargar. El formato NES6 conserva la página OAM, la espera DMC y la muestra NMI
+  del núcleo; acepta NES2/3/4/5 con sus restricciones de edición y mapper. Las versiones
+  anteriores no contienen toda esa información y usan los valores de recuperación
+  documentados. [Detalle de DMA y esperas](NES-DMA.md), [formatos de CPU](PRECISION-CPU.md).
 - Mappers 0/1/2/3/4/7: NROM, MMC1, UxROM, CNROM, MMC3 y AxROM. Los demás se reconocen y se
   explica por qué no cargan. MMC1 admite bancos PRG/CHR, puerto serie, espejado,
   PRG RAM de 8 KB y la selección exterior SUROM. No admite MMC1A, EEPROM ni RAM mayor;
