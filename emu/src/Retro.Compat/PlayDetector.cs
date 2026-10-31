@@ -5,7 +5,7 @@ namespace Retro.Compat;
 /// <summary>A way of playing a machine: the keys of the four directions and of fire.</summary>
 public sealed record ControlSet(string Name, string Left, string Right, string Up, string Down, string Fire)
 {
-    public IEnumerable<string> Keys => new[] { Left, Right, Up, Down, Fire }.Distinct();
+    public IEnumerable<string> Keys => new[] { Left, Right, Up, Down, Fire }.Where(k => !string.IsNullOrWhiteSpace(k)).Distinct();
 }
 
 /// <summary>Whether the player is in control, with which controls and what showed it.</summary>
@@ -32,6 +32,9 @@ public static class PlayDetector
             new ControlSet("teclas Q A O P y espacio", "O", "P", "Q", "A", "SPACE"),
             new ControlSet("cursores 5 6 7 8 y 0", "5", "8", "7", "6", "0"),
             new ControlSet("joystick Sinclair 6 7 8 9 y 0", "6", "7", "9", "8", "0"),
+            new ControlSet("eje de teclado Z/X; otras acciones por comprobar", "Z", "X", "", "", ""),
+            new ControlSet("eje de teclado Q/P; otras acciones por comprobar", "Q", "P", "", "", ""),
+            new ControlSet("eje de teclado 1/0; otras acciones por comprobar", "1", "0", "", "", ""),
         },
         ["nes"] = new[] { new ControlSet("mando 1", "P1 LEFT", "P1 RIGHT", "P1 UP", "P1 DOWN", "P1 A") },
         ["invaders"] = new[] { new ControlSet("jugador 1", "P1 LEFT", "P1 RIGHT", "P1 FIRE", "P1 FIRE", "P1 FIRE") },
@@ -118,7 +121,8 @@ public static class PlayDetector
                             $"con {set.Name}, {minus} y {plus} llevan {string.Join(", ", moved.Take(4).Select(i => $"${start + i:X4}"))} en sentidos opuestos " +
                             "(más lejos cuanto más tiempo se mantienen) y cambian la pantalla");
                 }
-            return new PlayCheck(false, null, "ningún control mueve algo de forma sostenida: todavía no es la partida (título, menú, demo o carga)");
+            return new PlayCheck(false, null, "No se comprobó movimiento sostenido con los controles probados. Puede ser un título, menú, demo o carga, " +
+                "o una partida que usa otras teclas o reglas de movimiento; revisá la captura y los controles antes de concluir que no empezó.");
         }
         finally
         {

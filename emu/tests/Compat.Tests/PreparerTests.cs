@@ -169,7 +169,7 @@ public class PreparerTests
         File.WriteAllBytes(game, C64TestProgram.Game(C64TestProgram.TypeG));
         var r = await GamePreparer.PrepareAsync(game, Options(rounds: 3), null, CancellationToken.None);
         Assert.That(r.Ok, Is.False);
-        Assert.That(r.Problem, Does.Contain("No llegué a la partida"));
+        Assert.That(r.Problem, Does.Contain("No se comprobaron los controles"));
         Assert.That(Directory.Exists(Path.Combine(_dir, "perfiles")), Is.False);
     }
 

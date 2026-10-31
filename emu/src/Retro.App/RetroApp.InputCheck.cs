@@ -10,7 +10,11 @@ public sealed partial class RetroApp
     private int _inputCheckAutotestFrames = 8;
     private void DrawInputCheck()
     {
-        if (!ImGui.CollapsingHeader("Comprobar teclado y mando", _inputCheckOpen ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.None)) return;
+        string label = "Comprobar teclado y mando";
+        float width = ImGui.GetContentRegionAvail().X - ImGui.GetFontSize() * 2.5f;
+        if (ImGui.CalcTextSize(label).X > width) label = "Teclado y mando";
+        if (ImGui.CalcTextSize(label).X > width) label = "Entradas";
+        if (!ImGui.CollapsingHeader(label + "###input-check", _inputCheckOpen ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.None)) return;
         if (_inputCheckOpen && _inputCheckAutotestFrames-- > 0) ImGui.SetScrollHereY(0);
         ImGui.TextWrapped(Raylib.IsWindowFocused() ? "Ventana con foco. Las entradas se muestran acá mientras probás." : "Hacé clic en esta ventana para darle foco.");
         var down = new List<string>();

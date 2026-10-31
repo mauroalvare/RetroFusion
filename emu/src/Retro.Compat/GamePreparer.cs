@@ -445,7 +445,7 @@ public static class GamePreparer
             }
             seen.Add(Signature(m));
             check = CheckTwin();
-            string after = check.Playing ? "los controles mueven algo: " + check.Evidence : "todavía no se juega";
+            string after = check.Playing ? "los controles mueven algo: " + check.Evidence : "no se comprobó movimiento con estos controles";
             history.Add($"Ronda {round} ({advisor.Name}): {string.Join(", ", done)}. Motivo: {advice.Reason}. Resultado: {after}." +
                         (advice.Playing && !check.Playing ? " (Se dijo que era la partida, pero los controles no mueven nada.)" : ""));
             Say(history[^1]);
@@ -454,7 +454,7 @@ public static class GamePreparer
             accepted = true;
         if (!accepted)
         {
-            r.Problem = $"No llegué a la partida en {o.MaxRounds} rondas. " + (o.Advisor == null && r.Advisors.Count == 1
+            r.Problem = $"No se comprobaron los controles de una partida en {o.MaxRounds} rondas. " + (o.Advisor == null && r.Advisors.Count == 1
                 ? "Con una IA configurada (Claude, ChatGPT o Gemini por suscripción) se puede intentar de nuevo."
                 : "No se pudo confirmar el arranque con esta preparación. Revisá la actividad o intentá otra estrategia.");
             return r;
@@ -866,7 +866,7 @@ public static class GamePreparer
         p.Controls["right"] = c.Right;
         if (c.Up != c.Fire) p.Controls["up"] = c.Up;
         if (c.Down != c.Fire) p.Controls["down"] = c.Down;
-        p.Controls["fire"] = c.Fire;
+        if (!string.IsNullOrWhiteSpace(c.Fire)) p.Controls["fire"] = c.Fire;
         foreach (var control in lab.CheckedControls) p.Controls[control.Key] = control.Value;
         var tables = lab.Findings.Where(f => f.Kind == "entity-table" && f.Status == "verified").ToList();
         p.Description = $"{r.Game} para {machineName} (copia {r.File}{(r.Member != null ? " > " + r.Member : "")}, SHA-256 {r.Sha256}). " +
