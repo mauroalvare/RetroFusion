@@ -40,10 +40,12 @@ public static class PlayDetector
     public static ControlSet[] SetsFor(string machine) => Sets.TryGetValue(machine, out var s) ? s : Array.Empty<ControlSet>();
 
     /// <summary>Checks the current state of <paramref name="m"/> (left as it was found).</summary>
-    public static PlayCheck Detect(IMachine m, string machine, ControlSet? only = null)
+    public static PlayCheck Detect(IMachine m, string machine, ControlSet? only = null, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         var (start, end) = MemoryLab.RangeFor(machine);
         byte[] state = m.SaveState();
+        var picture = (int[])m.Video.Pixels.Clone();
         var sink = new short[8192];
         // How far each byte travelled, followed every few frames: a coordinate that moves 2
         // points a frame goes 160 in 80 frames, which a single byte difference would read as -96
@@ -56,6 +58,7 @@ public static class PlayDetector
             var travel = new int[last.Length];
             for (int i = 1; i <= frames; i++)
             {
+                ct.ThrowIfCancellationRequested();
                 m.RunFrame(null);
                 m.DrainAudio(sink);
                 if (i % 8 != 0 && i != frames)
@@ -120,6 +123,7 @@ public static class PlayDetector
         finally
         {
             m.LoadState(state);
+            picture.CopyTo(m.Video.Pixels, 0);
             m.ReleaseAllKeys();
         }
     }

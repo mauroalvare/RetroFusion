@@ -274,6 +274,8 @@ public static class GamePreparer
         r.Member = files.Count > 1 ? media.Name : null;
         r.Sha256 = Sha256Of(media);
         var previous = o.PreviousProfile != null ? GameProfile.Parse(o.PreviousProfile.ToJson()) : ProfileLibrary.ForFiles(files);
+        var bootProposal = previous?.Machine == machine && (previous.Match.Sha256.Count == 0 || previous.Match.Sha256.Contains(r.Sha256, StringComparer.OrdinalIgnoreCase))
+            ? previous : null;
         if (previous?.Machine != machine || previous.Match.Sha256.Contains(r.Sha256, StringComparer.OrdinalIgnoreCase) != true) previous = null;
         if (o.Resume is { } requested && (requested.Machine != machine ||
             !requested.Sha256.Equals(r.Sha256, StringComparison.OrdinalIgnoreCase)))
@@ -291,16 +293,38 @@ public static class GamePreparer
         var m = launch.Machine;
         // probes run on a twin, so the real machine only sees the boot (and replays the same)
         var twin = Launch().Machine;
+        bool replayedBoot = false;
+        int frames = 0;
         string machineName = MachineCatalog.Get(machine).Name;
         Say($"{r.Game}: {machineName}, {launch.Media.Name} ({launch.Description}).");
-        if (o.Resume == null && launch.IsTape && m is Spectrum48 zx)
+        if (o.Resume == null && bootProposal != null && PreparationBoot.IsBounded(bootProposal, m))
+        {
+            Say("Probando el arranque del perfil en una máquina privada antes de buscar otras teclas...");
+            var candidate = Launch().Machine;
+            try
+            {
+                MachineFactory.Boot(candidate, bootProposal, ct: ct);
+                var picture = (int[])candidate.Video.Pixels.Clone(); byte[] state = candidate.SaveState();
+                var measured = PlayDetector.Detect(candidate, machine, ct: ct);
+                candidate.LoadState(state); picture.CopyTo(candidate.Video.Pixels, 0);
+                if (measured.Playing)
+                {
+                    m = candidate; replayedBoot = true; frames = (int)Math.Min(int.MaxValue, m.FrameCount);
+                    r.Boot = bootProposal.Boot.ToList();
+                    r.CheckedData.Add("Se reprodujo el arranque del perfil y se contrastaron los controles en esta edición.");
+                }
+                else Say("El arranque propuesto no confirmó controles de partida. Se conserva el original y se probarán otras entradas.");
+            }
+            catch (Exception error) when (error is not OperationCanceledException and not OutOfMemoryException)
+            { Say("El arranque propuesto no se pudo reproducir: " + error.Message + ". Se probarán otras entradas."); }
+        }
+        if (o.Resume == null && !replayedBoot && launch.IsTape && m is Spectrum48 zx)
         {
             Say("Cargando la cinta como lo haría una persona (LOAD \"\" y la cinta sonando)...");
-            MachineLauncher.LoadTape(zx);
+            MachineLauncher.LoadTape(zx, ct: ct);
             r.Boot.Add("load-tape");
         }
         var sink = new short[8192];
-        int frames = 0;
         void Wait(int n)
         {
             for (int i = 0; i < n; i++)
@@ -333,7 +357,7 @@ public static class GamePreparer
         PlayCheck CheckTwin()
         {
             twin.LoadState(m.SaveState());
-            return PlayDetector.Detect(twin, machine);
+            return PlayDetector.Detect(twin, machine, ct: ct);
         }
 
         var validKeys = m.Keys.Select(k => k.Name).Concat(PlayDetector.SetsFor(machine).SelectMany(s => s.Keys)).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -346,7 +370,7 @@ public static class GamePreparer
             r.Boot = resume.Boot.ToList(); frames = resume.Frames;
             Say($"Retomando la partida observada para la investigación {o.InvestigationPass}.");
         }
-        else Wait(100);
+        else if (!replayedBoot) Wait(100);
         seen.Add(Signature(m));
         PlayCheck check = CheckTwin();
         bool accepted = false;
@@ -505,7 +529,7 @@ public static class GamePreparer
                     Picture = Copy(m.Video), Controls = c, Keys = validKeys.ToList(), Candidates = Candidates(lab, m),
                     Pass = o.InvestigationPass, PreviousExperiments = o.PreviousExperiments.TakeLast(18).ToArray(),
                     KnownVariables = previous?.Variables.Keys.ToArray() ?? [],
-                    KnownData = previous?.Variables.Take(24).Select(p=>$"{p.Key}: ${p.Value.Address}, {p.Value.Encoding}/{p.Value.Bytes}, {(p.Value.ReadOnly ? "solo lectura" : "escritura comprobada")}; {p.Value.Description}").ToArray() ?? [],
+                    KnownData = previous?.Variables.Take(24).Select(p=>$"{p.Key}: ${p.Value.Address}, {p.Value.Encoding}/{p.Value.Bytes}, {(p.Value.ReadOnly ? "solo lectura" : "escribible según el perfil")}; {p.Value.Description} {p.Value.PurposeSummary}").ToArray() ?? [],
                 }, ct);
                 foreach (var experiment in (experiments ?? new()).Take(PreparationExperiments.MaxExperiments))
                 {
@@ -579,8 +603,8 @@ public static class GamePreparer
         r.Profile = profile;
         Say("Comprobando el perfil: arranco una máquina nueva con el arranque guardado...");
         var replay = MachineFactory.Create(new GameSource(profile, files, folder), o.FirmwareDirectory);
-        MachineFactory.Boot(replay, profile);
-        var again = PlayDetector.Detect(replay, machine, c);
+        MachineFactory.Boot(replay, profile, ct: ct);
+        var again = PlayDetector.Detect(replay, machine, c, ct);
         if (!again.Playing)
         {
             r.Problem = "El arranque guardado no llega a la partida en una máquina nueva (el emulador no se comportó igual dos veces).";
@@ -769,7 +793,8 @@ public static class GamePreparer
             Match = new ProfileMatch { Sha256 = { r.Sha256 }, Member = r.Member },
             Boot = r.Boot.ToList(),
         };
-        LabFinding? Best(string kind) => lab.Findings.Where(f => f.Kind == kind && f.Status == "verified").MaxBy(f => f.Confidence);
+        LabFinding? Best(string kind) => lab.Findings.Where(f => f.Kind == kind && f.Status == "verified")
+            .OrderByDescending(f => kind == "timer" && f.Encoding == "digits" && f.Bytes > 1).ThenByDescending(f => f.Confidence).FirstOrDefault();
         string Why(LabFinding f) => f.Verification == null ? "" : " Verificada: " + string.Join("; ", f.Verification.Observations.Take(3)) + ".";
         int MaxFor(LabFinding f) => f.Encoding switch
         {
@@ -785,6 +810,7 @@ public static class GamePreparer
             p.Variables[name] = new GameVariable
             {
                 Address = f.Address, Encoding = f.Encoding, Bytes = f.Bytes, Min = 0, Max = max ?? MaxFor(f),
+                PurposeStatus = "hypothesis",
                 Description = "Hipótesis por variación: " + what + Why(f),
             };
         }
@@ -801,7 +827,8 @@ public static class GamePreparer
                 bool readOnly = f.Status != "verified";
                 p.Variables[name] = new GameVariable
                 {
-                    Address = f.Address, Encoding = f.Encoding, Bytes = f.Bytes, Min = 0, Max = name == "lives" ? 9 : MaxFor(f), ReadOnly = readOnly,
+                    Address = f.Address, Encoding = f.Encoding, Bytes = f.Bytes, Min = 0, Max = MaxFor(f), ReadOnly = readOnly,
+                    PurposeStatus = "hypothesis",
                     Description = "Nombre propuesto por la IA: " + n.Description + (readOnly ? " (Solo lectura: falta un efecto de escritura comprobado.)" : Why(f)),
                 };
             }
@@ -810,7 +837,7 @@ public static class GamePreparer
             AddByKind();
         void AddByKind()
         {
-        Add("lives", Best("lives"), "Vidas (o intentos) que quedan.", 9);
+        Add("lives", Best("lives"), "Vidas (o intentos) que quedan.");
         if (Best("score") is { } score)
             Add("score", score, "Puntaje.");
         else
@@ -830,6 +857,7 @@ public static class GamePreparer
                 p.Variables[name] = new GameVariable
                 {
                     Address = read.Address, Min = 0, Max = 255, ReadOnly = true,
+                    PurposeStatus = "hypothesis",
                     Description = "Hipótesis por variación: " + what + " (solo lectura: falta un efecto de escritura comprobado en la secuencia probada). " + read.Evidence.FirstOrDefault(),
                 };
         }

@@ -87,7 +87,7 @@ public sealed class StudioDesigner
     public static string GamesText(IReadOnlyList<RecipeGame> slots, Func<string, GameProfile?> find)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("Alcance: solo están comprobados los datos y recursos descritos. Un perfil no equivale a conocer todos sus mapas o reglas. Si falta un dato esencial, indicá cuál; no lo sustituyas por decoración.");
+        sb.AppendLine("Alcance: solo están comprobados los datos y recursos descritos. Un efecto de escritura NO confirma el nombre ni la unidad de una variable. Una hipótesis no puede sostener una regla esencial sin un experimento específico. Un perfil no equivale a conocer todos sus mapas o reglas. Si falta un dato esencial, indicá cuál; no lo sustituyas por decoración.");
         foreach (var slot in slots)
         {
             var p = find(slot.Profile);
@@ -109,7 +109,7 @@ public sealed class StudioDesigner
             if (p.Variables.Count == 0)
                 sb.AppendLine("No hay variables verificadas en este perfil. No inventes datos de memoria; indicá si el diseño necesita preparación adicional.");
             foreach (var (name, v) in p.Variables)
-                sb.AppendLine($"- {name}{(v.ReadOnly ? " (solo lectura)" : "")}: {v.Description} [{v.Min}..{v.Max}]");
+                sb.AppendLine($"- {name}{(v.ReadOnly ? " (solo lectura)" : "")}: ${v.Address}, {v.Encoding}/{v.Bytes}; {v.Description} [{v.Min}..{v.Max}]. {v.PurposeSummary}");
             sb.AppendLine("Controles (g.control): " + string.Join(", ", p.Controls.Select(c => $"{c.Key} = tecla {c.Value}")));
             if (p.Sprites.Count > 0)
             {

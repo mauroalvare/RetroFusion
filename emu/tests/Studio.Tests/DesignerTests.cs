@@ -298,6 +298,16 @@ public class DesignerTests
     }
 
     [Test]
+    public void AProfilesWriteEffectCannotPromoteAHypotheticalNameInTheDesignContext()
+    {
+        var p = new GameProfile { Id = "own", Machine = "nes", Variables = { ["lives"] = new() {
+            Address = "07F8", Encoding = "digits", Bytes = 3, PurposeStatus = "hypothesis", Description = "Escritura con efecto observado" } } };
+        string prompt = StudioDesigner.GamesText([new() { Slot = "b", Profile = p.Id }], _ => p);
+        Assert.That(prompt, Does.Contain("$07F8, digits/3").And.Contain("falta comprobar su significado"));
+        Assert.That(prompt, Does.Contain("NO confirma el nombre ni la unidad"));
+    }
+
+    [Test]
     public void ProfilesWithoutVerifiedVariables_DoNotInviteInventedRomData()
     {
         var profile = new GameProfile { Id = "sin-datos", Name = "Edición local", Machine = "zx48" };

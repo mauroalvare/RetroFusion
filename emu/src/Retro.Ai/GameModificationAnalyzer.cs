@@ -36,7 +36,7 @@ public sealed record GameAnalysisSnapshot(string Game, string Machine, long Fram
         text.AppendLine("Variables conocidas (conservar nombre, rango y solo lectura):");
         foreach (var (name, variable) in Profile.Variables)
             text.AppendLine($"{name}: 0x{variable.Address}, {variable.Encoding}, rango={variable.Min}..{variable.Max}, " +
-                $"{(variable.ReadOnly ? "solo lectura" : "escribible")}. {variable.Description}");
+                $"{(variable.ReadOnly ? "solo lectura" : "escribible")}. {variable.Description} {variable.PurposeSummary}");
         text.AppendLine("Código capturado (un recorte, no todo el programa):\n" + Listing);
         if (previous.Length > 0) text.AppendLine("Informe anterior, como contexto y no evidencia adicional:\n" + previous[..Math.Min(previous.Length, 3000)]);
         text.AppendLine("Pregunta o pedido del jugador:\n" + (string.IsNullOrWhiteSpace(wish)
@@ -185,7 +185,7 @@ public static class GameModificationAnalyzer
     {
         Address = variable.Address.ToString("X4"), Encoding = variable.Bytes == 2 ? "uint16" : "uint8",
         Bytes = variable.Bytes, Min = 0, Max = variable.Bytes == 2 ? 65535 : 255,
-        Description = "Hipótesis del análisis: " + variable.Reason
+        Description = "Hipótesis del análisis: " + variable.Reason, PurposeStatus = "hypothesis"
     };
 
     private static void Fields(JsonElement element, params string[] names)

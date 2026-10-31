@@ -20,6 +20,9 @@ public sealed class LabVerification
     public string TestHex {get;set;}="";
     public int ChangedRamBytes {get;set;}
     public List<string> ChangedRamSample {get;set;}=[];
+    public int? CadenceMinFrames {get;set;}
+    public int? CadenceMaxFrames {get;set;}
+    public int CadenceChanges {get;set;}
 }
 
 /// <summary>
@@ -99,6 +102,17 @@ public static class LabVerifier
                          "contra la misma corrida sin escribir.",
         };
         var obs = result.Observations;
+        if (f.Kind == "timer")
+        {
+            var down = Enumerable.Range(1, n).Where(i => bv[i] == bv[i - 1] - 1).ToArray();
+            var intervals = down.Zip(down.Skip(1), (a, b) => b - a).ToArray();
+            result.CadenceChanges = down.Length;
+            if (intervals.Length >= 2)
+            {
+                result.CadenceMinFrames = intervals.Min(); result.CadenceMaxFrames = intervals.Max();
+                obs.Add($"La cuenta sin modificar descendió {down.Length} veces; intervalos entre descensos unitarios: {intervals.Min()}–{intervals.Max()} cuadros. Esto no identifica por sí solo la unidad como segundos reales.");
+            }
+        }
         for(int i=0;i<br.Length;i++)
             if(br[i]!=pr[i])
             {result.ChangedRamBytes++;if(result.ChangedRamSample.Count<8)result.ChangedRamSample.Add($"${range.start+i:X4}: {br[i]:X2} -> {pr[i]:X2}");}

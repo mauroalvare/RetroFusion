@@ -20,6 +20,14 @@ public sealed class GameVariable
     public int Max { get; set; } = 255;
     public bool ReadOnly { get; set; }
     public string Description { get; set; } = "";
+    /// <summary>Meaning is independent of whether a write produced an effect.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? PurposeStatus { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? PurposeEvidence { get; set; }
+    [JsonIgnore] public bool PurposeIsHypothesis => PurposeStatus == "hypothesis" || PurposeStatus == null &&
+        (Description?.StartsWith("Hipótesis", StringComparison.OrdinalIgnoreCase) == true || Description?.StartsWith("Nombre propuesto", StringComparison.OrdinalIgnoreCase) == true);
+    [JsonIgnore] public string PurposeSummary => PurposeIsHypothesis ? "Propósito propuesto; falta comprobar su significado en el juego."
+        : PurposeStatus == "observed" && !string.IsNullOrWhiteSpace(PurposeEvidence) ? "Propósito observado: " + PurposeEvidence
+        : "Propósito declarado por el perfil; revisar su alcance y edición.";
 
     [JsonIgnore]
     public uint AddressValue => Convert.ToUInt32(Address, 16);

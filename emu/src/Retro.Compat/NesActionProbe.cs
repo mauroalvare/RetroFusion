@@ -11,6 +11,7 @@ internal static class NesActionProbe
     public static void Observe(Nes machine, List<LabFinding> findings, LabReport report, CancellationToken ct)
     {
         byte[] state = machine.SaveState();
+        int[] picture = (int[])machine.Video.Pixels.Clone();
         var sink = new short[8192];
         Sample Capture(byte[] previous) => new((byte[])machine.Ram.Clone(), previous, (byte[])machine.Ppu.Oam.Clone());
         List<Sample> Run(string? key, int frames, int[] checkpoints, int release)
@@ -115,6 +116,6 @@ internal static class NesActionProbe
                 }
             }
         }
-        finally { machine.LoadState(state); machine.ReleaseAllKeys(); }
+        finally { machine.LoadState(state); picture.CopyTo(machine.Video.Pixels, 0); machine.ReleaseAllKeys(); }
     }
 }

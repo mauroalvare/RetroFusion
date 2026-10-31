@@ -32,7 +32,7 @@ public static class GameModificationAdvisor
         text.AppendLine("Variables conocidas en este momento (no es un descubrimiento automático de toda la memoria):");
         foreach (var (name, variable) in profile.Variables)
             text.AppendLine($"- {name}: valor={variable.Read(memory)}, rango={variable.Min}..{variable.Max}, " +
-                $"{(variable.ReadOnly ? "SOLO LECTURA" : "escribible")}. {variable.Description}");
+                $"{(variable.ReadOnly ? "SOLO LECTURA" : "escribible")}. {variable.Description} {variable.PurposeSummary}");
         text.AppendLine("Pedido del jugador: " + wish);
         return text.ToString();
     }

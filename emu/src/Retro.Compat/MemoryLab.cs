@@ -207,6 +207,7 @@ public static class MemoryLab
             }
 
             // ---------------------------------------------------------------- entity tables
+            findings.AddRange(DecimalCountdowns.Find(samples, start, o.SampleEvery));
             var tables = EntityTables(samples, start);
             findings.AddRange(tables);
 
