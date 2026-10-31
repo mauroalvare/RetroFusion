@@ -11,6 +11,9 @@ Compara memoria, imágenes y escritores observados; prueba candidatos desde un m
 estado, con una corrida de control y otra modificada. No requiere que el usuario gane
 puntos, pierda vidas o juegue antes. Un juego que el robot todavía no logra arrancar o
 controlar devuelve un resultado parcial con la evidencia y el problema observado.
+Si ya hay un arranque en el perfil, el laboratorio lo prueba primero en una máquina
+privada y contrasta sus controles. Un nombre de archivo puede proponer ese arranque;
+los datos de memoria anteriores sólo se reutilizan para la edición exacta.
 
 ## Objetivo, presupuesto y continuación
 
@@ -49,6 +52,13 @@ de imagen y diferencias finales en el área de RAM observada. Esa muestra incluy
 el dato probado como consecuencias: no atribuye por sí sola el propósito de cada byte.
 Que el juego reescriba enseguida un dato puede indicar una copia o un valor derivado;
 esa conclusión queda limitada a la secuencia probada.
+Los relojes decimales se examinan también como campos completos de varias cifras.
+La evidencia puede informar intervalos entre descensos, medidos en cuadros; una unidad
+del contador no se convierte en un segundo por su nombre. La escritura completa debe
+contrastar acarreo, préstamo, límites y vencimiento antes de usarse en una regla.
+Los perfiles automáticos conservan **propósito propuesto** aunque se haya comprobado
+un efecto al escribir. Cambios y los pedidos a la IA mantienen esa distinción; los
+perfiles antiguos con nombres de IA tampoco se convierten en certificados al abrirlos.
 Una frecuencia alta de escrituras no alcanza para descartarlo: el laboratorio también
 contrasta esos candidatos. En ventanas chicas, Cambios presenta los campos uno debajo
 del otro y destaca los bytes que difieren, con la misma prueba y reversión.

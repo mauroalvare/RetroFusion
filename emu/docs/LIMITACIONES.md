@@ -18,9 +18,11 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   proximidad y cambio de valor no prueban su propósito. Se observa una máquina privada y se
   restaura su estado; los candidatos necesitan contraste. Las funciones curadas solo se agregan
   a un alias compatible cuando coincide el SHA-256 del programa completo conocido.
-- La revisión usa proveedores simulados, programas propios y evidencia local por edición.
-  Una campaña real de dos pedidos contrastó el análisis individual sobre un programa propio;
-  no valida que el proveedor complete la idea de fusión reportada ni que sea divertida.
+- La revisión combina proveedores simulados, programas propios y evidencia por edición.
+  La primera campaña real contrastó análisis individual. La siguiente, limitada a25minutos,
+  produjo un borrador de fusión y se detuvo durante su corrección: no se declara una
+  generación de la CLI aprobada. Las implementaciones locales se prueban por separado;
+  que una pase robots y experimentos dirigidos no certifica diversión ni todos los finales.
 
 ## Análisis y modificaciones de partidas
 

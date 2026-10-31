@@ -1642,3 +1642,43 @@ accesibles presupuesto y evidencia con escala200% en la ventana mínima.
 Las flechas y símbolos técnicos se cargan en el atlas; si faltan en la fuente elegida,
 se combinan únicamente esos glifos desde una fuente de símbolos instalada. La fuente de
 lectura, títulos y rótulos se conserva. No se descargan ni redistribuyen tipografías.
+
+## D-098 — Arranque medido, campos completos y significado separado
+
+La preparación intenta primero un arranque del perfil con pasos/tiempo/teclas acotados,
+en máquina privada y con comprobación de control reproducible. Un perfil por nombre
+puede proponer un arranque; sus variables y helpers no se heredan sin SHA exacta.
+PlayDetector acepta cancelación y restaura estado, imagen y teclas, como el sondeo NES.
+La cuenta decimal se analiza como campo de2–4dígitos, con cadencia y cruces, antes de
+preferir una cifra aislada. LabVerification agrega CadenceMinFrames/MaxFrames/Changes.
+
+GameVariable agrega PurposeStatus/PurposeEvidence opcionales. Los campos automáticos
+son hypothesis aunque tengan efecto de escritura; una etiqueta de IA no limita vidas
+a9 ni certifica unidad/propósito. Perfiles anteriores con descripciones Hipótesis/Nombre
+propuesto conservan esa condición. observed requiere evidencia explícita; sin metadatos
+el propósito es declarado por el perfil. UI y contextos de diseño/modificación/preparación
+muestran esta distinción. El cambio es compatible con los perfiles anteriores.
+
+AiOperation coordina también operaciones que comparten proveedor y las instancias del
+mismo CLI por herramienta en el proceso. La espera se cancela sin reservar texto/pedidos
+y conserva la atribución del uso. Llamadas directas necesitan su propio presupuesto.
+
+## D-099 — Reinicio completo y pruebas de escenas nativas
+
+game.restart() solicita un reinicio al salir del tick, antes de dibujar/mezclar audio.
+Restablece todas las máquinas, entradas, guion, recursos, contadores y audio mezclado,
+incluida la fracción de muestras. Evita recrear el motor JavaScript dentro de su llamada.
+El validador captura puntuación/muertes antes de probar revancha; el reinicio no borra
+los resultados del robot. Una imagen monocolor breve que coincide con el original se
+contrasta por duración: no equivale a que draw esté vacío. La escena permanentemente
+vacía y el tapado del original siguen fallando; una aprobación no certifica diversión.
+
+Ayuda permite comprobar recepción de teclado/mando y muestra pasos si no llega al juego.
+--games-folder selecciona una biblioteca solo para esa sesión, sin instalar ni mover ROMs.
+La QA de interacción usa eventos reales de ImGui a100/200%, sin afirmar entrada física.
+La barra de juego muestra el HUD del guion y sus avisos temporales; el estado genérico
+del host ya no los oculta. La imagen nativa mantiene su resolución y área de dibujo.
+Las muertes rápidas de patrones fijos sobre una base nativa se presentan como revisión
+de dificultad, no como un fallo técnico inventado: esos controles pueden morir también
+en el original. No se elimina el aviso ni se certifica equilibrio. La regla estricta de
+creación libre y los errores reales de ejecución, escena/reinicio se mantienen.

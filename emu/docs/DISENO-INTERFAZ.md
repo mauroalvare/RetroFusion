@@ -124,3 +124,14 @@ La revisión nativa se ejecuta con `--hidden --mute --autotest`. Ese modo no gua
 posiciones de ventanas. `--ui-size 640x480` permite comprobar el tamaño mínimo; se acepta
 solo en esa instancia oculta de prueba. La instalación y las bibliotecas reales no se
 reemplazan para estas comprobaciones.
+
+En **Ayuda > Comprobar teclado y mando** se ve qué teclas están apretadas, cuándo se
+sueltan, la última entrada y la palanca/botones del primer mando. Si el dispositivo
+responde ahí pero no en el original, la vista indica revisar foco, controles y puerto.
+Es una comprobación de recepción; no acredita por sí sola las reglas del juego.
+
+Durante una fusión, la barra inferior muestra el HUD y sus avisos temporales antes del
+estado genérico del emulador. El texto completo queda en su ayuda al pasar el puntero;
+la imagen nativa no se usa para presentar instrucciones técnicas ni se tapa con paneles.
+La entrada `--games-folder <carpeta>` selecciona otra biblioteca para esa sesión sin
+mover archivos ni cambiar preferencias. `--no-organize` conserva su distribución.
