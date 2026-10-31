@@ -33,6 +33,8 @@ public sealed class StudioGame
     /// <summary>Original whose world and presentation are retained; null preserves legacy free reinterpretations.</summary>
     public string? BaseSlot { get; set; }
     public string Script { get; set; } = "";
+    /// <summary>Optional directed input replays checked against original memory by the host.</summary>
+    public List<StudioPlaytest> Playtests { get; set; } = [];
     public int Version { get; set; } = 1;
     /// <summary>Local operation that saved this version; prevents duplicate saves after interrupted cleanup.</summary>
     public string? WorkId { get; set; }
@@ -60,6 +62,8 @@ public sealed class StudioGame
         game.Author ??= "";
         game.Script ??= "";
         game.Games ??= new();
+        game.Playtests ??= [];
+        if (StudioPlaytests.CheckShape(game.Playtests) is { } problem) throw new InvalidDataException(problem);
         if (game.Games.Any(g => g == null || string.IsNullOrWhiteSpace(g.Slot) || string.IsNullOrWhiteSpace(g.Profile)))
             throw new InvalidDataException("La lista de originales contiene un juego incompleto.");
         if (game.BaseSlot != null && !game.Games.Any(g => g.Slot == game.BaseSlot))

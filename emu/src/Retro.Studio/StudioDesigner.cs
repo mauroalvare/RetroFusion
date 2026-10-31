@@ -65,6 +65,18 @@ public sealed class StudioDesigner
         Informá game.state (title/playing/gameover cuando corresponda), puntos, muertes y
         progreso reales. La base puede empezar jugando sin título ni puntaje artificial.
         El robot prueba quieto, movimiento y disparo; no adaptes el género para conformarlo.
+        Proponé además playtests: hasta 3 recorridos por entradas, con observaciones que el
+        host repetirá sobre la memoria de los originales. Cada paso tiene ticks (1–600)
+        e inputs (left/right/up/down/fire/jump/start/coin, o [] para esperar). Máximo 64
+        pasos y 5400 ticks por recorrido. Cada check usa slot, variable EXACTA del perfil,
+        fromTick, atTick, min y max: el host compara valor(atTick)-valor(fromTick) con ese
+        intervalo. Tick 0 es después de init; cada recorrido reinicia todos los originales.
+        Entre 1 y 12 checks por recorrido, 0 <= fromTick < atTick <= duración. No hay
+        direcciones, escrituras, log ni código de prueba. Elegí situaciones que discriminen
+        la regla (pulsar/sostener, premio/cupo, transición, pérdida/reinicio), sin inventar
+        que una variable demuestra su propósito. Si faltan datos para observarlo, usá []
+        y concretá en design qué queda sin comprobar y cómo investigarlo automáticamente.
+        Un check que pasa no acredita todos los niveles ni la diversión.
         Con la fuente de texto del Spectrum usá caracteres sin tildes ni eñes; ui sí las admite.
         """;
 
@@ -404,7 +416,7 @@ public sealed class StudioDesigner
     {
         type = "object",
         additionalProperties = false,
-        required = new[] { "title", "approach", "pitch", "howToPlay", "design", "changes", "script", "missingData" },
+        required = new[] { "title", "approach", "pitch", "howToPlay", "design", "changes", "script", "missingData", "playtests" },
         properties = new
         {
             title = new { type = "string", maxLength = 60 },
@@ -415,6 +427,33 @@ public sealed class StudioDesigner
             changes = new { type = "string", maxLength = 400 },
             script = new { type = "string" },
             missingData = new { type = "string", maxLength = 400 },
+            playtests = new
+            {
+                type = "array", maxItems = StudioPlaytests.MaxPlans,
+                items = new
+                {
+                    type = "object", additionalProperties = false, required = new[] { "name", "steps", "checks" },
+                    properties = new
+                    {
+                        name = new { type = "string", maxLength = 120 },
+                        steps = new { type = "array", minItems = 1, maxItems = 64, items = new
+                        {
+                            type = "object", additionalProperties = false, required = new[] { "ticks", "inputs" },
+                            properties = new { ticks = new { type = "integer", minimum = 1, maximum = 600 },
+                                inputs = new { type = "array", maxItems = 8, items = new { type = "string", @enum = StudioSession.InputNames } } },
+                        } },
+                        checks = new { type = "array", minItems = 1, maxItems = 12, items = new
+                        {
+                            type = "object", additionalProperties = false, required = new[] { "slot", "variable", "fromTick", "atTick", "min", "max" },
+                            properties = new { slot = new { type = "string", maxLength = 32 }, variable = new { type = "string", maxLength = 120 },
+                                fromTick = new { type = "integer", minimum = 0, maximum = StudioPlaytests.MaxTicks },
+                                atTick = new { type = "integer", minimum = 1, maximum = StudioPlaytests.MaxTicks },
+                                min = new { type = "integer", minimum = -4294967295L, maximum = 4294967295L },
+                                max = new { type = "integer", minimum = -4294967295L, maximum = 4294967295L } },
+                        } },
+                    },
+                },
+            },
         },
     });
 
@@ -423,6 +462,7 @@ public sealed class StudioDesigner
         "design (el documento de diseño completo y actualizado, una línea por " +
         "parte: unión mecánica, regla única, diferencia, aportes, se descarta, objetivo, final, progresión, controles, presentación, legibilidad), changes (qué " +
         "hiciste o cambiaste, hasta 400 caracteres) y script (el guion de JavaScript COMPLETO, no solo los cambios). " +
+        "playtests contiene los recorridos dirigidos de memoria descritos en la guía (o [] si no hay datos observables). " +
         "missingData queda vacío si se puede implementar; si falta información indispensable, explicá qué dato se necesita y dejá script vacío. " +
         "El documento de diseño no debe aparecer como un tutorial extenso dentro del juego.";
 
@@ -509,6 +549,8 @@ public sealed class StudioDesigner
             sb.AppendLine("```javascript");
             sb.AppendLine(current.Script);
             sb.AppendLine("```");
+            if (current.Playtests.Count > 0)
+                sb.AppendLine("Recorridos actuales (JSON): " + JsonSerializer.Serialize(current.Playtests, GameProfile.Json));
         }
         sb.AppendLine();
         sb.AppendLine($"El jugador lo probó y pide: \"{request.Trim()}\"");
@@ -626,9 +668,17 @@ public sealed class StudioDesigner
                 prompt = brief + "\n\n" + (draft != null ? CurrentDraft(draft) : "") + $"\nNo pude leer tu respuesta: {error}. {AnswerShape}";
                 continue;
             }
-            string hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(game.Script.Replace("\r\n", "\n").Trim())));
+            string source = game.Script.Replace("\r\n", "\n").Trim();
+            // A failed observation can be corrected without rewriting a working script.
+            // Labels do not change execution. Keep legacy keys for candidates without plans.
+            string checks = game.Playtests.Count == 0 ? "" : JsonSerializer.Serialize(game.Playtests.Select(p => new
+            {
+                Steps = p.Steps.Select(s => new { s.Ticks, Inputs = s.Inputs.Order(StringComparer.Ordinal).ToArray() }), p.Checks,
+            }), GameProfile.Json);
+            string hash = (checks.Length == 0 ? "" : "playtest-v1:") +
+                Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(source + (checks.Length == 0 ? "" : "\n" + checks))));
             if (!triedScripts.Add(hash))
-                return new(null, report, attempt, "La IA devolvió el mismo guion que ya falló. Conservamos el borrador para continuar con otro cambio.", draft);
+                return new(null, report, attempt, "La IA devolvió el mismo guion y comprobaciones que ya fallaron. Conservamos el borrador para continuar con otro cambio.", draft);
             draft = game;
             draft.Author = ai.Name;
             error = null;
@@ -651,7 +701,9 @@ public sealed class StudioDesigner
 
     private static string CurrentDraft(StudioGame game) =>
         "Último borrador (reemplaza los anteriores; conservá lo que funciona):\n" +
-        $"Nombre: {game.Title}\nIdea: {game.Pitch}\nCómo se juega: {game.HowToPlay}\nDiseño: {game.Design}\n```javascript\n{game.Script}\n```";
+        $"Nombre: {game.Title}\nIdea: {game.Pitch}\nCómo se juega: {game.HowToPlay}\nDiseño: {game.Design}\n" +
+        "Recorridos actuales (JSON): " + JsonSerializer.Serialize(game.Playtests, GameProfile.Json) +
+        $"\n```javascript\n{game.Script}\n```";
 
     public static string FixRequest(ValidationReport report)
     {
@@ -672,6 +724,7 @@ public sealed class StudioDesigner
     {
         error = null;
         var game = template.Copy();
+        game.Playtests = []; // A revised script must supply its own expectations; never inherit stale checks.
         string? script = null;
         var fence = Regex.Match(answer, "```(?:javascript|js)\\s*\\n(.*?)```", RegexOptions.Singleline | RegexOptions.IgnoreCase);
         if (fence.Success)
@@ -695,16 +748,19 @@ public sealed class StudioDesigner
                 game.HowToPlay = Str(e, "howToPlay", game.HowToPlay);
                 game.Design = Str(e, "design", game.Design);
                 game.Changes = Str(e, "changes", game.Changes ?? "");
+                if (e.TryGetProperty("playtests", out var plans))
+                {
+                    game.Playtests = plans.Deserialize<List<StudioPlaytest>>(GameProfile.Json)!;
+                    if (StudioPlaytests.CheckShape(game.Playtests) is { } problem)
+                    { error = problem; return null; }
+                }
                 if (script == null && e.TryGetProperty("script", out var sc) && sc.ValueKind == JsonValueKind.String)
                     script = sc.GetString();
             }
             catch (JsonException ex)
             {
-                if (script == null)
-                {
-                    error = "el JSON no es válido (" + ex.Message + ")";
-                    return null;
-                }
+                error = "el JSON no es válido (" + ex.Message + ")";
+                return null;
             }
         }
         if (string.IsNullOrWhiteSpace(script))

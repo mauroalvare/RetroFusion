@@ -25,7 +25,8 @@ public sealed record ValidationReport(
     VideoFrame? Picture,
     IReadOnlyList<RobotResult>? Robots = null,
     IReadOnlyList<(string Label, VideoFrame Frame)>? Shots = null,
-    IReadOnlyList<string>? Notes = null);
+    IReadOnlyList<string>? Notes = null,
+    IReadOnlyList<PlaytestResult>? Playtests = null);
 
 /// <summary>
 /// The automatic playtest of a fusion game, run before the player sees it. Three robot
@@ -63,7 +64,35 @@ public static class StudioValidator
     public static ValidationReport Run(StudioSession s, int secondsPerRobot = DefaultSecondsPerRobot, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
-        try { return RunRobots(s, secondsPerRobot, ct); }
+        try
+        {
+            var report = RunRobots(s, secondsPerRobot, ct);
+            if (s.Game.Playtests.Count == 0) return report with { Summary = report.Summary +
+                "\nSin recorridos dirigidos de memoria: las reglas particulares y los finales siguen sin comprobarse." };
+            var directed = StudioPlaytests.Run(s, ct);
+            var problems = report.Problems.ToList();
+            bool directedOk = directed.All(r => r.Ok);
+            string robotSummary = !directedOk && report.Ok
+                ? report.Summary.Replace("Pasó la prueba técnica automática.", "Los robots generales no detectaron errores; falló un recorrido dirigido.", StringComparison.Ordinal)
+                : report.Summary;
+            var summary = new StringBuilder(robotSummary);
+            int ticks = report.Ticks;
+            foreach (var result in directed)
+            {
+                ticks += result.Ticks;
+                string heading = $"Recorrido dirigido «{result.Name}»: {(result.Ok ? "cambios observados" : "falló")}.";
+                summary.AppendLine("\n" + heading);
+                if (!result.Ok) problems.Add(heading + (result.Error != null ? " " + result.Error : " Revisá los cambios de memoria esperados."));
+                if (result.Error != null) summary.AppendLine(result.Error);
+                foreach (var observation in result.Observations)
+                    summary.AppendLine($"games.{observation.Slot}.{observation.Variable}, ticks {observation.FromTick}→{observation.AtTick}: " +
+                        $"{observation.Before}→{observation.After}, cambio {observation.Delta}, esperado [{observation.Min}, {observation.Max}]; " +
+                        $"{(observation.Ok ? "coincide" : "NO coincide")}. {observation.Purpose}");
+            }
+            summary.AppendLine("Estos recorridos prueban esos cambios de memoria y esas entradas. No certifican por sí solos propósito, todos los niveles, equilibrio ni diversión.");
+            return report with { Ok = report.Ok && directedOk, Problems = problems, Ticks = ticks,
+                Summary = summary.ToString(), Playtests = directed };
+        }
         finally
         {
             foreach (string input in StudioSession.InputNames) s.SetInput(input, false);

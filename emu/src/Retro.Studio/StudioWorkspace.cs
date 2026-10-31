@@ -67,12 +67,15 @@ public static class StudioWorkspace
                El diseño detallado no va en la ayuda del jugador. No toques "games", "baseSlot" ni "playerRequest".
                Si falta un dato indispensable, escribí qué falta en informe.md y detené la implementación.
             4. Escribí el guion completo en `{ScriptFile}`.
+               En "playtests" de `{GameFile}` agregá recorridos dirigidos de entradas y cambios
+               de variables del perfil, según CONTRATO.md. No uses log o puntajes anunciados
+               como prueba del original. Si no hay datos observables, dejá [] y detallá el límite.
             5. Probalo: {test}
             6. Corregí los fallos conservando el pedido y lo que funciona. Revisá la lista de
                control y las capturas; probá también inicio, progreso, final, reinicio y estrategias
                que anulen el reto. Una prueba técnica aprobada no demuestra originalidad ni diversión.
 
-            Cada vez que guardes `{ScriptFile}`, RetroEmu también lo prueba con tres jugadores robot y
+            Cada vez que guardes `{ScriptFile}` o `{GameFile}`, RetroEmu también lo prueba con tres jugadores robot y
             escribe `{ReportFile}`. Distinguí qué comprobó el robot y qué falta jugar u observar.
             Textos para el jugador en castellano.
             """;
@@ -91,6 +94,8 @@ public static class StudioWorkspace
         if (!File.Exists(scriptPath))
             return null;
         var game = template.Copy();
+        game.Playtests = [];
+        DateTime written = File.GetLastWriteTimeUtc(scriptPath);
         try
         {
             string gamePath = Path.Combine(dir, GameFile);
@@ -103,14 +108,17 @@ public static class StudioWorkspace
                 game.HowToPlay = fromFile.HowToPlay;
                 game.Design = fromFile.Design;
                 game.Changes = fromFile.Changes;
+                game.Playtests = fromFile.Playtests;
+                written = new[] { written, File.GetLastWriteTimeUtc(gamePath) }.Max();
             }
         }
-        catch (Exception)
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
         {
-            // a half-written juego.json: keep the template's texts
+            // Never approve an older plan while juego.json is incomplete or invalid.
+            return null;
         }
         game.Script = File.ReadAllText(scriptPath);
-        return (game, File.GetLastWriteTimeUtc(scriptPath));
+        return (game, written);
     }
 
     public static void WriteReport(string dir, ValidationReport report)

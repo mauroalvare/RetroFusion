@@ -184,6 +184,42 @@ entender la regla nueva, simplificá o enseñala mejor antes de sumar más eleme
 Las comprobaciones pendientes se investigan con experimentos acotados; no exijas una
 partida manual del jugador como condición para continuar el trabajo autónomo.
 
+## Recorridos dirigidos
+
+Además de los robots, `playtests` permite repetir entradas y medir cambios de memoria
+desde el host. Cada recorrido reinicia todas las máquinas y el guion. No acepta código,
+direcciones, escrituras ni estados preparados. Los nombres de slot y variable deben
+existir en los perfiles de esa edición.
+
+```json
+"playtests": [{
+  "name": "Una pulsación conserva el cambio al sostener",
+  "steps": [{"ticks": 60, "inputs": ["fire"]}],
+  "checks": [
+    {"slot":"b", "variable":"polarity", "fromTick":0, "atTick":6, "min":1, "max":1},
+    {"slot":"b", "variable":"polarity", "fromTick":6, "atTick":60, "min":0, "max":0}
+  ]
+}]
+```
+
+El ejemplo solo sirve si ese perfil tiene una polaridad que empieza en cero y esa es la
+regla real. El valor comprobado es `valor(atTick) - valor(fromTick)`; tick cero es después
+de `init`. `inputs: []` suelta todas las entradas. Cada paso dura 1–600 ticks; un recorrido
+admite 64 pasos, 5400 ticks (90 segundos) y 1–12 observaciones; hay hasta tres recorridos.
+
+Elegí casos que distingan la regla de un fallo: pulsar/sostener, efecto correcto/erróneo,
+premio/cupo, transición y reinicio. No ensanches el intervalo para ocultar una discrepancia.
+El informe conserva valores antes/después y el propósito observado, declarado o hipotético
+del perfil. Leer memoria evita que `log` o `game.score` finjan esa observación; no demuestra
+por sí solo el significado de la dirección ni una relación causal entre originales.
+Si no hay datos observables usá `[]` y concretá el siguiente experimento automático.
+
+Las discrepancias vuelven a la corrección habitual y sobreviven en el borrador recuperable.
+En la carpeta del agente también se importan desde `juego.json`; guardarlo vuelve a probar
+los cambios aunque `juego.js` siga igual. Un JSON a medio escribir espera a estar completo,
+sin validar expectativas anteriores. No confundas unos recorridos aprobados con todos los
+niveles, finales, equilibrio o diversión comprobados.
+
 ## Lista de control
 
 - [ ] Quitar cualquiera de los originales cambia una decisión central, no solo su aspecto.
@@ -195,6 +231,7 @@ partida manual del jugador como condición para continuar el trabajo autónomo.
 - [ ] Controles, objetivo y final se entienden; se puede reiniciar.
 - [ ] Los estados e informes permiten probar el juego, sin dictar su presentación.
 - [ ] Revisé jugabilidad y capturas; pasar el validador no demuestra calidad creativa.
+- [ ] Los recorridos dirigidos distinguen efectos reales y declaran qué reglas o finales siguen pendientes.
 
 ## Anti-patrones
 
