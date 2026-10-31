@@ -41,6 +41,55 @@ public sealed class NativeCompositionTests
     }
 
     [Test]
+    public void AScriptCanRequestAWholeRestartAfterItsTickWithoutOldInputsObjectsOrAudio()
+    {
+        _game.Script = "var shots=0; function init(){games.a.pause();games.b.pause();game.state('playing');ui.hud('init');} " +
+            "function tick(input){if(input.start){game.score(10);game.death('prueba');sound.beep(440,500,1);shots++;game.restart();return;}ui.hud(String(shots));} function draw(){}";
+        var session = StudioSession.Start(_game, _sources, _folder);
+        byte[][] states = session.Slots.Select(s => s.Machine.SaveState()).ToArray();
+        session.SetInput("start", true); session.Update(1.0 / 60);
+        Assert.That(session.Error, Is.Null);
+        Assert.That(session.Tick, Is.Zero);
+        Assert.That(session.Score, Is.Zero);
+        Assert.That(session.Deaths, Is.Empty);
+        Assert.That(session.Hud, Is.EqualTo("init"));
+        Assert.That(session.DrainAudio(new short[2048]), Is.Zero);
+        for (int i = 0; i < states.Length; i++) Assert.That(session.Slots[i].Machine.SaveState(), Is.EqualTo(states[i]));
+        session.Update(1.0 / 60);
+        Assert.That(session.Tick, Is.EqualTo(1), "The previous held Start must not cause another restart");
+        Assert.That(session.Hud, Is.EqualTo("0"), "The JavaScript heap must be fresh");
+        Assert.That(session.DrainAudio(new short[2048]), Is.EqualTo(735));
+    }
+
+    [Test]
+    public void TheRevengeDoesNotEraseTheRobotsActualDeathsAndScore()
+    {
+        _game.Script = "var n=0; function init(){games.a.pause();games.b.pause();games.a.peek(0);game.state('playing');} " +
+            "function tick(input){n++;if(n===200){game.score(7);game.death('prueba');game.state('gameover');}if(n>200&&input.start){game.restart();return;}}function draw(){}";
+        var report = StudioValidator.Run(_game, _sources, _folder, 8);
+        Assert.That(report.Robots, Has.Count.EqualTo(3));
+        foreach (var robot in report.Robots!)
+        {
+            Assert.That(robot.Deaths, Is.EqualTo(1)); Assert.That(robot.Score, Is.EqualTo(7));
+            Assert.That(robot.Causes["prueba"], Is.EqualTo(1)); Assert.That(robot.RestartWorked, Is.True);
+        }
+    }
+
+    [TestCase(false)] [TestCase(true)]
+    public void AShortNativeBlankTransitionIsDistinguishedFromAPermanentlyBlankScene(bool permanent)
+    {
+        string id = _game.Games.Single(s => s.Slot == "b").Profile;
+        var data = _sources[id].Files[0].Data.ToArray(); data[6] = 0; data[7] = 0x90;
+        data[30 + 0x5000] = 0xF3; data[30 + 0x5001] = 0x76; // DI; HALT: video RAM stays controlled.
+        _sources[id] = new(_sources[id].Profile, [new MediaFile("own.z80", data, "own-test")], null);
+        _game.Script = "var n=0;function init(){games.a.pause();games.b.resume();games.a.peek(0);game.state('playing');} " +
+            "function tick(){n++;if(n===180)for(var i=0;i<6144;i++)games.b.poke(0x4000+i,0);" +
+            (permanent ? "" : "if(n===300)for(var i=0;i<6144;i++)games.b.poke(0x4000+i,0xF0);") + "}function draw(){}";
+        var report = StudioValidator.Run(_game, _sources, _folder, 8);
+        Assert.That(report.Problems.Any(p => p.Contains("solo color")), Is.EqualTo(permanent), report.Summary);
+    }
+
+    [Test]
     public void NativeSceneIsRestoredEveryFrame_AndCannotBeChangedThroughTheCallersMetadata()
     {
         var session = Start("var n=0; function draw(){ if(n++===0) screen.rect(4,5,1,1,0x123456); }");

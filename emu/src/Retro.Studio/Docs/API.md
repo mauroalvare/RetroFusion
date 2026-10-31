@@ -125,12 +125,13 @@ La prueba automática y la ventana del emulador necesitan saber qué pasa en el 
 | `game.score(puntos)` | Cada vez que el jugador gana puntos. |
 | `game.death('causa')` | Cada vez que pierde una vida ('bomba', 'guardián', 'sin aire'...). |
 | `game.level(n)` | Al empezar el nivel n (1, 2, 3...). |
+| `game.restart()` | Solicita el reinicio completo al terminar el tick actual: todas las máquinas al arranque, guion desde `init`, entradas, sonidos, objetos y contadores nuevos. Después de pedirlo, retorná del tick. |
 
 ## Otros
 
 | Función | Qué hace |
 |---|---|
-| `ui.message(texto)` | Cartel que aparece unos segundos arriba de la pantalla. |
+| `ui.message(texto)` | Aviso temporal en la barra de estado, junto al HUD y fuera de la imagen del original. |
 | `ui.hud(texto)` | Línea de estado fija junto al juego (vidas, nivel, objetivos). |
 | `sound.beep(frecuencia, ms, volumen)` | Pitido de onda cuadrada. |
 | `sound.noise(ms, volumen)` | Ruido (explosiones). |

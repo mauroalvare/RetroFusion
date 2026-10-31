@@ -56,6 +56,22 @@ public partial class BaseFusionTests
     }
 
     [Test]
+    public void RestartDropsPreviouslyMixedSoundBeforeStartingTheNewRun()
+    {
+        var game = Original(); game.BaseSlot = "b";
+        game.Script = "function init(){games.a.pause();games.b.pause();sound.beep(440,500,1);} function tick(){} function draw(){}";
+        var session = Start(game);
+        session.Update(1.0 / 60);
+        session.Restart();
+        Assert.That(session.DrainAudio(new short[8192]), Is.Zero, "The old mixed samples must not escape after restart");
+        session.Update(1.0 / 60);
+        var audio = new short[8192];
+        int count = session.DrainAudio(audio);
+        Assert.That(count, Is.EqualTo(735));
+        Assert.That(audio.Take(count).Any(v => v != 0), Is.True, "The new init's sound still starts normally");
+    }
+
+    [Test]
     public void ASecondSessionRestoresTheBootPictureWithoutAdvancingTheOriginal()
     {
         var game = Original(); game.BaseSlot = "b";

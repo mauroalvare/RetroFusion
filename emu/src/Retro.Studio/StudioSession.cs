@@ -106,6 +106,8 @@ public sealed class StudioSession : IFusionRun
     private double _audioCarry;
     private int _inputMask;
     private Engine? _engine;
+    private bool _restartRequested;
+    internal void RequestRestart() => _restartRequested = true;
 
     public StudioGame Game { get; }
     public string Title => Game.Title;
@@ -326,6 +328,9 @@ public sealed class StudioSession : IFusionRun
         Level = 0;
         Deaths.Clear();
         _tones.Clear();
+        _mixed.Clear();
+        _audioCarry = 0;
+        _restartRequested = false;
         _canvas.Resize(256, 192);
         DrawNativeBase();
         StartScript();
@@ -367,6 +372,7 @@ public sealed class StudioSession : IFusionRun
             try
             {
                 Call("__tick", _inputMask);
+                if (_restartRequested) { Restart(); return; }
                 DrawNativeBase();
                 IsDrawing = true;
                 try { Call("__draw"); }

@@ -267,6 +267,7 @@ public sealed class ScriptHost
     public void GameScore(double points) => _session.AddScore(Num(points));
     public void GameDeath(string cause) => _session.AddDeath(cause);
     public void GameLevel(double level) => _session.SetLevel(Num(level));
+    public void GameRestart() => _session.RequestRestart();
 
     public void Beep(double frequency, double milliseconds, double volume) => _session.AddTone(frequency, milliseconds, volume, false);
     public void Noise(double milliseconds, double volume) => _session.AddTone(100, milliseconds, volume, true);
@@ -333,6 +334,7 @@ public sealed class ScriptHost
           hud: function (t) { __h.Hud(String(t)); }
         };
         var game = {
+          restart: function () { __h.GameRestart(); },
           state: function (s) { __h.GameState(String(s)); },
           score: function (points) { __h.GameScore(points === undefined ? 1 : points); },
           death: function (cause) { __h.GameDeath(String(cause === undefined ? 'sin causa' : cause)); },

@@ -96,6 +96,8 @@ public static class StudioValidator
             string name = strategy switch { Strategy.Still => "quieto", Strategy.Wanderer => "explorador", _ => "tirador" };
             int ticks = 0;
             int hiddenBaseObservations = 0;
+            int nativeBlankObservations = 0;
+            bool visibleBaseObserved = false;
             bool Step(int n)
             {
                 for (int i = 0; i < n; i++)
@@ -114,6 +116,11 @@ public static class StudioValidator
                         return false;
                     if (s.Game.BaseSlot != null && ticks % Tps == 1)
                     {
+                        bool oneColour = s.Video.Pixels.Distinct().Take(2).Count() < 2;
+                        bool nativeBlank = oneColour && IsNativeBlank(s);
+                        nativeBlankObservations = nativeBlank ? nativeBlankObservations + 1 : 0;
+                        if (!oneColour) visibleBaseObserved = true;
+                        if (nativeBlankObservations >= 3 && s.State == "playing") blank = true;
                         string? erased = s.State == "playing" ? BaseSceneCheck.Problem(s) : null;
                         hiddenBaseObservations = erased != null ? hiddenBaseObservations + 1 : 0;
                         if (erased != null && hiddenBaseObservations >= 3)
@@ -168,6 +175,8 @@ public static class StudioValidator
             // 3. play
             int deaths0 = s.Deaths.Count;
             long score0 = s.Score;
+            (long Tick, string Cause)[]? finishedDeaths = null;
+            long? finishedScore = null;
             int maxLevel = s.Level;
             double? firstDeath = null;
             bool gameOver = false;
@@ -207,13 +216,19 @@ public static class StudioValidator
                         sameFrames++;
                     lastFrame = (int[])s.Video.Pixels.Clone();
                     if (s.Video.Pixels.Distinct().Take(2).Count() < 2)
-                        blank = true;
+                    {
+                        if (!visibleBaseObserved || nativeBlankObservations >= 3 || !IsNativeBlank(s)) blank = true;
+                        else if (!notes.Contains("La pantalla de un solo color coincidió con el original base; se contrasta su duración antes de tratarla como un fallo de dibujo."))
+                            notes.Add("La pantalla de un solo color coincidió con el original base; se contrasta su duración antes de tratarla como un fallo de dibujo.");
+                    }
                 }
                 if (strategy == Strategy.Shooter && (playTicks == Tps * 8 || playTicks == Tps * 20))
                     shots.Add(($"jugando_{playTicks / Tps}s", Clone(s.Video)));
                 if (s.ReportsState && s.State == "gameover")
                 {
                     gameOver = true;
+                    finishedDeaths = s.Deaths.Skip(deaths0).ToArray();
+                    finishedScore = s.Score - score0;
                     shots.Add(($"fin_{name}", Clone(s.Video)));
                     Inputs();
                     if (!Step(Tps)) break;
@@ -233,9 +248,10 @@ public static class StudioValidator
             if (s.Error != null) { error = s.Error; }
             if (frameChecks >= 3 && sameFrames >= frameChecks - 1)
                 frozen = true;
-            var causes = s.Deaths.Skip(deaths0).GroupBy(d => d.Cause).ToDictionary(g => g.Key, g => g.Count());
-            robots.Add(new RobotResult(name, playTicks / (double)Tps, firstDeath, s.Deaths.Count - deaths0, causes,
-                s.Score - score0, maxLevel, gameOver, restartWorked));
+            var deaths = finishedDeaths ?? s.Deaths.Skip(deaths0).ToArray();
+            var causes = deaths.GroupBy(d => d.Cause).ToDictionary(g => g.Key, g => g.Count());
+            robots.Add(new RobotResult(name, playTicks / (double)Tps, firstDeath, deaths.Length, causes,
+                finishedScore ?? s.Score - score0, maxLevel, gameOver, restartWorked));
             totalTicks += ticks;
             if (error != null)
                 break;
@@ -280,6 +296,19 @@ public static class StudioValidator
         bool ok = error == null && problems.Count == 0;
         string summary = Summarize(s, error, problems, notes, robots);
         return new ValidationReport(ok, error, problems, totalTicks, summary, Clone(s.Video), robots, shots, notes);
+    }
+
+    private static bool IsNativeBlank(StudioSession session)
+    {
+        if (session.Game.BaseSlot is not { } id) return false;
+        var machine = session.Slots.Single(s => s.Id == id).Machine;
+        var area = StudioSession.PictureArea(machine);
+        if (session.Video.Width != area.w || session.Video.Height != area.h) return false;
+        int colour = session.Video.Pixels[0] & 0xFFFFFF;
+        for (int y = 0; y < area.h; y++)
+            for (int x = 0; x < area.w; x++)
+                if ((machine.Video.Pixels[(y + area.y) * machine.Video.Width + x + area.x] & 0xFFFFFF) != colour) return false;
+        return true;
     }
 
     private static VideoFrame Clone(VideoFrame f)
