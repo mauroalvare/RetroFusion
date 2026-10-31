@@ -54,7 +54,7 @@ public sealed class DmcStartupTests
     public void InvalidActivationDelayIsRejected(int delay)
     {
         var machine = OwnMachine(false); machine.StepInstruction(); byte[] state = machine.SaveState();
-        BinaryPrimitives.WriteInt32LittleEndian(state.AsSpan(^4), delay);
+        BinaryPrimitives.WriteInt32LittleEndian(state.AsSpan(^20), delay);
         Assert.Throws<InvalidDataException>(() => machine.LoadState(state));
     }
 }

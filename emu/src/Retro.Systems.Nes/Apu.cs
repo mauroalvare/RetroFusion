@@ -76,6 +76,7 @@ public sealed class Apu
 
     public void Reset()
     {
+        _dmc.ResetOutputUnit();
         foreach (var r in Enumerable.Range(0x4000, 0x14))
             Write((ushort)r, 0);
         Write(0x4015, 0);
@@ -462,6 +463,16 @@ public sealed class Apu
         public ushort SampleAddress = 0xC000, Address;
         private int _buffer = -1, _shift, _bitsLeft = 8;
         private bool _silent = true;
+
+        public void ResetOutputUnit()
+        {
+            _buffer = -1;
+            _shift = 0;
+            _bitsLeft = 8;
+            _silent = true;
+            Timer = 0;
+            Address = 0;
+        }
 
         public void Restart()
         {

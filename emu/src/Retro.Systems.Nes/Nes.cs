@@ -97,6 +97,10 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         Apu.Reset();
         _dcIn = Apu.Output;   // start the high-pass at rest: no click at power on
         _dcOut = 0;
+        _mixSum = 0;
+        _mixCount = 0;
+        _sampleCarry = 0;
+        _audioCount = 0;
         _strobe = false;
         _pendingOamPage = -1;
         _dmcStartupDelay = 0;
@@ -373,7 +377,7 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         using var ms = new MemoryStream();
         using var w = new BinaryWriter(ms);
         w.Write(StateMagic);
-        w.Write(6);
+        w.Write(7);
         w.Write(Cartridge.Identity);
         _cpu.Save(w);
         w.Write(_ram);
@@ -388,6 +392,10 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         w.Write(_sampleCarry);
         w.Write(_pendingOamPage);
         w.Write(_dmcStartupDelay);
+        w.Write(_mixSum);
+        w.Write(_mixCount);
+        w.Write(_dcIn);
+        w.Write(_dcOut);
         return ms.ToArray();
     }
 
@@ -396,7 +404,7 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         using var r = new BinaryReader(new MemoryStream(state));
         if (r.ReadString() != StateMagic) throw new InvalidDataException("No es un estado guardado de NES.");
         int version = r.ReadInt32();
-        if (version is not (2 or 3 or 4 or 5 or 6)) throw new InvalidDataException("La versión del estado NES no está soportada.");
+        if (version is not (2 or 3 or 4 or 5 or 6 or 7)) throw new InvalidDataException("La versión del estado NES no está soportada.");
         if (version >= 3 && r.ReadString() != Cartridge.Identity)
             throw new InvalidDataException("Este estado pertenece a otra edición del juego.");
         if (version == 2 && Cartridge.Mapper is not (0 or 3))
@@ -412,10 +420,19 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         _openBus = r.ReadByte();
         FrameCount = r.ReadInt64();
         _sampleCarry = r.ReadDouble();
+        if (!double.IsFinite(_sampleCarry) || _sampleCarry < 0 || _sampleCarry >= CyclesPerSample)
+            throw new InvalidDataException("La fase de audio del estado NES no es válida.");
         _pendingOamPage = version >= 4 ? r.ReadInt32() : -1;
         if (_pendingOamPage is < -1 or > 255) throw new InvalidDataException("La página DMA pendiente del estado NES no es válida.");
         _dmcStartupDelay = version >= 5 ? r.ReadInt32() : 0;
         if (_dmcStartupDelay is < 0 or > 3) throw new InvalidDataException("La demora de activación DMC del estado NES no es válida.");
+        _mixSum = version >= 7 ? r.ReadSingle() : 0;
+        _mixCount = version >= 7 ? r.ReadInt32() : 0;
+        _dcIn = version >= 7 ? r.ReadSingle() : Apu.Output;
+        _dcOut = version >= 7 ? r.ReadSingle() : 0;
+        if (!float.IsFinite(_mixSum) || !float.IsFinite(_dcIn) || !float.IsFinite(_dcOut) ||
+            _mixCount < 0 || _mixCount > Math.Ceiling(CyclesPerSample))
+            throw new InvalidDataException("El mezclador de audio del estado NES no es válido.");
         _audioCount = 0;
         ReleaseAllKeys();
     }

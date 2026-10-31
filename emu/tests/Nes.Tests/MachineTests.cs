@@ -109,7 +109,7 @@ public class MachineTests
         Assert.That(nes.Ram[0], Is.EqualTo(count));
     }
 
-    [TestCase(2)] [TestCase(3)] [TestCase(4)] [TestCase(5)]
+    [TestCase(2)] [TestCase(3)] [TestCase(4)] [TestCase(5)] [TestCase(6)]
     public void LegacyStatesKeepCpuRamAndPeripheralPayloadsAligned(int version)
     {
         byte[] code = [0xEA, 0x4C, 0, 0xC0];
@@ -118,9 +118,9 @@ public class MachineTests
         byte[] modern = nes.SaveState();
         var restored = Machine(code);
         restored.LoadState(LegacyNesState.FromCurrent(modern, version));
-        Assert.That(restored.SaveState(), Is.EqualTo(modern));
+        Assert.That(restored.SaveState()[..^16], Is.EqualTo(modern[..^16]), "Legacy formats did not store the audio filter history");
         nes.StepInstruction(); restored.StepInstruction();
-        Assert.That(restored.SaveState(), Is.EqualTo(nes.SaveState()));
+        Assert.That(restored.SaveState()[..^16], Is.EqualTo(nes.SaveState()[..^16]));
     }
 
     [Test]

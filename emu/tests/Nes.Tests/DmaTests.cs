@@ -76,7 +76,7 @@ public sealed class DmaTests
     {
         byte[] code=[0xA9,2,0x8D,0x14,0x40,0xEA];var nes=Machine(code);
         nes.StepInstruction();nes.StepInstruction();EnableDmc(nes);byte[] state=nes.SaveState();
-        using(var r=new BinaryReader(new MemoryStream(state))){r.ReadString();Assert.That(r.ReadInt32(),Is.EqualTo(6));}
+        using(var r=new BinaryReader(new MemoryStream(state))){r.ReadString();Assert.That(r.ReadInt32(),Is.EqualTo(7));}
         var clone=Machine(code);clone.LoadState(state);long before=nes.Cpu2A03.CycleCount;
         nes.StepInstruction();clone.StepInstruction();
         Assert.That(nes.Cpu2A03.CycleCount-before,Is.EqualTo(517));Assert.That(clone.SaveState(),Is.EqualTo(nes.SaveState()));
@@ -91,7 +91,7 @@ public sealed class DmaTests
     [TestCase(-2)] [TestCase(256)]
     public void InvalidPendingPageIsRejected(int page)
     {
-        var nes=Machine([0xEA]);byte[] state=nes.SaveState();BitConverter.GetBytes(page).CopyTo(state,state.Length-8);
+        var nes=Machine([0xEA]);byte[] state=nes.SaveState();BitConverter.GetBytes(page).CopyTo(state,state.Length-24);
         Assert.Throws<InvalidDataException>(()=>nes.LoadState(state));
     }
     [Test]

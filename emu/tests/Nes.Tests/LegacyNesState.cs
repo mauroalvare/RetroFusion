@@ -6,19 +6,20 @@ internal static class LegacyNesState
     {
         using var input = new BinaryReader(new MemoryStream(state));
         string magic = input.ReadString();
-        Assert.That(input.ReadInt32(), Is.EqualTo(6));
+        Assert.That(input.ReadInt32(), Is.EqualTo(7));
         string identity = input.ReadString();
         int cpuStart = (int)input.BaseStream.Position;
         // Versions 2-5 stored the same 29-byte CPU payload, without the NMI poll latch.
-        const int legacyCpuBytes = 29;
-        int tailBytes = version < 4 ? 8 : version < 5 ? 4 : 0;
+        int legacyCpuBytes = version >= 6 ? 30 : 29;
+        const int currentCpuBytes = 30;
+        int tailBytes = 16 + (version < 4 ? 8 : version < 5 ? 4 : 0);
         using var output = new MemoryStream();
         using (var writer = new BinaryWriter(output, System.Text.Encoding.UTF8, leaveOpen: true))
         {
             writer.Write(magic); writer.Write(version);
             if (version >= 3) writer.Write(identity);
             writer.Write(state.AsSpan(cpuStart, legacyCpuBytes));
-            writer.Write(state.AsSpan(cpuStart + legacyCpuBytes + 1, state.Length - cpuStart - legacyCpuBytes - 1 - tailBytes));
+            writer.Write(state.AsSpan(cpuStart + currentCpuBytes, state.Length - cpuStart - currentCpuBytes - tailBytes));
         }
         return output.ToArray();
     }
