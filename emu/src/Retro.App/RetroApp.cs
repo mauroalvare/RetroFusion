@@ -93,7 +93,9 @@ public sealed partial class RetroApp
         // has the Spectrum ROM in it (so a games folder called "ROMs" is never mistaken for it)
         _romDir = FindFolder("firmware") ?? FindFolderWith("roms", "48.rom") ?? Path.Combine(AppContext.BaseDirectory, "firmware");
         _library = new GameLibrary { AutoOrganize = !args.Contains("--no-organize"), InUse = _host.UsesMedia };
-        string games = FindGamesFolder() ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        int gamesArgument = Array.IndexOf(args, "--games-folder");
+        string games = gamesArgument >= 0 && gamesArgument + 1 < args.Length && Directory.Exists(args[gamesArgument + 1])
+            ? Path.GetFullPath(args[gamesArgument + 1]) : FindGamesFolder() ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         _library.Rescan(games);
         Retro.Studio.StudioLibrary.ExportBuiltIns();
         _browser = new FileBrowser(_prefs.LastFolder is { } last && Directory.Exists(last) ? last : games);
@@ -146,6 +148,9 @@ public sealed partial class RetroApp
             }
             else if (args[i] == "--studio" && i + 1 < args.Length)
                 _autoStudio = args[++i];
+            else if (args[i] == "--games-folder" && i + 1 < args.Length) i++;
+            else if (args[i] == "--input-check" && args.Contains("--autotest") && args.Contains("--hidden"))
+            { OpenHub(HubPage.Help); _inputCheckOpen = true; }
             else if (args[i] == "--preparar" && i + 1 < args.Length)
                 _autoPrepare = args[++i];
             else if (args[i] == "--crear-window")
@@ -1178,6 +1183,11 @@ public sealed partial class RetroApp
             if (_host.C64 is { OpenRoms: true } c64 && c64.UnhandledKernalCalls.Count > 0) extra = " · Requiere revisar el firmware";
             string title = _host.Fusion?.Title ?? _host.Info?.Name ?? "Sin máquina";
             status = $"{title} · {speed}{extra} · {_host.Status}";
+            if (_host.Fusion is Retro.Studio.StudioSession session)
+            {
+                string live = FusionPresentation.Status(session.Hud, session.Events, session.Tick);
+                if (live.Length > 0) status = $"{live} · {title} · {speed}";
+            }
         }
         if (_prefs.ShowFps) status = $"{Raylib.GetFPS()} cuadros/s · {status}";
         int jobs = (_studio.IsWorking ? 1 : 0) + (_creator.IsWorking ? 1 : 0) + (_code.IsWorking ? 1 : 0);

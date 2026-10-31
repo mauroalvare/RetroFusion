@@ -166,6 +166,7 @@ public sealed partial class RetroApp
         ImGui.TextWrapped("El taller guarda la idea y cada original investigado. En Trabajos guardados podés revisar los avances, jugar los originales y abrir el analizador. Las guías describen las pruebas pendientes; continuar vuelve a usar el proveedor que elijas.");
         UiTheme.Hint("Identificar un archivo, arrancarlo, comprobar sus controles y tener datos listos para fusionar son pasos distintos.");
         UiTheme.EndCard();
+        DrawInputCheck();
         if (ImGui.CollapsingHeader("Atajos y navegación",ImGuiTreeNodeFlags.DefaultOpen))
         {
             ImGui.TextWrapped("Tab y flechas recorren la interfaz; Enter o Espacio activan controles y Esc vuelve. Select + Start abre la biblioteca desde un mando. En Jugar, el teclado y el mando controlan la máquina.");

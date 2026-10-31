@@ -813,9 +813,10 @@ public sealed partial class CodeWindow : IDisposable
                 try { value = v.Read(m.Memory); }
                 catch (Exception error) when (error is FormatException or OverflowException or IndexOutOfRangeException or ArgumentException or InvalidDataException)
                 { readable = false; }
-                if (compact) UiTheme.Section(VariableLabel(name));
-                else { ImGui.TableNextColumn(); ImGui.TextWrapped(VariableLabel(name)); }
-                if (ImGui.IsItemHovered()) UiTheme.Tooltip(name + "\n" + v.Description);
+                string title = VariableLabel(name) + (v.PurposeIsHypothesis ? " · hipótesis" : "");
+                if (compact) UiTheme.Section(title);
+                else { ImGui.TableNextColumn(); ImGui.TextWrapped(title); }
+                if (ImGui.IsItemHovered()) UiTheme.Tooltip(name + "\n" + v.PurposeSummary + "\n" + v.Description);
                 if (addresses)
                 {
                     Field("Dirección / formato");

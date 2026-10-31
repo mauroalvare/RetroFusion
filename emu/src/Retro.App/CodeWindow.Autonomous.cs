@@ -33,6 +33,13 @@ public sealed partial class CodeWindow
     private readonly ConcurrentQueue<(long Generation, string? Json, AutonomousResearchProgress? Progress)> _autonomousUpdates = new();
     private string _analysisAutotestAction = "", _analysisAutotestSection = "";
     private int _analysisAutotestScrollFrames;
+    internal Action<string, Vector2, Vector2>? AnalysisControlBounds { get; set; }
+    private bool AnalysisButton(string label, bool primary = false)
+    {
+        bool clicked = primary ? UiTheme.PrimaryButton(label) : ImGui.Button(label);
+        AnalysisControlBounds?.Invoke(label, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
+        return clicked;
+    }
 
     internal static int AnalysisNavigationColumns(float available, float pageWidth) =>
         available >= pageWidth * 4 ? 4 : available >= pageWidth * 2 ? 2 : 1;
@@ -220,19 +227,19 @@ public sealed partial class CodeWindow
             AiPicker.Hint("La conexión elegida es manual: este análisis ejecutará pruebas locales sin pedidos de IA. Elegí un CLI o una conexión automática para recibir consejos.");
         else AiPicker.Hint(_autonomousCalls == 0 ? "Pruebas locales sin pedidos de IA." : $"Conexión: {AiPicker.ShortName(_ai.Provider)} · hasta {_autonomousCalls} pedidos en esta ejecución.");
         ImGui.BeginDisabled(_autonomousStore == null);
-        if (UiTheme.PrimaryButton(_autonomousWork == null ? "Iniciar investigación" : "Iniciar otro análisis")) BeginAutonomousAnalysis(false);
+        if (AnalysisButton(_autonomousWork == null ? "Iniciar investigación" : "Iniciar otro análisis", true)) BeginAutonomousAnalysis(false);
         if (_autonomousWork != null)
         {
             int extraCalls = AiPicker.IsApi(_ai.Provider) ? _autonomousCalls : 0;
             AiPicker.Hint($"Al continuar se agregan {_autonomousMinutes} minutos y hasta {extraCalls} pedidos de IA.");
-            if (ImGui.Button("Continuar análisis")) BeginAutonomousAnalysis(true);
+            if (AnalysisButton("Continuar análisis")) BeginAutonomousAnalysis(true);
         }
         ImGui.EndDisabled(); ImGui.EndDisabled();
         if (busy)
         {
             bool stopping = _autonomousCts?.IsCancellationRequested == true;
             ImGui.BeginDisabled(stopping);
-            if (ImGui.Button("Pausar análisis")) _autonomousCts?.Cancel();
+            if (AnalysisButton("Pausar análisis")) _autonomousCts?.Cancel();
             ImGui.EndDisabled();
             AiPicker.Hint(stopping ? "Deteniendo la prueba en curso y guardando lo completado. Podés continuar después."
                 : "Pausar conserva el progreso completado para continuar después.");
