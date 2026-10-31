@@ -284,8 +284,13 @@ public sealed partial class Z80Cpu : ICpuDebugView
             PC++;
         }
         IFF1 = false;
+        // NMI replaces the next opcode by a restart, but the M1 memory read still
+        // occurs. Ignore its data and leave PC pointing at the return instruction.
+        T += _bus.Contention(PC, T);
+        T += 4;
+        _bus.ReadMemory(PC);
         IncR();
-        T += 5;
+        T += 1;
         Push(PC);
         PC = 0x0066;
         WZ = PC;

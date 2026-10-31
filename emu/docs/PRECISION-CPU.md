@@ -136,3 +136,24 @@ Las fuentes de estas afirmaciones están en [FUSE](../tests/Retro.Cpu.Z80.Tests/
 [placa C64](../src/Retro.Systems.C64/C64.cs), [placa NES](../src/Retro.Systems.Nes/Nes.cs),
 [pruebas de punteros/pila](../tests/I8088.Tests/PointerStackTimingTests.cs) y
 [pruebas de marcos y control](../tests/I8088.Tests/StackControlTimingTests.cs).
+
+## Revisión de NMI del Z80 y matriz de alcance
+
+La aceptación de NMI ahora realiza la lectura M1 en PC, ignora el dato y aplica la
+contención antes de apilar el retorno y saltar a0066. Antes omitía esa lectura y la
+espera de bus. Cuatro casos reproducían el fallo: ejecución/HALT con cero/tres esperas.
+Se contrastan orden de lectura/escrituras,11T más esperas,PC/SP,R,flags e IFF.
+La descripción del ciclo está en el [manual de Zilog](https://www.zilog.com/docs/z80/z80cpu_um.pdf).
+No se incorpora una simulación de medias fases ni se modifica el formato de estados.
+
+| Núcleo | Contraste de instrucciones/ciclos | Señales y estado revisados | Alcance pendiente |
+|---|---|---|---|
+| Z80 | FUSE, ZEXDOC/ZEXALL, casos de prefijos | IRQ/IM0–2,HALT,EI,NMI y contención; latches guardados en Spectrum | Medias fases, pulsos y todas las coincidencias físicas |
+| 8080 | Diagnósticos CP/M y8080EXM | INTE/EI,HALT,READY y latches de la placa arcade | Todos los dispositivos/variantes y coincidencias de pines |
+| 6502/6510/2A03 | Dormann,SingleStepTests y nestest para2A03 | IRQ/NMI/BRK,reset,RDY,paradas y DMA modeladas; estados NES/C64 | Concurrencias RDY/DMA y variantes físicas completas |
+| 8088/8086 | Suite local y contraste externo conservado | Bus,READY,HOLD,NMI/IRQ/REP y estado modelados | Placa8086,variantes y precisión absoluta; sin nueva ampliación en esta pasada |
+
+La batería integral de esta revisión incluye Long y los cuatro proyectos de CPU:
+Z801385,808032,650236 y8088/8086624 aprobados. También se ejecutan sus máquinas y
+los recorridos de pausa/guardado/reanudación. Los números cuentan pruebas, no cobertura
+porcentual ni certificación de una CPU al100%.
