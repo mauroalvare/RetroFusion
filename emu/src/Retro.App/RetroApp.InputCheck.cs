@@ -7,9 +7,11 @@ public sealed partial class RetroApp
 {
     private string _lastInputCheck = "Todavía no se registraron entradas en esta comprobación.";
     private bool _inputCheckOpen;
+    private int _inputCheckAutotestFrames = 8;
     private void DrawInputCheck()
     {
         if (!ImGui.CollapsingHeader("Comprobar teclado y mando", _inputCheckOpen ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.None)) return;
+        if (_inputCheckOpen && _inputCheckAutotestFrames-- > 0) ImGui.SetScrollHereY(0);
         ImGui.TextWrapped(Raylib.IsWindowFocused() ? "Ventana con foco. Las entradas se muestran acá mientras probás." : "Hacé clic en esta ventana para darle foco.");
         var down = new List<string>();
         foreach (var key in new[] { KeyboardKey.Left, KeyboardKey.Right, KeyboardKey.Up, KeyboardKey.Down,
