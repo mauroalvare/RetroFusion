@@ -79,6 +79,7 @@ public static class LabExperiments
     {
         var (start, end) = MemoryLab.RangeFor(machine);
         byte[] state = m.SaveState();
+        var picture = (int[])m.Video.Pixels.Clone();
         var sink = new short[8192];
         List<byte[]> Play(bool withInputs)
         {
@@ -101,7 +102,7 @@ public static class LabExperiments
             return samples;
         }
         try { return (Play(true), Play(false)); }
-        finally { m.LoadState(state); m.ReleaseAllKeys(); }
+        finally { m.LoadState(state); picture.CopyTo(m.Video.Pixels, 0); m.ReleaseAllKeys(); }
     }
 
     internal static byte[] Snapshot(IMachine m, int start, int end)

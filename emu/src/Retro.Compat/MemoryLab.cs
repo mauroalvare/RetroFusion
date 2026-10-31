@@ -97,6 +97,7 @@ public static class MemoryLab
         int len = end - start + 1;
         var report = new LabReport { Machine = machine, Generated = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm 'UTC'") };
         byte[] state = m.SaveState();
+        var picture = (int[])m.Video.Pixels.Clone();
         var sink = new short[8192];
 
         byte[] Snapshot()
@@ -337,7 +338,7 @@ public static class MemoryLab
                     {
                         f.Nature = "derived";
                         f.Confidence = Math.Max(0.1, f.Confidence - 0.25);
-                        f.Evidence.Add($"se reescribe {total} veces en {observed} cuadros: parece un buffer de pantalla o un valor recalculado, no la variable original");
+                        f.Evidence.Add($"se reescribe {total} veces en {observed} cuadros: puede ser un buffer o un valor actualizado con frecuencia; la frecuencia no distingue el estado original de una copia");
                     }
                 }
             }
@@ -349,7 +350,7 @@ public static class MemoryLab
                 report.Notes.Add("No apareció ningún candidato de vidas: durante la observación no murió el personaje. Probar con más cuadros o un guion que lo haga morir.");
             return report;
         }
-        finally { m.LoadState(state); m.ReleaseAllKeys(); }
+        finally { m.LoadState(state); picture.CopyTo(m.Video.Pixels, 0); m.ReleaseAllKeys(); }
     }
 
     /// <summary>

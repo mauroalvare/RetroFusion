@@ -169,6 +169,8 @@ public sealed class PrepareOptions
     public string? ProfilesFolder { get; set; }
     public int LabFrames { get; set; } = 3000;
     public bool Save { get; set; } = true;
+    /// <summary>Completed observations for progress/checkpoints; called only on the worker.</summary>
+    public Action<LabReport>? EvidenceUpdated { get; set; }
 }
 
 public sealed class PrepareResult
@@ -220,14 +222,19 @@ public static class GamePreparer
     private const int EffectFrames = 180;
 
     /// <summary>The machine and file of a set of files (the best implemented one), or the reason there is none.</summary>
-    public static (string? machine, MediaFile? media, string reason) Choose(IReadOnlyList<MediaFile> files)
+    public static (string? machine, MediaFile? media, string reason) Choose(IReadOnlyList<MediaFile> files, GameProfile? preferred = null)
     {
         if (MachineCatalog.IdentifySet(files) is { } board)
             return (board.Machine.Id, files[0], board.Reason);
+        // A ZIP may contain several editions. Continue the member selected by the player,
+        // identified by its bytes, instead of silently investigating the first clean dump.
+        var preferredFiles = preferred == null ? new HashSet<MediaFile>() : files
+            .Where(f => preferred.Match.Sha256.Contains(Sha256Of(f), StringComparer.OrdinalIgnoreCase)).ToHashSet();
         var best = files
             .SelectMany(MachineCatalog.Identify)
             .Where(c => c.Confidence >= 50 && CanPrepare(c.Machine.Id) && MachineCatalog.NotLoadableYet(c) == null)
-            .OrderByDescending(c => c.Confidence)
+            .OrderByDescending(c => preferredFiles.Contains(c.File) && c.Machine.Id == preferred?.Machine)
+            .ThenByDescending(c => c.Confidence)
             .ThenBy(c => MediaArchive.DumpScore(c.File.Name))
             .FirstOrDefault();
         return best == null ? (null, null, "ninguna máquina disponible reconoce este archivo") : (best.Machine.Id, best.File, best.Reason);
@@ -255,7 +262,7 @@ public static class GamePreparer
             progress?.Invoke(text);
         }
         var files = MediaArchive.Open(path);
-        var (machine, media, reason) = Choose(files);
+        var (machine, media, reason) = Choose(files, o.PreviousProfile);
         r.Game = GameNameOf(path, machine);
         if (machine == null || media == null)
         {
@@ -457,6 +464,7 @@ public static class GamePreparer
         lab.Game = r.Game;
         lab.Script = "preparación automática";
         lab.Sha256 = r.Sha256;
+        o.EvidenceUpdated?.Invoke(lab);
         if (machine == "nes" && r.Boot.Any(step => step.StartsWith("press P1 START ", StringComparison.Ordinal)))
             lab.CheckedControls["start"] = "P1 START";
         ct.ThrowIfCancellationRequested();
@@ -473,6 +481,7 @@ public static class GamePreparer
         lab.Method += $" Experimento de puntaje: {play.Description}, {play.Frames} cuadros contra los mismos sin tocar nada.";
         Say("Laboratorio: verificando cada hipótesis con un experimento...");
         LabVerifier.VerifyBest(m, lab, scores.Concat(livesInPlay).ToDictionary(f => f, _ => play), ct: ct);
+        o.EvidenceUpdated?.Invoke(lab);
         ct.ThrowIfCancellationRequested();
         if (r.Goal.Length > 0 && previous?.Variables.Count > 0)
         {
@@ -531,6 +540,7 @@ public static class GamePreparer
                         string.Join(" ", proposed.Select(f => $"0x{f.Address}: {f.Status}; {string.Join("; ", f.Verification?.Observations.Take(2) ?? [])}"));
                     r.CheckedData.Add(outcome);
                     r.Experiments.Add(new(signature, experiment.Description ?? "", outcome));
+                    o.EvidenceUpdated?.Invoke(lab);
                     advance = experiment;
                 }
                 r.Advisors.Add(planner is IPlayAdvisor playingPlanner ? playingPlanner.Name + " (experimentos)" : "experimentos dirigidos");
@@ -792,7 +802,7 @@ public static class GamePreparer
                 p.Variables[name] = new GameVariable
                 {
                     Address = f.Address, Encoding = f.Encoding, Bytes = f.Bytes, Min = 0, Max = name == "lives" ? 9 : MaxFor(f), ReadOnly = readOnly,
-                    Description = "Nombre propuesto por la IA: " + n.Description + (readOnly ? " (Solo lectura: el juego la recalcula.)" : Why(f)),
+                    Description = "Nombre propuesto por la IA: " + n.Description + (readOnly ? " (Solo lectura: falta un efecto de escritura comprobado.)" : Why(f)),
                 };
             }
         }
@@ -820,7 +830,7 @@ public static class GamePreparer
                 p.Variables[name] = new GameVariable
                 {
                     Address = read.Address, Min = 0, Max = 255, ReadOnly = true,
-                    Description = "Hipótesis por variación: " + what + " (solo lectura: el juego la recalcula, escribirla no mueve al personaje). " + read.Evidence.FirstOrDefault(),
+                    Description = "Hipótesis por variación: " + what + " (solo lectura: falta un efecto de escritura comprobado en la secuencia probada). " + read.Evidence.FirstOrDefault(),
                 };
         }
         }

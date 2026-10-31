@@ -14,6 +14,12 @@ public sealed class LabVerification
     /// <summary>Most pixels that differed from the untouched run at the moments compared.</summary>
     public int PixelsChanged { get; set; }
     public string Date { get; set; } = "";
+    public int BeforeValue {get;set;}
+    public int TestValue {get;set;}
+    public string BeforeHex {get;set;}="";
+    public string TestHex {get;set;}="";
+    public int ChangedRamBytes {get;set;}
+    public List<string> ChangedRamSample {get;set;}=[];
 }
 
 /// <summary>
@@ -38,17 +44,24 @@ public static class LabVerifier
         int bytes = f.Kind == "entity-table" ? 1 : f.Bytes;
         var v = new GameVariable { Address = f.Address, Encoding = f.Kind == "entity-table" ? "uint8" : f.Encoding, Bytes = bytes, Min = 0, Max = int.MaxValue };
         byte[] state = m.SaveState();
+        var picture=(int[])m.Video.Pixels.Clone();
         int before = v.Read(m.Memory);
         int target = TestValue(f, before);
+        byte[] beforeBytes=Enumerable.Range(0,bytes).Select(i=>m.Memory.Peek(address+(uint)i)).ToArray();
+        byte[] testBytes=[];
         var checkpoints = new[] { 2, 10, 30, 60, 120, n }.Where(x => x <= n).Distinct().ToArray();
         var sink = new short[8192];
 
-        (int[] values, Dictionary<int, int[]> pictures, string? text) Play(bool poke)
+        var range=MemoryLab.RangeFor(m.Id);
+        (int[] values, Dictionary<int, int[]> pictures, string? text,byte[] ram) Play(bool poke)
         {
             m.LoadState(state);
             var keys = new LabKeys(m);
             if (poke)
+            {
                 v.Write(m.Memory, target);
+                testBytes=Enumerable.Range(0,bytes).Select(i=>m.Memory.Peek(address+(uint)i)).ToArray();
+            }
             var values = new int[n + 1];
             var pictures = new Dictionary<int, int[]>();
             values[0] = v.Read(m.Memory);
@@ -66,23 +79,30 @@ public static class LabVerifier
                     pictures[frame + 1] = (int[])m.Video.Pixels.Clone();
             }
             keys.ReleaseAll();
-            return (values, pictures, ScreenReader.Text(m));
+            byte[] ram=new byte[range.end-range.start+1];
+            for(int i=0;i<ram.Length;i++)ram[i]=m.Memory.Peek((uint)(range.start+i));
+            return (values, pictures, ScreenReader.Text(m),ram);
         }
 
-        (int[] values, Dictionary<int, int[]> pictures, string? text) baseline, modified;
+        (int[] values, Dictionary<int, int[]> pictures, string? text,byte[] ram) baseline, modified;
         try { baseline = Play(false); modified = Play(true); }
-        finally { m.LoadState(state); m.ReleaseAllKeys(); }
-        var (bv, bp, bt) = baseline;
-        var (pv, pp, pt) = modified;
+        finally { m.LoadState(state); picture.CopyTo(m.Video.Pixels,0); m.ReleaseAllKeys(); }
+        var (bv, bp, bt,br) = baseline;
+        var (pv, pp, pt,pr) = modified;
 
         var result = new LabVerification
         {
             Frames = n, Date = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm 'UTC'"),
+            BeforeValue=before,TestValue=target,BeforeHex=Convert.ToHexString(beforeBytes),TestHex=Convert.ToHexString(testBytes),
             Experiment = $"Escribí {target} en ${f.Address} ({LabExperiments.EncodingName(v.Encoding, bytes)}; antes {before}) y corrí {n} cuadros " +
                          (replay != null ? $"repitiendo las entradas de \"{replay.Description}\" " : "sin tocar nada ") +
                          "contra la misma corrida sin escribir.",
         };
         var obs = result.Observations;
+        for(int i=0;i<br.Length;i++)
+            if(br[i]!=pr[i])
+            {result.ChangedRamBytes++;if(result.ChangedRamSample.Count<8)result.ChangedRamSample.Add($"${range.start+i:X4}: {br[i]:X2} -> {pr[i]:X2}");}
+        obs.Add($"Al final difieren {result.ChangedRamBytes} bytes del área de RAM observada frente al control; incluye el dato probado y consecuencias, no demuestra por sí solo su significado.");
         // when does the written value fall back to the untouched run for good?
         int backAt = n + 1;
         for (int k = n; k >= 0 && pv[k] == bv[k]; k--)
@@ -178,6 +198,11 @@ public static class LabVerifier
         f.Verification = result;
         if (result.Result == "verified")
         {
+            if (f.Nature == "derived")
+            {
+                f.Nature = "stored-value";
+                obs.Add("La escritura produjo un efecto en esta secuencia; la clasificación previa como copia por frecuencia de escrituras no se confirmó. No acredita el propósito fuera de esta prueba.");
+            }
             // the stronger the evidence the higher: the text shows it, the game keeps counting from it, the picture changes
             int strength = (textShows ? 3 : 0) + (keptOperating ? 2 : 0) + (most > 0 ? 1 : 0);
             f.Confidence = Math.Min(1.0, 0.85 + 0.02 * strength + 0.02 * Math.Min(1, f.Confidence));
@@ -265,8 +290,9 @@ public static class LabVerifier
     /// </summary>
     public static void VerifyBest(IMachine m, LabReport report, IReadOnlyDictionary<LabFinding, LabExperiment>? replays = null, int perKind = 3, CancellationToken ct = default)
     {
-        // values the game recomputes or rewrites from everywhere are read-only candidates: writing them proves nothing
-        foreach (var group in report.Findings.Where(f => f.Nature != "derived").GroupBy(f => f.Kind))
+        // Write frequency alone cannot distinguish a frequently updated real value from
+        // a copy. Both need the same controlled probe before becoming profile data.
+        foreach (var group in report.Findings.GroupBy(f => f.Kind))
             foreach (var f in group.Where(f => f.Status == "hypothesis").OrderByDescending(f => f.Confidence).Take(perKind))
                 Verify(m, f, replays != null && replays.TryGetValue(f, out var e) ? e : null, ct: ct);
         report.Findings = report.Findings
