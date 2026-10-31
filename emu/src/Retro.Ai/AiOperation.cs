@@ -1,5 +1,7 @@
 using System.Text;
 using System.Text.Json;
+using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 
 namespace Retro.Ai;
 
@@ -94,13 +96,17 @@ public sealed record AiOperationStats(int Calls, int CallsWithUsage, long TextCh
 
 /// <summary>
 /// One user operation: limits whole requests, never truncates instructions or source.
-/// Calls through this instance are serialized; separate operations or direct calls to
-/// the same provider need their own coordination because LastUsage is shared state.
+/// Operations sharing a provider or subscription CLI serialize dispatch and usage
+/// attribution. Direct provider callers remain responsible for their own budgets.
 /// </summary>
 public sealed class AiOperation(IAiProvider provider, int maxCalls, long maxTextCharacters = 0, AiOperationStats? previous = null) : IAiProvider
 {
     private readonly object _gate = new();
     private readonly SemaphoreSlim _requests = new(1, 1);
+    private static readonly ConditionalWeakTable<IAiProvider, SemaphoreSlim> ProviderGates = new();
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> CliGates = new();
+    private readonly SemaphoreSlim? _providerRequests = provider is AiOperation ? null : provider is CliAgentProvider cli
+        ? CliGates.GetOrAdd(cli.ResourceKey, _ => new(1, 1)) : ProviderGates.GetValue(provider, _ => new(1, 1));
     private AiOperationStats _stats = previous ?? new(0, 0, 0, 0, 0, null);
     private AiUsage? _lastUsage;
     public IAiProvider Provider => provider;
@@ -112,8 +118,10 @@ public sealed class AiOperation(IAiProvider provider, int maxCalls, long maxText
     {
         // Waiting requests have not been sent and must not reserve calls or text.
         await _requests.WaitAsync(ct);
+        bool providerEntered = false;
         try
         {
+            if (_providerRequests != null) { await _providerRequests.WaitAsync(ct); providerEntered = true; }
             ct.ThrowIfCancellationRequested();
             var estimate = AiEstimate.For(request);
             lock (_gate)
@@ -149,6 +157,6 @@ public sealed class AiOperation(IAiProvider provider, int maxCalls, long maxText
                     }
             }
         }
-        finally { _requests.Release(); }
+        finally { if (providerEntered) _providerRequests!.Release(); _requests.Release(); }
     }
 }

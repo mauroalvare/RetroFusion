@@ -188,6 +188,38 @@ public sealed class AiOperationTests
     }
 
     [Test]
+    public async Task SeparateOperationsSerializeTheSameProviderAndCancelledWaitsReserveNothing()
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var fake = new Fake();
+        fake.Response = async ct =>
+        {
+            int call = fake.Requests.Count;
+            if (call == 1) { entered.TrySetResult(); await release.Task.WaitAsync(ct); }
+            fake.LastUsage = new(call * 10, call);
+            return "respuesta";
+        };
+        var a = new AiOperation(fake, 1); var b = new AiOperation(fake, 1);
+        Task<string> first = a.CompleteAsync(Request(), CancellationToken.None);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        using var cancellation = new CancellationTokenSource();
+        Task<string> queued = b.CompleteAsync(Request(), cancellation.Token);
+        cancellation.Cancel();
+        try
+        {
+            Assert.ThrowsAsync<OperationCanceledException>(async () => await queued.WaitAsync(TimeSpan.FromSeconds(3)));
+            Assert.That(fake.Requests, Has.Count.EqualTo(1));
+            Assert.That(b.Stats.Calls, Is.Zero);
+            Assert.That(b.Stats.TextCharacters, Is.Zero);
+        }
+        finally { release.TrySetResult(); await first.WaitAsync(TimeSpan.FromSeconds(3)); }
+        await b.CompleteAsync(Request(), CancellationToken.None);
+        Assert.That(a.Stats.InputTokens, Is.EqualTo(10));
+        Assert.That(b.Stats.InputTokens, Is.EqualTo(20));
+    }
+
+    [Test]
     public void ProviderMetadataIsOptional_AndItsDifferentCacheConventionsAreRespected()
     {
         using var response = JsonDocument.Parse("""{"usage":{"input_tokens":120,"output_tokens":30,"input_tokens_details":{"cached_tokens":90}}} """);
