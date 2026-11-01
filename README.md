@@ -15,6 +15,10 @@ los prueba y quedan como un `.prg` o un `.tap` que corre en cualquier emulador.
 
 ## Fusiones incluidas
 
+[Versión 0.3.6](https://github.com/mauroalvare/RetroFusion/releases/tag/v0.3.6): interfaz
+retro renovada, investigación recuperable, recorridos dirigidos y correcciones de CPU,
+audio y controles. [Novedades y alcance](emu/docs/NOVEDADES-0.3.6.md).
+
 Los originales corren en sus máquinas emuladas. Podés conservar los mapas, gráficos,
 interfaz y reglas de un **juego base** e incorporar personajes o mecánicas de los demás.
 Invertir la base cambia la dirección de la fusión. **Crear > Juego nuevo con tus ROMs** es
@@ -53,9 +57,9 @@ carpeta.
 
 Estos dos vienen incluidos como ejemplo (originales, escritos solo con las guías):
 
-| Tormenta (Commodore 64) | El jardín de los topos (ZX Spectrum) |
+| Ejemplo de Commodore 64 | Ejemplo de ZX Spectrum |
 |---|---|
-| ![Tormenta](emu/docs/img/creados/tormenta.png) | ![El jardín de los topos](emu/docs/img/creados/topos.png) |
+| ![Ejemplo de Commodore 64](emu/docs/img/creados/tormenta.png) | ![Ejemplo de ZX Spectrum](emu/docs/img/creados/topos.png) |
 | Un bote junta salvavidas y esquiva rayos; sprites, sonido del SID y puntaje. | Golpear a los topos que asoman en 24 agujeros antes de que se escapen. |
 
 ## La app por dentro
@@ -114,7 +118,7 @@ analizador; las observaciones humanas se contrastan antes de tratarlas como hech
 
 | Código y depurador | Nintendo NES |
 |---|---|
-| ![Rutinas y depurador de Tormenta en C64](emu/docs/img/interfaz/codigo.png) | ![Un cartucho en la máquina NES](emu/docs/img/interfaz/nes.png) |
+| ![Rutinas y depurador del Commodore 64](emu/docs/img/interfaz/codigo.png) | ![Un cartucho en la máquina NES](emu/docs/img/interfaz/nes.png) |
 | Estudiá rutinas, registros y memoria mientras el programa corre. | Juegos originales con CPU, video, sonido y controles emulados. |
 
 | Biblioteca en una ventana chica | Programas de PC con arranque incluido |

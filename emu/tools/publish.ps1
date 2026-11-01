@@ -5,7 +5,7 @@ param(
     [ValidatePattern('^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$')]
     [string[]]$Runtimes = @("win-x64", "linux-x64"),
     [ValidatePattern('^\d+\.\d+\.\d+$')]
-    [string]$Version = "0.3.5"
+    [string]$Version = "0.3.6"
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
@@ -55,6 +55,9 @@ foreach ($rid in $Runtimes) {
     Copy-Item (Join-Path $root "docs/NOVEDADES-0.3.3.md") (Join-Path $playerDocs "NOVEDADES-0.3.3.md")
     Copy-Item (Join-Path $root "docs/NOVEDADES-0.3.4.md") (Join-Path $playerDocs "NOVEDADES-0.3.4.md")
     Copy-Item (Join-Path $root "docs/NOVEDADES-0.3.5.md") (Join-Path $playerDocs "NOVEDADES-0.3.5.md")
+    foreach ($doc in "NOVEDADES-0.3.6.md", "ANALISIS-AUTOMATICO.md", "DISENO-INTERFAZ.md", "LIMITACIONES.md", "NES-DMA.md", "NESTEST.md") {
+        Copy-Item -LiteralPath (Join-Path $root "docs/$doc") -Destination (Join-Path $playerDocs $doc)
+    }
     Copy-Item (Join-Path $root "docs/PRECISION-CPU.md") (Join-Path $playerDocs "PRECISION-CPU.md")
     Copy-Item (Join-Path $root "docs/PREFERENCIAS.md") (Join-Path $playerDocs "PREFERENCIAS.md")
     Copy-Item (Join-Path $root "docs/REBOBINADO.md") (Join-Path $playerDocs "REBOBINADO.md")
@@ -65,8 +68,8 @@ foreach ($rid in $Runtimes) {
     Copy-Item (Join-Path $root "docs/CONECTAR-IA.md") (Join-Path $playerDocs "CONECTAR-IA.md")
     $playerImages = Join-Path $playerDocs "img/interfaz"
     New-Item -ItemType Directory -Force $playerImages | Out-Null
-    foreach ($image in "biblioteca.png", "biblioteca-compacta.png", "biblioteca-pc.png", "modificaciones.png", "favoritos.png") {
-        Copy-Item (Join-Path $root "docs/img/interfaz/$image") (Join-Path $playerImages $image)
+    foreach ($image in Get-ChildItem -LiteralPath (Join-Path $root "docs/img/interfaz") -Filter '*.png' -File) {
+        Copy-Item -LiteralPath $image.FullName -Destination (Join-Path $playerImages $image.Name)
     }
     Copy-Item (Join-Path $root "docs/ARQUITECTURA.md") (Join-Path $playerDocs "ARQUITECTURA.md")
     @"
@@ -86,6 +89,8 @@ Para usar tu BIOS, agregalo como pcxt/pcxt-bios.rom. Ver docs/PC-DOS.md.
 Los juegos no se incluyen.
 "@ | Set-Content (Join-Path $out "firmware/LEEME.txt") -Encoding utf8
 
+    python -I (Join-Path $PSScriptRoot 'bundle_doc_links.py') $root $out $Version
+    if ($LASTEXITCODE -ne 0) { throw 'Hay enlaces incompletos en el manual del paquete.' }
     python -I (Join-Path $PSScriptRoot 'make_update_manifest.py') $out $Version $rid
     if ($LASTEXITCODE -ne 0) { throw 'No se pudo generar el registro de actualización.' }
     if ($rid.StartsWith("win")) {
