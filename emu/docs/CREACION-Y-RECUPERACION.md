@@ -48,6 +48,20 @@ usar menos, además de los límites de tiempo y texto vigentes. No se repite un 
 ya falló sin un cambio. Las capturas se adjuntan solo a herramientas que declaran soporte
 visual; las demás reciben el informe de texto y el dibujo aproximado disponible.
 
+## Si la herramienta de IA queda esperando
+
+La actividad distingue **Enviando pedido al CLI** de **Pedido entregado al CLI; esperando
+respuesta**. El segundo estado indica que terminó de escribirse la entrada del proceso
+local; no confirma una respuesta del modelo. Al agotarse el plazo, el aviso indica la
+etapa y conserva el diagnóstico. No tomes las advertencias aisladas como causa confirmada.
+
+Abrí **Modelo y conexión → Conexión avanzada**. **Probar conexión** envía un pedido breve
+y cuenta para los límites de tu plan; se puede detener con **Cancelar prueba**. Cancelar
+no inicia otra consulta. Si una consigna breve también queda esperando, conservá el aviso
+y la actividad observada antes de repetir una creación larga. Cambiar de proveedor o
+cerrar la app solicita detener la prueba en curso. Un tiempo agotado sin métricas deja el
+consumo desconocido, sin convertirlo en cero.
+
 ## Alcance de la aprobación
 
 En programas desde cero se comprueban ensamblado, carga, dibujo, respuesta sostenida a

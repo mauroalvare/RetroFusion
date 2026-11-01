@@ -41,6 +41,7 @@ public static class AiPicker
         ImGui.SetNextItemWidth(-1);
         if (ImGui.Combo(id, ref provider, Names, Names.Length, Names.Length))
         {
+            ConnectionProbe.Cancel();
             ai.Provider = Ids[provider];
             ai.Save();
         }
@@ -49,6 +50,7 @@ public static class AiPicker
     /// <summary>One compact chooser. Connection, model and usage details stay together on demand.</summary>
     public static void Choose(AiSettings ai, string id, string costNote, Func<AiRequest>? preview = null)
     {
+        ConnectionProbe.Poll();
         Combo(ai, "##ia-" + id);
         if (!IsApi(ai.Provider)) return;
         string model = CliTools.ById(ai.Provider) != null ? ai.CliModels.GetValueOrDefault(ai.Provider, "")
@@ -91,11 +93,10 @@ public static class AiPicker
         ImGui.TreePop();
     }
 
-    /// <summary>Key and model of the chosen API provider. <paramref name="costNote"/> says what one request is.</summary>
-    private static Task<string>? s_test;
-    private static string s_testResult = "";
-    private static string s_testKey = "";
+    private static readonly AiConnectionProbe ConnectionProbe = new();
+    internal static Task CancelWork() => ConnectionProbe.CancelWork();
 
+    /// <summary>Key and model of the chosen API provider. <paramref name="costNote"/> says what one request is.</summary>
     public static void Settings(AiSettings ai, string costNote, bool setupLink = true)
     {
         if (CliTools.ById(ai.Provider) is { } tool)
@@ -209,28 +210,28 @@ public static class AiPicker
             ai.Save();
         }
         Hint("Usa tu cuenta y los límites de tu plan.");
-        bool testing = s_test is { IsCompleted: false };
+        ConnectionProbe.Poll();
+        bool testing = ConnectionProbe.Busy;
         string key = tool.Id + "|" + found + "|" + model + "|" + ai.CliEfforts.GetValueOrDefault(tool.Id);
         ImGui.BeginDisabled(testing || found == null);
         if (ImGui.Button(testing ? "Probando..." : "Probar conexión"))
         {
             var provider = new CliAgentProvider(tool, ai.CliPaths.GetValueOrDefault(tool.Id), TimeSpan.FromMinutes(3), ai.CliModels.GetValueOrDefault(tool.Id), ai.CliEfforts.GetValueOrDefault(tool.Id));
-            s_testResult = "";
-            s_testKey = key;
-            s_test = Task.Run(() => provider.TestAsync(CancellationToken.None));
+            ConnectionProbe.Start(key, provider.TestAsync);
         }
         ImGui.EndDisabled();
         if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
             ImGui.SetTooltip("Envía un pedido breve para comprobar la sesión. Cuenta para los límites de tu plan.");
-        if (s_test is { IsCompleted: true } t)
+        if (ConnectionProbe.Busy)
         {
-            s_testResult = t.IsCompletedSuccessfully ? $"Funciona. Respondió: \"{t.Result}\"" : "No funcionó: " + t.Exception!.GetBaseException().Message;
-            s_test = null;
+            ImGui.BeginDisabled(ConnectionProbe.IsCancelling);
+            if (ImGui.Button(ConnectionProbe.IsCancelling ? "Deteniendo prueba..." : "Cancelar prueba")) ConnectionProbe.Cancel();
+            ImGui.EndDisabled();
+            Hint("Podés detener esta prueba sin iniciar otro pedido.");
         }
-        if (s_testResult.Length > 0 && s_testKey == key)
+        if (ConnectionProbe.Result.Length > 0 && ConnectionProbe.Key == key)
         {
-            ImGui.SameLine();
-            ImGui.TextWrapped(s_testResult);
+            ImGui.TextWrapped(ConnectionProbe.Result);
         }
         ImGui.TreePop();
     }

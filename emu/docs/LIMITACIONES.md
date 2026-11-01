@@ -520,6 +520,9 @@ en el programa nuevo no promete lectura de formatos nuevos en programas anterior
   Ollama informa modelos instalados, sin niveles de esfuerzo en ese listado. Un catálogo
   no certifica cuota ni una generación exitosa. No se instalan herramientas ni se inicia
   sesión automáticamente. Ver `CONECTAR-IA.md`.
+  Probar conexión se puede cancelar; también se solicita cancelación al cambiar de
+  proveedor o cerrar la app. Un envío terminado al proceso local no confirma recepción
+  del servidor ni una respuesta. Un plazo agotado sin métricas deja el consumo desconocido.
 
 - **Construcción con IA:** el panel muestra actividad observada del proceso y la salida
   que el CLI emite. No revela razonamiento interno ni puede obtener texto que la herramienta

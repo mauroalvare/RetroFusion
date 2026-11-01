@@ -329,7 +329,8 @@ public sealed class CliAgentProvider : IAiProvider
         long started = Stopwatch.GetTimestamp(), lastOutput = started, characters = 0;
         var output = new StringBuilder();
         var gate = new object();
-        string status = "CLI en ejecución";
+        string status = stdin.Length > 0 ? "Enviando pedido al CLI" : "CLI en ejecución";
+        bool inputDelivered = false;
         void Report(bool running)
         {
             lock (gate)
@@ -365,8 +366,18 @@ public sealed class CliAgentProvider : IAiProvider
             try
             {
                 if (stdin.Length > 0)
+                {
                     await p.StandardInput.WriteAsync(stdin.AsMemory(), timeoutCts.Token);
+                    // Flush with cancellation before Close can perform a synchronous write.
+                    await p.StandardInput.FlushAsync(timeoutCts.Token);
+                }
                 p.StandardInput.Close();
+                if (stdin.Length > 0)
+                {
+                    inputDelivered = true;
+                    lock (gate) status = "Pedido entregado al CLI; esperando respuesta";
+                    Report(true);
+                }
             }
             catch (IOException) { }
             await p.WaitForExitAsync(timeoutCts.Token);
@@ -380,7 +391,11 @@ public sealed class CliAgentProvider : IAiProvider
             try { await Task.WhenAll(outTask, errTask); } catch (OperationCanceledException) { }
             status = ct.IsCancellationRequested ? "CLI cancelado" : "CLI detenido por tiempo máximo";
             if (ct.IsCancellationRequested) throw;
-            throw new AiException($"{Path.GetFileName(exe)} tardó más de {timeout.TotalMinutes:F0} minutos y lo detuve.");
+            string limit = timeout.TotalMinutes >= 1 ? $"{timeout.TotalMinutes:0.#} minutos" : $"{Math.Max(1, timeout.TotalSeconds):0.#} segundos";
+            string phase = stdin.Length == 0 ? "" : inputDelivered
+                ? " El pedido llegó al CLI, pero no se confirmó una respuesta dentro del plazo. Revisá Modelo y conexión → Conexión avanzada."
+                : " No terminó de enviar el pedido al CLI. Revisá la ruta de la herramienta en Modelo y conexión → Conexión avanzada.";
+            throw new AiException($"{Path.GetFileName(exe)} tardó más de {limit} y lo detuve." + phase);
         }
         finally { Report(false); }
     }

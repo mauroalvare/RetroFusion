@@ -1796,3 +1796,24 @@ correctas del pedido. Los prompts locales de continuidad remiten al estado vivo 
 de congelar versiones, conteos o prioridades antiguas; los adjuntos originales quedan
 intactos. Estas revisiones se contrastan con proveedores simulados y flujos locales,
 sin atribuirles una mejora de creatividad de proveedores reales todavía no medida.
+
+## D-107 — Envío y espera del CLI distinguibles; prueba de conexión cancelable
+
+La actividad del CLI distingue el envío del texto de la espera posterior. Se vacía la
+entrada con el mismo token de cancelación antes de cerrarla, para no dejar una escritura
+sin plazo dentro del cierre sincrónico. Al vencer el tiempo, el diagnóstico informa la
+etapa y muestra segundos para límites menores a un minuto. Completar la escritura al
+proceso local no acredita recepción del servidor, respuesta del modelo ni consumo cero.
+Las advertencias del proceso se conservan como salida observada, sin atribuirles una causa
+que no se haya reproducido. No cambia el formato de AiRequest ni la configuración elegida.
+
+Probar conexión conserva un único trabajo, permite cancelarlo y observa su terminación
+sin tratar una cancelación como fallo ni iniciar otra consulta. Cambiar de proveedor o
+cerrar la app también solicita la cancelación; al cerrar comparte el plazo existente de
+dos segundos con los otros trabajos. El estado de cancelación permanece visible mientras
+termina. Una prueba nueva sigue siendo una acción explícita que puede consumir cupo.
+
+El contraste local cubre un texto UTF-8 mayor que el búfer de la tubería a través de un
+shim Windows, envío bloqueado, espera sin respuesta y ciclo de éxito/error/cancelación.
+La evaluación externa acotada posterior a D106 agotó su plazo sin respuestas ni métricas
+confirmadas; no se presenta como validación de calidad ni se repite automáticamente.

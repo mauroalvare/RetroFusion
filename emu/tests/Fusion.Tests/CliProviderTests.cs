@@ -209,6 +209,59 @@ public class CliProviderTests
     }
 
     [Test]
+    public async Task LargeUtf8Prompt_ReachesTheWindowsShimUnchanged()
+    {
+        string capture = Path.Combine(_dir, "received.bin");
+        string script = "$f=[IO.File]::Create('" + capture.Replace("'", "''") + "');" +
+            "try { [Console]::OpenStandardInput().CopyTo($f) } finally { $f.Dispose() };" +
+            "[Console]::WriteLine('respuesta local')";
+        string encoded = Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(script));
+        string exe = Fake("codex", "powershell.exe -NoProfile -NonInteractive -EncodedCommand " + encoded);
+        var ai = new CliAgentProvider(CliTools.Codex, exe, TimeSpan.FromSeconds(15));
+        var request = new AiRequest("Instrucciones con acentos y signos.",
+            [new(true, string.Concat(Enumerable.Repeat("áéíóú ñ 😀\r\n", 12000)))], null);
+
+        string answer = await ai.CompleteAsync(request, CancellationToken.None);
+
+        Assert.That(answer.Trim(), Is.EqualTo("respuesta local"));
+        Assert.That(File.ReadAllBytes(capture), Is.EqualTo(System.Text.Encoding.UTF8.GetBytes(CliAgentProvider.Flatten(request))),
+            "The complete prompt must cross the pipe and reach EOF without a BOM or text conversion.");
+    }
+
+    [Test]
+    public async Task Activity_DistinguishesInputDeliveryFromWaitingForTheAnswer()
+    {
+        string exe = Fake("codex", "more > nul\necho pedido recibido 1>&2\nping -n 3 127.0.0.1 > nul\necho respuesta local");
+        var ai = new CliAgentProvider(CliTools.Codex, exe);
+        var pending = ai.CompleteAsync(Request(), CancellationToken.None);
+        try
+        {
+            await WaitForOutput(ai);
+            Assert.That(pending.IsCompleted, Is.False);
+            Assert.That(ai.Activity!.Status, Is.EqualTo("Pedido entregado al CLI; esperando respuesta"));
+            Assert.That(ai.Activity.Output, Does.Contain("pedido recibido"));
+        }
+        finally { await pending; }
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Timeout_ExplainsWhetherThePromptReachedTheCli(bool blockInput)
+    {
+        string exe = Fake("codex", (blockInput ? "" : "more > nul\n") + "ping -n 30 127.0.0.1 > nul");
+        var ai = new CliAgentProvider(CliTools.Codex, exe, TimeSpan.FromSeconds(2));
+        var request = blockInput ? new AiRequest("Instructions", [new(true, new string('x', 500000))], null) : Request();
+
+        var error = Assert.ThrowsAsync<AiException>(() => ai.CompleteAsync(request, CancellationToken.None));
+
+        Assert.That(error!.Message, Does.Contain("2 segundos"));
+        Assert.That(error.Message, Does.Contain(blockInput ? "No terminó de enviar el pedido al CLI" : "El pedido llegó al CLI"));
+        Assert.That(ai.Activity!.Running, Is.False);
+        Assert.That(ai.Activity.Status, Is.EqualTo("CLI detenido por tiempo máximo"));
+        Assert.That(ai.LastUsage, Is.Null, "Timeout without provider metadata must not invent zero token usage.");
+    }
+
+    [Test]
     public async Task Activity_CancelStopsTheProcessAndUpdatesTheStatus()
     {
         string exe = Fake("agy", "echo trabajando 1>&2\nping -n 30 127.0.0.1 > nul\necho no deberia llegar");

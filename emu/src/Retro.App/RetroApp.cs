@@ -254,7 +254,7 @@ public sealed partial class RetroApp
     public void Shutdown()
     {
         _updates.Dispose();
-        var pending = Task.WhenAll(_studio.CancelWork(), _creator.CancelWork(), _code.CancelWork());
+        var pending = Task.WhenAll(_studio.CancelWork(), _creator.CancelWork(), _code.CancelWork(), AiPicker.CancelWork());
         try { pending.Wait(TimeSpan.FromSeconds(2)); }
         catch (AggregateException) { /* Cancellation and provider errors are already retained by the jobs. */ }
         _code.Dispose();
