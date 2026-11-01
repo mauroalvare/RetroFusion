@@ -57,6 +57,17 @@ public sealed class LibraryInteractionTests
         Assert.That(view.Played, Is.Empty, "Filtering and editing never launch a game.");
     }
 
+    [Test]
+    public void DuplicateOriginalPathsKeepTheirActionsButDoNotDuplicateFavoritesOrRecents()
+    {
+        using var view = new View(1280, 840, 1);
+        var entries = (List<LibraryEntry>)typeof(GameLibrary).GetField("_entries", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(view.Library)!;
+        entries.Add(entries[0] with { Path = Path.Combine(Path.GetDirectoryName(view.FirstPath)!, "copy.prg"), Name = "Second path" });
+        view.Home.ShowOriginals(); view.Frame(); Assert.That(view.Keys().Count(key => key == view.First), Is.EqualTo(2));
+        view.Activity.SetFavorite(view.First, true); view.Home.ShowFavorites(); view.Frame(); Assert.That(view.Keys(), Is.EqualTo(new[] { view.First }));
+        view.Activity.Played(view.First); view.Home.ShowRecents(); view.Frame(); Assert.That(view.Keys(), Is.EqualTo(new[] { view.First }));
+    }
+
     private sealed class View : IDisposable
     {
         private readonly string _folder, _previousFusion, _previousCreated;
@@ -66,6 +77,7 @@ public sealed class LibraryInteractionTests
         private readonly Dictionary<string, (Vector2 Min, Vector2 Max, Vector2 ClipMin, Vector2 ClipMax)> _bounds = new();
         public readonly Clock Clock = new();
         public readonly LibraryActivity Activity;
+        public readonly GameLibrary Library;
         public readonly HomeScreen Home;
         public readonly List<string> Played = [];
         public readonly byte[] OriginalBytes = [1, 8, 0x60, 1];
@@ -87,7 +99,7 @@ public sealed class LibraryInteractionTests
             io.Fonts.AddFontDefault(); io.Fonts.GetTexDataAsRGBA32(out nint _, out int _, out int _, out int _); UiTheme.Apply(scale, false);
             _menu = WorkspaceLayout.MenuHeight; _navigation = WorkspaceLayout.NavigationHeight;
             WorkspaceLayout.MenuHeight = 28; WorkspaceLayout.NavigationHeight = 0;
-            var library = new GameLibrary(); var games = new List<LibraryEntry>();
+            var library = Library = new GameLibrary(); var games = new List<LibraryEntry>();
             foreach (var (name, machine, number) in new[] { ("Faro", "zx48", 1), ("Ruedas", "nes", 2), ("Taller", "c64", 3) })
             {
                 byte[] bytes = [1, 8, 0x60, (byte)number]; string path = Path.Combine(_folder, name + ".prg"); File.WriteAllBytes(path, bytes);

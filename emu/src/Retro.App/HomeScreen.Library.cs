@@ -65,8 +65,9 @@ public sealed partial class HomeScreen
         return _filtered.Get((library.Revision, _contentRevision, _metadata.Revision, _activity.Revision, _section, _machine, request,
             now.UtcTicks / TimeSpan.TicksPerMinute), () =>
         {
-            var candidates = catalog.Select((card, index) => (card, index)).Where(item => InSection(item.card))
-                .Select(item => new LibraryFilterEntry(item.card.Key, item.card.Title, item.card.Systems, item.card.Kind, item.card.Openable,
+            var selected = catalog.Select((card, index) => (card, index)).Where(item => InSection(item.card));
+            if (_section is "favorites" or "recent") selected = selected.DistinctBy(item => item.card.Key);
+            var candidates = selected.Select(item => new LibraryFilterEntry(item.card.Key, item.card.Title, item.card.Systems, item.card.Kind, item.card.Openable,
                     _metadata.Get(item.card.Key), _activity.IsFavorite(item.card.Key), _activity.LastPlayed(item.card.Key), item.index));
             return LibraryFilters.Apply(candidates, request, now).Select(entry => catalog[entry.RowIndex]).ToList();
         });
@@ -90,7 +91,9 @@ public sealed partial class HomeScreen
             if (ImGui.IsItemHovered()) UiTheme.Tooltip("Quita la lista; conserva tus juegos, favoritos y fichas.");
         }
         var cards = FilteredCards();
-        int total = Catalog.Count(InSection);
+        var section = Catalog.Where(InSection);
+        if (_section is "favorites" or "recent") section = section.DistinctBy(card => card.Key);
+        int total = section.Count();
         UiTheme.Hint($"{cards.Count} de {total} juegos" + (library.Scanning ? " · Actualizando…" : ""));
         if (cards.Count == 0)
         {

@@ -26,6 +26,8 @@ El selector de orden permite nombre A–Z o Z–A, año de lanzamiento reciente 
 última partida y agregados recientemente. Los años y fechas desconocidos quedan al final.
 Recientes empieza ordenado por última partida; los filtros de la biblioteca no recortan
 el menú de juegos recientes. Los filtros son de la sesión y no cambian archivos ni juegos.
+Favoritos y Recientes muestran una entrada por identidad; las distintas rutas de un mismo
+original siguen disponibles en los listados de originales.
 
 ## Completar una ficha
 
