@@ -1848,3 +1848,29 @@ la consigna; lo admiten la documentación oficial y la CLI local comprobada. El 
 temporal pertenece a ese envío y se elimina en éxito, error o cancelación. Una solicitud
 precancelada no busca ni inicia el CLI. El esquema no acredita comportamiento ni corrige
 una conexión sin respuesta. [Referencia oficial](https://learn.chatgpt.com/docs/non-interactive-mode).
+
+## D-109 — Guardado completo y recuperación resistente a fichas dañadas
+
+El trabajo identifica la creación que se recupera; el guion por sí solo no identifica
+su contenido completo. Un reintento idéntico reutiliza la versión y su ruta real. Si
+cambian ficha, pruebas, originales, base o programa, se conserva la identidad del juego
+y se guarda una versión nueva. Fecha y contabilidad no generan otra versión. Un WorkId
+vacío no agrupa creaciones independientes. Los identificadores de entrada y de fichas
+anteriores no pueden redirigir el guardado fuera de la biblioteca.
+
+La fuente se escribe en un temporal propio, se vacía a disco y se publica sin reemplazar
+archivos existentes. Después se publica la ficha completa, que habilita su aparición en
+la biblioteca. Los nombres ocupados por fuentes o fichas anteriores se conservan, aun si
+no representan una versión completa. Un fallo antes de publicar la ficha puede dejar una
+fuente sin ficha; no se elimina por asumir que está abandonada. El trabajo pendiente sigue
+permitiendo recuperar. El bloqueo interno serializa guardados del mismo proceso; otro
+proceso puede provocar un conflicto de escritura, sin autorizar sobrescribir su archivo.
+
+El listado conserva la ruta donde encontró cada versión, incluso si está en otra biblioteca
+compatible. No devuelve una ubicación inventada al recuperar. La exportación de ejemplos
+tampoco pisa un guion previo solo porque no encuentre su ficha.
+
+La recuperación cuenta hasta treinta trabajos válidos después de descartar registros
+ilegibles o dañados. Una ficha con estructura inválida no impide listar las demás. Se
+preservan esos archivos para diagnóstico y recuperación manual; no se reparan ni borran
+sin evidencia de cuál era su contenido.

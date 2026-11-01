@@ -99,6 +99,7 @@ public sealed record FusionDirection(string? BaseSlot = null, bool Reimagine = f
 /// <summary>Built-in fusion games plus the ones the player made (every version on disk).</summary>
 public static class StudioLibrary
 {
+    private static readonly object SaveGate = new();
     private static List<StudioGame>? _builtIn;
 
     // Hide only an unchanged exported copy of the withdrawn example. Keep the files
@@ -156,11 +157,15 @@ public static class StudioLibrary
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "RetroEmu", FolderName))!;
 
     /// <summary>Every version of every game: the built-in ones, then the stored ones (a stored copy wins over a built-in one with the same version).</summary>
-    public static IReadOnlyList<StudioGame> AllVersions()
+    public static IReadOnlyList<StudioGame> AllVersions() => StoredGames().Select(entry => entry.Game).ToList();
+
+    private sealed record StoredGame(StudioGame Game, string? Path);
+
+    private static IReadOnlyList<StoredGame> StoredGames()
     {
-        var byKey = new Dictionary<(string, int), StudioGame>();
+        var byKey = new Dictionary<(string, int), StoredGame>();
         foreach (var g in BuiltIn)
-            byKey[(g.Id, g.Version)] = g;
+            byKey[(g.Id, g.Version)] = new(g, null);
         foreach (var folder in new[] { LegacyFolder, UserFolder, Retro.Ai.CreatedGames.UserFolder }.Distinct())
         {
             if (!Directory.Exists(folder))
@@ -180,7 +185,7 @@ public static class StudioLibrary
                         if (File.Exists(js))
                             g.Script = File.ReadAllText(js);
                         if (g.Script.Length > 0 && !IsRetiredExample(g))
-                            byKey[(g.Id, g.Version)] = g;
+                            byKey[(g.Id, g.Version)] = new(g, f);
                     }
                     catch (JsonException) { }
                     catch (IOException) { }
@@ -201,7 +206,7 @@ public static class StudioLibrary
             foreach (var g in BuiltIn)
             {
                 string dir = Path.Combine(UserFolder, g.Id);
-                if (File.Exists(Path.Combine(dir, $"v{g.Version}.json")))
+                if (File.Exists(Path.Combine(dir, $"v{g.Version}.json")) || File.Exists(Path.Combine(dir, $"v{g.Version}.js")))
                     continue;
                 Write(g, dir);
             }
@@ -226,9 +231,23 @@ public static class StudioLibrary
         var meta = game.Copy();
         meta.Script = "";
         string path = Path.Combine(dir, $"v{game.Version}.json");
-        File.WriteAllText(path, meta.ToJson());
-        File.WriteAllText(Path.ChangeExtension(path, ".js"), game.Script);
+        byte[] metadata = Encoding.UTF8.GetBytes(meta.ToJson());
+        // The card is the commit marker: never list a version before its source exists.
+        WriteNewFile(Path.ChangeExtension(path, ".js"), Encoding.UTF8.GetBytes(game.Script));
+        WriteNewFile(path, metadata);
         return path;
+    }
+
+    private static void WriteNewFile(string path, byte[] bytes)
+    {
+        string temp = Path.Combine(Path.GetDirectoryName(path)!, Guid.NewGuid().ToString("N") + ".tmp");
+        try
+        {
+            using (var stream = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            { stream.Write(bytes); stream.Flush(flushToDisk: true); }
+            File.Move(temp, path, overwrite: false);
+        }
+        finally { if (File.Exists(temp)) File.Delete(temp); }
     }
 
     /// <summary>The latest version of each game made with exactly these games (in any slot order).</summary>
@@ -247,18 +266,48 @@ public static class StudioLibrary
     /// <summary>Saves the game as a new version (the number after the highest one stored).</summary>
     public static string Save(StudioGame game, Retro.Core.VideoFrame? picture = null)
     {
-        if (game.WorkId != null && AllVersions().FirstOrDefault(g => g.WorkId == game.WorkId && g.Script == game.Script) is { } saved)
+        lock (SaveGate) return SaveVersion(game, picture);
+    }
+
+    private static string ContentOf(StudioGame game, string fallbackTitle)
+    {
+        var content = JsonSerializer.SerializeToNode(game, GameProfile.Json)!.AsObject();
+        foreach (string field in new[] { "id", "version", "workId", "usage", "created" }) content.Remove(field);
+        content["title"] = string.IsNullOrWhiteSpace(game.Title) ? fallbackTitle : game.Title;
+        return content.ToJsonString(GameProfile.Json);
+    }
+
+    private static int NextVersion(int version) => version < int.MaxValue ? version + 1
+        : throw new InvalidDataException("No quedan números de versión disponibles para este juego.");
+
+    private static bool ValidStorageId(string id) => !string.IsNullOrWhiteSpace(id) && id is not ("." or "..") &&
+        !Path.IsPathRooted(id) && id == Path.GetFileName(id) && !id.Contains('\\') && !id.Contains('/') &&
+        id.IndexOfAny(Path.GetInvalidFileNameChars()) < 0;
+
+    private static string SaveVersion(StudioGame game, Retro.Core.VideoFrame? picture)
+    {
+        if (string.IsNullOrWhiteSpace(game.Id)) game.Id = Slug(game.Title ?? "");
+        if (!ValidStorageId(game.Id))
+            throw new InvalidDataException("El identificador del juego no puede ser una ruta ni salir de su biblioteca.");
+        if (string.IsNullOrWhiteSpace(game.Script)) throw new InvalidDataException("El juego no tiene un guion completo para guardar.");
+        var previous = string.IsNullOrWhiteSpace(game.WorkId) ? [] : StoredGames()
+            .Where(entry => entry.Game.WorkId == game.WorkId && entry.Game.Kind == game.Kind && ValidStorageId(entry.Game.Id))
+            .OrderByDescending(entry => entry.Game.Version).ToList();
+        if (previous.FirstOrDefault(entry => entry.Path != null && ContentOf(entry.Game, entry.Game.Title) == ContentOf(game, entry.Game.Title)) is { } saved)
         {
-            game.Id = saved.Id;
-            game.Version = saved.Version;
-            return Path.Combine(FolderFor(saved), game.Id, $"v{game.Version}.json");
+            game.Id = saved.Game.Id;
+            game.Version = saved.Game.Version;
+            return saved.Path!;
         }
-        if (string.IsNullOrWhiteSpace(game.Id))
-            game.Id = Slug(game.Title);
+        // A recovered edit belongs to the original game, even if its provisional slug changed.
+        if (previous.Count > 0) game.Id = previous[0].Game.Id;
         int highest = Versions(game.Id).Select(v => v.Version).DefaultIfEmpty(0).Max();
         if (game.Version <= highest)
-            game.Version = highest + 1;
-        string path = Write(game, Path.Combine(FolderFor(game), game.Id));
+            game.Version = NextVersion(highest);
+        string dir = Path.Combine(FolderFor(game), game.Id);
+        while (File.Exists(Path.Combine(dir, $"v{game.Version}.json")) || File.Exists(Path.Combine(dir, $"v{game.Version}.js")))
+            game.Version = NextVersion(game.Version);
+        string path = Write(game, dir);
         if (picture != null)
             try { Retro.Core.PngWriter.Write(Path.ChangeExtension(path, ".png"), picture, 1); }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* A thumbnail must not prevent playing a saved game. */ }

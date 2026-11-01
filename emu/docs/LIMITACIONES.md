@@ -22,6 +22,10 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   original/revisión. No recupera el interior de una prueba interrumpida antes de su checkpoint.
   Los registros antiguos pueden contener objetivos recortados sin orden de ranuras ni base;
   requieren revisión y no contienen un juego ejecutable si nunca se escribió.
+  La recuperación conserva los registros dañados y los descarta del listado sin bloquear
+  los válidos. El guardado publica la ficha después del guion y conserva los archivos
+  previos. Una interrupción entre ambas publicaciones puede dejar un guion sin ficha;
+  el trabajo pendiente permite continuar y no se borra ese archivo por inferencia.
 - El creador desde cero comprueba movimiento sostenido con controles conocidos; no es
   todavía un comprobador universal para juegos de decisiones discretas. La cancelación
   se atiende entre cuadros y durante carga/controles, no dentro de una instrucción de CPU

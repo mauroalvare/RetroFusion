@@ -31,6 +31,18 @@ El informe técnico indica qué se observó. Corregí la causa, guardá y dejá 
 prueba. En el creador podés usar **Volver a probar** después de una cancelación o cuando
 quieras repetir la comprobación sin editar el programa.
 
+## Guardado y versiones recuperadas
+
+Continuar el mismo trabajo con el mismo contenido reutiliza su guardado. Cambiar solo la
+ficha, un recorrido o los originales también cuenta como una versión nueva, aunque no
+cambie el guion. La anterior se conserva y la recuperación sigue dentro del mismo juego.
+
+Una versión aparece cuando están publicados tanto su programa como su ficha. Los archivos
+previos no se sobrescriben para completar un guardado interrumpido: se usa otro número.
+Si queda un guion sin ficha tras una interrupción, conservá el trabajo pendiente y usá
+**Continuar**; no hace falta borrar carpetas para reintentar. El listado de recuperación
+salta las fichas dañadas y muestra hasta treinta trabajos válidos sin modificar los demás.
+
 ## Actividad, cancelación y presupuestos
 
 La prueba del creador muestra ensamblado, carga, arranque, dibujo, controles y partida

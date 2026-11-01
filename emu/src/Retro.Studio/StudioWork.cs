@@ -66,7 +66,7 @@ public static class StudioWorkStore
     {
         var result = new List<StudioWork>();
         if (!Directory.Exists(Folder) || File.GetAttributes(Folder).HasFlag(FileAttributes.ReparsePoint)) return result;
-        foreach (var file in new DirectoryInfo(Folder).EnumerateFiles("*.json").OrderByDescending(f => f.LastWriteTimeUtc).Take(30))
+        foreach (var file in new DirectoryInfo(Folder).EnumerateFiles("*.json").OrderByDescending(f => f.LastWriteTimeUtc))
         {
             try
             {
@@ -79,8 +79,9 @@ public static class StudioWorkStore
                 work.State.Template = StudioGame.Parse(work.State.Template.ToJson());
                 if (work.State.Draft != null) work.State.Draft = StudioGame.Parse(work.State.Draft.ToJson());
                 result.Add(work);
+                if (result.Count == 30) break;
             }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException or ArgumentException) { }
+            catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException or JsonException or ArgumentException) { }
         }
         return result;
     }

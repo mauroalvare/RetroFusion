@@ -56,7 +56,7 @@ public static class GameWorkStore
     {
         var result = new List<GameWork>();
         if (!Directory.Exists(Folder) || File.GetAttributes(Folder).HasFlag(FileAttributes.ReparsePoint)) return result;
-        foreach (var file in new DirectoryInfo(Folder).EnumerateFiles("*.json").OrderByDescending(f => f.LastWriteTimeUtc).Take(30))
+        foreach (var file in new DirectoryInfo(Folder).EnumerateFiles("*.json").OrderByDescending(f => f.LastWriteTimeUtc))
         {
             try
             {
@@ -71,6 +71,7 @@ public static class GameWorkStore
                     if (work.State.Draft == null) continue;
                 }
                 _ = PathFor(work.Id); result.Add(work);
+                if (result.Count == 30) break;
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException or ArgumentException) { }
         }
