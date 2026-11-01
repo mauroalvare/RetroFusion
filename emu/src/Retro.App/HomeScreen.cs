@@ -11,10 +11,13 @@ namespace Retro.App;
 public sealed record HomeActions(Action Create, Action Fuse, Action FindAction);
 
 /// <summary>The main browser replaces the play area; it is never a floating window.</summary>
-public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal, Action<string> playFusion,
-    Action browse, Action<bool> visibility, Func<bool> canReturn, LibraryActivity? activity = null, HomeActions? actions = null) : IDisposable
+public sealed partial class HomeScreen(GameLibrary library, Action<string> playOriginal, Action<string> playFusion,
+    Action browse, Action<bool> visibility, Func<bool> canReturn, LibraryActivity? activity = null, HomeActions? actions = null,
+    LibraryMetadata? metadata = null, TimeProvider? clock = null) : IDisposable
 {
     private readonly LibraryActivity _activity = activity ?? new();
+    private readonly LibraryMetadata _metadata = metadata ?? new();
+    private readonly TimeProvider _clock = clock ?? TimeProvider.System;
     private readonly ThumbnailCache _thumbnails = new();
     private int _thumbnailRevision = -1;
     private readonly Dictionary<string, GameProfile> _profiles = new(StringComparer.Ordinal);
@@ -23,7 +26,6 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
     private int _contentRevision;
     // Drawn every frame: summaries, the filtered list and created-program checks wait for a change.
     private readonly FrameCache<(int, int, bool), Dictionary<string, string>> _summaries = new();
-    private readonly FrameCache<(int, string, string, string), List<LibraryEntry>> _originals = new();
     private readonly FrameCache<int, HashSet<string>> _readyCreated = new();
     private string _section = "home", _machine = "", _search = "", _problem = "";
     private List<StudioGame> _fusions = new();
@@ -42,6 +44,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
 
     public void Close()
     {
+        _editing = null;
         if (_open) { _open = false; visibility(false); }
     }
 
@@ -62,6 +65,8 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         _section = section;
         _machine = machine;
         _search = "";
+        _filters = new() { Order = section == "recent" ? LibraryOrder.LastPlayed : LibraryOrder.Name };
+        _filtersExpanded = false;
     }
 
     /// <summary>The most recently played games that can be started now, newest first (Juego > Recientes).</summary>
@@ -133,7 +138,13 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         var viewport = ImGui.GetMainViewport();
         ImGui.SetNextWindowPos(WorkspaceLayout.Origin);
         ImGui.SetNextWindowSize(WorkspaceLayout.Size);
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, UiTheme.Px(18, 18));
+        bool shortList = UiTheme.CompactHeight && _section != "home";
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, shortList ? UiTheme.Px(10, 8) : UiTheme.Px(18, 18));
+        if (shortList)
+        {
+            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(ImGui.GetStyle().FramePadding.X, Math.Min(ImGui.GetStyle().FramePadding.Y, UiTheme.Px(4))));
+            ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(ImGui.GetStyle().ItemSpacing.X, Math.Min(ImGui.GetStyle().ItemSpacing.Y, UiTheme.Px(5))));
+        }
         ImGui.Begin("##inicio", ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoDocking
             | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoBringToFrontOnFocus);
         bool compact = viewport.WorkSize.X < UiTheme.Px(800);
@@ -171,16 +182,15 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
             if (_section=="home") RetroArt.LibraryMasthead(Machines.Count(),library.Entries.Count);
             else UiTheme.Heading(title);
         }
-        if (UiTheme.PrimaryButton("Abrir archivo…")) browse();
-        UiTheme.SameLineIfFits("Actualizar biblioteca");
-        ImGui.BeginDisabled(library.Scanning);
-        if (ImGui.Button(library.Scanning ? "Buscando…" : "Actualizar biblioteca"))
+        if (!shortList)
         {
-            library.Rescan(library.Folder);
-            Refresh();
+            if (UiTheme.PrimaryButton("Abrir archivo…")) browse();
+            UiTheme.SameLineIfFits("Actualizar biblioteca");
+            ImGui.BeginDisabled(library.Scanning);
+            if (ImGui.Button(library.Scanning ? "Buscando…" : "Actualizar biblioteca")) { library.Rescan(library.Folder); Refresh(); }
+            ImGui.EndDisabled();
+            ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
         }
-        ImGui.EndDisabled();
-        ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
         if (_activity.Problem is { } activityProblem) ImGui.TextWrapped(activityProblem);
         if (_problem.Length > 0) ImGui.TextWrapped(_problem);
         if (library.OrganizationError != null) ImGui.TextWrapped(library.OrganizationError);
@@ -193,21 +203,24 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         if (_section == "home") { if(compact) RetroArt.LibraryMasthead(Machines.Count(),library.Entries.Count); DrawMachines(); DrawCreativeActions(); }
         else
         {
-            ImGui.SetNextItemWidth(Math.Max(UiTheme.Px(80), ImGui.GetContentRegionAvail().X - UiTheme.Px(92)));
+            int active = (_filters with { Search = _search }).ActiveCount;
+            float controls = shortList ? ImGui.CalcTextSize(active > 0 ? $"Filtros ({active})" : "Filtros").X + ImGui.GetStyle().FramePadding.X * 2 + ImGui.GetStyle().ItemSpacing.X : UiTheme.Px(92);
+            ImGui.SetNextItemWidth(Math.Max(UiTheme.Px(80), ImGui.GetContentRegionAvail().X - controls));
             if (_focusSearch) { ImGui.SetKeyboardFocusHere(); _focusSearch = false; }
-            ImGui.InputTextWithHint("##buscar", "Buscar por nombre (Ctrl+F)", ref _search, 150);
-            ImGui.SameLine(); ImGui.BeginDisabled(_search.Length == 0);
-            if (ImGui.Button("Limpiar", new(UiTheme.Px(82), 0))) _search = "";
-            ImGui.EndDisabled();
-            ImGui.Spacing();
-            if (_section is "favorites" or "recent") DrawPersonal();
-            else if (_section == "fusions") DrawFusions();
-            else if (_section == "created") DrawCreated();
-            else DrawOriginals();
+            ImGui.InputTextWithHint("##buscar", "Buscar nombre o género (Ctrl+F)", ref _search, 150);
+            if (!shortList)
+            {
+                ImGui.SameLine(); ImGui.BeginDisabled(_search.Length == 0);
+                if (ImGui.Button("Limpiar", new(UiTheme.Px(82), 0))) _search = "";
+                ImGui.EndDisabled(); ImGui.Spacing();
+            }
+            DrawLibraryFilters(shortList);
+            DrawFilteredGames();
         }
         ImGui.EndChild();
         ImGui.End();
-        ImGui.PopStyleVar();
+        ImGui.PopStyleVar(shortList ? 3 : 1);
+        DrawMetadataEditor();
     }
 
     private string SectionTitle() => _section switch
@@ -312,93 +325,11 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
             : ready == count ? $"{count} archivo{(count == 1 ? "" : "s")}" : $"{count} archivos / {ready} admitidos";
     }
 
-    private void DrawOriginals()
-    {
-        var games = _originals.Get((library.Revision, _search, _section, _machine),
-            () => library.Originals(_search, _section == "machine" ? _machine : null).ToList());
-        var created = _created.Where(g => Matches(g.Title) && (_section == "all" || g.Machine == _machine)).ToList();
-        var fusions = _section == "all" ? _fusions.Concat(_inspired).Where(g => Matches(g.Title)).ToList() : new List<StudioGame>();
-        if (_section == "machine")
-        {
-            ImGui.TextWrapped(_machine switch
-            {
-                "pcxt" => "FreeDOS y BIOS libres incluidos. Abrí un EXE, COM o ZIP para PC/XT, o un disquete IMG/IMA de 160 a 720 KB. Gráficos CGA.",
-                "zx48" => "Cintas TAP/TZX e instantáneas Z80/SNA.",
-                "c64" => "Programas PRG y cintas T64. Los discos D64 y cartuchos CRT siguen pendientes.",
-                "nes" => "Cartuchos NES. La compatibilidad depende de la placa del cartucho.",
-                _ => "ROMs de la placa arcade, en un archivo ZIP."
-            });
-            ImGui.Spacing();
-        }
-        ImGui.TextDisabled($"{games.Count + created.Count + fusions.Count} resultados");
-        if (games.Count + created.Count + fusions.Count == 0)
-        {
-            ImGui.TextWrapped(library.Scanning ? "Buscando juegos..." : _search.Length > 0
-                ? "No hay resultados para esta búsqueda." : "No hay juegos agregados. Usá Abrir archivo o arrastrá uno a la ventana.");
-            return;
-        }
-        if (BeginList())
-        {
-            foreach (var game in games)
-                Row(OriginalKey(game), game.Name, Name(game.Machine), game.NotYet,
-                    () => playOriginal(game.Path), game.NotYet == null && game.Confidence >= 50, game.Machine.Id, () => ThumbnailFiles.Beside(game.Path));
-            foreach (var game in created)
-                Row(CreatedKey(game), game.Title, game.MachineName, game.Pitch,
-                    () => playOriginal(game.ProgramPath), Ready(game), game.Machine, () => game.PicturePath);
-            foreach (var game in fusions) FusionRow(game);
-            ImGui.EndTable();
-        }
-
-    }
-
-    private void DrawFusions()
-    {
-        AiPicker.Hint("Las fusiones nuevas se preparan desde Crear > Fusionar juegos.");
-        ImGui.Spacing();
-        var games = _fusions.Where(g => Matches(g.Title)).ToList();
-        if (games.Count == 0) { ImGui.TextWrapped("No hay fusiones para mostrar."); return; }
-        if (BeginList())
-        {
-            foreach (var game in games) FusionRow(game);
-            ImGui.EndTable();
-        }
-
-    }
-
-    private void FusionRow(StudioGame game)
-    {
-        var have = _availableProfiles;
-        string missing = string.Join(", ", game.Games.Where(g => !have.Contains(g.Profile))
-            .Select(g => _profiles.GetValueOrDefault(g.Profile)?.Name ?? g.Profile));
-        Row(FusionKey(game), game.Title, $"{(game.IsInspired ? "Con originales" : "Fusión")} · v{game.Version}", missing.Length > 0 ? "Falta: " + missing : game.Pitch,
-            () => playFusion(game.Id), missing.Length == 0,
-            _profiles.GetValueOrDefault(game.Games.FirstOrDefault(g => g.Slot == game.BaseSlot)?.Profile ?? game.Games.FirstOrDefault()?.Profile ?? "")?.Machine ?? "fusion",
-            () => StudioLibrary.PicturePath(game));
-    }
-
-    private void DrawCreated()
-    {
-        AiPicker.Hint("Para un proyecto nuevo, usá el menú Crear.");
-        ImGui.Spacing();
-        var games = _created.Where(g => Matches(g.Title)).ToList();
-        var inspired = _inspired.Where(g => Matches(g.Title)).ToList();
-        if (games.Count + inspired.Count == 0) { ImGui.TextWrapped("No hay juegos creados para mostrar."); return; }
-        if (BeginList())
-        {
-            foreach (var game in games)
-                Row(CreatedKey(game), game.Title, game.MachineName, game.Pitch,
-                    () => playOriginal(game.ProgramPath), Ready(game), game.Machine, () => game.PicturePath);
-            foreach (var game in inspired) FusionRow(game);
-            ImGui.EndTable();
-        }
-
-    }
-
     private static string OriginalKey(LibraryEntry game) => game.Identity.Length > 0 ? game.Identity
         : LibraryKey.Named("original", game.Machine.Id + "\0" + game.Path);
     private static string FusionKey(StudioGame game) => LibraryKey.Named("fusion", game.Id);
     private static string CreatedKey(CreatedGame game) => LibraryKey.Named("created", game.Machine + "\0" +
-        (game.WorkId ?? game.Created.ToUniversalTime().Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        (string.IsNullOrWhiteSpace(game.WorkId) ? game.Created.ToUniversalTime().Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture) : game.WorkId));
 
     public void RecordOriginal(string path, string machine, IReadOnlyList<MediaFile> files)
     {
@@ -411,51 +342,12 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
 
     public void RecordFusion(StudioGame game) => _activity.Played(FusionKey(game));
 
-    private sealed record PersonalRow(string Key, string Title, Action Draw);
-    private void DrawPersonal()
-    {
-        if (_section == "recent")
-        {
-            ImGui.BeginDisabled(_activity.Recents.Count == 0);
-            if (ImGui.Button("Vaciar recientes")) _activity.ClearRecents();
-            ImGui.EndDisabled();
-            if (ImGui.IsItemHovered()) UiTheme.Tooltip("Quita la lista; conserva tus juegos y favoritos.");
-            ImGui.Spacing();
-        }
-        var rows = library.Originals().Select(g => new PersonalRow(OriginalKey(g), g.Name,
-                () => Row(OriginalKey(g), g.Name, Name(g.Machine), g.NotYet, () => playOriginal(g.Path),
-                    g.NotYet == null && g.Confidence >= 50, g.Machine.Id, () => ThumbnailFiles.Beside(g.Path))))
-            .Concat(_created.Select(g => new PersonalRow(CreatedKey(g), g.Title,
-                () => Row(CreatedKey(g), g.Title, g.MachineName, g.Pitch, () => playOriginal(g.ProgramPath),
-                    Ready(g), g.Machine, () => g.PicturePath))))
-            .Concat(_fusions.Concat(_inspired).Select(g => new PersonalRow(FusionKey(g), g.Title, () => FusionRow(g))))
-            .Where(r => Matches(r.Title) && (_section == "favorites" ? _activity.IsFavorite(r.Key) : _activity.LastPlayed(r.Key) != null))
-            .DistinctBy(r => r.Key);
-        rows = _section == "recent" ? rows.OrderByDescending(r => _activity.LastPlayed(r.Key)).ThenBy(r => r.Title, StringComparer.OrdinalIgnoreCase)
-            : rows.OrderBy(r => r.Title, StringComparer.OrdinalIgnoreCase);
-        var shown = rows.ToList();
-        if (shown.Count == 0)
-        {
-            ImGui.TextWrapped(library.Scanning ? "Buscando juegos..." : _search.Length > 0
-                ? "No hay resultados para esta búsqueda." : _section == "favorites"
-                ? "Marcá la estrella junto a un juego para guardarlo acá." : "Acá aparecen los juegos que abriste.");
-            return;
-        }
-        if (BeginList())
-        {
-            foreach (var row in shown) row.Draw();
-            ImGui.EndTable();
-        }
-
-    }
-
-    private bool Matches(string title) => title.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase);
-
     private bool BeginList()
     {
         _compactRows = ImGui.GetContentRegionAvail().X < UiTheme.Px(640);
+        float minimum = ImGui.GetFrameHeightWithSpacing() * 2 + ImGui.GetTextLineHeightWithSpacing() + ImGui.GetStyle().CellPadding.Y * 4;
         if (!ImGui.BeginTable("juegos", _compactRows ? 3 : 4, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY | ImGuiTableFlags.BordersInnerH,
-            new Vector2(0, Math.Max(UiTheme.Px(50), ImGui.GetContentRegionAvail().Y - UiTheme.Px(30))))) return false;
+            new Vector2(0, Math.Max(minimum, ImGui.GetContentRegionAvail().Y - (UiTheme.CompactHeight ? 0 : UiTheme.Px(30)))))) return false;
         ImGui.TableSetupColumn("Juego", ImGuiTableColumnFlags.WidthStretch);
         if (!_compactRows) ImGui.TableSetupColumn("Sistema", ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(156));
         ImGui.TableSetupColumn("Fav.", ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(32));
@@ -490,6 +382,12 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         float textWidth = Math.Max(20, ImGui.GetContentRegionAvail().X);
         ImGui.TextWrapped(UiTheme.Fit(title, textWidth * 2));
         if (ImGui.IsItemHovered()) UiTheme.Tooltip(title + (string.IsNullOrWhiteSpace(hint) ? "" : "\n" + hint));
+        if (ImGui.IsItemVisible())
+        {
+            var info = _metadata.Get(id);
+            if (info.Genres.Count > 0 || info.ReleaseYear != null)
+                UiTheme.Hint(UiTheme.Fit(string.Join(" · ", info.Genres.Concat(info.ReleaseYear is { } year ? [year.ToString()] : [])), textWidth));
+        }
         if (_compactRows) ImGui.TextDisabled(UiTheme.Fit(detail, textWidth));
         if (!playable)
         {
@@ -507,6 +405,7 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         ImGui.TableNextColumn();
         bool favorite = _activity.IsFavorite(id);
         if (ImGui.Button("##favorito", UiTheme.Px(28, 24))) _activity.SetFavorite(id, !favorite);
+        LibraryControlBounds?.Invoke("Favorito:" + id, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
         var center = (ImGui.GetItemRectMin() + ImGui.GetItemRectMax()) / 2;
         Span<Vector2> star = stackalloc Vector2[10];
         for (int i = 0; i < star.Length; i++)
@@ -521,9 +420,12 @@ public sealed class HomeScreen(GameLibrary library, Action<string> playOriginal,
         ImGui.TableNextColumn();
         ImGui.BeginDisabled(!playable || library.Scanning);
         if (UiTheme.PrimaryButton("Jugar", new Vector2(-1, 0))) { Close(); play(); }
+        LibraryControlBounds?.Invoke("Jugar:" + id, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
         ImGui.EndDisabled();
         if (!playable && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
             UiTheme.Tooltip(hint ?? "Este formato todavía no se puede abrir.");
+        if (ImGui.Button("Ficha", new Vector2(-1, 0))) OpenMetadata(id);
+        LibraryControlBounds?.Invoke("Ficha:" + id, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
         ImGui.PopID(); ImGui.PopID();
     }
 

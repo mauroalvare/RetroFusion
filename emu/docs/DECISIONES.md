@@ -1908,3 +1908,35 @@ copia el archivo anterior a un respaldo único y después se guardan los valores
 sesión. Si no puede conservarse la copia, no se reemplaza el archivo. Si falla la
 publicación posterior, la copia terminada sigue visible y la recuperación continúa
 pendiente. Los identificadores de anotaciones no pueden salir de su carpeta.
+
+## D-111 — Fichas personales y filtros comunes de biblioteca
+
+Géneros y año de lanzamiento son datos personales opcionales del catálogo; no se deducen
+del reloj ni de los timestamps del medio. La incorporación se registra al observar una
+identidad por primera vez y la última partida proviene del registro de actividad existente.
+La fecha de incorporación de archivos anteriores comienza al habilitar este catálogo.
+
+El documento independiente `catalogo.json`, versión 1, conserva identidades, géneros, año
+opcional e incorporación. No escribe ROMs ni perfiles de emulación. Comparte las claves
+de favoritos: contenido y sistema para originales, identidad de trabajo o creación para
+creados e identidad del proyecto para fusiones. Un WorkId vacío de un creado usa su fecha
+de creación; no une proyectos independientes por ser una cadena vacía. Los datos ambiguos
+anteriores de favoritos se conservan; no se atribuyen a un proyecto por adivinación.
+
+Todos los listados comparten consulta y orden, incluidos favoritos y recientes. La
+selección de sección limita el catálogo antes de aplicar los filtros. Los originales
+duplicados pueden compartir ficha por contenido y mantener sus rutas y acciones de juego.
+Los valores desconocidos tienen filtros explícitos y quedan al final al ordenar por fecha.
+La disponibilidad significa que se puede intentar abrir el formato con los datos presentes,
+no una certificación de juego completo.
+
+Los resultados se reutilizan por revisiones de biblioteca, ficha, actividad, sección y
+criterios, con actualización temporal para períodos relativos. Editar una ficha o marcar
+favoritos invalida el resultado; buscar no vuelve a escanear los medios. Las fichas se
+publican por temporal con validación, límites y protección del archivo ilegible. Recuperar
+es explícito y conserva una copia anterior. Un guardado fallido se puede reintentar con los
+mismos valores, sin exigir un cambio ficticio para volver a escribir.
+
+En poca altura se compactan controles y se reserva altura mínima para el listado; el orden
+y las acciones secundarias pasan al panel de filtros. Ver resultados lo cierra. La ficha
+se edita aparte y los avisos indican cuándo los cambios solo están en memoria.

@@ -111,7 +111,8 @@ public sealed partial class RetroApp
                 else _host.Paused = _pausedBeforeLibrary;
             }, () => _host.LoadedMedia != null || _host.Fusion != null,
             args.Contains("--autotest") ? new LibraryActivity(persist: false) : null,
-            new HomeActions(OpenCreator, OpenFusionStudio, _commands.Open));
+            new HomeActions(OpenCreator, OpenFusionStudio, _commands.Open),
+            args.Contains("--autotest") ? new LibraryMetadata(persist: false) : null);
         _studio.GameStarted += game => _home.RecordFusion(game);
         _monitorRate = Raylib.GetMonitorRefreshRate(Raylib.GetCurrentMonitor());
         _targetFps = FramePacing.TargetFps(_monitorRate, saving: false, emulating: true, focused: true, minimized: false);

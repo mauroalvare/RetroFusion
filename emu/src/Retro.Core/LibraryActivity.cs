@@ -39,6 +39,7 @@ public sealed class LibraryActivity
     private readonly TimeProvider _clock;
     private readonly bool _persist;
     private bool _unreadable;
+    public int Revision { get; private set; }
     public string? Problem { get; private set; }
 
     public LibraryActivity(string? path = null, TimeProvider? clock = null, bool persist = true)
@@ -77,6 +78,7 @@ public sealed class LibraryActivity
         if (favorite && _games.Count(g => g.Value.Favorite) >= FavoriteLimit)
         { Problem = "Se alcanzó el límite de favoritos. Quitá alguno para agregar otro."; return; }
         _games[key] = new(favorite, LastPlayed(key));
+        Revision++;
         Trim(); Save();
     }
 
@@ -84,11 +86,13 @@ public sealed class LibraryActivity
     {
         if (!LibraryKey.Valid(key)) throw new ArgumentException("Invalid library identity.", nameof(key));
         _games[key] = new(IsFavorite(key), _clock.GetUtcNow());
+        Revision++;
         Trim(); Save();
     }
 
     public void ClearRecents()
     {
+        Revision++;
         foreach (var pair in _games.ToArray()) _games[pair.Key] = pair.Value with { Played = null };
         Trim(); Save();
     }

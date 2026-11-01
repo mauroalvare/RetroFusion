@@ -6,6 +6,13 @@ se trata de una limitación deducida que todavía necesita una prueba específic
 
 ## Recuperación de archivos y alcance de las comprobaciones
 
+- Los filtros de género y lanzamiento usan fichas personales; no incluyen un catálogo
+  externo ni clasificación automática. Los datos desconocidos permanecen explícitos.
+  La incorporación se registra desde la primera observación por esta función, sin
+  reconstruir la antigüedad de archivos ya existentes. [Uso y datos](FILTROS-BIBLIOTECA.md).
+  La actividad se limita al historial conservado; la ausencia de una partida registrada
+  no prueba que nunca se haya abierto ese juego.
+
 - Rechazar una cabecera inválida, bytes sobrantes o valores fuera de rango no detecta
   toda alteración posible de RAM en un estado. Varios formatos anteriores no tienen
   checksum. Los formatos y versiones admitidos se conservan; no se certifica cualquier

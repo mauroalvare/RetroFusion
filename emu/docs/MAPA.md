@@ -16,6 +16,11 @@ evidencia, pausa y continuación sin una partida manual previa.
 
 ## Entrada para jugar
 
+La biblioteca incorpora filtros combinables de género, año, sistema, tipo, disponibilidad
+y actividad, con orden por nombre o fechas. **Ficha**, junto a Jugar, permite completar
+los datos personales sin cambiar originales ni perfiles de emulación. Detalle en
+[Filtrar y ordenar la biblioteca](FILTROS-BIBLIOTECA.md).
+
 La navegación permanente ofrece **Biblioteca, Jugar, Crear, Analizar, Herramientas y Ayuda**,
 con un selector equivalente al reducir el ancho. Los talleres usan el área completa y Jugar
 vuelve a la máquina actual sin cancelar un trabajo. Al iniciar sin un archivo aparece
