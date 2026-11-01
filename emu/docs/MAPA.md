@@ -20,6 +20,12 @@ La biblioteca incorpora filtros combinables de género, año, sistema, tipo, dis
 y actividad, con orden por nombre o fechas. **Ficha**, junto a Jugar, permite completar
 los datos personales sin cambiar originales ni perfiles de emulación. Detalle en
 [Filtrar y ordenar la biblioteca](FILTROS-BIBLIOTECA.md).
+La [identificación y los tres estilos](INTERFACES-Y-DATOS.md) detalla las fuentes de
+datos, la terminal interna por comandos, las opciones compartidas y la elección tras actualizar.
+`--interface retro|terminal|hardcore` elige el estilo al iniciar; `--interface-picker`
+abre sus vistas previas. Para comprobar el teclado nativo de la consola con datos propios,
+seleccioná explícitamente `TerminalNativeTests` en App.Tests; sus dos casos son ocultos,
+silenciados y prueban texto al 100/200%. No se ejecutan por la selección general de categorías.
 
 La navegación permanente ofrece **Biblioteca, Jugar, Crear, Analizar, Herramientas y Ayuda**,
 con un selector equivalente al reducir el ancho. Los talleres usan el área completa y Jugar

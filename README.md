@@ -80,6 +80,11 @@ Al abrirla elegís una máquina o **Todos los juegos**, buscás por nombre y pul
 Marcá la estrella de un juego para guardarlo en **Favoritos**. **Recientes** reúne los
 últimos juegos abiertos que siguen disponibles en tu biblioteca.
 
+La biblioteca puede completar datos desde fichas locales y un catálogo público opcional,
+con fuente visible y prioridad para tus correcciones. El estilo Retro sigue siendo el
+principal; también hay una interfaz gráfica verde y una consola interna por comandos,
+con ajustes compartidos. [Identificación y estilos](emu/docs/INTERFACES-Y-DATOS.md).
+
 ![Favoritos en la biblioteca](emu/docs/img/interfaz/favoritos.png)
 
 Los archivos sueltos de `ROMs` se ordenan por sistema al detectarlos. Los que no se pueden

@@ -6,12 +6,20 @@ se trata de una limitación deducida que todavía necesita una prueba específic
 
 ## Recuperación de archivos y alcance de las comprobaciones
 
-- Los filtros de género y lanzamiento usan fichas personales; no incluyen un catálogo
-  externo ni clasificación automática. Los datos desconocidos permanecen explícitos.
+- La identificación combina fichas personales, listas locales, indicios del nombre y
+  Wikidata opcional. El catálogo público tiene cobertura incompleta; exige título/alias
+  exacto y plataforma, sin elegir entre coincidencias ambiguas. No certifica la edición
+  por hash. No se atribuye a una plataforma el primer lanzamiento de otra. Los datos
+  desconocidos permanecen explícitos. [Fuentes y terminal](INTERFACES-Y-DATOS.md).
   La incorporación se registra desde la primera observación por esta función, sin
   reconstruir la antigüedad de archivos ya existentes. [Uso y datos](FILTROS-BIBLIOTECA.md).
   La actividad se limita al historial conservado; la ausencia de una partida registrada
   no prueba que nunca se haya abierto ese juego.
+- La terminal hardcore es interna y navega con órdenes. Los editores avanzados conservan
+  sus paneles visuales, abiertos mediante `hacer`; no se duplican como editores de texto.
+  Las opciones y acciones usan los catálogos comunes de los estilos gráficos. Los
+  metadatos no se consultan en línea hasta habilitarlo; las pruebas usan respuestas
+  simuladas, no certifican disponibilidad permanente del proveedor.
 
 - Rechazar una cabecera inválida, bytes sobrantes o valores fuera de rango no detecta
   toda alteración posible de RAM en un estado. Varios formatos anteriores no tienen

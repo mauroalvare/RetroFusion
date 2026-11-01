@@ -1940,3 +1940,61 @@ mismos valores, sin exigir un cambio ficticio para volver a escribir.
 En poca altura se compactan controles y se reserva altura mínima para el listado; el orden
 y las acciones secundarias pasan al panel de filtros. Ver resultados lo cierra. La ficha
 se edita aparte y los avisos indican cuándo los cambios solo están en memoria.
+
+## D-112 — Identificación con procedencia y ficha personal independiente
+
+Se amplía D111 con datos detectados, sin cambiar el documento personal `catalogo.json`.
+La prioridad por campo es corrección personal, colección local, catálogo público y pista
+del nombre. El sistema y la identidad del contenido siguen siendo los del detector de
+medios. Un título exacto o alias y una plataforma coincidentes en Wikidata identifican
+una obra de catálogo; no verifican la edición de la ROM por hash. Dos candidatos quedan
+sin atribuir. Nunca se deduce género de palabras del título ni año del timestamp.
+
+`gamelist.xml` se lee con límite de 4 MB, sin DTD ni entidades externas y con rutas
+contenidas en la biblioteca. El organizador captura la ficha raíz antes de mover medios
+sueltos; se remite a la nueva ruta y conserva por identidad en la caché. La colección
+local tiene prioridad sobre datos públicos guardados. Los campos y etiquetas del usuario
+no se escriben en ROMs, perfiles ni recetas.
+
+La consulta pública es opcional y comienza desactivada. Solo se envía el título limpio;
+la plataforma se contrasta localmente. Usa una cola serial cancelable, ocho segundos por
+juego y separación entre consultas. Un fallo detiene la cola hasta reintentar; no se
+guarda como ausencia. `identificaciones.json`, versión1, admite 8 MB/16384 identidades,
+se publica por temporal y conserva un archivo ilegible. Positivos se revisan a los 90
+días; ausencias, a los siete. Omitir una identificación no borra la ficha personal.
+
+Las fechas calificadas por plataforma se mantienen aparte de la primera publicación
+de una obra multiplataforma. Cuando solo existe esa primera fecha, sirve para ordenar
+y filtrar, marcada **(obra)** en los listados y explicada en Ficha. No se presenta como
+año confirmado del port. Un dato personal reemplaza esa referencia y su marca.
+
+## D-113 — Estilos comunes y terminal interna sin shell del equipo
+
+Retro sigue siendo principal y valor por defecto de preferencias anteriores. Terminal
+verde es la misma GUI con paleta de fósforo y fuentes monoespaciadas locales. Hardcore
+reemplaza la navegación principal por una consola interna: parser literal con comillas,
+historial, autocompletado, secciones virtuales, listado y acciones de juego reales.
+No delega órdenes al sistema operativo ni inicia una terminal externa.
+
+`AppOption` es el contrato común de opciones, validación, lectura y aplicación; lo usan
+Preferencias, Sonido y la consola. `AppCommand` sirve al buscador y a `acciones`/`hacer`,
+con las mismas condiciones de disponibilidad. Las funciones nuevas se registran allí,
+no en listas independientes por estilo. Biblioteca y consola comparten catálogo, filtros,
+identidades, favoritos y acciones. Los números se resuelven por la identidad de la
+última lista, evitando una selección diferente después de escanear. Los editores avanzados
+siguen siendo visuales, abiertos por orden, con la consola abajo.
+
+La consola captura las entradas mientras se escribe. `jugar` y `continuar` liberan el
+foco del campo de órdenes y entregan el teclado a la máquina; Ctrl+Shift+T vuelve a la
+consola y pausa. No se vuelve a pedir foco desde la barra pequeña después de abrir una
+partida. La regresión se comprueba con el campo de texto real en ventanas ocultas.
+
+El selector de estilos es accesible normalmente y se ofrece tras un recibo válido de
+actualización, después del primer cuadro y sin esperar la elección para confirmar el
+arranque. Reutiliza la validación de carpeta/versión/estado de `UpdateRunner`. No se
+abre en un arranque normal ni ante un recibo inválido. Previsualizar no cambia el tema;
+aplicar y conservar recuerdan la versión ofrecida. El pie permanece visible a 200% y
+la explicación permite desplazamiento. Cambiar estilo conserva datos y configuración.
+El acceso a datos comparte fila con el contador cuando entra; en poca altura se abrevia
+a Datos. No agrega una barra completa encima del listado. El par Jugar/Ficha se comprueba
+también con las fuentes nativas terminales al 200%, después del desplazamiento del panel.

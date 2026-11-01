@@ -8,6 +8,8 @@ Fusionados o Creados, y abrí **Filtros**. Los filtros se combinan con la búsqu
 - **Tipo:** originales, juegos desde cero, fusiones o juegos con originales.
 - **Género:** elegí uno o **Sin clasificar**. Un juego puede tener varios géneros.
 - **Año de lanzamiento:** cualquiera, **Sin año** o un intervalo con ambos extremos incluidos.
+  **(obra)** señala el primer año general del juego cuando el catálogo no determina
+  la fecha de la plataforma actual; tu año personal tiene prioridad.
 - **Disponibilidad:** todos, los que se pueden abrir o los que requieren revisión.
   Que el formato esté admitido no certifica toda la jugabilidad.
 - **Actividad:** sin jugar, jugados en los últimos 7, 30 o 90 días, o agregados en los
@@ -34,12 +36,15 @@ original siguen disponibles en los listados de originales.
 Junto a **Jugar**, **Ficha** abre los datos personales del juego:
 
 1. Escribí géneros separados por coma o elegilos de la lista. Se admiten hasta ocho.
-2. Si conocés el año de lanzamiento, marcá la opción y completalo. Desmarcarla deja
-   el año desconocido; no se inventa uno a partir del archivo.
+2. Si conocés el año de lanzamiento, marcá la opción y completalo. Desmarcarla permite
+   usar el dato detectado; sin dato queda desconocido.
 3. Pulsá **Guardar ficha**. **Cancelar** descarta la edición.
 
-Los géneros sugeridos son opciones de clasificación, no datos atribuidos automáticamente
-a los juegos. Un género o año sin completar aparece como **Sin clasificar** o **Sin año**.
+La ficha separa lo detectado de tus correcciones, que tienen prioridad. Se usan fichas
+locales de colección, indicios explícitos del nombre y un catálogo público opcional;
+se muestra la procedencia y se puede omitir una coincidencia por juego. Sin información
+suficiente aparece **Sin clasificar** o **Sin año**. Detalle de la
+[identificación automática y las interfaces](INTERFACES-Y-DATOS.md).
 La fecha de incorporación indica cuándo este catálogo registró la identidad por primera
 vez; los juegos ya existentes se registran al comenzar a usar esta función. No se presenta
 como fecha de lanzamiento, creación, descarga ni copia del archivo.

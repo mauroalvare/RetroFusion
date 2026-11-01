@@ -21,6 +21,11 @@ tiene carácter industrial sin convertir los párrafos en texto de terminal. Có
 direcciones conservan una fuente de ancho fijo separada.
 El alto contraste mantiene su paleta accesible y omite detalles decorativos secundarios.
 
+Retro sigue siendo el estilo principal. **Opciones > Estilos de interfaz** agrega Terminal
+verde, con los mismos controles gráficos, y Terminal hardcore, con una consola interna.
+Los ajustes, acciones y biblioteca son comunes; las vistas previas y la oferta después
+de una actualización confirmada se explican en [Interfaces y datos](INTERFACES-Y-DATOS.md).
+
 ## Navegación y espacios de trabajo
 
 La barra superior mantiene **Biblioteca, Jugar, Crear, Analizar, Herramientas y Ayuda**.
