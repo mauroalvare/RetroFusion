@@ -20,7 +20,7 @@ public static class LibraryKey
         return kind + ":" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identity)));
     }
 
-    internal static bool Valid(string key)
+    public static bool Valid(string key)
     {
         int split = key.IndexOf(':');
         return split >= 0 && key[..split] is "original" or "fusion" or "created"

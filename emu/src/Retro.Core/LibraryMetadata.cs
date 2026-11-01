@@ -4,7 +4,10 @@ using System.Text.Json;
 
 namespace Retro.Core;
 
-public sealed record LibraryGameInfo(IReadOnlyList<string> Genres, int? ReleaseYear, DateTimeOffset? AddedAt);
+public sealed record LibraryGameInfo(IReadOnlyList<string> Genres, int? ReleaseYear, DateTimeOffset? AddedAt, bool WorkYear = false)
+{
+    public string YearLabel => ReleaseYear is { } year ? year + (WorkYear ? " (obra)" : "") : "sin año";
+}
 
 /// <summary>Personal catalogue data, bound to the same content identities as favorites. Never edits game files.</summary>
 public sealed class LibraryMetadata

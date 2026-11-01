@@ -6,7 +6,7 @@ namespace Retro.App;
 /// <summary>A game in the user's folder and the machine it needs.</summary>
 /// <param name="NotYet">Why the machine, already implemented, cannot load this file yet (a later format), or null.</param>
 /// <param name="ProfileId">The fusion profile of this copy (verified, or the basic one the fusions give it), or null.</param>
-public sealed record LibraryEntry(string Path, string Name, MachineInfo Machine, int Confidence, string Reason, string? NotYet = null, string? ProfileId = null, string Identity = "");
+public sealed record LibraryEntry(string Path, string Name, MachineInfo Machine, int Confidence, string Reason, string? NotYet = null, string? ProfileId = null, string Identity = "", IdentifiedGame? CollectionInfo = null);
 
 /// <summary>
 /// Looks through the user's game folder (in the background) and works out which machine
@@ -68,9 +68,18 @@ public sealed class GameLibrary : IDisposable
         var previous = _entries;
         _task = Task.Run(() =>
         {
+            // Capture a root collection list before loose media move to their machine folders.
+            var collection = organize ? GameIdentification.ReadGameList(Path.Combine(folder, "gamelist.xml"), folder) : new Dictionary<string, IdentifiedGame>();
             var result = organize ? Retro.Compat.RomOrganizer.Organize(folder, inUse: InUse) : null;
             // Retrying a locked file does not require reopening every unchanged ROM in the library.
-            return (retryOnly && result is { Moved.Count: 0 } ? previous : Scan(folder), result);
+            var entries = retryOnly && result is { Moved.Count: 0 } ? previous : Scan(folder);
+            if (collection.Count > 0 || previous.Any(entry => entry.CollectionInfo != null))
+            {
+                var originalPaths = result?.Moved.ToDictionary(move => move.To, move => move.From, StringComparer.OrdinalIgnoreCase) ?? new();
+                var prior = previous.Where(entry => entry.CollectionInfo != null).DistinctBy(entry => entry.Identity).ToDictionary(entry => entry.Identity, entry => entry.CollectionInfo);
+                entries = entries.Select(entry => entry with { CollectionInfo = collection.GetValueOrDefault(originalPaths.GetValueOrDefault(entry.Path) ?? entry.Path) ?? prior.GetValueOrDefault(entry.Identity) }).ToList();
+            }
+            return (entries, result);
         });
     }
 
