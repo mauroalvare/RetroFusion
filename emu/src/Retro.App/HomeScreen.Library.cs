@@ -107,7 +107,9 @@ public sealed partial class HomeScreen
         if (_section is "favorites" or "recent") section = section.DistinctBy(card => card.Key);
         int total = section.Count();
         UiTheme.Hint($"{cards.Count} de {total} juegos" + (library.Scanning ? " · Actualizando…" : ""));
-        if (ImGui.SmallButton("Identificación de juegos…")) actions?.MetadataSettings?.Invoke();
+        string infoLabel = UiTheme.CompactHeight ? "Datos…" : "Identificación de juegos…";
+        UiTheme.SameLineIfFits(infoLabel);
+        if (ImGui.SmallButton(infoLabel)) actions?.MetadataSettings?.Invoke();
         if (ImGui.IsItemHovered()) UiTheme.Tooltip(_identification.Status + ". Leé el origen de los datos en Ficha.");
         if (cards.Count == 0)
         {
