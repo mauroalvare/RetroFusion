@@ -8,7 +8,8 @@ public sealed class AppPreferences
     public static readonly int[] TextSizes = [100, 125, 150, 175, 200];
     private sealed record Document(int Version, int TextPercent, bool HighContrast, bool IntegerScale, bool Fullscreen,
         bool PowerSaving, bool ShowFps, string SpectrumJoystick, int C64Port, bool TypeLoad, bool TurboWhileLoading,
-        bool PauseInBackground = false, string? LastFolder = null);   // added later in v1: an older file without it keeps the default
+        bool PauseInBackground = false, string? LastFolder = null, string Interface = "retro", string? InterfaceOfferedVersion = null,
+        bool OnlineGameInfo = false);   // optional v1 fields preserve older preferences
     private readonly string _path;
     private readonly bool _persist;
     private bool _unreadable;
@@ -23,6 +24,9 @@ public sealed class AppPreferences
     public bool TypeLoad { get; set; } = true;
     public bool TurboWhileLoading { get; set; } = true;
     public bool PauseInBackground { get; set; }
+    public InterfaceStyle Interface { get; set; }
+    public string? InterfaceOfferedVersion { get; set; }
+    public bool OnlineGameInfo { get; set; }
     /// <summary>Last folder of the file picker; only used again while it exists.</summary>
     public string? LastFolder { get; set; }
     public string? Problem { get; private set; }
@@ -47,6 +51,10 @@ public sealed class AppPreferences
             Fullscreen = doc.Fullscreen; PowerSaving = doc.PowerSaving; ShowFps = doc.ShowFps;
             SpectrumJoystick = joystick; C64Port = doc.C64Port; TypeLoad = doc.TypeLoad; TurboWhileLoading = doc.TurboWhileLoading;
             PauseInBackground = doc.PauseInBackground; LastFolder = doc.LastFolder is { Length: > 0 and <= 1024 } folder ? folder : null;
+            // A future/removed style falls back to the principal interface without discarding other preferences.
+            InterfaceStyles.TryParse(doc.Interface, out var selected); Interface = selected;
+            InterfaceOfferedVersion = doc.InterfaceOfferedVersion is { Length: <= 32 } offered && System.Version.TryParse(offered, out _) ? offered : null;
+            OnlineGameInfo = doc.OnlineGameInfo;
         }
         catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException or JsonException)
         {
@@ -60,11 +68,12 @@ public sealed class AppPreferences
     {
         TextPercent = 100; HighContrast = Fullscreen = ShowFps = false; IntegerScale = PowerSaving = true;
         SpectrumJoystick = JoystickMode.Kempston; C64Port = 2; TypeLoad = TurboWhileLoading = true; PauseInBackground = false;
+        Interface = InterfaceStyle.Retro; OnlineGameInfo = false;
     }
 
     public bool Save()
     {
-        if (!Valid(TextPercent, C64Port) || !Enum.IsDefined(SpectrumJoystick)) { Problem = "Las preferencias no son válidas."; return false; }
+        if (!Valid(TextPercent, C64Port) || !Enum.IsDefined(SpectrumJoystick) || !Enum.IsDefined(Interface)) { Problem = "Las preferencias no son válidas."; return false; }
         if (!_persist) return true;
         if (_unreadable) return false;
         string temporary = _path + "." + Guid.NewGuid().ToString("N") + ".tmp";
@@ -72,7 +81,8 @@ public sealed class AppPreferences
         {
             Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(_path))!);
             File.WriteAllText(temporary, JsonSerializer.Serialize(new Document(1, TextPercent, HighContrast, IntegerScale, Fullscreen,
-                PowerSaving, ShowFps, SpectrumJoystick.ToString(), C64Port, TypeLoad, TurboWhileLoading, PauseInBackground, LastFolder)));
+                PowerSaving, ShowFps, SpectrumJoystick.ToString(), C64Port, TypeLoad, TurboWhileLoading, PauseInBackground, LastFolder,
+                InterfaceStyles.Describe(Interface).Id, InterfaceOfferedVersion, OnlineGameInfo)));
             File.Move(temporary, _path, overwrite: true); Problem = null; return true;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)

@@ -67,7 +67,7 @@ internal static class RetroArt
     {
         var origin=ImGui.GetCursorScreenPos();float width=ImGui.GetContentRegionAvail().X;
         bool art=width>=UiTheme.Px(780);
-        if(art && !UiTheme.HighContrast) FrontPanel(ImGui.GetWindowDrawList(),origin+new Vector2(width-UiTheme.Px(305),0),UiTheme.Px(300,94),originals);
+        if(art && !UiTheme.HighContrast && !UiTheme.Terminal) FrontPanel(ImGui.GetWindowDrawList(),origin+new Vector2(width-UiTheme.Px(305),0),UiTheme.Px(300,94),originals);
         UiTheme.Eyebrow("ARCHIVO / 8 Y 16 BITS");
         UiTheme.Heading("Encendé una máquina.",$"{machines} sistemas · {originals} archivos originales en esta carpeta.");
         if(art)

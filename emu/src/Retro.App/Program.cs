@@ -58,7 +58,12 @@ while (!app.QuitRequested)
     closing = close;
     if (app.QuitRequested) break;
     app.Frame(Raylib.GetFrameTime());
-    if (ready != null) { UpdateRunner.Acknowledge(ready); ready = null; }
+    if (ready != null)
+    {
+        string installedVersion = UpdateRunner.ConfirmStartup(ready);
+        app.OfferInterfaceAfterUpdate(installedVersion);
+        ready = null;
+    }
     if (!cleanupStarted) { UpdateCleanup.Start(AppContext.BaseDirectory); cleanupStarted = true; }
 }
 app.Shutdown();

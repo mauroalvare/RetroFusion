@@ -212,14 +212,20 @@ public static class UpdateRunner
         return Process.Start(start) ?? throw new IOException("No se pudo abrir RetroEmu.");
     }
 
-    public static void Acknowledge(string path)
+    public static void Acknowledge(string path) => ConfirmStartup(path);
+
+    /// <returns>The validated installed version, for post-update onboarding.</returns>
+    public static string ConfirmStartup(string path) => ConfirmStartup(path, Root, AppVersion);
+
+    internal static string ConfirmStartup(string path, string runningRoot, Version runningVersion)
     {
         var plan = UpdatePlan.Read(path);
-        if (!PackageManifest.Paths.Equals(Root, plan.NewRoot) || plan.ToVersion != AppVersion.ToString(3) || plan.State != "applying")
+        if (!PackageManifest.Paths.Equals(Path.GetFullPath(runningRoot).TrimEnd(Path.DirectorySeparatorChar), plan.NewRoot) || plan.ToVersion != runningVersion.ToString(3) || plan.State != "applying")
             throw new InvalidDataException("Confirmación de arranque inválida.");
         string temporary = Path.Combine(plan.Job, Guid.NewGuid().ToString("N") + ".tmp");
         try { File.WriteAllText(temporary, plan.Id); File.Move(temporary, Path.Combine(plan.Job, "ready"), true); }
         finally { if (File.Exists(temporary)) File.Delete(temporary); }
+        return plan.ToVersion;
     }
 
     /// <returns>True when this process must exit; another copy was started or is updating.</returns>

@@ -19,6 +19,7 @@ public sealed partial class RetroApp
     private readonly StudioWindow _studio;
     private readonly CreatorWindow _creator;
     private readonly GameLibrary _library;
+    private readonly GameMetadataService _gameMetadata;
     private int _libraryRevision;
     private readonly HomeScreen _home;
     private readonly UpdateWindow _updates;
@@ -77,6 +78,9 @@ public sealed partial class RetroApp
         _input.KeySink = _host.SetInput;
         _host.InputReset += _input.ForgetKeys;
         _prefs = new AppPreferences(persist: !args.Contains("--autotest"));
+        _gameMetadata = new(new GameIdentificationCache(persist: !args.Contains("--autotest")));
+        int interfaceArg = Array.IndexOf(args, "--interface");
+        if (interfaceArg >= 0 && interfaceArg + 1 < args.Length && InterfaceStyles.TryParse(args[interfaceArg + 1], out var appearance)) _prefs.Interface = appearance;
         // --text-size 150 and --high-contrast change this session, as --mute does with the sound.
         int textArg = Array.IndexOf(args, "--text-size");
         if (textArg >= 0 && textArg + 1 < args.Length && int.TryParse(args[textArg + 1], out int text) && AppPreferences.TextSizes.Contains(text))
@@ -111,8 +115,8 @@ public sealed partial class RetroApp
                 else _host.Paused = _pausedBeforeLibrary;
             }, () => _host.LoadedMedia != null || _host.Fusion != null,
             args.Contains("--autotest") ? new LibraryActivity(persist: false) : null,
-            new HomeActions(OpenCreator, OpenFusionStudio, _commands.Open),
-            args.Contains("--autotest") ? new LibraryMetadata(persist: false) : null);
+            new HomeActions(OpenCreator, OpenFusionStudio, _commands.Open, () => _preferencesOpen = true),
+            args.Contains("--autotest") ? new LibraryMetadata(persist: false) : null, identification: _gameMetadata);
         _studio.GameStarted += game => _home.RecordFusion(game);
         _monitorRate = Raylib.GetMonitorRefreshRate(Raylib.GetCurrentMonitor());
         _targetFps = FramePacing.TargetFps(_monitorRate, saving: false, emulating: true, focused: true, minimized: false);
@@ -180,7 +184,7 @@ public sealed partial class RetroApp
             else if(args[i]=="--auto-analysis-window" && args.Contains("--autotest")) {CloseEditors();_home.Close();_code.OpenAutomaticAnalysis();}
             else if (args[i] is "--auto-analysis-action" or "--auto-analysis-section" && args.Contains("--autotest") && i + 1 < args.Length)
                 i++;
-            else if (args[i] == "--text-size")
+            else if (args[i] is "--text-size" or "--interface")
                 i++;
             else if (args[i] != "--hidden" && File.Exists(args[i]))
             {
@@ -197,12 +201,14 @@ public sealed partial class RetroApp
         if (!openedFile && !args.Any(a => a is "--studio" or "--preparar" or "--crear-window" or "--studio-window" or "--code" or "--mods-window" or "--states-window" or "--sound-window" or "--preferences-window" or "--debug" or "--create-hub" or "--tools-hub" or "--help-hub" or "--research-window" or "--auto-analysis-window"))
             _home.Open();
         _updates = new UpdateWindow(args);
+        if (Hardcore) OpenTerminal();
+        if (args.Contains("--interface-picker")) OpenInterfacePicker();
     }
 
     /// <summary>The user's game folder ("ROMs", exact case: "roms" holds the firmware).</summary>
     private static string? FindGamesFolder() => PlayerFolders.Find("ROMs");
 
-    private void ConfigureStyle() => UiTheme.Apply(_prefs.TextScale, _prefs.HighContrast);
+    private void ConfigureStyle() => UiTheme.Apply(_prefs.TextScale, _prefs.HighContrast, _prefs.Interface);
 
     private void ShowInDebugger(uint address)
     {
@@ -260,6 +266,7 @@ public sealed partial class RetroApp
         catch (AggregateException) { /* Cancellation and provider errors are already retained by the jobs. */ }
         _code.Dispose();
         _library.Dispose();
+        _gameMetadata.Dispose();
         _home.Dispose();
         if (_texW != 0)
             Raylib.UnloadTexture(_screenTex);
@@ -271,7 +278,7 @@ public sealed partial class RetroApp
     {
         var io = ImGui.GetIO();
         // The focused debugger screen is itself an ImGui window, but owns game input.
-        return io.WantTextInput || InterfaceWorkspace || ConfigurationOpen || _commands.IsOpen || _pendingOpen != null || _browser.IsOpen
+        return io.WantTextInput || InterfaceWorkspace || ConfigurationOpen || _interfacePicker.IsOpen || _commands.IsOpen || _pendingOpen != null || _browser.IsOpen
             || (io.WantCaptureKeyboard && !(_debugMode && _screenFocused));
     }
 
@@ -282,14 +289,16 @@ public sealed partial class RetroApp
         if (_updates.RestartRequested) QuitRequested = true;
         if (!_updates.Blocking && _pendingOpen == null && !_browser.IsOpen) HandleDroppedFiles();
         _library.Poll();
+        _gameMetadata.Poll(_library.Entries, _library.Folder, _library.Revision, _prefs.OnlineGameInfo && _autotestSeconds < 0);
         if (_libraryRevision != _library.Revision)
         {
             _libraryRevision = _library.Revision;
             _studio.NotifyLibraryChanged(_library.Folder);
         }
         bool imguiKeyboard = CaptureGuiKeyboard();
-        if (!_updates.Blocking && _pendingOpen == null && !_browser.IsOpen) HandleHotkeys(ImGui.GetIO().WantTextInput);
-        if (!_updates.Blocking && _pendingOpen == null && !_browser.IsOpen) HandleGamepadShortcut();
+        if (!_updates.Blocking && !_interfacePicker.IsOpen && _pendingOpen == null && !_browser.IsOpen) HandleHotkeys(ImGui.GetIO().WantTextInput);
+        if (!_updates.Blocking && !_interfacePicker.IsOpen && _pendingOpen == null && !_browser.IsOpen) HandleGamepadShortcut();
+        imguiKeyboard = CaptureGuiKeyboard();
         _code.Update();
         _studio.Update(); _creator.Update();
         if (_home.IsOpen) _host.Paused = true;
@@ -314,7 +323,7 @@ public sealed partial class RetroApp
             _host.Update(dt);
             UploadScreen();
         }
-        s_mute = _sound.Muted || InterfaceWorkspace || _host.IsFastForwarding || _host.Paused || _updates.Blocking
+        s_mute = _sound.Muted || InterfaceWorkspace || _interfacePicker.IsOpen || _host.IsFastForwarding || _host.Paused || _updates.Blocking
             || (_sound.MuteInBackground && !Raylib.IsWindowFocused());
         s_volume = _sound.VolumePercent / 100f;
         PaceFrames(m);
@@ -336,15 +345,15 @@ public sealed partial class RetroApp
 
         // A new text size rebuilds the font atlas, which ImGui only allows between frames.
         if (_themeChanged) { ConfigureStyle(); _themeChanged = false; }
+        PrepareTerminalLayout();
         SetKeyboardNavigation(m);
         Raylib.BeginDrawing();
-        Raylib.ClearBackground(new Color(15, 18, 16, 255));
+        Raylib.ClearBackground(UiTheme.Terminal ? new Color(2, 5, 3, 255) : new Color(15, 18, 16, 255));
         if (!InterfaceWorkspace && !_debugMode && _texW != 0)
             DrawPlayScreen();
         rlImGui.Begin(dt);
-        ImGui.BeginDisabled(_updates.Blocking);
-        DrawMenu();
-        DrawNavigation();
+        ImGui.BeginDisabled(_updates.Blocking || _interfacePicker.IsOpen);
+        if (!Hardcore) { DrawMenu(); DrawNavigation(); }
         if (_debugMode && !InterfaceWorkspace)
             DrawDebugger();
         DrawStatusBar();
@@ -363,8 +372,11 @@ public sealed partial class RetroApp
         DrawPreferencesWindow();
         AiConnectionWindow.Draw(_ai);
         _commands.Draw(Commands);
+        DrawTerminal();
         ImGui.EndDisabled();
         _updates.Draw();
+        _interfacePicker.ControlBounds = InterfaceControlBounds;
+        if (!_updates.Blocking) _interfacePicker.Draw(FinishInterfaceChoice);
         rlImGui.End();
         Raylib.EndDrawing();
 
@@ -414,7 +426,8 @@ public sealed partial class RetroApp
     {
         if (!Raylib.IsGamepadAvailable(0) || !Raylib.IsGamepadButtonDown(0, GamepadButton.MiddleLeft)
             || !Raylib.IsGamepadButtonPressed(0, GamepadButton.MiddleRight)) return;
-        if (!_home.IsOpen) { CloseEditors(); _home.Open(); }
+        if (Hardcore) { if (_terminalOpen && HasGame) { OpenPlay(); LeaveTerminal(); } else OpenTerminal(); }
+        else if (!_home.IsOpen) { CloseEditors(); _home.Open(); }
         else if (_host.LoadedMedia != null || _host.Fusion != null) _home.Close();
         _input.HoldGamepadUntilReleased();
     }
@@ -517,7 +530,7 @@ public sealed partial class RetroApp
     private void DrawPlayScreen()
     {
         // Bars measured on the previous frame, so a larger text size never covers the picture.
-        float top = _menuHeight + WorkspaceLayout.NavigationHeight, bottom = UiTheme.StatusBarHeight;
+        float top = _menuHeight + WorkspaceLayout.NavigationHeight, bottom = UiTheme.StatusBarHeight + WorkspaceLayout.FooterHeight;
         float w = Math.Max(1, Raylib.GetScreenWidth()), h = Math.Max(1, Raylib.GetScreenHeight() - top - bottom);
         float s = MathF.Min(w / _texW, h / _texH);
         if (_prefs.IntegerScale)
@@ -702,6 +715,14 @@ public sealed partial class RetroApp
     // ------------------------------------------------------------------ hotkeys
     private void HandleHotkeys(bool textInput)
     {
+        if (Hardcore)
+        {
+            bool consoleShortcut = (Raylib.IsKeyDown(KeyboardKey.LeftControl) || Raylib.IsKeyDown(KeyboardKey.RightControl)) &&
+                (Raylib.IsKeyDown(KeyboardKey.LeftShift) || Raylib.IsKeyDown(KeyboardKey.RightShift)) && Raylib.IsKeyPressed(KeyboardKey.T);
+            if (consoleShortcut) { if (_terminalOpen && HasGame) { OpenPlay(); LeaveTerminal(); } else OpenTerminal(); return; }
+            if (Raylib.IsKeyPressed(KeyboardKey.F11) && !textInput) ToggleFullscreen();
+            return;
+        }
         if (textInput)
             return;
         if (Raylib.IsKeyPressed(KeyboardKey.F11))
@@ -977,6 +998,7 @@ public sealed partial class RetroApp
         }
         if (ImGui.BeginMenu("Opciones"))
         {
+            if (ImGui.MenuItem("Estilos de interfaz…")) OpenInterfacePicker();
             if (ImGui.MenuItem("Preferencias...")) _preferencesOpen = true;
             if (ImGui.MenuItem("Conectar o configurar IA...")) AiConnectionWindow.Open(_ai);
             ImGui.Separator();

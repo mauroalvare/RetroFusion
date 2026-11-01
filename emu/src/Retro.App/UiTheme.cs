@@ -10,9 +10,9 @@ namespace Retro.App;
 internal static class UiTheme
 {
     public const float BaseFontSize = 20;
-    public static Vector4 Muted => HighContrast ? new(0.86f, 0.89f, 0.93f, 1) : new(0.67f, 0.69f, 0.63f, 1);
-    public static Vector4 Accent => HighContrast ? new(0.55f, 0.86f, 1, 1) : new(0.88f, 0.67f, 0.36f, 1);
-    public static Vector4 Panel => HighContrast ? new(0,0,0,1) : new(0.09f,0.115f,0.10f,1);
+    public static Vector4 Muted => HighContrast ? new(0.86f, 0.89f, 0.93f, 1) : Terminal ? new(0.43f, 0.68f, 0.46f, 1) : new(0.67f, 0.69f, 0.63f, 1);
+    public static Vector4 Accent => HighContrast ? new(0.55f, 0.86f, 1, 1) : Terminal ? new(0.45f, 1, 0.53f, 1) : new(0.88f, 0.67f, 0.36f, 1);
+    public static Vector4 Panel => HighContrast ? new(0,0,0,1) : Terminal ? new(0.015f, 0.035f, 0.02f, 1) : new(0.09f,0.115f,0.10f,1);
     public static Vector4 Warning => HighContrast ? new(1, 0.82f, 0.36f, 1) : new(0.96f, 0.75f, 0.42f, 1);
     /// <summary>Current instruction, PC and SP in the debugger.</summary>
     public static Vector4 Highlight => HighContrast ? new(1, 1, 0.2f, 1) : new(1, 1, 0.3f, 1);
@@ -21,11 +21,14 @@ internal static class UiTheme
     /// <summary>Text and spacing factor chosen in the preferences (1 = 20 px body text).</summary>
     public static float Scale { get; private set; } = 1;
     public static bool HighContrast { get; private set; }
+    public static InterfaceStyle Interface { get; private set; }
+    public static bool Terminal => Interface != InterfaceStyle.Retro;
     /// <summary>Height of the status bar at the bottom of the window.</summary>
     public static float StatusBarHeight => MathF.Round((BaseFontSize + 8) * Scale);
     internal static bool CompactHeight => ImGui.GetMainViewport().Size.Y < Px(440);
     private static nint _fontContext;
     private static float _fontSize;
+    private static bool _terminalFont;
     private static ImFontPtr _codeFont;
     private static ImFontPtr _titleFont;
     private static ImFontPtr _labelFont;
@@ -38,14 +41,15 @@ internal static class UiTheme
     public static Vector2 Px(float x, float y) => new(x * Scale, y * Scale);
 
     /// <summary>Style, palette and font. Call between frames: a new text size rebuilds the font atlas.</summary>
-    public static unsafe void Apply(float scale = 1, bool highContrast = false)
+    public static unsafe void Apply(float scale = 1, bool highContrast = false, InterfaceStyle appearance = InterfaceStyle.Retro)
     {
-        Scale = Math.Clamp(scale, 1, 2); HighContrast = highContrast;
+        Scale = Math.Clamp(scale, 1, 2); HighContrast = highContrast; Interface = appearance;
         var style = ImGui.GetStyle();
         // ScaleAllSizes multiplies the current sizes, so every change starts again from the unscaled style.
         if (_baseStyle is { } unscaled) *style.NativePtr = unscaled; else _baseStyle = *style.NativePtr;
         style.WindowRounding = 3; style.ChildRounding = 2; style.FrameRounding = 2;
         style.PopupRounding = 3; style.GrabRounding = 1; style.TabRounding = 1;
+        if (Terminal) style.WindowRounding = style.ChildRounding = style.FrameRounding = style.PopupRounding = style.GrabRounding = style.TabRounding = 0;
         style.WindowPadding = new(14, 14); style.FramePadding = new(9, 6);
         style.ItemSpacing = new(10, 9); style.CellPadding = new(10, 10);
         style.WindowBorderSize = 1; style.FrameBorderSize = 1; style.ScrollbarSize = 14;
@@ -104,6 +108,20 @@ internal static class UiTheme
             if (Enum.TryParse<ImGuiCol>(name,out var key)) colors[(int)key]=highContrast?new(0.03f,0.03f,0.04f,1):new(0.13f,0.16f,0.13f,1);
         foreach(string name in new[]{"TabSelected","TabActive","TabHovered","TabDimmedSelected","TabUnfocusedActive"})
             if (Enum.TryParse<ImGuiCol>(name,out var key)) colors[(int)key]=highContrast?new(0,0.27f,0.55f,1):new(0.33f,0.28f,0.18f,1);
+        if (Terminal && !HighContrast)
+        {
+            colors[(int)ImGuiCol.Text] = new(0.57f, 0.94f, 0.61f, 1);
+            foreach (var key in new[] { ImGuiCol.WindowBg, ImGuiCol.PopupBg, ImGuiCol.MenuBarBg, ImGuiCol.TitleBg, ImGuiCol.ScrollbarBg }) colors[(int)key] = new(0.008f, 0.018f, 0.01f, 1);
+            foreach (var key in new[] { ImGuiCol.Button, ImGuiCol.FrameBg, ImGuiCol.Header, ImGuiCol.TitleBgActive }) colors[(int)key] = new(0.025f, 0.10f, 0.04f, 1);
+            foreach (var key in new[] { ImGuiCol.ButtonHovered, ImGuiCol.ButtonActive, ImGuiCol.FrameBgHovered, ImGuiCol.FrameBgActive, ImGuiCol.HeaderHovered, ImGuiCol.HeaderActive, ImGuiCol.ScrollbarGrab }) colors[(int)key] = new(0.07f, 0.24f, 0.10f, 1);
+            colors[(int)ImGuiCol.Border] = colors[(int)ImGuiCol.Separator] = new(0.18f, 0.42f, 0.22f, 1);
+            colors[(int)ImGuiCol.CheckMark] = colors[(int)ImGuiCol.NavCursor] = Accent;
+            colors[(int)ImGuiCol.TableHeaderBg] = new(0.025f, 0.09f, 0.035f, 1);
+            colors[(int)ImGuiCol.TextSelectedBg] = new(0.12f, 0.40f, 0.17f, 0.8f);
+            colors[(int)ImGuiCol.TableBorderStrong] = colors[(int)ImGuiCol.TableBorderLight] = new(0.12f, 0.27f, 0.15f, 1);
+            foreach (string name in new[] { "Tab", "TabDimmed", "TabUnfocused", "TabSelected", "TabActive", "TabHovered", "TabDimmedSelected", "TabUnfocusedActive" })
+                if (Enum.TryParse<ImGuiCol>(name, out var key)) colors[(int)key] = new(0.03f, 0.13f, 0.05f, 1);
+        }
         colors[(int)ImGuiCol.ResizeGrip]=new(Accent.X,Accent.Y,Accent.Z,0.25f);
         colors[(int)ImGuiCol.ResizeGripHovered]=new(Accent.X,Accent.Y,Accent.Z,0.7f);
         colors[(int)ImGuiCol.ResizeGripActive]=Accent;
@@ -115,10 +133,10 @@ internal static class UiTheme
         colors[(int)ImGuiCol.ChildBg] = new(0, 0, 0, 0);
         ImGui.GetIO().FontGlobalScale = 1;
         float size = MathF.Round(BaseFontSize * Scale);
-        if (!Raylib.IsWindowReady() || (_fontContext == ImGui.GetCurrentContext() && _fontSize == size)) return;
+        if (!Raylib.IsWindowReady() || (_fontContext == ImGui.GetCurrentContext() && _fontSize == size && _terminalFont == Terminal)) return;
         bool replace = _fontContext == ImGui.GetCurrentContext();
-        _fontContext = ImGui.GetCurrentContext(); _fontSize = size;
-        string? font = FontCandidates(false).FirstOrDefault(File.Exists);
+        _fontContext = ImGui.GetCurrentContext(); _fontSize = size; _terminalFont = Terminal;
+        string? font = FontCandidates(Terminal).FirstOrDefault(File.Exists);
         string? codeFont = FontCandidates(true).FirstOrDefault(File.Exists);
 
         var config = new ImFontConfigPtr(ImGuiNative.ImFontConfig_ImFontConfig());
@@ -143,10 +161,10 @@ internal static class UiTheme
             _codeFont = codeFont == null ? fontPtr
                 : ImGui.GetIO().Fonts.AddFontFromFileTTF(codeFont, MathF.Round(16 * Scale), config, Ranges.AddrOfPinnedObject());
             if (codeFont != null) MergeSymbols(MathF.Round(16 * Scale));
-            string? titleFont = DisplayCandidates().FirstOrDefault(File.Exists);
+            string? titleFont = (Terminal ? FontCandidates(true) : DisplayCandidates()).FirstOrDefault(File.Exists);
             _titleFont = titleFont!=null ? ImGui.GetIO().Fonts.AddFontFromFileTTF(titleFont, MathF.Round(32 * Scale), config, Ranges.AddrOfPinnedObject()) : fontPtr;
             if (titleFont != null) MergeSymbols(MathF.Round(32 * Scale));
-            string? labelFont=LabelCandidates().FirstOrDefault(File.Exists);
+            string? labelFont=(Terminal ? FontCandidates(true) : LabelCandidates()).FirstOrDefault(File.Exists);
             _labelFont=labelFont!=null?ImGui.GetIO().Fonts.AddFontFromFileTTF(labelFont,MathF.Round(16*Scale),config,Ranges.AddrOfPinnedObject()):fontPtr;
             if (labelFont != null) MergeSymbols(MathF.Round(16 * Scale));
             rlImGui.ReloadFonts();
@@ -233,6 +251,14 @@ internal static class UiTheme
 
     public static bool PrimaryButton(string label, Vector2 size = default)
     {
+        if (Terminal && !HighContrast)
+        {
+            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.39f, 0.85f, 0.45f, 1));
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.56f, 1, 0.63f, 1));
+            ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.28f, 0.7f, 0.34f, 1));
+            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.01f, 0.035f, 0.015f, 1));
+            bool chosen = ImGui.Button(label, size); ImGui.PopStyleColor(4); return chosen;
+        }
         ImGui.PushStyleColor(ImGuiCol.Button, HighContrast ? new Vector4(0, 0.32f, 0.68f, 1) : new Vector4(0.83f, 0.62f, 0.32f, 1));
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, HighContrast ? new Vector4(0, 0.44f, 0.84f, 1) : new Vector4(0.94f, 0.76f, 0.47f, 1));
         ImGui.PushStyleColor(ImGuiCol.ButtonActive, HighContrast ? new Vector4(0, 0.44f, 0.84f, 1) : new Vector4(0.72f,0.54f,0.29f,1));
@@ -252,7 +278,7 @@ internal static class UiTheme
         ImGui.PushStyleColor(ImGuiCol.ChildBg, Panel);
         ImGui.BeginChild(id, size, ImGuiChildFlags.Borders | ImGuiChildFlags.AutoResizeY);
         ImGui.PopStyleColor();
-        if (!HighContrast) RetroArt.Screw(ImGui.GetWindowDrawList(),ImGui.GetWindowPos()+new Vector2(ImGui.GetWindowWidth()-UiTheme.Px(7),UiTheme.Px(7)));
+        if (!HighContrast && !Terminal) RetroArt.Screw(ImGui.GetWindowDrawList(),ImGui.GetWindowPos()+new Vector2(ImGui.GetWindowWidth()-UiTheme.Px(7),UiTheme.Px(7)));
     }
     public static void EndCard() => ImGui.EndChild();
 

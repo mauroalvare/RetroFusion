@@ -7,7 +7,6 @@ public sealed partial class RetroApp
 {
     private readonly SoundSettings _sound;
     private bool _soundWindowOpen;
-    private static readonly string[] AudioMargins = ["Corto", "Equilibrado", "Amplio"];
 
     private void DrawSoundWindow()
     {
@@ -17,29 +16,9 @@ public sealed partial class RetroApp
         if (!ImGui.Begin("Sonido", ref _soundWindowOpen, ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoDocking))
         { ImGui.End(); return; }
         WorkspaceLayout.KeepOnScreen();
-        bool changed = false;
-        int volume = _sound.VolumePercent;
-        ImGui.TextUnformatted("Volumen"); ImGui.SetNextItemWidth(-1);
-        if (ImGui.SliderInt("##volumen", ref volume, 0, 100, "%d %%")) { _sound.VolumePercent = volume; changed = true; }
-        bool muted = _sound.Muted;
-        if (ImGui.Checkbox("Silenciar", ref muted)) { _sound.Muted = muted; changed = true; }
-        bool background = _sound.MuteInBackground;
-        if (ImGui.Checkbox("Silenciar al perder el foco", ref background)) { _sound.MuteInBackground = background; changed = true; }
+        DrawSharedOptions("Sonido");
         ImGui.Spacing();
-        int margin = _sound.BufferFrames == 1 ? 0 : _sound.BufferFrames == 4 ? 2 : 1;
-        ImGui.TextUnformatted("Margen de audio"); ImGui.SetNextItemWidth(-1);
-        if (ImGui.Combo("##margen-audio", ref margin, AudioMargins, AudioMargins.Length))
-        { _sound.BufferFrames = margin == 0 ? 1 : margin == 2 ? 4 : 2; changed = true; }
-        ImGui.PushTextWrapPos(0);
-        ImGui.TextDisabled(margin switch {
-            0 => "Menor demora. Si escuchás cortes, probá Equilibrado.",
-            2 => "Más margen ante pausas del equipo; puede aumentar la demora.",
-            _ => "Equilibra respuesta y estabilidad del sonido."
-        });
-        ImGui.PopTextWrapPos();
-        ImGui.Spacing();
-        if (ImGui.Button("Restablecer valores")) { _sound.Defaults(); changed = true; }
-        if (changed) _sound.Save();
+        if (ImGui.Button("Restablecer valores")) { _sound.Defaults(); _sound.Save(); }
         if (s_forceMute) ImGui.TextDisabled("Este inicio está silenciado.");
         if (_sound.Problem is { } problem) ImGui.TextWrapped(problem);
         if (_sound.CanRecover)

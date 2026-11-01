@@ -9,7 +9,6 @@ public sealed partial class RetroApp
     private bool ConfigurationOpen => _preferencesOpen || _soundWindowOpen || AiConnectionWindow.IsOpen;
     private static readonly string[] JoystickNames = ["Kempston (Alt = disparo)", "Cursor (5 6 7 8 0)", "Sinclair 1 (6 7 8 9 0)"];
     private static readonly string[] C64Ports = ["Puerto 1", "Puerto 2 (la mayoría de los juegos)"];
-    private static readonly string[] TextSizeNames = AppPreferences.TextSizes.Select(size => $"{size} %").ToArray();
 
     private void SetTextSize(int percent) { _prefs.TextPercent = percent; _prefs.Save(); _themeChanged = true; }
     private void SetHighContrast(bool on) { _prefs.HighContrast = on; _prefs.Save(); _themeChanged = true; }
@@ -27,54 +26,18 @@ public sealed partial class RetroApp
         WorkspaceLayout.KeepOnScreen();
         ImGui.PushTextWrapPos(0);
 
-        ImGui.SeparatorText("Lectura");
-        int text = Array.IndexOf(AppPreferences.TextSizes, _prefs.TextPercent);
-        ImGui.TextUnformatted("Tamaño del texto"); ImGui.SetNextItemWidth(-1);
-        if (ImGui.Combo("##tamano-texto", ref text, TextSizeNames, TextSizeNames.Length)) SetTextSize(AppPreferences.TextSizes[text]);
-        bool contrast = _prefs.HighContrast;
-        if (ImGui.Checkbox("Alto contraste", ref contrast)) SetHighContrast(contrast);
-        ImGui.TextDisabled("Texto blanco sobre negro, bordes visibles y el foco del teclado en amarillo.");
-
-        ImGui.SeparatorText("Pantalla");
-        bool fullscreen = Raylib.IsWindowFullscreen();
-        if (ImGui.Checkbox("Pantalla completa (F11)", ref fullscreen)) ToggleFullscreen();
-        bool integer = _prefs.IntegerScale;
-        if (ImGui.Checkbox("Escala entera (píxeles nítidos)", ref integer)) { _prefs.IntegerScale = integer; _prefs.Save(); }
-        bool fps = _prefs.ShowFps;
-        if (ImGui.Checkbox("Mostrar cuadros por segundo", ref fps)) { _prefs.ShowFps = fps; _prefs.Save(); }
-
-        ImGui.SeparatorText("Controles");
-        int joystick = (int)_prefs.SpectrumJoystick;
-        ImGui.TextUnformatted("Joystick del Spectrum"); ImGui.SetNextItemWidth(-1);
-        if (ImGui.Combo("##joystick-spectrum", ref joystick, JoystickNames, JoystickNames.Length)) SetSpectrumJoystick((JoystickMode)joystick);
-        int port = _prefs.C64Port - 1;
-        ImGui.TextUnformatted("Joystick del C64"); ImGui.SetNextItemWidth(-1);
-        if (ImGui.Combo("##joystick-c64", ref port, C64Ports, C64Ports.Length)) SetC64Port(port + 1);
-        ImGui.TextDisabled("Las flechas y el mando manejan el joystick elegido.");
-
-        ImGui.SeparatorText("Cintas del Spectrum");
-        bool typeLoad = _prefs.TypeLoad;
-        if (ImGui.Checkbox("Escribir LOAD \"\" al abrir cintas", ref typeLoad)) { _prefs.TypeLoad = typeLoad; _prefs.Save(); }
-        bool turbo = _prefs.TurboWhileLoading;
-        if (ImGui.Checkbox("Acelerar durante la carga", ref turbo)) SetTurboWhileLoading(turbo);
-
-        ImGui.SeparatorText("Rendimiento");
-        bool saving = _prefs.PowerSaving;
-        if (ImGui.Checkbox("Ahorrar energía sin partida", ref saving)) { _prefs.PowerSaving = saving; _prefs.Save(); }
-        ImGui.TextDisabled($"Con la partida en pausa o en la biblioteca, la ventana se dibuja hasta {FramePacing.Interface} veces por segundo " +
-            $"y {FramePacing.Background} sin foco. Un juego en curso usa siempre la frecuencia del monitor. Minimizada, la ventana espera sin dibujar.");
-        bool background = _prefs.PauseInBackground;
-        if (ImGui.Checkbox("Pausar al cambiar de ventana", ref background)) { _prefs.PauseInBackground = background; _prefs.Save(); }
-        ImGui.TextDisabled("Al volver, sigue solo si la pausa fue automática. Para silenciar sin pausar, usá Sonido.");
+        DrawSharedOptions();
 
         ImGui.Spacing();
         if (ImGui.Button("Restablecer valores"))
         {
+            SetInterface(InterfaceStyle.Retro);
             bool wasFullscreen = Raylib.IsWindowFullscreen();
             _prefs.Defaults();
             if (wasFullscreen) Raylib.ToggleFullscreen();
             _input.Joystick = _prefs.SpectrumJoystick; _input.C64Port = _prefs.C64Port;
             _host.TurboWhileLoading = _prefs.TurboWhileLoading;
+            _sound.Defaults(); _sound.Save();
             _prefs.Save(); _themeChanged = true;
         }
         UiTheme.SameLineIfFits("Sonido…");

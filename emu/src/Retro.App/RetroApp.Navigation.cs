@@ -7,7 +7,7 @@ public sealed partial class RetroApp
 {
     private enum HubPage { None, Create, Tools, Help }
     private HubPage _hub;
-    private bool InterfaceWorkspace => _home.IsOpen || _hub!=HubPage.None || _creator.IsOpen || _studio.IsOpen || _code.IsOpen || _stateWindowOpen;
+    private bool InterfaceWorkspace => _terminalOpen || _home.IsOpen || _hub!=HubPage.None || _creator.IsOpen || _studio.IsOpen || _code.IsOpen || _stateWindowOpen;
     private bool HasGame => _host.LoadedMedia!=null || _host.Fusion!=null;
 
     private void OpenHub(HubPage page)

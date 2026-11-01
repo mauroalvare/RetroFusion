@@ -68,6 +68,31 @@ public sealed class LibraryInteractionTests
         view.Activity.Played(view.First); view.Home.ShowRecents(); view.Frame(); Assert.That(view.Keys(), Is.EqualTo(new[] { view.First }));
     }
 
+    [Test]
+    public void TheTerminalUsesTheSameGameActionsFiltersAndFavoritesAsTheGraphicalLibrary()
+    {
+        using var view = new View(1280, 840, 1); view.Home.ShowOriginals(); view.Frame();
+        view.Home.TerminalFilter("genero", "Plataformas"); view.Home.TerminalFilter("año", "1980:1989");
+        Assert.That(view.Keys(), Is.EqualTo(new[] { view.First }));
+        var row = view.Home.TerminalGames().Single(); Assert.That(row.Key, Is.EqualTo(view.First));
+        view.Home.TerminalFavorite(row.Key, true); view.Home.TerminalSection("favoritos");
+        Assert.That(view.Keys(), Is.EqualTo(new[] { view.First })); Assert.That(view.Activity.IsFavorite(row.Key), Is.True);
+        row.Play(); Assert.That(view.Played, Is.EqualTo(new[] { view.FirstPath }));
+    }
+
+    [Test]
+    public void TerminalFilterValidationDoesNotEraseAValidQueryAndAllAdditionalFiltersWork()
+    {
+        using var view = new View(1280, 840, 1); view.Home.ShowOriginals(); view.Frame();
+        view.Home.TerminalFilter("sistema", "nes"); view.Home.TerminalFilter("tipo", "original"); view.Home.TerminalFilter("actividad", "nunca");
+        Assert.That(view.Keys(), Is.EqualTo(new[] { view.Second }));
+        Assert.Throws<ArgumentException>(() => view.Home.TerminalFilter("año", "1999:1980"));
+        Assert.Throws<ArgumentException>(() => view.Home.TerminalFilter("sistema", "nonexistent"));
+        Assert.That(view.Keys(), Is.EqualTo(new[] { view.Second }));
+        view.Home.TerminalFilter("quitar", ""); Assert.That(view.Keys(), Has.Count.EqualTo(3));
+        view.Home.TerminalFilter("año", "sin"); Assert.That(view.Keys(), Has.Count.EqualTo(1));
+    }
+
     private sealed class View : IDisposable
     {
         private readonly string _folder, _previousFusion, _previousCreated;

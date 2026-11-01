@@ -8,15 +8,16 @@ using Retro.Studio;
 
 namespace Retro.App;
 
-public sealed record HomeActions(Action Create, Action Fuse, Action FindAction);
+public sealed record HomeActions(Action Create, Action Fuse, Action FindAction, Action? MetadataSettings = null);
 
 /// <summary>The main browser replaces the play area; it is never a floating window.</summary>
 public sealed partial class HomeScreen(GameLibrary library, Action<string> playOriginal, Action<string> playFusion,
     Action browse, Action<bool> visibility, Func<bool> canReturn, LibraryActivity? activity = null, HomeActions? actions = null,
-    LibraryMetadata? metadata = null, TimeProvider? clock = null) : IDisposable
+    LibraryMetadata? metadata = null, TimeProvider? clock = null, GameMetadataService? identification = null) : IDisposable
 {
     private readonly LibraryActivity _activity = activity ?? new();
     private readonly LibraryMetadata _metadata = metadata ?? new();
+    private readonly GameMetadataService _identification = identification ?? new(new GameIdentificationCache(persist: false));
     private readonly TimeProvider _clock = clock ?? TimeProvider.System;
     private readonly ThumbnailCache _thumbnails = new();
     private int _thumbnailRevision = -1;
@@ -384,9 +385,10 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
         if (ImGui.IsItemHovered()) UiTheme.Tooltip(title + (string.IsNullOrWhiteSpace(hint) ? "" : "\n" + hint));
         if (ImGui.IsItemVisible())
         {
-            var info = _metadata.Get(id);
+            var info = EffectiveInfo(id);
             if (info.Genres.Count > 0 || info.ReleaseYear != null)
-                UiTheme.Hint(UiTheme.Fit(string.Join(" · ", info.Genres.Concat(info.ReleaseYear is { } year ? [year.ToString()] : [])), textWidth));
+                UiTheme.Hint(UiTheme.Fit(string.Join(" · ", info.Genres.Concat(info.ReleaseYear != null ? [info.YearLabel] : [])), textWidth));
+            if (info.WorkYear && ImGui.IsItemHovered()) UiTheme.Tooltip("Primera publicación de la obra. La fuente no determina el año de esta plataforma; Ficha muestra la procedencia.");
         }
         if (_compactRows) ImGui.TextDisabled(UiTheme.Fit(detail, textWidth));
         if (!playable)

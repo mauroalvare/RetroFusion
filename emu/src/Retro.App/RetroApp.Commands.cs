@@ -48,6 +48,7 @@ public sealed partial class RetroApp
         new("rewind", "Retroceder cinco segundos", "Partida", "rebobinar historial", "", () => TryStateAction(() => _host.Rewind()),
             () => _host.RewindPoints > 0 && !_host.IsRecordingInputs && !_host.IsReplayingInputs, "Activá el historial en Juego > Rebobinado y entradas."),
         new("preferences", "Abrir preferencias…", "Opciones", "configuracion controles joystick accesibilidad", "", () => _preferencesOpen = true),
+        new("interface", "Elegir interfaz y ver estilos…", "Opciones", "terminal retro hardcore apariencia tema", "", OpenInterfacePicker),
         new("sound", "Ajustar volumen y sonido…", "Opciones", "audio silenciar", "", () => _soundWindowOpen = true),
         new("ai", "Conectar o configurar IA…", "Opciones", "modelo proveedor conexion", "", () => AiConnectionWindow.Open(_ai)),
         new("contrast", "Activar o desactivar alto contraste", "Opciones", "accesibilidad lectura colores", "", () => SetHighContrast(!_prefs.HighContrast)),
