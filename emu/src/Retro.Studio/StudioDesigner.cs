@@ -69,8 +69,12 @@ public sealed class StudioDesigner
         host repetirá sobre la memoria de los originales. Cada paso tiene ticks (1–600)
         e inputs (left/right/up/down/fire/jump/start/coin, o [] para esperar). Máximo 64
         pasos y 5400 ticks por recorrido. Cada check usa slot, variable EXACTA del perfil,
-        fromTick, atTick, min y max: el host compara valor(atTick)-valor(fromTick) con ese
-        intervalo. Tick 0 es después de init; cada recorrido reinicia todos los originales.
+        fromTick, atTick, min, max y measure. Con measure="delta" compara el cambio final;
+        "minDelta"/"maxDelta" miden el cambio mínimo/máximo respecto al valor inicial,
+        incluyendo ese inicio; "changes" cuenta diferencias entre ticks consecutivos.
+        Elegí extremos para efectos breves que vuelven al valor inicial y changes para
+        distinguir una sola pulsación de repeticiones. No son escrituras ni causalidad.
+        Tick 0 es después de init; cada recorrido reinicia todos los originales.
         Entre 1 y 12 checks por recorrido, 0 <= fromTick < atTick <= duración. No hay
         direcciones, escrituras, log ni código de prueba. Elegí situaciones que discriminen
         la regla (pulsar/sostener, premio/cupo, transición, pérdida/reinicio), sin inventar
@@ -444,12 +448,13 @@ public sealed class StudioDesigner
                         } },
                         checks = new { type = "array", minItems = 1, maxItems = 12, items = new
                         {
-                            type = "object", additionalProperties = false, required = new[] { "slot", "variable", "fromTick", "atTick", "min", "max" },
+                            type = "object", additionalProperties = false, required = new[] { "slot", "variable", "fromTick", "atTick", "min", "max", "measure" },
                             properties = new { slot = new { type = "string", maxLength = 32 }, variable = new { type = "string", maxLength = 120 },
                                 fromTick = new { type = "integer", minimum = 0, maximum = StudioPlaytests.MaxTicks },
                                 atTick = new { type = "integer", minimum = 1, maximum = StudioPlaytests.MaxTicks },
                                 min = new { type = "integer", minimum = -4294967295L, maximum = 4294967295L },
-                                max = new { type = "integer", minimum = -4294967295L, maximum = 4294967295L } },
+                                max = new { type = "integer", minimum = -4294967295L, maximum = 4294967295L },
+                                measure = new { type = "string", @enum = new[] { "delta", "minDelta", "maxDelta", "changes" } } },
                         } },
                     },
                 },
@@ -670,12 +675,18 @@ public sealed class StudioDesigner
             }
             string source = game.Script.Replace("\r\n", "\n").Trim();
             // A failed observation can be corrected without rewriting a working script.
-            // Labels do not change execution. Keep legacy keys for candidates without plans.
-            string checks = game.Playtests.Count == 0 ? "" : JsonSerializer.Serialize(game.Playtests.Select(p => new
+            // Labels do not change execution. Preserve 0.3.6 fingerprints for endpoint-only plans.
+            bool intervalMeasures = game.Playtests.Any(p => p.Checks.Any(c => c.Measure != "delta"));
+            string checks = game.Playtests.Count == 0 ? "" : intervalMeasures ? JsonSerializer.Serialize(game.Playtests.Select(p => new
             {
                 Steps = p.Steps.Select(s => new { s.Ticks, Inputs = s.Inputs.Order(StringComparer.Ordinal).ToArray() }), p.Checks,
+            }), GameProfile.Json) : JsonSerializer.Serialize(game.Playtests.Select(p => new
+            {
+                Steps = p.Steps.Select(s => new { s.Ticks, Inputs = s.Inputs.Order(StringComparer.Ordinal).ToArray() }),
+                Checks = p.Checks.Select(c => new { c.Slot, c.Variable, c.FromTick, c.AtTick, c.Min, c.Max }),
             }), GameProfile.Json);
-            string hash = (checks.Length == 0 ? "" : "playtest-v1:") +
+            if (intervalMeasures) checks = checks.Replace("\r\n", "\n");
+            string hash = (checks.Length == 0 ? "" : intervalMeasures ? "playtest-v2:" : "playtest-v1:") +
                 Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(source + (checks.Length == 0 ? "" : "\n" + checks))));
             if (!triedScripts.Add(hash))
                 return new(null, report, attempt, "La IA devolvió el mismo guion y comprobaciones que ya fallaron. Conservamos el borrador para continuar con otro cambio.", draft);

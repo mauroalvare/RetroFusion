@@ -68,7 +68,9 @@ public static class StudioWorkspace
                Si falta un dato indispensable, escribí qué falta en informe.md y detené la implementación.
             4. Escribí el guion completo en `{ScriptFile}`.
                En "playtests" de `{GameFile}` agregá recorridos dirigidos de entradas y cambios
-               de variables del perfil, según CONTRATO.md. No uses log o puntajes anunciados
+               de variables del perfil, según CONTRATO.md. Usá minDelta/maxDelta para efectos
+               breves y changes para comprobar repeticiones durante una entrada sostenida.
+               No uses log o puntajes anunciados
                como prueba del original. Si no hay datos observables, dejá [] y detallá el límite.
             5. Probalo: {test}
             6. Corregí los fallos conservando el pedido y lo que funciona. Revisá la lista de

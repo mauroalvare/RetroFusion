@@ -70,3 +70,12 @@ Se contrastó con el estado de reset y el lector del modelo Mesen citado arriba,
 programas propios. Estas pruebas no afirman el instante de aborto de una DMA en la NES.
 Referencia primaria adicional de comparación:
 [arbitraje de DMA de Mesen](https://github.com/SourMesen/Mesen2/blob/master/Core/NES/NesCpu.cpp).
+
+El ciclo de encendido también reconstruye los canales de audio, incluidos los divisores,
+secuenciadores, envolventes y paridad de reloj. Antes podían sobrevivir fases de la partida
+anterior: repetir el mismo programa tras apagar/encender producía muestras diferentes.
+El reinicio suave conserva el tratamiento anterior de los canales y no se presenta como
+un modelo completo de reset físico. El DMC inicia su contador a 427 para esperar el primer
+período NTSC de 428 ciclos, en lugar de avanzar en el primer ciclo. Este punto se contrasta
+con Reset del modelo DMC de Mesen citado y se comprueba con un byte propio conocido.
+No cambia el formato NES7 ni resuelve los abortos y variantes pendientes.

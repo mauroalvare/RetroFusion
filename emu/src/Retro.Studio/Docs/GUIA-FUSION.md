@@ -196,15 +196,30 @@ existir en los perfiles de esa edición.
   "name": "Una pulsación conserva el cambio al sostener",
   "steps": [{"ticks": 60, "inputs": ["fire"]}],
   "checks": [
-    {"slot":"b", "variable":"polarity", "fromTick":0, "atTick":6, "min":1, "max":1},
-    {"slot":"b", "variable":"polarity", "fromTick":6, "atTick":60, "min":0, "max":0}
+    {"slot":"b", "variable":"polarity", "fromTick":0, "atTick":6, "min":1, "max":1, "measure":"delta"},
+    {"slot":"b", "variable":"polarity", "fromTick":6, "atTick":60, "min":0, "max":0, "measure":"changes"}
   ]
 }]
 ```
 
 El ejemplo solo sirve si ese perfil tiene una polaridad que empieza en cero y esa es la
-regla real. El valor comprobado es `valor(atTick) - valor(fromTick)`; tick cero es después
-de `init`. `inputs: []` suelta todas las entradas. Cada paso dura 1–600 ticks; un recorrido
+regla real. La segunda observación comprueba que no oscila mientras se sostiene, incluso
+si al terminar vuelve al mismo valor. `measure` define qué se compara con `min`/`max`:
+
+| Medición | Valor comprobado |
+|---|---|
+| `delta` (predeterminado en archivos anteriores) | Valor final menos valor inicial. |
+| `minDelta` | Menor cambio respecto al inicio, incluyendo el cero inicial. |
+| `maxDelta` | Mayor cambio respecto al inicio, incluyendo el cero inicial. |
+| `changes` | Cantidad de diferencias entre ticks consecutivos; de cero a la duración del intervalo. |
+
+Los extremos permiten comprobar un salto o impacto breve aunque el valor vuelva a su
+inicio al terminar. El informe conserva el extremo y el primer tick en que se observó.
+Las mediciones se hacen una vez por tick de 1/60 s: no cuentan cada escritura de CPU ni
+detectan una oscilación completa que ocurra entre dos muestras. Para campos que envuelven
+su rango, usá una variable compuesta comprobada o intervalos que no crucen ese borde.
+
+Tick cero es después de `init`. `inputs: []` suelta todas las entradas. Cada paso dura 1–600 ticks; un recorrido
 admite 64 pasos, 5400 ticks (90 segundos) y 1–12 observaciones; hay hasta tres recorridos.
 
 Elegí casos que distingan la regla de un fallo: pulsar/sostener, efecto correcto/erróneo,

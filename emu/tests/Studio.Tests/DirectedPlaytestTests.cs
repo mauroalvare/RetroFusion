@@ -82,6 +82,48 @@ public sealed class DirectedPlaytestTests
     }
 
     [Test]
+    public async Task CorrectingOnlyTheMeasurementDoesNotRepeatThePreviousFailure()
+    {
+        _game.Script += "var observedTick=0;function tick(){observedTick++;if(observedTick==2)games.a.set('counter',7);if(observedTick==4)games.a.set('counter',0);}";
+        var endpoint = Plan(min: 7, max: 7); var peak = Plan(min: 7, max: 7); peak.Checks[0].Measure = "maxDelta";
+        string Answer(StudioPlaytest plan) => JsonSerializer.Serialize(new { script = _game.Script, playtests = new[] { plan } }, GameProfile.Json);
+        var ai = new Answers(Answer(endpoint), Answer(peak));
+        var outcome = await new StudioDesigner().ReviseAsync(ai, _game, id => _sources.GetValueOrDefault(id)?.Profile,
+            "Comprobar un efecto breve", game =>
+            {
+                var results = StudioPlaytests.Run(StudioSession.Start(game, _sources, _folder));
+                bool ok = results.All(r => r.Ok);
+                return new(ok, null, ok ? [] : ["Efecto no comprobado"], 5, "Prueba local", null, Playtests: results);
+            }, CancellationToken.None);
+        Assert.That(ai.Calls, Is.EqualTo(2));
+        Assert.That(outcome.Game, Is.Not.Null, outcome.Error);
+        Assert.That(outcome.Game!.Script, Is.EqualTo(_game.Script));
+        Assert.That(outcome.Report!.Playtests!.Single().Observations.Single().Measure, Is.EqualTo("maxDelta"));
+    }
+
+    [Test]
+    public async Task EndpointOnlyPlansStillRecognizeTheFingerprintWrittenByVersion036()
+    {
+        _game.Playtests = [Plan("untouched")];
+        var ai = new Answers(JsonSerializer.Serialize(new { script = _game.Script, playtests = _game.Playtests }, GameProfile.Json));
+        int validations = 0;
+        // 0.3.6 used the platform's JSON line endings. Both values come from its endpoint-only fixture.
+        string legacyFingerprint = Environment.NewLine == "\r\n"
+            ? "playtest-v1:2D65A0F370A154D2E729DBAEBE0CB623FDC21666EA4FB0D260F433C0A30C98D9"
+            : "playtest-v1:6620C30E6C207B8D2E3B9C74ADEB8B9DF3A91983D24F5377A663E8260372A09C";
+        string? lastFingerprint = null;
+        var outcome = await new StudioDesigner { AttemptLimit = 1, Checkpoint = c => lastFingerprint = c.TriedScripts.LastOrDefault() }.ResumeAsync(ai, new()
+        {
+            Template = _game.Copy(), Draft = _game.Copy(),
+            TriedScripts = [legacyFingerprint],
+        }, _ => { validations++; return new(false, null, ["La variable no cambió"], 5, "La variable no cambió", null); }, CancellationToken.None);
+        Assert.That(outcome.Game, Is.Null);
+        Assert.That(outcome.Error, Does.Contain("mismo guion y comprobaciones"), lastFingerprint);
+        Assert.That(ai.Calls, Is.EqualTo(1));
+        Assert.That(validations, Is.EqualTo(1), "Only the recovered draft is revalidated; the duplicate answer must not run");
+    }
+
+    [Test]
     public void TheHostReadsOriginalMemoryAndStartsEachPlanAtTheSameBoot()
     {
         var session = Start(Plan(), Plan());
@@ -110,6 +152,77 @@ public sealed class DirectedPlaytestTests
         var result = StudioPlaytests.Run(Start(plan)).Single();
         Assert.That(result.Ok, Is.True);
         Assert.That((result.Observations[0].Before, result.Observations[0].After), Is.EqualTo((3, 5)));
+    }
+
+    [TestCase("maxDelta", 0, 7, 2)] [TestCase("minDelta", 3, -7, 4)]
+    [TestCase("changes", 0, 2, 6)] [TestCase("changes", 3, 1, 6)]
+    public void TransientChangesAreMeasuredEvenWhenTheFinalValueReturnsToItsStart(string measure, int from, long expected, int measuredTick)
+    {
+        _game.Script += "var observedTick=0;function tick(){observedTick++;if(observedTick==2)games.a.set('counter',7);if(observedTick==4)games.a.set('counter',0);}";
+        var plan = Plan(min: expected, max: expected); plan.Steps[0].Ticks = 6;
+        plan.Checks[0].FromTick = from; plan.Checks[0].AtTick = 6; plan.Checks[0].Measure = measure;
+        var result = StudioPlaytests.Run(Start(plan)).Single();
+        Assert.That(result.Ok, Is.True, result.Error);
+        var observation = result.Observations.Single();
+        Assert.That(observation.Measured, Is.EqualTo(expected));
+        Assert.That(observation.MeasuredAtTick, Is.EqualTo(measuredTick));
+        Assert.That(observation.Measure, Is.EqualTo(measure));
+        Assert.That(observation.After, Is.Zero);
+    }
+
+    [TestCase("minDelta")] [TestCase("maxDelta")]
+    public void PeakIntervalsIncludeTheirStartingValue(string measure)
+    {
+        var plan = Plan("untouched", 0, 0); plan.Checks[0].Measure = measure;
+        var result = StudioPlaytests.Run(Start(plan)).Single();
+        Assert.That(result.Ok, Is.True);
+        Assert.That(result.Observations.Single().Measured, Is.Zero);
+        Assert.That(result.Observations.Single().MeasuredAtTick, Is.Zero);
+    }
+
+    [TestCase("unknown", 0, 5)] [TestCase("changes", -1, 5)] [TestCase("changes", 0, 6)]
+    public void UnknownMeasuresAndImpossibleChangeCountsAreRejected(string measure, long min, long max)
+    {
+        var plan = Plan(min: min, max: max); plan.Checks[0].Measure = measure;
+        Assert.That(StudioPlaytests.CheckShape([plan]), Is.Not.Null);
+    }
+
+    [Test]
+    public void AnUnreadableProfileVariableReportsTheFailedProbeAndReleasesInputs()
+    {
+        var session = Start(Plan()); session.Slots[0].Profile.Variables["counter"].Address = "invalid-hex";
+        session.SetInput("fire", true);
+        var result = StudioPlaytests.Run(session).Single();
+        Assert.That(result.Ok, Is.False); Assert.That(result.Ticks, Is.Zero);
+        Assert.That(result.Error, Does.Contain("games.a.counter"));
+        session.Slots[0].Profile.Variables["counter"].Address = "C000";
+        session.Update(1.0 / 60);
+        Assert.That(session.Slots[0].Machine.Memory.Peek(0xC000), Is.Zero);
+    }
+
+    [Test]
+    public void CorrectionReportsDescribeThePeakRatherThanTheUnchangedEndpoint()
+    {
+        _game.Script += "var observedTick=0;function tick(){observedTick++;if(observedTick==2)games.a.set('counter',7);if(observedTick==4)games.a.set('counter',0);}";
+        var plan = Plan(min: 8, max: 8); plan.Checks[0].Measure = "maxDelta";
+        var report = StudioValidator.Run(Start(plan), 1);
+        Assert.That(report.Ok, Is.False);
+        Assert.That(StudioDesigner.FixRequest(report), Does.Contain("cambio máximo 7, observado en tick 2").And.Contain("[8, 8]"));
+    }
+
+    [Test]
+    public void PreviousEndpointPlansAndNewMeasurementSchemaRemainReadable()
+    {
+        var plan = JsonSerializer.Deserialize<StudioPlaytest>("""
+            {"name":"Anterior", "steps":[{"ticks":5,"inputs":["fire"]}],
+             "checks":[{"slot":"a","variable":"counter","fromTick":0,"atTick":5,"min":5,"max":5}]}
+            """, GameProfile.Json)!;
+        Assert.That(StudioPlaytests.Run(Start(plan)).Single().Ok, Is.True);
+        Assert.That(plan.Checks.Single().Measure, Is.EqualTo("delta"));
+        var checks = StudioDesigner.GameSchema().GetProperty("properties").GetProperty("playtests").GetProperty("items")
+            .GetProperty("properties").GetProperty("checks").GetProperty("items");
+        Assert.That(checks.GetProperty("properties").GetProperty("measure").GetProperty("enum").EnumerateArray().Select(e => e.GetString()),
+            Is.EquivalentTo(new[] { "delta", "minDelta", "maxDelta", "changes" }));
     }
 
     [TestCase("missing", "counter")] [TestCase("a", "C000")]

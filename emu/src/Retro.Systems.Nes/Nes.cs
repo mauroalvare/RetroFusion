@@ -94,7 +94,7 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         }
         if (hard) Cartridge.ResetBanks();
         Ppu.Reset();
-        Apu.Reset();
+        Apu.Reset(hard);
         _dcIn = Apu.Output;   // start the high-pass at rest: no click at power on
         _dcOut = 0;
         _mixSum = 0;

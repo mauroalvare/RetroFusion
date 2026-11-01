@@ -85,9 +85,18 @@ public static class StudioValidator
                 if (!result.Ok) problems.Add(heading + (result.Error != null ? " " + result.Error : " Revisá los cambios de memoria esperados."));
                 if (result.Error != null) summary.AppendLine(result.Error);
                 foreach (var observation in result.Observations)
+                {
+                    string measurement = observation.Measure switch
+                    {
+                        "minDelta" => $"cambio mínimo {observation.Measured}, observado en tick {observation.MeasuredAtTick}",
+                        "maxDelta" => $"cambio máximo {observation.Measured}, observado en tick {observation.MeasuredAtTick}",
+                        "changes" => $"cambios entre ticks {observation.Measured}",
+                        _ => $"cambio {observation.Delta}",
+                    };
                     summary.AppendLine($"games.{observation.Slot}.{observation.Variable}, ticks {observation.FromTick}→{observation.AtTick}: " +
-                        $"{observation.Before}→{observation.After}, cambio {observation.Delta}, esperado [{observation.Min}, {observation.Max}]; " +
+                        $"{observation.Before}→{observation.After}, {measurement}, esperado [{observation.Min}, {observation.Max}]; " +
                         $"{(observation.Ok ? "coincide" : "NO coincide")}. {observation.Purpose}");
+                }
             }
             summary.AppendLine("Estos recorridos prueban esos cambios de memoria y esas entradas. No certifican por sí solos propósito, todos los niveles, equilibrio ni diversión.");
             return report with { Ok = report.Ok && directedOk, Problems = problems, Ticks = ticks,

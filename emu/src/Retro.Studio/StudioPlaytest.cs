@@ -16,7 +16,7 @@ public sealed class PlaytestStep
     public List<string> Inputs { get; set; } = [];
 }
 
-/// <summary>The host measures a delta between two ticks, including tick zero after init.</summary>
+/// <summary>The host observes an interval of original memory, including tick zero after init.</summary>
 public sealed class PlaytestProbe
 {
     public string Slot { get; set; } = "";
@@ -25,10 +25,12 @@ public sealed class PlaytestProbe
     public int AtTick { get; set; }
     public long Min { get; set; }
     public long Max { get; set; }
+    public string Measure { get; set; } = "delta";
 }
 
 public sealed record PlaytestObservation(string Slot, string Variable, int FromTick, int AtTick,
-    int Before, int After, long Delta, long Min, long Max, bool Ok, string Purpose);
+    int Before, int After, long Delta, long Min, long Max, bool Ok, string Purpose,
+    string Measure = "delta", long? Measured = null, int? MeasuredAtTick = null);
 public sealed record PlaytestResult(string Name, bool Ok, int Ticks, string? Error,
     IReadOnlyList<PlaytestObservation> Observations);
 
@@ -56,11 +58,17 @@ public static class StudioPlaytests
             }
             if (total > MaxTicks) return "Cada recorrido puede durar hasta 5400 ticks (90 segundos).";
             foreach (var check in plan.Checks)
+            {
                 if (check == null || string.IsNullOrWhiteSpace(check.Slot) || check.Slot.Length > 32 ||
                     string.IsNullOrWhiteSpace(check.Variable) || check.Variable.Length > 120 ||
                     check.FromTick < 0 || check.AtTick <= check.FromTick || check.AtTick > total || check.Min > check.Max ||
                     check.Min < -4294967295L || check.Max > 4294967295L)
                     return "La observación necesita slot/variable, dos ticks ordenados dentro del recorrido y un intervalo válido de cambio.";
+                if (check.Measure is not ("delta" or "minDelta" or "maxDelta" or "changes"))
+                    return "La medición debe ser delta, minDelta, maxDelta o changes.";
+                if (check.Measure == "changes" && (check.Min < 0 || check.Max > check.AtTick - check.FromTick))
+                    return "changes cuenta diferencias entre ticks: su intervalo va de cero a la cantidad de ticks observados.";
+            }
         }
         return null;
     }
@@ -89,23 +97,50 @@ public static class StudioPlaytests
                 session.Restart();
                 int tick = 0;
                 var before = new int[probes.Count];
+                var previous = new int[probes.Count];
+                var measured = new long[probes.Count];
+                var measuredAt = new int[probes.Count];
                 var observations = new List<PlaytestObservation>();
                 void Observe()
                 {
                     for (int i = 0; i < probes.Count; i++)
                     {
                         var check = plan.Checks[i]; var probe = probes[i];
-                        if (check.FromTick == tick) before[i] = probe.Variable.Read(probe.Slot.Machine.Memory);
-                        if (check.AtTick != tick) continue;
-                        int after = probe.Variable.Read(probe.Slot.Machine.Memory);
+                        if (tick < check.FromTick || tick > check.AtTick ||
+                            check.Measure == "delta" && tick != check.FromTick && tick != check.AtTick) continue;
+                        int after;
+                        try { after = probe.Variable.Read(probe.Slot.Machine.Memory); }
+                        catch (Exception e) when (e is FormatException or OverflowException or ArgumentException or InvalidDataException)
+                        {
+                            error = $"No se pudo leer games.{check.Slot}.{check.Variable} en el tick {tick}: {e.Message} " +
+                                "Revisá la dirección y codificación de esa variable en el analizador.";
+                            return;
+                        }
+                        if (check.FromTick == tick)
+                        {
+                            before[i] = previous[i] = after;
+                            measuredAt[i] = tick;
+                            continue;
+                        }
                         long delta = (long)after - before[i];
+                        switch (check.Measure)
+                        {
+                            case "delta": measured[i] = delta; measuredAt[i] = tick; break;
+                            case "minDelta" when delta < measured[i]: measured[i] = delta; measuredAt[i] = tick; break;
+                            case "maxDelta" when delta > measured[i]: measured[i] = delta; measuredAt[i] = tick; break;
+                            case "changes": if (after != previous[i]) measured[i]++; measuredAt[i] = tick; break;
+                        }
+                        previous[i] = after;
+                        if (check.AtTick != tick) continue;
                         observations.Add(new(check.Slot, check.Variable, check.FromTick, tick, before[i], after, delta,
-                            check.Min, check.Max, delta >= check.Min && delta <= check.Max, probe.Variable.PurposeSummary));
+                            check.Min, check.Max, measured[i] >= check.Min && measured[i] <= check.Max, probe.Variable.PurposeSummary,
+                            check.Measure, measured[i], measuredAt[i]));
                     }
                 }
                 Observe();
                 foreach (var step in plan.Steps)
                 {
+                    if (error != null) break;
                     foreach (string input in StudioSession.InputNames) session.SetInput(input, step.Inputs.Contains(input));
                     for (int i = 0; i < step.Ticks; i++)
                     {

@@ -47,7 +47,7 @@ conservar o descartar NMI y limpiar los latches mediante reset.
 | Spectrum 48K, formato 2 | 1 | La demora EI y la NMI pendiente se inicializan en falso; ese formato nunca las almacenó. |
 | Placa arcade 8080, formato 2 | 1 | La demora EI se inicializa en falso. |
 | C64, formato 2 | 1 | La muestra NMI nueva toma la decisión de flanco pendiente del formato anterior. |
-| NES, formato 6 | 2, 3, 4 y 5 | La muestra NMI usa la decisión anterior; se mantienen las restricciones previas de edición y mapper. NES2/3 no tienen OAM pendiente; NES2/3/4 restauran la espera inicial DMC en cero. |
+| NES, formato 7 | 2, 3, 4, 5 y 6 | La muestra NMI usa la decisión anterior; se mantienen las restricciones previas de edición y mapper. NES2/3 no tienen OAM pendiente; NES2/3/4 restauran la espera inicial DMC en cero. NES2–6 no guardaban el integrador/filtro de audio y los inicializan en reposo. |
 
 Los formatos nuevos se leen en este programa; no se promete que versiones anteriores del
 programa puedan leerlos. Aceptar un estado antiguo tampoco recupera una fase que nunca

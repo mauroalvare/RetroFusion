@@ -62,10 +62,10 @@ public sealed class Apu
         _dmc.CompleteRead(value);
     }
 
-    private readonly Pulse _pulse1 = new(onesComplement: true), _pulse2 = new(onesComplement: false);
-    private readonly Triangle _triangle = new();
-    private readonly Noise _noise = new();
-    private readonly Dmc _dmc = new();
+    private Pulse _pulse1 = new(onesComplement: true), _pulse2 = new(onesComplement: false);
+    private Triangle _triangle = new();
+    private Noise _noise = new();
+    private Dmc _dmc = new();
     private bool _fiveStep, _irqInhibit, _frameIrq;
     private int _frameCycle;
     private int _pendingFrameWrite = -1, _frameWriteDelay;
@@ -74,8 +74,20 @@ public sealed class Apu
     /// <summary>IRQ output: the frame counter or the DMC.</summary>
     public bool Irq => _frameIrq || _dmc.Irq;
 
-    public void Reset()
+    public void Reset() => Reset(hard: true);
+
+    public void Reset(bool hard)
     {
+        if (hard)
+        {
+            // A power cycle must not depend on the previous waveform or clock phase.
+            _pulse1 = new(onesComplement: true);
+            _pulse2 = new(onesComplement: false);
+            _triangle = new();
+            _noise = new();
+            _dmc = new();
+            _evenCycle = false;
+        }
         _dmc.ResetOutputUnit();
         foreach (var r in Enumerable.Range(0x4000, 0x14))
             Write((ushort)r, 0);
@@ -85,6 +97,7 @@ public sealed class Apu
         _frameIrq = false;
         _frameCycle = 0;
         _pendingFrameWrite = -1;
+        _frameWriteDelay = 0;
         _noise.Shift = 1;
     }
 
@@ -470,7 +483,7 @@ public sealed class Apu
             _shift = 0;
             _bitsLeft = 8;
             _silent = true;
-            Timer = 0;
+            Timer = 428 - 1; // NTSC power/reset period; the first clock must wait a full period.
             Address = 0;
         }
 

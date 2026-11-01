@@ -15,6 +15,9 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   del perfil. No prueban por sí solos causalidad entre originales ni todos los finales.
   Los juegos anteriores sin planes conservan la comprobación general de robots y ese límite
   explícito; [formato y límites](../src/Retro.Studio/Docs/GUIA-FUSION.md#recorridos-dirigidos).
+  Se pueden medir extremos y cantidad de cambios entre muestras a 60 Hz. Un evento que
+  empieza y termina entre dos muestras puede pasar inadvertido; tampoco se corrigen
+  automáticamente los saltos de valor de un campo que envuelve su rango.
 - La investigación guarda la propuesta antes de empezar y los resultados completados por
   original/revisión. No recupera el interior de una prueba interrumpida antes de su checkpoint.
   Los registros antiguos pueden contener objetivos recortados sin orden de ranuras ni base;
@@ -327,10 +330,13 @@ en el programa nuevo no promete lectura de formatos nuevos en programas anterior
   longitud no tienen la demora de un ciclo frente al contador
   de cuadros y no hay filtros de salida aparte del pasa altos (el sonido es algo más
   brillante que en una consola). Los estados guardados de la versión sin sonido no se
-  pueden cargar. El formato NES6 conserva la página OAM, la espera DMC y la muestra NMI
-  del núcleo; acepta NES2/3/4/5 con sus restricciones de edición y mapper. Las versiones
+  pueden cargar. El formato NES7 conserva la página OAM, la espera DMC, la muestra NMI
+  del núcleo y la historia de integración/filtro de audio; acepta NES2–6 con sus restricciones
+  de edición y mapper. Las versiones
   anteriores no contienen toda esa información y usan los valores de recuperación
   documentados. [Detalle de DMA y esperas](NES-DMA.md), [formatos de CPU](PRECISION-CPU.md).
+  El ciclo de encendido reinicia las fases de los cinco canales; el primer período del
+  DMC se espera completo. Esto no certifica la temporización física del reinicio suave.
 - Mappers 0/1/2/3/4/7: NROM, MMC1, UxROM, CNROM, MMC3 y AxROM. Los demás se reconocen y se
   explica por qué no cargan. MMC1 admite bancos PRG/CHR, puerto serie, espejado,
   PRG RAM de 8 KB y la selección exterior SUROM. No admite MMC1A, EEPROM ni RAM mayor;

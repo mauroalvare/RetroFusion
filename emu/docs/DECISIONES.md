@@ -1733,3 +1733,29 @@ el título: puede usar otras teclas, movimientos discretos o reglas que ese cont
 reconoce. La preparación informa que no comprobó controles en su presupuesto. El
 encabezado de diagnóstico de entrada usa una etiqueta corta cuando no cabe, manteniendo
 el mismo identificador al redimensionar la ventana.
+
+## D-103 — Fases de audio tras un ciclo de encendido NES
+
+Apu conserva Reset() y agrega Reset(bool hard). NES transmite el tipo de reinicio.
+Un ciclo de encendido reconstruye los cinco canales y reinicia la paridad; no hereda
+temporizadores, secuenciadores, envolventes ni divisores de otra partida. El reinicio
+suave conserva el tratamiento previo de los canales; su precisión física no se amplía.
+El DMC espera su primer período NTSC completo tras reset. La lectura de estados y el
+formato NES7 no cambian: todos estos campos ya se almacenaban. Las pruebas comparan
+audio de un programa propio tras reproducción previa contra una máquina recién creada,
+y comprueban el instante del primer bit DMC. No certifican todo el circuito analógico.
+
+## D-104 — Efectos transitorios en los recorridos dirigidos
+
+Cada check admite measure opcional: delta conserva la resta entre extremos; minDelta
+y maxDelta miden extremos respecto al inicio, incluyendo cero; changes cuenta diferencias
+entre muestras consecutivas. Se muestrea una vez por tick del estudio, no por escritura
+de CPU. Los informes conservan valores inicial/final, medición y primer tick del extremo.
+Así se distingue un efecto breve que volvió al inicio de una variable que nunca cambió.
+
+Archivos anteriores usan delta y conservan las huellas playtest-v1. Las mediciones nuevas
+usan playtest-v2 con finales de línea normalizados. La huella incluye el modo: corregirlo
+puede reparar el plan sin cambiar código; renombrar un fallo no habilita repetirlo. Guías,
+esquema de respuestas y carpeta del agente comparten las reglas. Variables ilegibles
+producen un resultado fallido con campo/tick y pasos para revisar el perfil, conservando
+la liberación de entradas. No certifica causalidad, eventos entre muestras ni diversión.

@@ -153,6 +153,9 @@ consignas. Ese modo no simula una revisión automática.
 Al crear o corregir una fusión también se pueden guardar recorridos de entradas:
 el emulador los repite y compara cambios de memoria del original, además de los robots
 generales. El informe muestra lo observado y las discrepancias que vuelven a corrección.
+También puede observar extremos y repeticiones durante un intervalo: un efecto breve
+que vuelve al valor inicial ya no depende solamente de comparar los dos extremos.
+Estas muestras se toman a 60 Hz y no detectan todas las escrituras internas del original.
 Si faltan datos para comprobar una regla, debe decirlo; pasar unos casos no demuestra
 todos sus niveles o finales. El [formato de recorridos](../src/Retro.Studio/Docs/GUIA-FUSION.md#recorridos-dirigidos)
 sirve también en `juego.json` de la carpeta del agente.
