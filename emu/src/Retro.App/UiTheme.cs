@@ -23,6 +23,7 @@ internal static class UiTheme
     public static bool HighContrast { get; private set; }
     /// <summary>Height of the status bar at the bottom of the window.</summary>
     public static float StatusBarHeight => MathF.Round((BaseFontSize + 8) * Scale);
+    internal static bool CompactHeight => ImGui.GetMainViewport().Size.Y < Px(440);
     private static nint _fontContext;
     private static float _fontSize;
     private static ImFontPtr _codeFont;
@@ -206,8 +207,15 @@ internal static class UiTheme
 
     public static void Heading(string title, string? description = null)
     {
-        ImGui.PushFont(_titleFont); ImGui.PushTextWrapPos(0); ImGui.TextUnformatted(title); ImGui.PopTextWrapPos(); ImGui.PopFont();
-        if (description != null) Hint(description);
+        bool compact = CompactHeight;
+        if (!compact) ImGui.PushFont(_titleFont);
+        ImGui.PushTextWrapPos(0); ImGui.TextUnformatted(title); ImGui.PopTextWrapPos();
+        if (!compact) ImGui.PopFont();
+        if (description != null)
+        {
+            if (!compact) Hint(description);
+            else if (ImGui.IsItemHovered()) Tooltip(description);
+        }
         ImGui.Spacing();
     }
 

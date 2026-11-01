@@ -37,8 +37,13 @@ public sealed class AnalysisInteractionTests
             Set("_autonomousCalls", 0); Set("_autonomousFrames", 9000); Set("_autonomousPasses", 24);
             window.OpenAutomaticAnalysis();
             var bounds = new Dictionary<string, (Vector2 Min, Vector2 Max)>();
-            window.AnalysisControlBounds = (name, min, max) => bounds[name] = (min, max);
-            void Frame() { io.DeltaTime = 1f / 60; ImGui.NewFrame(); window.Draw(); ImGui.Render(); }
+            var clips = new Dictionary<string, (Vector2 Min, Vector2 Max)>();
+            window.AnalysisControlBounds = (name, min, max) =>
+            {
+                bounds[name] = (min, max);
+                clips[name] = (ImGui.GetWindowDrawList().GetClipRectMin(), ImGui.GetWindowDrawList().GetClipRectMax());
+            };
+            void Frame() { bounds.Clear(); clips.Clear(); io.DeltaTime = 1f / 60; ImGui.NewFrame(); window.Draw(); ImGui.Render(); }
             void Click(string label)
             {
                 for (int retry = 0; retry < 35; retry++)
@@ -46,13 +51,14 @@ public sealed class AnalysisInteractionTests
                     Frame();
                     Assert.That(bounds.ContainsKey(label), Is.True, label);
                     var b = bounds[label]; Vector2 point = (b.Min + b.Max) / 2;
-                    if (point.Y > 35 && point.Y < height - 25)
+                    var clip = clips[label];
+                    if (b.Min.X >= clip.Min.X && b.Max.X <= clip.Max.X && b.Min.Y >= clip.Min.Y && b.Max.Y <= clip.Max.Y)
                     {
                         io.AddMousePosEvent(point.X, point.Y); Frame();
                         io.AddMouseButtonEvent(0, true); Frame();
                         io.AddMouseButtonEvent(0, false); Frame(); return;
                     }
-                    io.AddMousePosEvent(width / 2, height / 2); io.AddMouseWheelEvent(0, point.Y > height - 25 ? -3 : 3); Frame();
+                    io.AddMousePosEvent(width / 2, height / 2); io.AddMouseWheelEvent(0, b.Max.Y > clip.Max.Y ? -1 : 1); Frame();
                 }
                 Assert.Fail("Control fuera del área accesible: " + label);
             }

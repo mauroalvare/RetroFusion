@@ -31,7 +31,7 @@ public sealed partial class RetroApp
     private void DrawStateWindow()
     {
         if (!_stateWindowOpen) return;
-        var size = ImGui.GetMainViewport().WorkSize;
+        var size = WorkspaceLayout.Available();
         ImGui.SetNextWindowSizeConstraints(Vector2.Min(UiTheme.Px(540, 300), size), size);
         ImGui.SetNextWindowSize(Vector2.Min(UiTheme.Px(650, 420), size), ImGuiCond.FirstUseEver);
         if (!ImGui.Begin("Partidas guardadas", ref _stateWindowOpen)) { ImGui.End(); return; }
@@ -41,14 +41,29 @@ public sealed partial class RetroApp
             if (!_host.CanUseStates)
             { ImGui.TextWrapped("Abrí un juego original para guardar o recuperar una partida."); return; }
             if (_stateListingRevision != _host.MediaRevision) { RefreshStateSlots(); _stateMessage = ""; }
+            bool compact = ImGui.GetContentRegionAvail().X < UiTheme.Px(520);
             ImGui.TextWrapped(_host.LoadedMedia ?? _host.Info?.Name ?? _host.Machine!.DisplayName);
-            ImGui.TextDisabled("Cada juego y edición tiene sus propias ranuras.");
+            if (!compact) UiTheme.Hint("Cada juego y edición tiene sus propias ranuras.");
+            else if (ImGui.IsItemHovered()) UiTheme.Tooltip("Cada juego y edición tiene sus propias ranuras.");
             ImGui.Separator();
-            if (ImGui.BeginTable("slots", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerH))
+            if (compact)
             {
-                ImGui.TableSetupColumn("Ranura", ImGuiTableColumnFlags.WidthFixed, 65);
+                foreach (var slot in _savedSlots)
+                {
+                    ImGui.PushID(slot.Number);
+                    ImGui.TextUnformatted($"Ranura {slot.Number}");
+                    string detail = slot.Problem ?? slot.SavedAt?.ToString("dd/MM/yyyy HH:mm") ?? "Vacía";
+                    UiTheme.SameLineIfFits(detail); UiTheme.Hint(detail);
+                    DrawStateSlotButtons(slot);
+                    ImGui.Separator(); ImGui.PopID();
+                }
+            }
+            else if (ImGui.BeginTable("slots", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerH))
+            {
+                float actionsWidth = ImGui.CalcTextSize("GuardarCargar").X + ImGui.GetStyle().FramePadding.X * 4 + ImGui.GetStyle().ItemSpacing.X;
+                ImGui.TableSetupColumn("Ranura", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Ranura").X);
                 ImGui.TableSetupColumn("Guardada", ImGuiTableColumnFlags.WidthStretch);
-                ImGui.TableSetupColumn("Acciones", ImGuiTableColumnFlags.WidthFixed, 170);
+                ImGui.TableSetupColumn("Acciones", ImGuiTableColumnFlags.WidthFixed, actionsWidth);
                 ImGui.TableHeadersRow();
                 foreach (var slot in _savedSlots)
                 {
@@ -56,10 +71,7 @@ public sealed partial class RetroApp
                     ImGui.TextUnformatted(slot.Number.ToString()); ImGui.TableNextColumn();
                     ImGui.TextWrapped(slot.Problem ?? slot.SavedAt?.ToString("dd/MM/yyyy HH:mm") ?? "Vacía");
                     ImGui.TableNextColumn();
-                    if (ImGui.SmallButton("Guardar")) RequestStateSlotSave(slot.Number);
-                    ImGui.SameLine(); ImGui.BeginDisabled(slot.SavedAt == null);
-                    if (ImGui.SmallButton("Cargar")) RunStateSlot(slot.Number, save: false);
-                    ImGui.EndDisabled(); ImGui.PopID();
+                    DrawStateSlotButtons(slot); ImGui.PopID();
                 }
                 ImGui.EndTable();
             }
@@ -88,6 +100,14 @@ public sealed partial class RetroApp
             if (ImGui.SmallButton("Actualizar lista")) RefreshStateSlots();
         }
         finally { ImGui.End(); }
+    }
+
+    private void DrawStateSlotButtons(StateSlotInfo slot)
+    {
+        if (ImGui.SmallButton("Guardar")) RequestStateSlotSave(slot.Number);
+        UiTheme.SameLineIfFits("Cargar"); ImGui.BeginDisabled(slot.SavedAt == null);
+        if (ImGui.SmallButton("Cargar")) RunStateSlot(slot.Number, save: false);
+        ImGui.EndDisabled();
     }
 
     private void RequestStateSlotSave(int slot)

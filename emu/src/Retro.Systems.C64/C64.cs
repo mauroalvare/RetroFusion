@@ -636,8 +636,8 @@ public sealed class C64 : IMachine, IM6502Bus, IMemoryView, IWriteWatch, IIoWatc
         if (version is not (1 or 2))
             throw new InvalidDataException("La versión del estado C64 no está soportada.");
         _cpu.Load(r, hasNmiPoll: version >= 2);
-        r.Read(_ram, 0, _ram.Length);
-        r.Read(_colorRam, 0, _colorRam.Length);
+        r.BaseStream.ReadExactly(_ram);
+        r.BaseStream.ReadExactly(_colorRam);
         _portDdr = r.ReadByte();
         _portData = r.ReadByte();
         Vic.Load(r);
@@ -647,6 +647,9 @@ public sealed class C64 : IMachine, IM6502Bus, IMemoryView, IWriteWatch, IIoWatc
         FrameCount = r.ReadInt64();
         _sampleCarry = r.ReadDouble();
         _todCarry = r.ReadInt64();
+        if (FrameCount < 0 || !double.IsFinite(_sampleCarry) || _sampleCarry < 0 || _sampleCarry >= CyclesPerSample ||
+            _todCarry < 0 || _todCarry >= (long)(Clock / 10) || r.BaseStream.Position != r.BaseStream.Length)
+            throw new InvalidDataException("El estado C64 contiene valores inválidos o datos adicionales.");
         _audioCount = 0;
         ReleaseAllKeys();
     }

@@ -4,6 +4,20 @@ Alcance implementado y comportamientos pendientes. Las comprobaciones por edici�
 de un juego no certifican compatibilidad universal. Cuando se indica **probable**,
 se trata de una limitación deducida que todavía necesita una prueba específica.
 
+## Recuperación de archivos y alcance de las comprobaciones
+
+- Rechazar una cabecera inválida, bytes sobrantes o valores fuera de rango no detecta
+  toda alteración posible de RAM en un estado. Varios formatos anteriores no tienen
+  checksum. Los formatos y versiones admitidos se conservan; no se certifica cualquier
+  archivo externo solo porque pueda leerse. El host protege la partida al cargar; las
+  API internas de cada máquina no ofrecen todas la misma garantía de transacción.
+- Recuperar ajustes o anotaciones conserva el archivo ilegible y guarda los valores
+  actuales de la sesión. No reconstruye valores que no pudieron leerse. Los respaldos
+  completados se conservan también si falla el guardado posterior y no se eliminan
+  automáticamente.
+- Las pruebas de interfaz incluyen ejecución oculta y eventos de ImGui. No sustituyen
+  una comprobación física de cada teclado, mando, pantalla o entorno gráfico soportado.
+
 ## Investigación para crear juegos
 
 - La IA no puede garantizar el descubrimiento de todas las reglas de cualquier original.

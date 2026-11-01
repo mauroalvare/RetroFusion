@@ -387,9 +387,12 @@ public sealed partial class Ppu
 
     public void Load(BinaryReader r)
     {
-        r.Read(_vram, 0, _vram.Length); r.Read(_palette, 0, _palette.Length); r.Read(Oam, 0, Oam.Length); OamAddress = r.ReadByte();
+        r.BaseStream.ReadExactly(_vram); r.BaseStream.ReadExactly(_palette); r.BaseStream.ReadExactly(Oam); OamAddress = r.ReadByte();
         _v = r.ReadInt32(); _t = r.ReadInt32(); _x = r.ReadInt32(); _w = r.ReadBoolean();
         _ctrl = r.ReadByte(); _mask = r.ReadByte(); _status = r.ReadByte(); _readBuffer = r.ReadByte(); _openBus = r.ReadByte();
         _sprite0HitDot = r.ReadInt32(); Line = r.ReadInt32(); Dot = r.ReadInt32(); FrameNumber = r.ReadInt64(); FrameReady = r.ReadBoolean();
+        if (Line is < 0 or >= LinesPerFrame || Dot is < 0 or >= DotsPerLine || FrameNumber < 0 ||
+            _v is < 0 or > 0x7FFF || _t is < 0 or > 0x7FFF || _x is < 0 or > 7 || _sprite0HitDot is < -1 or > 255)
+            throw new InvalidDataException("La posición de video del estado NES no es válida.");
     }
 }

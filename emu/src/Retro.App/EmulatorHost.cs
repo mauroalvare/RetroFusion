@@ -40,6 +40,7 @@ public sealed partial class EmulatorHost
         MediaRevision++;
         DiscardQuickState();
         Fusion = session;
+        _fusionClock = 0;
         foreach (var slot in session.Slots)
             slot.Machine.ExecutedMap ??= new bool[1 << Math.Clamp(slot.Machine.Memory.AddressBits, 1, 20)];   // the code view sees what each game ran
         FusionFocus = session.Slots[0].Id;
@@ -440,11 +441,15 @@ public sealed partial class EmulatorHost
 
     public void Reset(bool hard)
     {
+        if (Fusion != null && Fusion is not Retro.Studio.StudioSession)
+        { Status = "Volvé a abrir la fusión para reiniciarla completa."; return; }
         SessionChanging?.Invoke();
-        Machine?.Reset(hard);
+        if (Fusion is Retro.Studio.StudioSession studio) studio.Restart();
+        else Machine?.Reset(hard);
+        _fusionClock = 0;
         StateRestored();
-        _pcDosBooting = _pcDosProgram; _pcDosBootSeen = false; _pcDosBootStart = Machine?.FrameCount ?? 0;
-        Status = hard ? "Reinicio total (memoria borrada)." : "Reinicio.";
+        _pcDosBooting = Fusion == null && _pcDosProgram; _pcDosBootSeen = false; _pcDosBootStart = Machine?.FrameCount ?? 0;
+        Status = Fusion != null ? "Juego reiniciado desde el principio." : hard ? "Reinicio total (memoria borrada)." : "Reinicio.";
     }
 
     // -- save states -------------------------------------------------------------
@@ -490,7 +495,10 @@ public sealed partial class EmulatorHost
     {
         if (!OriginalStateAvailable())
             return;
-        RestoreState(File.ReadAllBytes(path));
+        using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        if (file.Length > 16 * 1024 * 1024) throw new InvalidDataException("El estado supera el máximo de 16 MB. Se conservó la partida actual.");
+        byte[] state = new byte[(int)file.Length]; file.ReadExactly(state);
+        RestoreState(state);
         Status = "Estado cargado: " + Path.GetFileName(path);
     }
 
@@ -508,10 +516,15 @@ public sealed partial class EmulatorHost
         byte[] previous = machine.SaveState();
         int[] previousPixels = machine.Video.Pixels.ToArray();
         try { machine.LoadState(state); }
-        catch (Exception error) when (error is IOException or InvalidDataException or ArgumentException or IndexOutOfRangeException or InvalidOperationException or OverflowException)
+        catch (Exception error) when (error is IOException or InvalidDataException or ArgumentException or IndexOutOfRangeException or InvalidOperationException or OverflowException or FormatException)
         {
-            machine.LoadState(previous);
-            previousPixels.CopyTo(machine.Video.Pixels, 0);
+            // PC parses on a fresh board and commits only after validation; an extra restore would alter its keyboard queue.
+            if (machine is not PcXt)
+            {
+                machine.LoadState(previous);
+                previousPixels.CopyTo(machine.Video.Pixels, 0);
+                foreach (string key in _inputKeys) machine.SetKey(key, true);
+            }
             throw new InvalidDataException("El estado está dañado o no corresponde a esta máquina. Se conservó la partida actual.", error);
         }
         if (pixels != null && pixels.Length == machine.Video.Pixels.Length)

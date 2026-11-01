@@ -614,7 +614,7 @@ public sealed class Spectrum48 : IMachine, IZ80Bus, IMemoryView, IWriteWatch, II
         long rel = r.ReadInt64();
         _frameStart = 0;
         c.T = rel;
-        r.Read(_memory, 0x4000, 0xC000);
+        r.BaseStream.ReadExactly(_memory.AsSpan(0x4000, 0xC000));
         _border = r.ReadByte(); _earOut = r.ReadBoolean(); _micOut = r.ReadBoolean(); _flashPhase = r.ReadBoolean();
         FrameCount = r.ReadInt64();
         int seg = r.ReadInt32(); long remaining = r.ReadInt64(); bool playing = r.ReadBoolean(); bool level = r.ReadBoolean();
@@ -622,6 +622,8 @@ public sealed class Spectrum48 : IMachine, IZ80Bus, IMemoryView, IWriteWatch, II
             Tape.Restore(seg, remaining, playing, level, c.T);
         bool interruptDelay = version >= 2 && r.ReadBoolean();
         bool nmiPending = version >= 2 && r.ReadBoolean();
+        if (c.IM is < 0 or > 2 || rel < 0 || FrameCount < 0 || _border > 7 || r.BaseStream.Position != r.BaseStream.Length)
+            throw new InvalidDataException("El estado Spectrum contiene valores inválidos o datos adicionales.");
         c.RestoreInterruptLatches(interruptDelay, nmiPending);
         _renderedT = 0;
         _audioLastT = rel;

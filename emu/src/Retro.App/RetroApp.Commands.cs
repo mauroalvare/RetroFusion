@@ -6,8 +6,19 @@ public sealed partial class RetroApp
 {
     private readonly CommandPalette _commands = new();
     private IReadOnlyList<AppCommand>? _commandCatalog;
+    private (bool Shift, bool Pc, bool C64) _commandContext;
 
-    private IReadOnlyList<AppCommand> Commands => _commandCatalog ??= [
+    private IReadOnlyList<AppCommand> Commands
+    {
+        get
+        {
+            var context = (ToolShortcutsNeedShift, _host.Pc != null, _host.C64 != null);
+            if (context != _commandContext) { _commandCatalog = null; _commandContext = context; }
+            return _commandCatalog ??= BuildCommands();
+        }
+    }
+
+    private IReadOnlyList<AppCommand> BuildCommands() => [
         new("auto-analysis","Investigar variables automáticamente…","Herramientas","memoria candidatos evidencia presupuesto hexadecimal", "",OpenAutomaticAnalysis,
             ()=>_host.LoadedMediaSource!=null && _host.Fusion==null && _host.Machine?.Memory.AddressBits<=16,"Abrí un original de 8 bits."),
         new("create-hub", "Abrir el taller de creación", "Crear", "inicio proyectos", "", () => OpenHub(HubPage.Create)),

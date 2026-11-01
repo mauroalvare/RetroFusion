@@ -410,13 +410,13 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         if (version == 2 && Cartridge.Mapper is not (0 or 3))
             throw new InvalidDataException("El estado anterior no contiene los bancos de este mapper.");
         _cpu.Load(r, hasNmiPoll: version >= 6);
-        r.Read(_ram, 0, _ram.Length);
-        r.Read(_prgRam, 0, _prgRam.Length);
+        r.BaseStream.ReadExactly(_ram);
+        r.BaseStream.ReadExactly(_prgRam);
         Ppu.Load(r);
         Cartridge.Load(r);
         Apu.Load(r);
         _strobe = r.ReadBoolean();
-        r.Read(_shift, 0, _shift.Length);
+        r.BaseStream.ReadExactly(_shift);
         _openBus = r.ReadByte();
         FrameCount = r.ReadInt64();
         _sampleCarry = r.ReadDouble();
@@ -433,6 +433,8 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         if (!float.IsFinite(_mixSum) || !float.IsFinite(_dcIn) || !float.IsFinite(_dcOut) ||
             _mixCount < 0 || _mixCount > Math.Ceiling(CyclesPerSample))
             throw new InvalidDataException("El mezclador de audio del estado NES no es válido.");
+        if (FrameCount < 0 || r.BaseStream.Position != r.BaseStream.Length)
+            throw new InvalidDataException("El estado NES contiene valores inválidos o datos adicionales.");
         _audioCount = 0;
         ReleaseAllKeys();
     }

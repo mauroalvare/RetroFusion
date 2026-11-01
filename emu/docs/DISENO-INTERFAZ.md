@@ -135,3 +135,28 @@ estado genérico del emulador. El texto completo queda en su ayuda al pasar el p
 la imagen nativa no se usa para presentar instrucciones técnicas ni se tapa con paneles.
 La entrada `--games-folder <carpeta>` selecciona otra biblioteca para esa sesión sin
 mover archivos ni cambiar preferencias. `--no-organize` conserva su distribución.
+
+## Ventanas pequeñas y recuperación de ajustes
+
+Con poca altura y texto grande, las acciones quedan en **Menú** y **Buscar acción**;
+se retira la segunda barra de navegación para dejar lugar a los controles. El menú
+conserva **Volver a jugar**, incluso al encender una máquina sin un archivo de juego.
+El buscador compacto dedica el área a los resultados y se cierra con Esc o la cruz.
+Los encabezados reducen su altura; los detalles siguen en su ayuda al pasar el puntero.
+
+**Partidas guardadas** respeta el área entre menú y estado. Usa ranuras en vertical
+cuando no cabe la tabla; Guardar y Cargar conservan sus confirmaciones y su vínculo
+con el juego y la sesión. En **Sonido**, las etiquetas están encima de los controles
+y los campos usan el ancho disponible.
+
+Preferencias, Sonido y Conectar IA retienen las teclas y el mando para navegar por
+la configuración. Los atajos de la partida se suspenden mientras están abiertas.
+La partida puede seguir ejecutándose y sonar para probar volumen y opciones.
+Pantalla completa y Buscar acción conservan sus atajos cuando no se está editando texto.
+
+Si un archivo de ajustes no se puede leer, el aviso indica que los cambios duran
+solo esa sesión. **Recuperar archivo** conserva el original en una copia única y
+guarda los valores actuales. La ruta del respaldo aparece en la ayuda del aviso.
+El analizador ofrece **Recuperar anotaciones** con la misma protección. Si falla
+el respaldo, el original se conserva; si falla el guardado posterior, se informa
+el problema y sigue disponible la copia que llegó a completarse.

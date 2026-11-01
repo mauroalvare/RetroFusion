@@ -270,7 +270,7 @@ public sealed partial class RetroApp
     {
         var io = ImGui.GetIO();
         // The focused debugger screen is itself an ImGui window, but owns game input.
-        return io.WantTextInput || InterfaceWorkspace || _commands.IsOpen || _pendingOpen != null || _browser.IsOpen
+        return io.WantTextInput || InterfaceWorkspace || ConfigurationOpen || _commands.IsOpen || _pendingOpen != null || _browser.IsOpen
             || (io.WantCaptureKeyboard && !(_debugMode && _screenFocused));
     }
 
@@ -400,7 +400,7 @@ public sealed partial class RetroApp
     private void SetKeyboardNavigation(IMachine? m)
     {
         var io = ImGui.GetIO();
-        bool interfaceOnly = m == null || _host.Paused || InterfaceWorkspace || _browser.IsOpen || _pendingOpen != null
+        bool interfaceOnly = m == null || _host.Paused || InterfaceWorkspace || ConfigurationOpen || _browser.IsOpen || _pendingOpen != null
             || _errorPopup != null || _quitNotice != null || _updates.Blocking || _commands.IsOpen;
         // The gamepad moves through the same places (D-pad, A to choose, B to go back).
         var navigation = ImGuiConfigFlags.NavEnableKeyboard | ImGuiConfigFlags.NavEnableGamepad;
@@ -703,14 +703,14 @@ public sealed partial class RetroApp
     {
         if (textInput)
             return;
-        if (Raylib.IsKeyPressed(KeyboardKey.F12))
-        { if (_debugMode && !InterfaceWorkspace) OpenPlay(); else OpenDebugger(); }
         if (Raylib.IsKeyPressed(KeyboardKey.F11))
             ToggleFullscreen();
         bool ctrl = Raylib.IsKeyDown(KeyboardKey.LeftControl) || Raylib.IsKeyDown(KeyboardKey.RightControl);
         bool toolModifier = ctrl && (!ToolShortcutsNeedShift || Raylib.IsKeyDown(KeyboardKey.LeftShift) || Raylib.IsKeyDown(KeyboardKey.RightShift));
         if (toolModifier && Raylib.IsKeyPressed(KeyboardKey.P)) { _commands.Open(); return; }
-        if (_commands.IsOpen) return;
+        if (_commands.IsOpen || ConfigurationOpen) return;
+        if (Raylib.IsKeyPressed(KeyboardKey.F12))
+        { if (_debugMode && !InterfaceWorkspace) OpenPlay(); else OpenDebugger(); }
         if (toolModifier && Raylib.IsKeyPressed(KeyboardKey.O)) _browser.Open();
         if (toolModifier && Raylib.IsKeyPressed(KeyboardKey.K) && _host.Machine != null)
         {
@@ -797,7 +797,7 @@ public sealed partial class RetroApp
     private bool ToolShortcutsNeedShift => InputMapper.ToolShortcutsNeedShift(_host.Machine, _host.Fusion != null);
     private string ToolShortcut(string key) => (ToolShortcutsNeedShift ? "Ctrl+Shift+" : "Ctrl+") + key;
     private string Shortcut(string key) => _host.Pc != null && _host.Fusion == null ? "Ctrl+" + key :
-        _host.C64 != null && key is "F5" or "Shift+F5" ? "" : key;
+        _host.Fusion == null && _host.C64 != null && key is "F5" or "Shift+F5" ? "" : key;
 
     private void DrawMenu()
     {
@@ -808,7 +808,7 @@ public sealed partial class RetroApp
         var io = ImGui.GetIO();
         if ((io.ConfigFlags & ImGuiConfigFlags.NavEnableKeyboard) != 0 && !io.WantTextInput && ImGui.IsKeyPressed(ImGuiKey.LeftAlt, false))
             ImGui.SetWindowFocus();
-        float menuWidth = ImGui.CalcTextSize("Biblioteca Juego Crear Herramientas Opciones Ayuda").X + ImGui.GetStyle().ItemSpacing.X * 12;
+        float menuWidth = ImGui.CalcTextSize("Biblioteca Juego Crear Herramientas Opciones Ayuda" + (UiTheme.CompactHeight ? " Volver a jugar" : "")).X + ImGui.GetStyle().ItemSpacing.X * 14;
         bool compactMenu = ImGui.GetMainViewport().WorkSize.X < menuWidth;
         if (compactMenu && !ImGui.BeginMenu("Menú"))
         {
@@ -816,6 +816,7 @@ public sealed partial class RetroApp
             ImGui.EndMainMenuBar(); return;
         }
         if (ImGui.MenuItem("Biblioteca", ToolShortcut("L"))) { CloseEditors(); _home.Open(); }
+        if (UiTheme.CompactHeight && ImGui.MenuItem("Volver a jugar", "", false, _host.Machine != null)) OpenPlay();
         if (ImGui.BeginMenu("Juego"))
         {
             if (ImGui.MenuItem("Abrir juego o programa...", ToolShortcut("O"))) _browser.Open();
@@ -866,8 +867,8 @@ public sealed partial class RetroApp
             ImGui.BeginDisabled(_host.Machine == null);
             if (ImGui.MenuItem(_host.Paused ? "Continuar" : "Pausa", Shortcut("F9"), false, !_home.IsOpen))
             { if (_host.Paused) _host.Continue(); else _host.Pause("Pausa"); }
-            if (ImGui.MenuItem("Reiniciar", Shortcut("F5"))) _host.Reset(false);
-            if (ImGui.MenuItem("Reinicio total (borra RAM)", Shortcut("Shift+F5"))) _host.Reset(true);
+            if (ImGui.MenuItem(_host.Fusion != null ? "Reiniciar fusión o creación" : "Reiniciar", Shortcut("F5"))) _host.Reset(false);
+            if (ImGui.MenuItem("Reinicio total (borra RAM)", Shortcut("Shift+F5"), false, _host.Fusion == null)) _host.Reset(true);
             bool turbo = _host.Turbo;
             if (ImGui.MenuItem("Turbo", Shortcut("F8"), ref turbo)) _host.Turbo = turbo;
             if (ImGui.MenuItem("Detener fusión o creación", "", false, _host.Fusion != null)) _host.StopFusion();

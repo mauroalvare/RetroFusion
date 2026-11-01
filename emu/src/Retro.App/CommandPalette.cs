@@ -47,7 +47,7 @@ public sealed class CommandPalette
         if (_focus) { ImGui.SetKeyboardFocusHere(); _focus = false; }
         ImGui.SetNextItemWidth(-1);
         string before = _query;
-        bool submit = ImGui.InputTextWithHint("##buscar-accion", "Buscar: volumen, guardar, crear, código…", ref _query, 120, ImGuiInputTextFlags.EnterReturnsTrue);
+        bool submit = ImGui.InputTextWithHint("##buscar-accion", roomy ? "Buscar: volumen, guardar, crear, código…" : "Buscar acción…", ref _query, 120, ImGuiInputTextFlags.EnterReturnsTrue);
         bool searchFocused = ImGui.IsItemActive() || ImGui.IsItemFocused();
         if (_query != before) _selected = 0;
         var matches = Search(commands, _query);
@@ -57,7 +57,7 @@ public sealed class CommandPalette
         AppCommand? chosen = null;
         if (ImGui.IsKeyPressed(ImGuiKey.Escape)) { _open = false; ImGui.CloseCurrentPopup(); }
         if (submit && matches.Count > 0 && matches[_selected].Enabled) chosen = matches[_selected];
-        float footer = ImGui.GetFrameHeightWithSpacing() + (roomy ? ImGui.GetTextLineHeightWithSpacing() : 0);
+        float footer = roomy ? ImGui.GetFrameHeightWithSpacing() + ImGui.GetTextLineHeightWithSpacing() : 0;
         ImGui.BeginChild("resultados-acciones", new Vector2(0, -footer));
         if (matches.Count == 0) UiTheme.EmptyState("No encontré esa acción", "Probá con otra palabra: pantalla, biblioteca, sonido o IA.");
         for (int i = 0; i < matches.Count; i++)
@@ -65,17 +65,18 @@ public sealed class CommandPalette
             var command = matches[i];
             ImGui.PushID(command.Id);
             ImGui.BeginDisabled(!command.Enabled);
-            if (ImGui.Selectable(command.Title, i == _selected, ImGuiSelectableFlags.None, new Vector2(0, UiTheme.Px(30)))) chosen = command;
+            if (ImGui.Selectable(UiTheme.Fit(command.Title, ImGui.GetContentRegionAvail().X) + "###command", i == _selected, ImGuiSelectableFlags.None, new Vector2(0, Math.Max(UiTheme.Px(30), ImGui.GetTextLineHeight())))) chosen = command;
             if (ImGui.IsItemFocused()) _selected = i;
             ImGui.EndDisabled();
-            if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled)) UiTheme.Tooltip(command.Title + (!command.Enabled ? "\n" + command.Unavailable : ""));
+            if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled)) UiTheme.Tooltip(command.Title + "\n" + command.Group +
+                (command.Shortcut.Length > 0 ? " · " + command.Shortcut : "") + (!command.Enabled ? "\n" + command.Unavailable : ""));
             if (searchFocused && i == _selected && (ImGui.IsKeyPressed(ImGuiKey.UpArrow) || ImGui.IsKeyPressed(ImGuiKey.DownArrow))) ImGui.SetScrollHereY();
-            UiTheme.Hint(command.Group + (command.Shortcut.Length > 0 ? " · " + command.Shortcut : "") + (!command.Enabled ? " · " + command.Unavailable : ""));
+            if (roomy) UiTheme.Hint(command.Group + (command.Shortcut.Length > 0 ? " · " + command.Shortcut : "") + (!command.Enabled ? " · " + command.Unavailable : ""));
             ImGui.PopID();
         }
         ImGui.EndChild();
         if (roomy) UiTheme.Hint("Flechas: recorrer · Enter: elegir · Esc: cerrar");
-        if (ImGui.Button("Cerrar")) { _open = false; ImGui.CloseCurrentPopup(); }
+        if (roomy && ImGui.Button("Cerrar")) { _open = false; ImGui.CloseCurrentPopup(); }
         if (chosen != null) { _open = false; ImGui.CloseCurrentPopup(); }
         ImGui.EndPopup();
         chosen?.Execute();

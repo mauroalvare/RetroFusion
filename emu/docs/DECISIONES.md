@@ -1874,3 +1874,37 @@ La recuperación cuenta hasta treinta trabajos válidos después de descartar re
 ilegibles o dañados. Una ficha con estructura inválida no impide listar las demás. Se
 preservan esos archivos para diagnóstico y recuperación manual; no se reparan ni borran
 sin evidencia de cuál era su contenido.
+
+## D-110 — Revisión integral de configuración, controles y estados
+
+Reiniciar una fusión desde Juego o su atajo reinicia todas sus máquinas desde el
+arranque conservado y reconstruye el guion, la escena y sus contadores. No se reinicia
+solo la máquina elegida en el depurador. El reinicio que borra RAM se presenta para
+originales. Un cambio de sesión o un reinicio invalida la caché de controles; una tecla
+todavía pulsada llega a una sesión nueva. Los atajos del buscador siguen el modo actual
+aunque la máquina enfocada tenga el mismo identificador.
+
+Preferencias, Sonido y Conectar IA habilitan navegación por teclado y mando y retienen
+las entradas de la interfaz. Los atajos de la partida se suspenden mientras están
+abiertas; la emulación y el sonido pueden continuar para comprobar los ajustes. En
+ventanas de poca altura, el menú y el buscador conservan las acciones sin una segunda
+barra permanente. Los encabezados se simplifican y las ranuras usan una distribución
+vertical cuando la tabla no cabe. La tipografía y la identidad visual se conservan.
+
+El host reconoce cabeceras mal codificadas y limita los archivos de estado a 16 MB
+antes de leer el contenido. Spectrum, C64, arcade y NES rechazan bytes sobrantes y
+valores conocidos fuera de rango; sus formatos y versiones anteriores compatibles
+se mantienen. Si falla la carga, el host recupera estado, imagen y controles pulsados.
+El PC ya valida sobre una placa nueva: no se vuelve a cargar un estado anterior en la
+placa intacta, porque eso introduciría eventos de teclado. Estos controles no son un
+checksum para todos los formatos ni una transacción de cada API interna de máquina.
+
+La configuración de IA y las anotaciones validan su estructura, publican por temporal
+y comunican errores de lectura o escritura. Un archivo ilegible se conserva y los
+cambios siguen en la sesión; la configuración de IA usa el modo manual en ese caso.
+No se cambia ni se prueba una conexión por detectar un archivo inválido. Los ajustes
+de pantalla, sonido, IA y anotaciones ofrecen recuperación explícita: primero se
+copia el archivo anterior a un respaldo único y después se guardan los valores de la
+sesión. Si no puede conservarse la copia, no se reemplaza el archivo. Si falla la
+publicación posterior, la copia terminada sigue visible y la recuperación continúa
+pendiente. Los identificadores de anotaciones no pueden salir de su carpeta.

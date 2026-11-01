@@ -370,7 +370,7 @@ public sealed class SpaceInvaders : IMachine, I8080Bus, IMemoryView, ICodePatch,
         long cycle = r.ReadInt64();
         _frameStart = 0;
         _cpu.Cycles = cycle;
-        r.Read(_ram, 0, _ram.Length);
+        r.BaseStream.ReadExactly(_ram);
         _shift = r.ReadUInt16(); _shiftOffset = r.ReadInt32();
         byte pending = r.ReadByte(); bool hasPending = r.ReadBoolean();
         _pendingInterrupt = hasPending ? pending : null;
@@ -378,6 +378,8 @@ public sealed class SpaceInvaders : IMachine, I8080Bus, IMemoryView, ICodePatch,
         FrameCount = r.ReadInt64();
         byte p3 = r.ReadByte(), p5 = r.ReadByte();
         _cpu.RestoreInterruptLatches(version >= 2 && r.ReadBoolean());
+        if (_shiftOffset is < 0 or > 7 || cycle < 0 || FrameCount < 0 || r.BaseStream.Position != r.BaseStream.Length)
+            throw new InvalidDataException("El estado arcade contiene valores inválidos o datos adicionales.");
         Sound.Reset();
         Sound.WritePort3(p3, 0);
         Sound.WritePort5(p5, 0);

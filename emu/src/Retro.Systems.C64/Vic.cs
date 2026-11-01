@@ -366,13 +366,15 @@ public sealed class Vic
 
     public void Load(BinaryReader r)
     {
-        r.Read(_r, 0, _r.Length);
-        r.Read(_matrix, 0, 40);
-        r.Read(_colors, 0, 40);
+        r.BaseStream.ReadExactly(_r);
+        r.BaseStream.ReadExactly(_matrix);
+        r.BaseStream.ReadExactly(_colors);
         Raster = r.ReadInt32(); Cycle = r.ReadInt32();
         _irqFlags = r.ReadInt32(); _irqMask = r.ReadInt32(); _spriteSprite = r.ReadByte(); _spriteBg = r.ReadByte();
         _vcBase = r.ReadInt32(); _rc = r.ReadInt32();
         _display = r.ReadBoolean(); _badline = r.ReadBoolean(); _denLatched = r.ReadBoolean(); _vBorder = r.ReadBoolean();
+        if (Raster is < 0 or >= Lines || Cycle is < 0 or >= CyclesPerLine || _rc is < 0 or > 7 || _vcBase is < 0 or > 1023)
+            throw new InvalidDataException("La posición de video del estado C64 no es válida.");
     }
 
     public string Describe()

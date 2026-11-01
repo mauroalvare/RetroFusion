@@ -16,7 +16,7 @@ public sealed class InputMapper
 
     private HashSet<string> _previous = new();
     public Action<string, bool>? KeySink { get; set; }
-    public void ForgetKeys() => _previous.Clear();
+    public void ForgetKeys() { _previous.Clear(); _fusionSession = null; Array.Clear(_fusionInputs); }
 
     private static readonly (KeyboardKey key, string[] zx)[] KeyMap = BuildKeyMap();
 
@@ -48,6 +48,7 @@ public sealed class InputMapper
 
     private static readonly string[] FusionInputs = ["left", "right", "up", "down", "fire", "jump", "start", "coin"];
     private readonly bool[] _fusionInputs = new bool[FusionInputs.Length];
+    private Retro.Fusion.IFusionRun? _fusionSession;
 
     /// <summary>
     /// Fusion controls: arrows move, Ctrl/Z fire, Space/X jump, Enter/1 start, 5/C coin
@@ -72,12 +73,20 @@ public sealed class InputMapper
             Key(KeyboardKey.Enter) || Key(KeyboardKey.One) || Btn(GamepadButton.MiddleRight),
             Key(KeyboardKey.Five) || Key(KeyboardKey.C) || Btn(GamepadButton.MiddleLeft),
         ];
+        ApplyFusion(session, state);
+    }
+
+    internal void ApplyFusion(Retro.Fusion.IFusionRun session, ReadOnlySpan<bool> state)
+    {
+        if (state.Length != FusionInputs.Length) throw new ArgumentException("The fusion input frame must contain every control.", nameof(state));
+        bool newSession = !ReferenceEquals(_fusionSession, session);
         for (int i = 0; i < state.Length; i++)
         {
-            if (_fusionInputs[i] != state[i])
+            if (newSession || _fusionInputs[i] != state[i])
                 session.SetInput(FusionInputs[i], state[i]);
             _fusionInputs[i] = state[i];
         }
+        _fusionSession = session;
     }
 
     /// <summary>

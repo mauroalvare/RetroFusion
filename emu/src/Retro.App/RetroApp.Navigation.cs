@@ -22,6 +22,7 @@ public sealed partial class RetroApp
     private void DrawNavigation()
     {
         WorkspaceLayout.MenuHeight=_menuHeight;
+        if (UiTheme.CompactHeight) { WorkspaceLayout.NavigationHeight = 0; return; }
         float height;
         using(UiTheme.Label()) height=ImGui.GetFrameHeight()+UiTheme.Px(20);
         WorkspaceLayout.NavigationHeight=height;
@@ -89,7 +90,7 @@ public sealed partial class RetroApp
 
     private void DrawCreateHub()
     {
-        UiTheme.Eyebrow("TU TALLER");
+        if (!UiTheme.CompactHeight) UiTheme.Eyebrow("TU TALLER");
         UiTheme.Heading("Banco de creación","Plantillas, originales y proyectos en curso.");
         ToolRows("create-paths",[
             ("Desde cero","Un juego original para una máquina de 8 bits. Empezá con una idea o una plantilla editable, también sin IA.","new"),
@@ -105,7 +106,7 @@ public sealed partial class RetroApp
 
     private void DrawToolsHub()
     {
-        UiTheme.Eyebrow("MESA DE HERRAMIENTAS");
+        if (!UiTheme.CompactHeight) UiTheme.Eyebrow("MESA DE HERRAMIENTAS");
         UiTheme.Heading("Instrumental","Partidas, memoria, código y ajustes del equipo.");
         UiTheme.BeginCard("current-context");
         ImGui.TextWrapped(HasGame?"En uso: "+(_host.LoadedMedia!=null?Path.GetFileNameWithoutExtension(_host.LoadedMedia):"Creación en ejecución"):"Abrí un original para trabajar sobre una partida. La configuración está disponible siempre.");
@@ -153,7 +154,7 @@ public sealed partial class RetroApp
 
     private void DrawHelpHub()
     {
-        UiTheme.Eyebrow("AYUDA Y CONTROLES");
+        if (!UiTheme.CompactHeight) UiTheme.Eyebrow("AYUDA Y CONTROLES");
         UiTheme.Heading("Manual de operación","Controles, atajos y ayuda para los trabajos del taller.");
         UiTheme.BeginCard("play-help");
         UiTheme.Section("Abrir y jugar");
