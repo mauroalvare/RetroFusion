@@ -7,7 +7,7 @@ La [guía de espacio](ESPACIO.md) explica cómo consolidar paquetes y copias de 
 con `tools/workspace_cleanup.py`, verificar el historial y restaurar una prueba.
 El [bus8080](I8080.md) detalla su modo temporizado, READY y alcance de las pruebas.
 Las [esperas 6502/6510 y DMA NES](NES-DMA.md) describen el reloj durante RDY,
-el arbitraje OAM/DMC y los estados NES6 compatibles con NES2/3/4/5.
+el arbitraje OAM/DMC y los estados NES7 compatibles con NES2–6.
 El [contraste nestest](NESTEST.md) compara estados y ciclos por CLI, con corpus externo opcional.
 La [guía de interfaz y herramientas](DISENO-INTERFAZ.md) describe el buscador de acciones,
 la adaptación de paneles y las referencias de rutinas por edición.
@@ -85,6 +85,8 @@ archivos y firmware antes de usar o guardar resultados, también en creación di
 
 El contrato común para las IAs está en `src/Retro.Ai/Docs/CONTRATO-DISENO.md` y se
 incrusta con `GameDesignGuide.Compact`; `DISENO-JUEGOS.md` queda como consulta ampliada.
+Los formatos de respuesta, actividad por etapas, cancelación y continuación se explican
+en [Crear y recuperar un trabajo](CREACION-Y-RECUPERACION.md).
 Creador y estudio lo envían por todos los modos de trabajo. Las carpetas para agentes
 incluyen `CONTRATO.md` y el documento ampliado; la guía de
 fusión y la documentación técnica conservan sus archivos propios.

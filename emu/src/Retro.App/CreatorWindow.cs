@@ -24,6 +24,9 @@ public sealed class CreatorWindow
     private readonly AiSettings _ai;
     private readonly Action<string> _play;
     private bool _open;
+    private bool _wasBusy;
+    public Action<string, Vector2, Vector2>? ControlBounds { get; set; }
+    private void ObserveControl(string name) => ControlBounds?.Invoke(name, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
     private int _machine;               // index in Templates.All
     private string _wish = "";
     private volatile string _progress = "";
@@ -107,7 +110,10 @@ public sealed class CreatorWindow
             return;
         }
         _panelLeft = null;
+        ControlBounds?.Invoke("Panel", ImGui.GetWindowPos(), ImGui.GetWindowPos() + ImGui.GetWindowSize());
         UiTheme.Eyebrow("CREAR / DESDE CERO");
+        if (Busy && !_wasBusy) ImGui.SetScrollY(0);
+        _wasBusy = Busy;
         if (_focusWork) ImGui.SetScrollY(0);
         if (_pendingWork.Count>0 && ImGui.CollapsingHeader($"{_pendingWork.Count} trabajos para retomar")) DrawPendingWork();
         if (Busy) { DrawProgress(); ImGui.Separator(); }
@@ -155,7 +161,9 @@ public sealed class CreatorWindow
         else if (_ai.Provider == "agent")
             AiPicker.Hint("Prepará la carpeta y pasale la tarea a tu agente.");
         ImGui.BeginDisabled(Busy || _agentDir != null);
-        if (UiTheme.PrimaryButton(callable ? "Crear con IA" : _ai.Provider == "manual" ? "Preparar la consigna" : "Preparar la carpeta del agente"))
+        bool create = UiTheme.PrimaryButton(callable ? "Crear con IA" : _ai.Provider == "manual" ? "Preparar la consigna" : "Preparar la carpeta del agente");
+        ObserveControl("Preparar");
+        if (create)
         {
             if (callable)
                 Write();
@@ -187,9 +195,11 @@ public sealed class CreatorWindow
             ImGui.TextWrapped(_progress);
             ImGui.PopStyleColor();
         }
-        if (_cts != null && _writeTask != null)
+        if (_cts != null && (_writeTask != null || _manualTask != null || _agentTask != null))
         {
-            if (ImGui.SmallButton("Cancelar"))
+            bool cancel = ImGui.SmallButton("Cancelar");
+            ObserveControl("Cancelar");
+            if (cancel)
                 _cts.Cancel();
         }
         _build.Draw(_writeTask != null, _progress, _cts);
@@ -217,13 +227,17 @@ public sealed class CreatorWindow
         }
         ImGui.TextUnformatted("2. Pegá acá la respuesta completa:");
         ImGui.InputTextMultiline("##respuesta-crear", ref _pasted, 200_000, new Vector2(-1, UiTheme.Px(90)));
+        ObserveControl("Respuesta");
         ImGui.BeginDisabled(Busy || _pasted.Trim().Length == 0);
-        if (ImGui.Button("3. Probar el juego"))
+        bool test = ImGui.Button("3. Probar el juego");
+        ObserveControl("Probar");
+        if (test)
             TryPasted();
         ImGui.EndDisabled();
         ImGui.SameLine();
         if (ImGui.SmallButton("Cancelar##manual"))
         {
+            if (_manualTask != null) _cts?.Cancel();
             _manualPrompt = null;
             _manualDraft = null;
             _pasted = "";
@@ -246,11 +260,16 @@ public sealed class CreatorWindow
         ImGui.SameLine();
         if (ImGui.SmallButton("Dejar de esperar"))
         {
+            if (_agentTask != null) _cts?.Cancel();
             _agentDir = null;
             _agentReport = null;
             return;
         }
-        AiPicker.Hint(_agentTask != null ? "Probando lo que guardó el agente..." : "Esperando que el agente guarde juego.s...");
+        UiTheme.SameLineIfFits("Volver a probar");
+        ImGui.BeginDisabled(_agentTask != null);
+        if (ImGui.SmallButton("Volver a probar##agente")) _agentSeen = DateTime.MinValue;
+        ImGui.EndDisabled();
+        AiPicker.Hint(_agentTask != null ? "Probando lo que guardó el agente..." : "Esperando cambios en juego.s o juego.json...");
         if (_agentReport != null && ImGui.TreeNode("Último informe##agente"))
         {
             ImGui.TextWrapped(_agentReport);
@@ -281,8 +300,21 @@ public sealed class CreatorWindow
         _problem = _problemDetail = null;
         _progress = $"Probando \"{draft.Title}\" en el emulador...";
         string machine = _writeMachine;
-        _manualTask = Task.Run(() => (draft, HomebrewTrial.Run(draft.Source, machine, _romDir)));
+        _manualDraft = draft;
+        var token = BeginTrial();
+        _manualTask = Task.Run(() => (draft, HomebrewTrial.Run(draft.Source, machine, _romDir, token, TrialProgress)), token);
     }
+
+    private CancellationToken BeginTrial()
+    {
+        _cts?.Dispose(); _cts = new CancellationTokenSource();
+        return _cts.Token;
+    }
+
+    private void TrialProgress(TrialProgress progress) => _progress = progress.TotalFrames is int total
+        ? $"{progress.Stage}: {progress.Frames} de {total} cuadros." : progress.Stage + "...";
+
+    private void EndTrial() { _cts?.Dispose(); _cts = null; }
 
     private void StartAgent()
     {
@@ -297,7 +329,7 @@ public sealed class CreatorWindow
         _progress = "Carpeta lista: pasale la instrucción a tu agente.";
     }
 
-    /// <summary>Once a second: if the agent saved juego.s again, try it.</summary>
+    /// <summary>Once a second: retry when the agent changes the source or its card.</summary>
     private void PollAgent()
     {
         if (_agentDir == null || _agentTask != null)
@@ -306,16 +338,23 @@ public sealed class CreatorWindow
         if (_agentPoll < 1)
             return;
         _agentPoll = 0;
-        if (GameWorkspace.Read(_agentDir) is not { } read || read.written <= _agentSeen)
+        var current = GameWorkspace.Read(_agentDir, out var readProblem);
+        if (current is not { } read)
+        {
+            if (readProblem != null) _agentReport = readProblem;
+            return;
+        }
+        if (read.written <= _agentSeen)
             return;
         _agentSeen = read.written;
         string dir = _agentDir, machine = _writeMachine;
+        var token = BeginTrial();
         _agentTask = Task.Run(() =>
         {
-            var report = HomebrewTrial.Run(read.draft.Source, machine, _romDir);
+            var report = HomebrewTrial.Run(read.draft.Source, machine, _romDir, token, TrialProgress);
             GameWorkspace.WriteReport(dir, report);
             return (read.draft, report);
-        });
+        }, token);
     }
 
     private void DrawGames()
@@ -475,7 +514,10 @@ public sealed class CreatorWindow
         if (_manualTask is { IsCompleted: true } mt)
         {
             _manualTask = null;
-            if (!mt.IsCompletedSuccessfully)
+            EndTrial();
+            if (mt.IsCanceled)
+                _progress = "Prueba cancelada. Podés volver a pegar o probar la respuesta.";
+            else if (!mt.IsCompletedSuccessfully)
                 Problem(Failure(mt.Exception));
             else if (mt.Result.report.Ok)
             {
@@ -498,7 +540,10 @@ public sealed class CreatorWindow
         if (_agentTask is { IsCompleted: true } at)
         {
             _agentTask = null;
-            if (!at.IsCompletedSuccessfully)
+            EndTrial();
+            if (at.IsCanceled)
+                _progress = "Prueba cancelada. Los archivos del agente se conservan.";
+            else if (!at.IsCompletedSuccessfully)
                 Problem(Failure(at.Exception));
             else
             {
@@ -527,10 +572,12 @@ public sealed class CreatorWindow
         {
             _build.Stop(_cts?.IsCancellationRequested != true && wt.IsCompletedSuccessfully && wt.Result.Ok);
             _writeTask = null;
-            _cts = null;
+            EndTrial();
             var work = _activeWork; _activeWork = null;
             RefreshWork();
-            if (!wt.IsCompletedSuccessfully)
+            if (wt.IsCanceled)
+                _progress = "Trabajo cancelado. El borrador completo queda en Trabajos guardados para continuar.";
+            else if (!wt.IsCompletedSuccessfully)
                 Problem(Failure(wt.Exception));
             else if (wt.Result.Game is { } draft)
             {

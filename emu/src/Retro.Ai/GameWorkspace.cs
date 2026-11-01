@@ -32,7 +32,7 @@ public static class GameWorkspace
         File.WriteAllText(Path.Combine(dir, "GUIA.md"), t.Guide);
         File.WriteAllText(Path.Combine(dir, "plantilla.s"), t.Source);
         File.WriteAllText(Path.Combine(dir, SourceFile), t.Source);
-        File.WriteAllText(Path.Combine(dir, InfoFile), JsonSerializer.Serialize(new { title = "", pitch = "", howToPlay = "" },
+        File.WriteAllText(Path.Combine(dir, InfoFile), JsonSerializer.Serialize(new { title = "", pitch = "", howToPlay = "", changes = "" },
             new JsonSerializerOptions { WriteIndented = true }));
         File.Delete(Path.Combine(dir, ReportFile));
         string test = cliHint != null
@@ -57,14 +57,16 @@ public static class GameWorkspace
                `plantilla.s` aporta el arranque hasta `start` y demostraciones técnicas: no es el juego a recolorear.
                Implementá estados, reglas y recursos propios. No agregues dependencias.
             3. Completá `{InfoFile}`: "title" (hasta 60 caracteres), "pitch" (una oración, hasta 240)
-               y "howToPlay" (objetivo y teclas, hasta 320). La explicación de diseño no va en la ayuda del jugador.
+               y "howToPlay" (objetivo y teclas, hasta 320), más "changes" (cambios concretos, hasta 400).
+               Guardá una ficha JSON completa; mientras está incompleta se espera antes de validar.
+               La explicación de diseño no va en la ayuda del jugador.
             4. {test}
             5. La prueba ensambla, carga, comprueba dibujo y movimiento sostenido con los controles documentados
                y ejecuta un robot aleatorio unos 30 segundos. Si aparece un fallo, corregí su causa conservando el pedido.
             6. Un informe "Listo" solo aprueba esa prueba técnica. Revisá también objetivo, decisiones, legibilidad,
                progreso, final y reinicio según el contrato de diseño. Si no pudiste probarlos, indicá qué falta.
 
-            RetroEmu vuelve a probar `{SourceFile}` al guardarlo y actualiza `{ReportFile}`.
+            RetroEmu vuelve a probar al guardar `{SourceFile}` o `{InfoFile}` y actualiza `{ReportFile}`.
             Si no recibiste rutinas de ROMs analizadas, no afirmes haberlas estudiado ni copies código de los originales.
 
             Textos para el jugador en castellano.
@@ -76,13 +78,20 @@ public static class GameWorkspace
         return dir;
     }
 
-    /// <summary>The game in the folder (juego.s and the texts of juego.json) and when juego.s was last written.</summary>
-    public static (GameDraft draft, DateTime written)? Read(string dir)
+    /// <summary>The current program/card and the latest write of either; incomplete edits wait.</summary>
+    public static (GameDraft draft, DateTime written)? Read(string dir) => Read(dir, out _);
+
+    public static (GameDraft draft, DateTime written)? Read(string dir, out string? problem)
     {
+        problem = null;
         string path = Path.Combine(dir, SourceFile);
         if (!File.Exists(path))
+        {
+            problem = $"Esperando {SourceFile}; la carpeta todavía no tiene el programa.";
             return null;
-        string title = "", pitch = "", how = "";
+        }
+        string title = "", pitch = "", how = "", changes = "";
+        DateTime written = File.GetLastWriteTimeUtc(path);
         try
         {
             string info = Path.Combine(dir, InfoFile);
@@ -90,17 +99,24 @@ public static class GameWorkspace
             {
                 using var doc = JsonDocument.Parse(File.ReadAllText(info));
                 var e = doc.RootElement;
+                foreach (var (name, limit) in new[] { ("title", 60), ("pitch", 240), ("howToPlay", 320), ("changes", 400) })
+                    if (ResponseMetadata.TextProblem(e, name, limit, allowNull: name == "changes") is { } error)
+                    { problem = InfoFile + ": " + error; return null; }
                 title = Str(e, "title");
                 pitch = Str(e, "pitch");
                 how = Str(e, "howToPlay");
+                changes = Str(e, "changes");
+                written = new[] { written, File.GetLastWriteTimeUtc(info) }.Max();
             }
+            var draft = new GameDraft(title.Trim().Length > 0 ? title.Trim() : "Juego del agente", pitch, how, changes, File.ReadAllText(path));
+            return (draft, written);
         }
-        catch (JsonException)
+        catch (Exception e) when (e is JsonException or IOException or UnauthorizedAccessException)
         {
-            // a half-written juego.json: the game still has its source
+            // Never approve an older/default card while the agent is writing its replacement.
+            problem = $"No se puede comprobar {SourceFile}/{InfoFile}: {e.Message} Guardá los dos archivos completos y volvé a probar.";
+            return null;
         }
-        var draft = new GameDraft(title.Trim().Length > 0 ? title.Trim() : "Juego del agente", pitch, how, "", File.ReadAllText(path));
-        return (draft, File.GetLastWriteTimeUtc(path));
     }
 
     public static void WriteReport(string dir, TrialReport report)

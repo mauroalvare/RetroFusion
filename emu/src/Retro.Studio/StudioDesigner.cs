@@ -87,8 +87,8 @@ public sealed class StudioDesigner
     public static string Guide => CoreGuide + "\n\n" + ApiDoc;
 
     public static string ConceptGuide => CoreGuide + "\n\n" + """
-        Capacidades para evaluar ideas: g.get/set usan variables verificadas (respetá solo
-        lectura); g.set es puntual y g.freeze mantiene un valor durante las escrituras de
+        Capacidades para evaluar ideas: g.get/set usan variables declaradas por el perfil;
+        respetá solo lectura y el alcance de su evidencia. g.set es puntual y g.freeze mantiene un valor durante las escrituras de
         CPU hasta g.release o reinicio. Usá congelado solo si la regla lo necesita: no
         confundas el dibujo de un personaje con su posición física ni bloquees transiciones.
         Controles y ayudas específicas se enumeran en cada perfil. g.sprite usa
@@ -737,17 +737,25 @@ public sealed class StudioDesigner
         var game = template.Copy();
         game.Playtests = []; // A revised script must supply its own expectations; never inherit stale checks.
         string? script = null;
-        var fence = Regex.Match(answer, "```(?:javascript|js)\\s*\\n(.*?)```", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+        var fences = Regex.Matches(answer, "```(?:javascript|js)\\s*\\n(.*?)```", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+        if (fences.Count > 1) { error = "Hay varios guiones. Enviá un único bloque JavaScript completo."; return null; }
+        var fence = fences.Count == 1 ? fences[0] : Match.Empty;
         if (fence.Success)
             script = fence.Groups[1].Value.Trim();
         string withoutCode = fence.Success ? answer.Remove(fence.Index, fence.Length) : answer;
-        var json = FirstJson(withoutCode);
-        if (json != null)
+        if (!ResponseMetadata.TryReadObject(withoutCode, out var metadata, out error)) return null;
+        using var doc = metadata;
+        if (doc != null)
         {
             try
             {
-                using var doc = JsonDocument.Parse(json);
                 var e = doc.RootElement;
+                foreach (var (name, limit) in new[] { ("title", 60), ("approach", 180), ("pitch", 240), ("howToPlay", 320),
+                    ("design", int.MaxValue), ("changes", 400), ("missingData", 400), ("script", int.MaxValue) })
+                {
+                    error = ResponseMetadata.TextProblem(e, name, limit, allowNull: name == "changes");
+                    if (error != null) return null;
+                }
                 if (Str(e, "missingData").Trim() is { Length: > 0 } missing)
                 {
                     error = MissingDataPrefix + missing;
@@ -765,8 +773,13 @@ public sealed class StudioDesigner
                     if (StudioPlaytests.CheckShape(game.Playtests) is { } problem)
                     { error = problem; return null; }
                 }
-                if (script == null && e.TryGetProperty("script", out var sc) && sc.ValueKind == JsonValueKind.String)
-                    script = sc.GetString();
+                if (e.TryGetProperty("script", out var sc))
+                {
+                    string jsonScript = sc.GetString()!;
+                    if (script != null && jsonScript.Trim().Length > 0 && script.ReplaceLineEndings("\n").Trim() != jsonScript.ReplaceLineEndings("\n").Trim())
+                    { error = "El campo script y el bloque JavaScript no coinciden. Enviá una sola versión."; return null; }
+                    if (script == null) script = jsonScript;
+                }
             }
             catch (JsonException ex)
             {
@@ -791,9 +804,20 @@ public sealed class StudioDesigner
         "\nRespondé SOLO con un JSON así: {\"ideas\": [{\"title\": \"...\", \"approach\": \"...\", \"pitch\": \"...\", \"howToPlay\": \"...\", " +
         string.Join(", ", ConceptFields.Select(f => $"\"{f.Key}\": \"...\"")) + ", \"missingData\": \"\"}]}";
 
-    private const string ManualShape =
-        "\nRespondé con DOS bloques: primero un bloque ```json con {\"title\", \"approach\", \"pitch\", \"howToPlay\", \"design\", \"changes\", \"missingData\"} " +
-        "y después un bloque ```javascript con el guion completo.";
+    private const string ManualShape = """
+
+        En este modo de copiar y pegar, usá exactamente DOS bloques. La ficha va primero:
+        ```json
+        {"title":"Nombre", "approach":"Relación entre los originales", "pitch":"Regla y objetivo",
+         "howToPlay":"Objetivo y teclas", "design":"Diseño actualizado", "changes":"Cambio concreto",
+         "missingData":"", "playtests":[]}
+        ```
+        Después entregá un único bloque ```javascript con el guion COMPLETO.
+        El JSON de este modo no lleva script: el programa va en ese segundo bloque.
+        Completá playtests según la guía o dejá [] explicando qué falta observar.
+        Si falta un dato indispensable, concretalo en missingData; no entregues un programa
+        genérico como reemplazo ni varias versiones entre las que el jugador deba elegir.
+        """;
 
     public static string ManualWritePrompt(IReadOnlyList<RecipeGame> slots, Func<string, GameProfile?> find, GameConcept concept) =>
         Guide + "\n\n" + WritePrompt(slots, find, concept) + ManualShape;

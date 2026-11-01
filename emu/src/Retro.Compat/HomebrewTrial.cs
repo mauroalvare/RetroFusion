@@ -8,6 +8,7 @@ namespace Retro.Compat;
 
 /// <summary>One thing the trial looked at: passed or not, and what it saw. Optional ones only warn.</summary>
 public sealed record TrialCheck(string Name, bool Ok, string Detail, bool Required = true);
+public sealed record TrialProgress(string Stage, int Frames, int? TotalFrames = null);
 
 /// <summary>What happened to a new game in the emulator: every check, the controls found and the screen.</summary>
 public sealed class TrialReport
@@ -58,7 +59,14 @@ public sealed class TrialReport
 public static class HomebrewTrial
 {
     public static TrialReport Run(string source, string machine, string firmwareDirectory, int robotFrames = 1500, int seed = 1)
+        => Run(source, machine, firmwareDirectory, CancellationToken.None, robotFrames: robotFrames, seed: seed);
+
+    public static TrialReport Run(string source, string machine, string firmwareDirectory, CancellationToken ct,
+        Action<TrialProgress>? progress = null, int robotFrames = 1500, int seed = 1)
     {
+        ct.ThrowIfCancellationRequested();
+        progress?.Invoke(new("Ensamblado", 0));
+        ct.ThrowIfCancellationRequested();
         var template = Templates.For(machine) ?? throw new ArgumentException($"no hay plantilla para {machine}");
         var (asm, file) = Templates.Build(source, template.Machine);
         var report = new TrialReport { Machine = template.Machine, Assembly = asm, File = file };
@@ -70,103 +78,119 @@ public static class HomebrewTrial
         report.Checks.Add(new TrialCheck("ensambla", true, $"{asm.Bytes.Length} bytes desde ${asm.Origin:X4}"));
 
         IMachine m;
+        IMachine? active = null;
         try
         {
-            string name = "juego" + template.Output;
-            m = MachineLauncher.Launch(template.Machine, new[] { new MediaFile(name, file, name) }, null, firmwareDirectory).Machine;
-            if (m is Spectrum48 zx)
-                MachineLauncher.LoadTape(zx);
-            else
-                Frames(m, 150, null);       // the C64 loads the .prg and types RUN
-        }
-        catch (Exception ex)
-        {
-            report.Checks.Add(new TrialCheck("carga", false, ex.Message));
-            return report;
-        }
-
-        bool heard = false;
-        uint start = asm.Origin, end = (uint)(asm.Origin + asm.Bytes.Length);
-        int inside = 0;
-        uint lastPc = 0;
-        Frames(m, 100, () =>
-        {
-            lastPc = m.Cpu.ProgramCounter;
-            if (lastPc >= start && lastPc < end)
-                inside++;
-        }, s => heard |= s);
-        string? failure = ScreenReader.FailureSign(m, ScreenReader.Text(m));
-        bool readyLeft = failure != null && failure.Contains("READY.") && inside >= 50;
-        if (inside == 0)
-            report.Checks.Add(new TrialCheck("arranca", false,
-                $"en 100 cuadros la CPU nunca estuvo en tu código (${start:X4}-${end - 1:X4}); está en ${lastPc:X4}" + (failure != null ? $" y {failure}" : "")));
-        else if (failure != null && !readyLeft)
-            report.Checks.Add(new TrialCheck("arranca", false, failure));
-        else
-            report.Checks.Add(new TrialCheck("arranca", true, $"la CPU está en tu código en {inside} de 100 cuadros"));
-        if (readyLeft)
-            report.Checks.Add(new TrialCheck("pantalla limpia", false, "todavía se ve READY. del BASIC: borrá la pantalla al empezar", Required: false));
-        if (!report.Checks[^1].Ok && report.Checks[^1].Required)
-            return Finish(report, m);
-        report.FirstPicture = Copy(m.Video);
-
-        var (distinct, drawn) = Picture(m);
-        report.Checks.Add(distinct >= 2 && drawn >= 16
-            ? new TrialCheck("dibuja", true, $"{distinct} colores en la imagen; {drawn} puntos no son fondo")
-            : new TrialCheck("dibuja", false, distinct < 2 ? "la imagen es de un solo color: no se dibujó nada" : $"solo {drawn} puntos no son fondo: lo dibujado casi no se ve"));
-
-        // the controls, from where the game is now or after a start key
-        var play = PlayDetector.Detect(m, report.Machine);
-        if (!play.Playing)
-        {
-            byte[] before = m.SaveState();
-            foreach (string key in StartKeys(report.Machine))
+            progress?.Invoke(new("Carga", 0));
+            ct.ThrowIfCancellationRequested();
+            try
             {
-                m.LoadState(before);
-                m.SetKey(key, true);
-                Frames(m, 5, null, s => heard |= s);
-                m.SetKey(key, false);
-                Frames(m, 60, null, s => heard |= s);
-                play = PlayDetector.Detect(m, report.Machine);
-                if (play.Playing)
-                {
-                    report.StartKey = key;
-                    break;
-                }
+                string name = "juego" + template.Output;
+                m = MachineLauncher.Launch(template.Machine, new[] { new MediaFile(name, file, name) }, null, firmwareDirectory).Machine;
+                active = m;
+                if (m is Spectrum48 zx)
+                    MachineLauncher.LoadTape(zx, ct: ct);
+                else
+                    Frames(m, 150, null, ct: ct, frameProgress: f => progress?.Invoke(new("Carga", f, 150))); // the C64 loads the .prg and types RUN
             }
-            if (!play.Playing)
-                m.LoadState(before);
-        }
-        report.Controls = play.Controls;
-        report.Checks.Add(play.Playing
-            ? new TrialCheck("controles", true, (report.StartKey != null ? $"después de apretar {report.StartKey}, " : "") + play.Evidence)
-            : new TrialCheck("controles", false,
-                "ningún control mueve algo de forma sostenida (probé " + string.Join(", ", PlayDetector.SetsFor(report.Machine).Select(s => s.Name)) +
-                ", también después de apretar " + string.Join(" o ", StartKeys(report.Machine)) + "): el jugador tiene que moverse con alguno"));
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                report.Checks.Add(new TrialCheck("carga", false, ex.Message));
+                return report;
+            }
 
-        if (play.Playing && play.Controls != null)
-            report.Checks.Add(Robot(m, play.Controls, robotFrames, seed, start, end, s => heard |= s));
-        report.Checks.Add(new TrialCheck("sonido", heard, heard ? "se oyó sonido" : "no sonó nada en toda la prueba", Required: false));
-        return Finish(report, m);
+            bool heard = false;
+            uint start = asm.Origin, end = (uint)(asm.Origin + asm.Bytes.Length);
+            int inside = 0;
+            uint lastPc = 0;
+            Frames(m, 100, () =>
+            {
+                lastPc = m.Cpu.ProgramCounter;
+                if (lastPc >= start && lastPc < end)
+                    inside++;
+            }, s => heard |= s, ct, f => progress?.Invoke(new("Arranque", f, 100)));
+            string? failure = ScreenReader.FailureSign(m, ScreenReader.Text(m));
+            bool readyLeft = failure != null && failure.Contains("READY.") && inside >= 50;
+            if (inside == 0)
+                report.Checks.Add(new TrialCheck("arranca", false,
+                    $"en 100 cuadros la CPU nunca estuvo en tu código (${start:X4}-${end - 1:X4}); está en ${lastPc:X4}" + (failure != null ? $" y {failure}" : "")));
+            else if (failure != null && !readyLeft)
+                report.Checks.Add(new TrialCheck("arranca", false, failure));
+            else
+                report.Checks.Add(new TrialCheck("arranca", true, $"la CPU está en tu código en {inside} de 100 cuadros"));
+            if (readyLeft)
+                report.Checks.Add(new TrialCheck("pantalla limpia", false, "todavía se ve READY. del BASIC: borrá la pantalla al empezar", Required: false));
+            if (!report.Checks[^1].Ok && report.Checks[^1].Required)
+                return Finish(report, m);
+            report.FirstPicture = Copy(m.Video);
+
+            progress?.Invoke(new("Dibujo", 0));
+            ct.ThrowIfCancellationRequested();
+            var (distinct, drawn) = Picture(m);
+            report.Checks.Add(distinct >= 2 && drawn >= 16
+                ? new TrialCheck("dibuja", true, $"{distinct} colores en la imagen; {drawn} puntos no son fondo")
+                : new TrialCheck("dibuja", false, distinct < 2 ? "la imagen es de un solo color: no se dibujó nada" : $"solo {drawn} puntos no son fondo: lo dibujado casi no se ve"));
+
+            // the controls, from where the game is now or after a start key
+            progress?.Invoke(new("Controles", 0));
+            var play = PlayDetector.Detect(m, report.Machine, ct: ct);
+            if (!play.Playing)
+            {
+                byte[] before = m.SaveState();
+                foreach (string key in StartKeys(report.Machine))
+                {
+                    ct.ThrowIfCancellationRequested();
+                    m.LoadState(before);
+                    m.SetKey(key, true);
+                    Frames(m, 5, null, s => heard |= s, ct);
+                    m.SetKey(key, false);
+                    Frames(m, 60, null, s => heard |= s, ct);
+                    play = PlayDetector.Detect(m, report.Machine, ct: ct);
+                    if (play.Playing)
+                    {
+                        report.StartKey = key;
+                        break;
+                    }
+                }
+                if (!play.Playing)
+                    m.LoadState(before);
+            }
+            report.Controls = play.Controls;
+            report.Checks.Add(play.Playing
+                ? new TrialCheck("controles", true, (report.StartKey != null ? $"después de apretar {report.StartKey}, " : "") + play.Evidence)
+                : new TrialCheck("controles", false,
+                    "ningún control mueve algo de forma sostenida (probé " + string.Join(", ", PlayDetector.SetsFor(report.Machine).Select(s => s.Name)) +
+                    ", también después de apretar " + string.Join(" o ", StartKeys(report.Machine)) + "): el jugador tiene que moverse con alguno"));
+
+            if (play.Playing && play.Controls != null)
+                report.Checks.Add(Robot(m, play.Controls, robotFrames, seed, start, end, s => heard |= s, ct, progress));
+            report.Checks.Add(new TrialCheck("sonido", heard, heard ? "se oyó sonido" : "no sonó nada en toda la prueba", Required: false));
+            return Finish(report, m);
+        }
+        finally { active?.ReleaseAllKeys(); }
     }
 
     /// <summary>Keys that usually leave a title screen: the fire of every control set, and the machine's own.</summary>
     public static IEnumerable<string> StartKeys(string machine) =>
-        PlayDetector.SetsFor(machine).Select(s => s.Fire).Concat(machine == "zx48" ? new[] { "ENTER" } : new[] { "SPACE" }).Distinct();
+        PlayDetector.SetsFor(machine).Select(s => s.Fire).Concat(machine == "zx48" ? new[] { "ENTER" } : new[] { "SPACE" })
+            .Where(k => !string.IsNullOrWhiteSpace(k)).Distinct();
 
     /// <summary>
     /// A robot that plays at random with the controls found (a direction, sometimes with fire,
     /// held a while) and watches that the game neither crashes nor freezes.
     /// </summary>
-    private static TrialCheck Robot(IMachine m, ControlSet set, int frames, int seed, uint start, uint end, Action<bool> sound)
+    private static TrialCheck Robot(IMachine m, ControlSet set, int frames, int seed, uint start, uint end, Action<bool> sound,
+        CancellationToken ct, Action<TrialProgress>? progress)
     {
         var rng = new Random(seed);
         string[] directions = { set.Left, set.Right, set.Up, set.Down };
         var held = new List<string>();
         int nextChange = 0, samples = 0, changed = 0, inside = 0;
         string lastHash = ScreenReader.Hash(m.Video);
+        progress?.Invoke(new("Partida robot", 0, frames));
         for (int f = 0; f < frames; f++)
         {
+            ct.ThrowIfCancellationRequested();
             if (f == nextChange)
             {
                 foreach (var k in held)
@@ -174,13 +198,14 @@ public static class HomebrewTrial
                 held.Clear();
                 if (rng.Next(5) > 0)
                     held.Add(directions[rng.Next(directions.Length)]);
-                if (rng.Next(3) == 0)
+                if (rng.Next(3) == 0 && !string.IsNullOrWhiteSpace(set.Fire))
                     held.Add(set.Fire);
                 foreach (var k in held.Distinct())
                     m.SetKey(k, true);
                 nextChange = f + 8 + rng.Next(32);
             }
-            Frames(m, 1, null, sound);
+            Frames(m, 1, null, sound, ct);
+            if ((f + 1) % 60 == 0 || f + 1 == frames) progress?.Invoke(new("Partida robot", f + 1, frames));
             uint pc = m.Cpu.ProgramCounter;
             if (pc >= start && pc < end)
                 inside++;
@@ -199,6 +224,7 @@ public static class HomebrewTrial
                 }
             }
         }
+        ct.ThrowIfCancellationRequested();
         m.ReleaseAllKeys();
         double seconds = frames / m.FramesPerSecond;
         if (changed == 0)
@@ -238,11 +264,14 @@ public static class HomebrewTrial
     }
 
     /// <summary>Runs frames, calling <paramref name="each"/> after every one and telling <paramref name="sound"/> whether it sounded.</summary>
-    private static void Frames(IMachine m, int frames, Action? each, Action<bool>? sound = null)
+    private static void Frames(IMachine m, int frames, Action? each, Action<bool>? sound = null, CancellationToken ct = default,
+        Action<int>? frameProgress = null)
     {
         var sink = new short[8192];
+        frameProgress?.Invoke(0);
         for (int i = 0; i < frames; i++)
         {
+            ct.ThrowIfCancellationRequested();
             m.RunFrame(null);
             int n = m.DrainAudio(sink);
             if (sound != null && n > 0)
@@ -256,7 +285,9 @@ public static class HomebrewTrial
                 sound(max - min > 1500);
             }
             each?.Invoke();
+            if ((i + 1) % 60 == 0 || i + 1 == frames) frameProgress?.Invoke(i + 1);
         }
+        ct.ThrowIfCancellationRequested();
     }
 
     /// <summary>The assembler's errors with the line they point at, so the writer sees what to fix.</summary>

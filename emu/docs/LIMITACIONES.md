@@ -22,6 +22,11 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   original/revisión. No recupera el interior de una prueba interrumpida antes de su checkpoint.
   Los registros antiguos pueden contener objetivos recortados sin orden de ranuras ni base;
   requieren revisión y no contienen un juego ejecutable si nunca se escribió.
+- El creador desde cero comprueba movimiento sostenido con controles conocidos; no es
+  todavía un comprobador universal para juegos de decisiones discretas. La cancelación
+  se atiende entre cuadros y durante carga/controles, no dentro de una instrucción de CPU
+  o del ensamblador. Las respuestas inválidas y los presupuestos no se convierten en una
+  aprobación. [Corrección y recuperación](CREACION-Y-RECUPERACION.md).
 - Observar bytes vecinos de variables conocidas ayuda a encontrar campos omitidos, pero
   proximidad y cambio de valor no prueban su propósito. Se observa una máquina privada y se
   restaura su estado; los candidatos necesitan contraste. Las funciones curadas solo se agregan

@@ -26,6 +26,7 @@ public sealed record WriterOutcome(GameDraft? Game, TrialReport? Report, int Att
 /// </summary>
 public sealed class GameWriter
 {
+    public const int AttemptCeiling = 5;
     public int MaxAttempts { get; init; } = 5;
     public Action<WriterCheckpoint>? Checkpoint { get; init; }
 
@@ -155,10 +156,12 @@ public sealed class GameWriter
         string prompt = brief;
         GameDraft? draft = state.Draft;
         TrialReport? report = null;
-        string? picture = null;
         string? problem = state.Problem;
         string author = state.Author;
         int calls = state.Calls;
+        int attemptLimit = Math.Clamp(MaxAttempts, 1, AttemptCeiling);
+        TrialReport Trial(GameDraft current) => HomebrewTrial.Run(current.Source, t.Machine, firmwareDirectory, ct,
+            p => progress?.Invoke(p.TotalFrames is int total ? $"{p.Stage}: {p.Frames} de {total} cuadros." : p.Stage + "..."));
         var triedSources = new HashSet<string>(state.TriedSources, StringComparer.Ordinal);
         void Save() => Checkpoint?.Invoke(new WriterCheckpoint { Machine = t.Machine, Wish = state.Wish, Brief = brief,
             Draft = draft, Author = author, Problem = problem is { Length: > 16000 } ? problem[..16000] : problem,
@@ -166,24 +169,25 @@ public sealed class GameWriter
         if (draft != null)
         {
             progress?.Invoke("Volviendo a probar el borrador guardado, sin llamar a la IA...");
-            report = await Task.Run(() => HomebrewTrial.Run(draft.Source, t.Machine, firmwareDirectory), ct);
+            report = await Task.Run(() => Trial(draft), ct);
             Save(); ct.ThrowIfCancellationRequested();
             if (report.Ok) return new(draft, report, 0, null);
             prompt = brief + "\n\n" + FixPrompt(draft, report);
-            if (report.LastPicture != null)
-            {
-                picture = Path.Combine(Path.GetTempPath(), $"retroemu-juego-{Guid.NewGuid():N}.png");
-                PngWriter.Write(picture, report.LastPicture, 2);
-            }
         }
         else if (problem != null) prompt += "\nNo pude leer la respuesta anterior: " + problem + ". " + AnswerShape;
-        for (int attempt = 1; attempt <= MaxAttempts; attempt++)
+        for (int attempt = 1; attempt <= attemptLimit; attempt++)
         {
             ct.ThrowIfCancellationRequested();
-            progress?.Invoke(attempt == 1 ? $"{ai.Name} está escribiendo el juego..." : $"{ai.Name} está corrigiendo (intento {attempt} de {MaxAttempts})...");
+            progress?.Invoke(attempt == 1 ? $"{ai.Name} está escribiendo el juego..." : $"{ai.Name} está corrigiendo (intento {attempt} de {attemptLimit})...");
             string answer;
+            string? picture = null;
             try
             {
+                if (ai.SupportsImages && report?.LastPicture != null)
+                {
+                    picture = Path.Combine(Path.GetTempPath(), $"retroemu-juego-{Guid.NewGuid():N}.png");
+                    PngWriter.Write(picture, report.LastPicture, 2);
+                }
                 calls++; Save();
                 answer = await ai.CompleteAsync(new AiRequest(Guide(t, includeTemplate: draft == null), new[] { new AiTurn(true, prompt) }, Schema(), picture != null ? new[] { picture } : null), ct);
             }
@@ -209,22 +213,15 @@ public sealed class GameWriter
             draft = next;
             author = ai.Name; problem = null; Save();
             progress?.Invoke($"Probando \"{draft.Title}\" en el emulador...");
-            report = await Task.Run(() => HomebrewTrial.Run(draft.Source, t.Machine, firmwareDirectory), ct);
+            report = await Task.Run(() => Trial(draft), ct);
             Save(); ct.ThrowIfCancellationRequested();
             if (report.Ok)
                 return new WriterOutcome(draft, report, attempt, null);
             problem = string.Join("; ", report.Checks.Where(c => !c.Ok && c.Required).Select(c => $"{c.Name}: {c.Detail.Split('\n')[0]}"));
             progress?.Invoke("No pasó: " + problem);
-            if (report.LastPicture != null)
-            {
-                picture = Path.Combine(Path.GetTempPath(), $"retroemu-juego-{Guid.NewGuid():N}.png");
-                PngWriter.Write(picture, report.LastPicture, 2);
-            }
             prompt = brief + "\n\n" + FixPrompt(draft, report);
         }
-        if (picture != null)
-            try { File.Delete(picture); } catch (IOException) { }
-        return new WriterOutcome(draft, report, MaxAttempts, problem ?? "no pasó la prueba");
+        return new WriterOutcome(draft, report, attemptLimit, problem ?? "no pasó la prueba");
     }
 
     /// <summary>Reads an answer: the JSON of the schema, or a JSON with the texts plus a ```asm block with the source.</summary>
@@ -232,31 +229,36 @@ public sealed class GameWriter
     {
         error = null;
         string? source = null;
-        var fence = Regex.Match(answer, "```(?:asm|s|z80|6502|assembly)?[ \\t]*\\r?\\n(.*?)```", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+        // Consume every complete Markdown block first, so a JSON closing fence cannot
+        // masquerade as the opening fence of a legacy unlabelled assembly block.
+        var fences = Regex.Matches(answer, "^[ \\t]*```(?<language>[a-zA-Z0-9_-]*)[ \\t]*\\r?\\n(?<code>.*?)^[ \\t]*```[ \\t]*(?:\\r?\\n|$)",
+            RegexOptions.Singleline | RegexOptions.Multiline | RegexOptions.IgnoreCase)
+            .Where(m => m.Groups["language"].Value.ToLowerInvariant() is "" or "asm" or "s" or "z80" or "6502" or "assembly").ToList();
+        if (fences.Count > 1) { error = "Hay varios programas. Enviá un único bloque de ensamblador completo."; return null; }
+        var fence = fences.Count == 1 ? fences[0] : Match.Empty;
         string title = "", pitch = "", how = "", changes = "";
         string texts = fence.Success ? answer.Remove(fence.Index, fence.Length) : answer;   // the code may have braces
-        int open = texts.IndexOf('{'), close = texts.LastIndexOf('}');
-        if (open >= 0 && close > open)
+        if (!ResponseMetadata.TryReadObject(texts, out var metadata, out error)) return null;
+        using var doc = metadata;
+        if (doc != null)
         {
-            try
+            var e = doc.RootElement;
+            foreach (var (name, limit) in new[] { ("title", 60), ("pitch", 240), ("howToPlay", 320), ("changes", 400), ("source", int.MaxValue) })
             {
-                using var doc = JsonDocument.Parse(texts[open..(close + 1)]);
-                var e = doc.RootElement;
-                title = Str(e, "title");
-                pitch = Str(e, "pitch");
-                how = Str(e, "howToPlay");
-                changes = Str(e, "changes");
-                string s = Str(e, "source");
-                if (s.Trim().Length > 0)
-                    source = s;
+                error = ResponseMetadata.TextProblem(e, name, limit, allowNull: name == "changes");
+                if (error != null) return null;
             }
-            catch (JsonException ex)
-            {
-                error = "el JSON no es válido (" + ex.Message + ")";
-            }
+            title = Str(e, "title"); pitch = Str(e, "pitch"); how = Str(e, "howToPlay"); changes = Str(e, "changes");
+            string s = Str(e, "source");
+            if (s.Trim().Length > 0) source = s;
+        }
+        if (source != null && fence.Success && source.ReplaceLineEndings("\n").Trim() != fence.Groups["code"].Value.ReplaceLineEndings("\n").Trim())
+        {
+            error = "El programa de source y el bloque de ensamblador no coinciden. Enviá una sola versión.";
+            return null;
         }
         if (source == null && fence.Success)
-            source = fence.Groups[1].Value;
+            source = fence.Groups["code"].Value;
         if (string.IsNullOrWhiteSpace(source))
         {
             error ??= "falta el programa (source)";

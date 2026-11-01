@@ -29,6 +29,7 @@ public class GameWriterTests
         public readonly List<bool> PictureExisted = new();
         public ScriptedAi(params string[] answers) => _answers = new Queue<string>(answers);
         public string Name => "IA de prueba";
+        public bool SupportsImages { get; init; } = true;
 
         public Task<string> CompleteAsync(AiRequest request, CancellationToken ct)
         {
@@ -129,6 +130,16 @@ public class GameWriterTests
         Assert.That(ai.Requests[1].Turns.Single().Text, Does.Contain("[FALLA] controles").And.Contain("RETROEMU"));
         Assert.That(ai.PictureExisted[1], Is.True, "la imagen de la pantalla acompaña el informe");
         Assert.That(File.Exists(ai.Requests[1].Images![0]), Is.False, "y se borra después");
+    }
+
+    [Test]
+    public async Task ATextOnlyProviderGetsTheMeasuredReportWithoutAnUnsupportedImage()
+    {
+        var ai = new ScriptedAi(Answer("Quieto", C64.Replace("lda $DC00", "lda #$FF")), Answer("Corregido", C64)) { SupportsImages = false };
+        var result = await new GameWriter().WriteAsync(ai, "c64", "Conservar la idea", _firmware, CancellationToken.None);
+        Assert.That(result.Ok, Is.True, result.Problem);
+        Assert.That(ai.Requests[1].Images, Is.Null);
+        Assert.That(ai.Requests[1].Turns.Single().Text, Does.Contain("[FALLA] controles"));
     }
 
     [Test]

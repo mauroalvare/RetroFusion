@@ -42,6 +42,14 @@ public sealed class ResearchRecoveryTests
     }
 
     [Test]
+    public void AnUnknownRequirementStartsWithAnAutomaticExperimentAndOnlyThenOffersAHumanObservation()
+    {
+        var guide = ResearchGuidance.For(new GameConcept("Propio", "", "", "", MissingData: "Efecto desconocido del escudo")).Single();
+        Assert.That(guide.Steps[0], Does.Contain("Investigación automática"));
+        Assert.That(string.Join("\n", guide.Steps), Does.Contain("Si").And.Contain("sin esa acción"));
+    }
+
+    [Test]
     public void InterfaceOwnsGamepadWhileResearchOrEditorsAreOpen()
     {
         var input=new InputMapper {InterfaceActive=true};

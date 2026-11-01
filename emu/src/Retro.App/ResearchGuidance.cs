@@ -43,7 +43,8 @@ public static class ResearchGuidance
             "Condición de entrada, estado esperado y resultado de dos repeticiones; una aprobación técnica no certifica todas las transiciones."));
         if (checks.Count == 0 && missing.Length > 0)
             checks.Add(new("Comprobación pendiente", concept.MissingData,
-            ["Abrí el original y guardá una ranura antes de la situación que falta comprobar.",
+            ["Primero usá Investigación automática con el requisito pendiente como objetivo. Elegí tiempo y pedidos; cero pedidos ejecuta pruebas locales. Revisá la evidencia y continuá desde los avances si hace falta.",
+             "Si el laboratorio no logra reproducir esa situación y podés aportarla, abrí el original y guardá una ranura antes de probar.",
              "Describí una acción concreta y su resultado esperado. Compará con otra corrida sin esa acción desde la misma ranura.",
              "Registrá entradas, valores y capturas. Agregá la observación a la investigación para que el laboratorio intente reproducirla."],
             "Una diferencia reproducible vinculada al requisito; las observaciones humanas se mantienen sin verificar hasta contrastarlas."));

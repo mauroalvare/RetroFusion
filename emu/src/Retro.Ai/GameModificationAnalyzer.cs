@@ -64,7 +64,10 @@ public static class GameModificationAnalyzer
         Podés investigar temporización, movimiento, reglas, interacción entre entidades y
         comportamientos extraños cuando los datos lo permitan. No propongas siempre reservas
         infinitas ni fuerces efectos que no se pueden justificar. Contestá también las preguntas;
-        si falta evidencia, explicá qué acción del jugador permitiría obtenerla.
+        si falta evidencia, proponé primero un experimento en Investigación automática.
+        Este modo de observación no ejecuta ese experimento por sí solo: no lo presentes
+        como hecho. Si requiere intervención humana, detallá dónde actuar, la acción,
+        el resultado esperado y los valores o capturas a conservar desde una misma ranura.
         Relacioná primero las escrituras y su código de alrededor con la pregunta. Frecuencia,
         rango e historial no demuestran por sí solos vidas, tiempo, coordenadas ni causalidad.
         No confundas un buffer gráfico con la posición física ni una copia con el estado original.

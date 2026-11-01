@@ -1759,3 +1759,40 @@ puede reparar el plan sin cambiar código; renombrar un fallo no habilita repeti
 esquema de respuestas y carpeta del agente comparten las reglas. Variables ilegibles
 producen un resultado fallido con campo/tick y pasos para revisar el perfil, conservando
 la liberación de entradas. No certifica causalidad, eventos entre muestras ni diversión.
+
+## D-105 — Respuestas completas y pruebas del creador recuperables
+
+Creador y estudio validan la ficha textual antes de aceptar código adjunto. Se rechazan
+JSON incompleto, raíz incorrecta, tipos/longitudes inválidos, campos textuales repetidos y versiones
+de código contradictorias. Se conserva la lectura antigua de código sin ficha; no se usa
+para acreditar metadatos que no suministra. ResponseMetadata comparte las reglas del
+objeto; el programa y su lenguaje siguen teniendo lectores propios.
+
+GameWorkspace.Read conserva su firma y agrega diagnóstico opcional. Tiene en cuenta la
+fecha del programa y de la ficha; una ficha a medio escribir espera, sin aprobar valores
+anteriores. La interfaz permite volver a probar y muestra el problema. El creador limita
+MaxAttempts a 1–5 y solo crea capturas temporales dentro del pedido que las necesita,
+si la herramienta declara soporte visual. No quedan imágenes entre reintentos.
+
+HomebrewTrial.Run mantiene la entrada anterior y agrega token/progreso optativos. Carga,
+arranque, controles y robot comprueban cancelación; el avance se expresa en etapas y
+cuadros, sin porcentajes de calidad. Una cancelación no se captura como fallo de carga y
+libera entradas. GameWriter conserva el borrador completo antes de ejecutar esa prueba.
+Los modos automático, manual y carpeta del creador pueden cancelar la prueba desde la UI.
+Esto no añade guardado de la respuesta manual al cerrar ese modo ni un modelo universal
+de objetivos y finales. El límite de cinco intentos es por tanda, además del presupuesto.
+
+## D-106 — Contratos coherentes para revisión y asistencia
+
+La salida manual del estudio muestra JSON válido con playtests y separa el guion en un
+solo bloque. Los perfiles describen variables y su evidencia; no se denominan todas
+verificadas. Las instrucciones de investigación priorizan el experimento automático
+también para requisitos que no coinciden con categorías conocidas. Si hace falta una
+persona, se exige impedimento, lugar, acción, resultado y evidencia que conservar.
+
+Las descripciones del juego son datos y una captura ausente no se trata como observada.
+Los contratos mantienen libertad de género, base e identidad del original y las reglas
+correctas del pedido. Los prompts locales de continuidad remiten al estado vivo en vez
+de congelar versiones, conteos o prioridades antiguas; los adjuntos originales quedan
+intactos. Estas revisiones se contrastan con proveedores simulados y flujos locales,
+sin atribuirles una mejora de creatividad de proveedores reales todavía no medida.
