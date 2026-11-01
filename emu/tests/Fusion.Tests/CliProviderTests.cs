@@ -94,6 +94,74 @@ public class CliProviderTests
         Assert.That(ai.LastUsage, Is.EqualTo(new AiUsage(120, 30, 90)));
     }
 
+    private string SchemaCli(string capture, string schemaPath, bool fail = false, bool wait = false) => Fake("codex", $$"""
+        more > nul
+        :arguments
+        if "%~1"=="" goto answer
+        if "%~1"=="--output-schema" (
+          copy /y "%~2" "{{capture}}" > nul
+          >"{{schemaPath}}" echo %~2
+        )
+        if "%~1"=="-o" set "last=%~2"
+        shift
+        goto arguments
+        :answer
+        echo consigna recibida 1>&2
+        {{(wait ? "ping -n 30 127.0.0.1 > nul" : "")}}
+        >"%last%" echo {"title":"Local"}
+        exit /b {{(fail ? 17 : 0)}}
+        """);
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task Codex_UsesTheRequestSchemaAndDeletesOnlyItsOwnTemporaryFile(bool fail)
+    {
+        string capture = Path.Combine(_dir, "schema.json"), pathFile = Path.Combine(_dir, "schema-path.txt");
+        var request = Request(schema: true);
+        var ai = new CliAgentProvider(CliTools.Codex, SchemaCli(capture, pathFile, fail));
+        if (fail) Assert.ThrowsAsync<AiException>(() => ai.CompleteAsync(request, CancellationToken.None));
+        else Assert.That(await ai.CompleteAsync(request, CancellationToken.None), Does.Contain("Local"));
+        Assert.That(File.Exists(capture), Is.True, "The CLI must receive --output-schema, not only a prose instruction.");
+        Assert.That(File.ReadAllText(capture), Is.EqualTo(request.Schema!.Value.GetRawText()));
+        Assert.That(File.Exists(File.ReadAllText(pathFile).Trim()), Is.False, "The schema belongs to this dispatch and is removed after it ends.");
+    }
+
+    [Test]
+    public async Task Codex_CancellationCleansTheTemporarySchema()
+    {
+        string capture = Path.Combine(_dir, "schema.json"), pathFile = Path.Combine(_dir, "schema-path.txt");
+        using var cancellation = new CancellationTokenSource();
+        var ai = new CliAgentProvider(CliTools.Codex, SchemaCli(capture, pathFile, wait: true));
+        var pending = ai.CompleteAsync(Request(schema: true), cancellation.Token);
+        try
+        {
+            await WaitForOutput(ai);
+            Assert.That(File.Exists(capture), Is.True);
+            Assert.That(File.Exists(File.ReadAllText(pathFile).Trim()), Is.True);
+        }
+        finally { cancellation.Cancel(); Assert.CatchAsync<OperationCanceledException>(async () => await pending); }
+        Assert.That(File.Exists(File.ReadAllText(pathFile).Trim()), Is.False);
+    }
+
+    [Test]
+    public async Task Codex_TextOnlyRequestsDoNotForceAnOutputSchema()
+    {
+        string capture = Path.Combine(_dir, "schema.json"), pathFile = Path.Combine(_dir, "schema-path.txt");
+        var ai = new CliAgentProvider(CliTools.Codex, SchemaCli(capture, pathFile));
+        Assert.That(await ai.CompleteAsync(Request(), CancellationToken.None), Does.Contain("Local"));
+        Assert.That(File.Exists(pathFile), Is.False);
+    }
+
+    [Test]
+    public void PreCanceledRequestsDoNotLookUpOrStartTheCli()
+    {
+        using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
+        var ai = new CliAgentProvider(CliTools.Codex, Path.Combine(_dir, "missing.cmd"));
+        Assert.CatchAsync<OperationCanceledException>(() => ai.CompleteAsync(Request(schema: true), cancellation.Token));
+        Assert.That(ai.Activity, Is.Null);
+        Assert.That(ai.LastUsage, Is.Null);
+    }
+
     [TestCase("codex")]
     [TestCase("agy")]
     [TestCase("gemini")]

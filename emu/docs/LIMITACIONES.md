@@ -37,6 +37,11 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   revalidarse localmente sin nuevos pedidos tras corregir el validador, con observaciones
   de dificultad. Es una aprobación técnica, no de diversión ni de todos los finales.
   Las implementaciones locales y sus experimentos dirigidos se prueban por separado.
+  El contraste posterior del flujo completo reutiliza dos pares de originales ya
+  preparados y respuestas locales simuladas: observa corrección, validación, guardado,
+  arranque y reapertura. No mide descubrimiento autónomo desde cero ni creatividad del
+  proveedor externo. Una hipótesis explícita o una observación sin evidencia no puede
+  levantar un requisito esencial; los perfiles anteriores mantienen su alcance declarado.
 
 ## Análisis y modificaciones de partidas
 
@@ -533,6 +538,10 @@ en el programa nuevo no promete lectura de formatos nuevos en programas anterior
   además una orientación general para el trabajo completo cuando faltan muestras.
   Los modos manual y carpeta requieren respuestas y no predicen cuánto tardará el chat
   o agente externo.
+  El arranque posterior tiene cancelación y un plazo de dos minutos. Su vencimiento o un
+  error de inicialización conserva el juego guardado; no implica que los originales o
+  todas las mecánicas estén comprobados. El esquema estructurado de respuesta reduce
+  errores de formato, pero no asegura que el modelo responda dentro del plazo.
 
 - En el C64, F1/F3/F5/F7 son teclas de la máquina: la carga rápida de estado pasa a F4 y
   el reinicio se hace desde Juego.

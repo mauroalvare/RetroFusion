@@ -146,12 +146,14 @@ public sealed class CliAgentProvider : IAiProvider
     public async Task<string> CompleteAsync(AiRequest request, CancellationToken ct)
     {
         LastUsage = null;
+        ct.ThrowIfCancellationRequested();
         string exe = CliTools.Find(_tool, _override)
                      ?? throw new AiException($"No encontré {_tool.Name}. {_tool.InstallHint}");
         string work = Path.Combine(Path.GetTempPath(), "RetroEmu-ia");
         Directory.CreateDirectory(work);
         string lastMessage = Path.Combine(work, $"respuesta-{Guid.NewGuid():N}.txt");
         string? promptFile = null;
+        string? schemaFile = null;
         try
         {
             bool agy = Path.GetFileNameWithoutExtension(exe).Equals("agy", StringComparison.OrdinalIgnoreCase);
@@ -174,6 +176,12 @@ public sealed class CliAgentProvider : IAiProvider
             // the model goes before codex's "-" (stdin) and anywhere for the others
             args.InsertRange(_tool.Id == "sub-codex" ? 1 : 0, ModelArgs(_tool.Id, _model));
             args.InsertRange(_tool.Id == "sub-codex" ? 1 : 0, EffortArgs(_tool.Id, _effort));
+            if (_tool.Id == "sub-codex" && request.Schema is JsonElement schema)
+            {
+                schemaFile = Path.Combine(work, $"esquema-{Guid.NewGuid():N}.json");
+                File.WriteAllText(schemaFile, schema.GetRawText(), new UTF8Encoding(false));
+                args.InsertRange(args.Count - 1, ["--output-schema", schemaFile]);
+            }
             // agy takes the prompt as an argument and does not read standard input
             string previousOutput = Activity?.Output is { Length: > 0 } previous ? previous + "\n\n" : "";
             var (code, stdout, stderr) = await RunAsync(exe, args, work, agy ? "" : Flatten(request), _timeout, ct,
@@ -194,7 +202,7 @@ public sealed class CliAgentProvider : IAiProvider
         }
         finally
         {
-            foreach (string? file in new[] { lastMessage, promptFile })
+            foreach (string? file in new[] { lastMessage, promptFile, schemaFile })
                 if (file != null)
                     try { File.Delete(file); }
                     catch (IOException) { }

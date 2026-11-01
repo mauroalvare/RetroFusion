@@ -36,6 +36,42 @@ public sealed class ConceptReassessmentTests
         {"missingData":"","evidence":[{"slot":"b","kind":"variable","name":"heroX","reason":"La posición requerida está comprobada en el perfil actual."}]}
         """;
 
+    [TestCase("hypothesis", "Propuesta de posición", null)]
+    [TestCase(null, "Hipótesis: posición", null)]
+    [TestCase(null, "Nombre propuesto: posición", null)]
+    [TestCase("observed", "Posición", " ")]
+    [TestCase("HYPOTHESIS", "Posición", null)]
+    [TestCase("unknown", "Posición", "Una afirmación sin estado reconocido")]
+    public async Task AVariableHypothesisOrEmptyObservationCannotResolveAnEssentialRequirement(string? status, string description, string? evidence)
+    {
+        var profiles = Profiles();
+        var variable = profiles["platform"].Variables["heroX"];
+        variable.PurposeStatus = status; variable.Description = description; variable.PurposeEvidence = evidence;
+        var result = await new StudioDesigner().ReassessConceptAsync(Answer(Resolved), Slots, id => profiles.GetValueOrDefault(id), Blocked(), CancellationToken.None);
+        Assert.That(result.MissingData, Does.StartWith(Blocked().MissingData).And.Contain("evidencia"));
+        Assert.That(result.Design, Is.EqualTo(Blocked().Design));
+    }
+
+    [Test]
+    public void ManualReassessmentCannotPromoteAHypothesisEither()
+    {
+        var profiles = Profiles(); profiles["platform"].Variables["heroX"].PurposeStatus = "hypothesis";
+        var result = StudioDesigner.ParseReassessment(Resolved, Slots, id => profiles.GetValueOrDefault(id), Blocked());
+        Assert.That(result.MissingData, Is.Not.Empty);
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task ObservedMeaningCanSupportARequirementIndependentlyOfWritePermission(bool readOnly)
+    {
+        var profiles = Profiles();
+        var variable = profiles["platform"].Variables["heroX"];
+        variable.ReadOnly = readOnly; variable.PurposeStatus = "observed";
+        variable.PurposeEvidence = "La posición visible siguió la entrada derecha en esta edición, con una repetición de control.";
+        var result = await new StudioDesigner().ReassessConceptAsync(Answer(Resolved), Slots, id => profiles.GetValueOrDefault(id), Blocked(), CancellationToken.None);
+        Assert.That(result.MissingData, Is.Empty);
+    }
+
     [Test]
     public async Task ResolvesOnlyAgainstCurrentProfilesAndPreservesTheChosenIdea()
     {

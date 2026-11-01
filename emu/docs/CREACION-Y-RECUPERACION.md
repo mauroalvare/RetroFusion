@@ -62,6 +62,23 @@ y la actividad observada antes de repetir una creación larga. Cambiar de provee
 cerrar la app solicita detener la prueba en curso. Un tiempo agotado sin métricas deja el
 consumo desconocido, sin convertirlo en cero.
 
+## Preparación y apertura de una fusión
+
+Una variable marcada como hipótesis no alcanza para dar por resuelto un dato esencial.
+La investigación conserva las observaciones nuevas y se detiene tras tres rondas sin
+evidencia distinta; volver a datos ya vistos o cambiar su orden no cuenta como avance.
+Si sigue faltando una regla, revisá el requisito y su experimento en el plan del original.
+Las variables antiguas declaradas por un perfil conservan el alcance de esa ficha.
+
+Un perfil recién preparado conserva el vínculo con su archivo aunque la biblioteca
+encuentre otro alias para el mismo original. Al volver a abrir el juego se comprueban
+máquina y huella; un nombre parecido no autoriza usar una edición distinta.
+
+Durante el arranque podés usar **Cancelar**. Si pasan dos minutos sin terminar, se detiene
+esa carga y se conserva el juego guardado. Abrí el original desde la biblioteca y comprobá
+su carga y el plan de arranque antes de repetir. Un error de inicialización muestra su
+causa y un resultado que llega después de cancelar no sustituye el juego en uso.
+
 ## Alcance de la aprobación
 
 En programas desde cero se comprueban ensamblado, carga, dibujo, respuesta sostenida a

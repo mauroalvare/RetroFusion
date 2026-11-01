@@ -40,6 +40,7 @@ public sealed class FusionPreparationWorkflow
             throw new ArgumentOutOfRangeException(nameof(ResearchTime));
         var fingerprints = targets.ToDictionary(t => t.Path, t => Fingerprint(t.Path));
         var sources = targets.ToDictionary(t => t.Source.Profile.Id, t => t.Source);
+        var seenEvidence = new HashSet<string>(StringComparer.Ordinal) { EvidenceStamp(sources.Values) };
         var latest = new Dictionary<string, PrepareResult>();
         var mappedIds = targets.ToDictionary(t => t.Source.Profile.Id, t => t.Source.Profile.Id);
         var history = targets.ToDictionary(t => t.Source.Profile.Id, _ => new List<PreparationExperimentResult>());
@@ -91,7 +92,6 @@ public sealed class FusionPreparationWorkflow
                 token.ThrowIfCancellationRequested();
                 if (Clock.GetElapsedTime(started) >= budget) { stop = "Se alcanzó el tiempo de investigación. Se conservaron los datos comprobados; faltan requisitos."; break; }
                 passes = pass;
-                string before = EvidenceStamp(sources.Values);
                 foreach (var target in targets.Where(t => pass > 1 || t.NeedsPreparation))
                 {
                     token.ThrowIfCancellationRequested();
@@ -152,7 +152,7 @@ public sealed class FusionPreparationWorkflow
                 Publish();
                 if (string.IsNullOrWhiteSpace(current.MissingData)) break;
                 if (!automatic) break;
-                bool changed = before != EvidenceStamp(sources.Values);
+                bool changed = seenEvidence.Add(EvidenceStamp(sources.Values));
                 // A new state/experiment signature is not new evidence. Otherwise repeated
                 // unsuccessful input plans consume the entire research budget indefinitely.
                 stalled = changed ? 0 : stalled + 1;
@@ -185,12 +185,17 @@ public sealed class FusionPreparationWorkflow
             $"Pedido del jugador: {Limit(concept.PlayerRequest, 700)}\nAportes: {Limit(concept.Pitch, 600)}\nDiseño: {Limit(concept.Design, 800)}";
     }
 
-    internal static string EvidenceStamp(IEnumerable<GameSource> sources) => JsonSerializer.Serialize(sources.Select(s => new
+    internal static string EvidenceStamp(IEnumerable<GameSource> sources) => JsonSerializer.Serialize(sources.OrderBy(s => s.Profile.Id, StringComparer.Ordinal).Select(s => new
     {
-        s.Profile.Id, s.Profile.Machine,
+        s.Profile.Id, s.Profile.Machine, s.Profile.Boot,
+        BootVerified = !string.IsNullOrWhiteSpace(s.Profile.Verified),
         Variables = s.Profile.Variables.OrderBy(v => v.Key).Select(v => new { v.Key, v.Value.Address, v.Value.Encoding, v.Value.Bytes,
-            v.Value.Mask, v.Value.HighBitAddress, v.Value.HighBitMask, v.Value.ReadOnly, v.Value.Min, v.Value.Max }),
-        Controls = s.Profile.Controls.OrderBy(c => c.Key), s.Profile.Helpers, s.Profile.HelpersDoc, s.Profile.Sprites,
+            v.Value.Mask, v.Value.HighBitAddress, v.Value.HighBitMask, v.Value.ReadOnly, v.Value.Min, v.Value.Max,
+            v.Value.PurposeIsHypothesis,
+            PurposeEvidence = v.Value.PurposeStatus == "observed" && !string.IsNullOrWhiteSpace(v.Value.PurposeEvidence) ? v.Value.PurposeEvidence : null }),
+        Controls = s.Profile.Controls.OrderBy(c => c.Key), s.Profile.Helpers,
+        HelpersDoc = s.Profile.HelpersDoc.Distinct().Order(StringComparer.Ordinal),
+        Sprites = s.Profile.Sprites.OrderBy(s => s.Key, StringComparer.Ordinal),
     }));
 
     private static string Fingerprint(string path)

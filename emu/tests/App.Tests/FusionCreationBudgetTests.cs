@@ -73,6 +73,67 @@ public sealed class FusionCreationBudgetTests
     }
 
     [Test]
+    public void CompletingPreparationKeepsTheSelectedProfilesWhenTheCatalogFindsAnOlderAlias()
+    {
+        var window = Window(new(), new WaitingAi(), TimeProvider.System);
+        var sources = new Dictionary<string, GameSource>();
+        var slots = new List<RecipeGame>();
+        var preparations = new List<Retro.Compat.PrepareResult>();
+        var fingerprints = new Dictionary<string, string>();
+        for (int i = 0; i < _targets.Count; i++)
+        {
+            var target = _targets[i]; var profile = GameProfile.Parse(target.Source.Profile.ToJson());
+            profile.Id = "zzzz-prepared-" + i; profile.Name = "Preparado " + i;
+            ProfileLibrary.Save(profile);
+            Assert.That(ProfileLibrary.ForFiles(target.Source.Files)!.Id, Is.EqualTo(target.Source.Profile.Id), "The scan must reproduce the older-alias selection.");
+            sources[profile.Id] = target.Source with { Profile = profile };
+            slots.Add(new() { Slot = i == 0 ? "a" : "b", Profile = profile.Id });
+            preparations.Add(new() { Ok = true, Profile = profile, Sha256 = GamePreparer.Sha256Of(target.Source.Files[0]) });
+            fingerprints[target.Path] = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(target.Path)));
+        }
+        Call(window, "CompletePreparation", new FusionPreparationResult(Idea, sources, preparations, "Datos comprobados", slots, fingerprints));
+        var games = (List<GameSource>)Get(window, "_games")!;
+        var paths = (Dictionary<string, string>)Get(window, "_originalPaths")!;
+        Assert.That(games.Count, Is.EqualTo(2), "A new profile is the same original, not an extra catalog entry.");
+        foreach (var (slot, target) in slots.Zip(_targets))
+        {
+            Assert.That(games.SingleOrDefault(g => g.Profile.Id == slot.Profile), Is.SameAs(sources[slot.Profile]));
+            Assert.That(paths.GetValueOrDefault(slot.Profile), Is.EqualTo(target.Path));
+        }
+    }
+
+    [Test]
+    public void ASelectedSavedAliasIsResolvedAgainstTheExactOriginalAfterAFreshScan()
+    {
+        var window = Window(new(), new WaitingAi(), TimeProvider.System);
+        var profile = GameProfile.Parse(_targets[0].Source.Profile.ToJson()); profile.Id = "zzzz-saved-alias";
+        ProfileLibrary.Save(profile);
+        var chosen = (List<string>)Get(window, "_chosen")!; chosen[0] = profile.Id;
+        var sources = (IReadOnlyDictionary<string, GameSource>)Call(window, "Sources")!;
+        Assert.That(sources.ContainsKey(profile.Id), Is.True, "A saved fusion must not lose a prepared profile because the catalog found an older alias.");
+        Assert.That(sources[profile.Id].Profile.Id, Is.EqualTo(profile.Id));
+        Assert.That(sources[profile.Id].Files, Is.SameAs(_targets[0].Source.Files));
+        Assert.That(((Dictionary<string,string>)Get(window, "_originalPaths")!)[profile.Id], Is.EqualTo(_targets[0].Path));
+    }
+
+    [TestCase(true, false)]
+    [TestCase(false, true)]
+    [TestCase(false, false)]
+    public void ASavedAliasCannotBindByNameAnotherEditionOrAnotherMachine(bool wrongHash, bool wrongMachine)
+    {
+        var window = Window(new(), new WaitingAi(), TimeProvider.System);
+        var profile = GameProfile.Parse(_targets[0].Source.Profile.ToJson()); profile.Id = "zzzz-unmatched-alias";
+        profile.Match.Files = [_targets[0].Source.Files[0].Name];
+        if (wrongHash) profile.Match.Sha256 = [new string('a', 64)];
+        else if (!wrongMachine) profile.Match.Sha256 = [];
+        if (wrongMachine) profile.Machine = "c64";
+        ProfileLibrary.Save(profile);
+        ((List<string>)Get(window, "_chosen")!)[0] = profile.Id;
+        var sources = (IReadOnlyDictionary<string, GameSource>)Call(window, "Sources")!;
+        Assert.That(sources.ContainsKey(profile.Id), Is.False);
+    }
+
+    [Test]
     public void ABlockedInvestigationCanOpenBothOriginalsWithoutStartingAnAiJob()
     {
         var ai=new WaitingAi(); var played=new List<string>(); var analyzed=new List<string>();

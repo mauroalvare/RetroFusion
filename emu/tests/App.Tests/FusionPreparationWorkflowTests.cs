@@ -282,6 +282,81 @@ public sealed class FusionPreparationWorkflowTests
     }
 
     [Test]
+    public void PurposeObservationsAreNewEvidenceWithoutChangingAnAddress()
+    {
+        var source = _targets[0].Source;
+        source.Profile.Variables["x"] = new() { Address = "20", PurposeStatus = "hypothesis" };
+        string before = FusionPreparationWorkflow.EvidenceStamp([source]);
+        source.Profile.Variables["x"].PurposeStatus = "observed";
+        source.Profile.Variables["x"].PurposeEvidence = "La prueba controlada de posición observó el desplazamiento.";
+        Assert.That(FusionPreparationWorkflow.EvidenceStamp([source]), Is.Not.EqualTo(before));
+    }
+
+    [Test]
+    public void RewordingAnUnverifiedHypothesisIsNotNewEvidence()
+    {
+        var source = _targets[0].Source;
+        source.Profile.Variables["x"] = new() { Address = "20", PurposeStatus = "hypothesis", PurposeEvidence = "Una conjetura" };
+        string before = FusionPreparationWorkflow.EvidenceStamp([source]);
+        source.Profile.Variables["x"].Description = "Una descripción distinta";
+        source.Profile.Variables["x"].PurposeEvidence = "Otra conjetura";
+        Assert.That(FusionPreparationWorkflow.EvidenceStamp([source]), Is.EqualTo(before));
+    }
+
+    [Test]
+    public void DictionaryAndOriginalOrderingDoesNotCreateNewEvidence()
+    {
+        var profile = _targets[0].Source.Profile;
+        profile.Sprites["one"] = new() { Address = "1000", Width = 8, Height = 8 };
+        profile.Sprites["two"] = new() { Address = "2000", Width = 8, Height = 8 };
+        string before = FusionPreparationWorkflow.EvidenceStamp(_targets.Select(t => t.Source));
+        profile.Sprites = profile.Sprites.Reverse().ToDictionary(p => p.Key, p => p.Value);
+        Assert.That(FusionPreparationWorkflow.EvidenceStamp(_targets.Select(t => t.Source).Reverse()), Is.EqualTo(before));
+    }
+
+    [Test]
+    public async Task ReturningToPreviouslySeenEvidenceDoesNotResetTheStallLimit()
+    {
+        int reviews = 0;
+        var workflow = new FusionPreparationWorkflow { Prepare = (path, options, _, _) =>
+        {
+            var prepared = Prepared(path); prepared.Profile!.Variables["x"].Address = options.InvestigationPass % 2 == 0 ? "0021" : "0020";
+            return Task.FromResult(prepared);
+        } };
+        var result = await workflow.RunAsync(Idea, _slots, _targets, "", new ResearchAdvisor(),
+            (idea, _, _, _) => { reviews++; return Task.FromResult(idea); }, false, null, CancellationToken.None);
+        Assert.That(reviews, Is.EqualTo(5), "The two observed states are followed by three rounds without new evidence.");
+        Assert.That(result.StopReason, Does.Contain("tres rondas"));
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task ANewReproducibleBootPreventsStoppingBeforeTheNextRequirementCheck(bool newlyVerified)
+    {
+        int reviews = 0;
+        var workflow = new FusionPreparationWorkflow { Prepare = (path, options, _, _) =>
+        {
+            var prepared = Prepared(path);
+            prepared.Profile!.Boot = [!newlyVerified && options.InvestigationPass >= 4 ? "wait 2" : "wait 1"];
+            prepared.Profile.Verified = newlyVerified && options.InvestigationPass < 4 ? "" : "Arranque reproducido.";
+            return Task.FromResult(prepared);
+        } };
+        var result = await workflow.RunAsync(Idea, _slots, _targets, "", new ResearchAdvisor(),
+            (idea, _, _, _) => Task.FromResult(++reviews >= 5 ? idea with { MissingData = "" } : idea), false, null, CancellationToken.None);
+        Assert.That(reviews, Is.EqualTo(5), "A new verified boot or changed boot sequence is progress, even without another RAM address.");
+        Assert.That(result.Concept.MissingData, Is.Empty);
+    }
+
+    [Test]
+    public void RewordingAVerifiedBootDoesNotCountAsNewProgress()
+    {
+        var source = _targets[0].Source; source.Profile.Boot = ["wait 1"]; source.Profile.Verified = "Primera descripción del arranque.";
+        string before = FusionPreparationWorkflow.EvidenceStamp([source]);
+        source.Profile.Verified = "La misma comprobación, escrita de otro modo.";
+        Assert.That(FusionPreparationWorkflow.EvidenceStamp([source]), Is.EqualTo(before));
+    }
+
+    [Test]
     public async Task MissingRequirementsTriggerAnotherResearchRoundAfterMoreThanTwentySimulatedMinutes()
     {
         var clock = new ResearchClock();

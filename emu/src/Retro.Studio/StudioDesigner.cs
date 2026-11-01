@@ -391,7 +391,8 @@ public sealed class StudioDesigner
                 if (!profiles.TryGetValue(slot, out var profile) || string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(reason)) return Unbacked();
                 bool known = kind switch
                 {
-                    "variable" => profile.Variables.ContainsKey(name),
+                    "variable" => profile.Variables.TryGetValue(name, out var variable) && !variable.PurposeIsHypothesis &&
+                        (variable.PurposeStatus == null || variable.PurposeStatus == "observed" && !string.IsNullOrWhiteSpace(variable.PurposeEvidence)),
                     "helper" => profile.HelpersDoc.Contains(name) && profile.Helpers.Count > 0,
                     "sprite" => profile.Sprites.ContainsKey(name),
                     "control" => profile.Controls.ContainsKey(name) && profile.Boot.Count > 0 && !string.IsNullOrWhiteSpace(profile.Verified),

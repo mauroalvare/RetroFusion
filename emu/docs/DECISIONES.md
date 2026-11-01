@@ -1817,3 +1817,34 @@ El contraste local cubre un texto UTF-8 mayor que el búfer de la tubería a tra
 shim Windows, envío bloqueado, espera sin respuesta y ciclo de éxito/error/cancelación.
 La evaluación externa acotada posterior a D106 agotó su plazo sin respuestas ni métricas
 confirmadas; no se presenta como validación de calidad ni se repite automáticamente.
+
+## D-108 — Requisitos con evidencia y continuidad de los originales preparados
+
+La revisión de una idea no puede resolver un requisito citando una variable marcada como
+hipótesis, un estado de propósito desconocido o una observación sin evidencia. Las fichas
+anteriores sin estado explícito conservan su alcance declarado; una escritura con efecto
+no pasa por eso a propósito observado. Lectura y permiso de escritura siguen siendo
+independientes. La revisión manual comparte estos controles con la automática.
+
+La investigación reconoce una observación de propósito o un arranque recién comprobado
+aun si dirección y codificación no cambian. Cambiar la secuencia de arranque cuenta;
+reformular el texto de una verificación existente no cuenta. Su huella ordena los originales y diccionarios; reordenarlos o reformular una
+hipótesis no genera avance. Volver a una huella ya vista tampoco reinicia la cuenta de
+tres rondas sin datos nuevos. Esto no conserva un historial ilimitado de huellas entre
+trabajos ni demuestra causalidad por sí solo.
+
+Al preparar se conservan el perfil resultante y la ruta del original por ranura, aunque
+un nuevo escaneo prefiera un alias anterior. Al abrir una fusión guardada, un alias
+seleccionado puede resolverse con un perfil disponible para la misma máquina y SHA-256;
+no se enlaza una edición diferente solo por nombre. Así la selección, las referencias,
+la validación, el guardado y el siguiente arranque usan la edición preparada.
+
+El arranque recibe cancelación, ofrece Cancelar y tiene un plazo propio de dos minutos.
+Un resultado tardío tras cancelar y una sesión con error de inicialización no reemplazan
+el juego en uso. Se conserva el juego guardado y se muestra la causa o la etapa agotada.
+
+La integración Codex entrega el esquema por `--output-schema`, además de describirlo en
+la consigna; lo admiten la documentación oficial y la CLI local comprobada. El archivo
+temporal pertenece a ese envío y se elimina en éxito, error o cancelación. Una solicitud
+precancelada no busca ni inicia el CLI. El esquema no acredita comportamiento ni corrige
+una conexión sin respuesta. [Referencia oficial](https://learn.chatgpt.com/docs/non-interactive-mode).

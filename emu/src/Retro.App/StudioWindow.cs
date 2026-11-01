@@ -86,6 +86,10 @@ public sealed partial class StudioWindow
     private Task<(StudioGame game, ValidationReport report)>? _validateTask;
     private Action<StudioGame, ValidationReport>? _afterValidate;
     private Task<StudioSession>? _startTask;
+    private CancellationTokenSource? _startDeadline;
+    internal Func<StudioGame, IReadOnlyDictionary<string, GameSource>, string, CancellationToken, StudioSession> StartSession { get; init; }
+        = (game, sources, firmware, ct) => StudioSession.Start(game, sources, firmware, ct: ct);
+    internal TimeSpan StartupTimeout { get; init; } = TimeSpan.FromMinutes(2);
     private StudioGame? _starting;
     private ManualStep? _manual;
     private bool _scrollToManual;
@@ -191,7 +195,21 @@ public sealed partial class StudioWindow
         { _status = "No se pudieron actualizar los proyectos: " + error.Message; }
     }
 
-    private IReadOnlyDictionary<string, GameSource> Sources() => _games.ToDictionary(g => g.Profile.Id);
+    private IReadOnlyDictionary<string, GameSource> Sources()
+    {
+        var sources = _games.ToDictionary(g => g.Profile.Id);
+        foreach (string id in _chosen.Where(id => !sources.ContainsKey(id)))
+        {
+            var profile = ProfileLibrary.Find(id);
+            if (profile == null || profile.Match.Sha256.Count == 0) continue;
+            var original = sources.Values.FirstOrDefault(source => source.Profile.Machine == profile.Machine && profile.Match.MatchesHash(source.Files));
+            if (original == null) continue;
+            sources[id] = original with { Profile = profile };
+            if (_originalPaths.TryGetValue(original.Profile.Id, out string? path)) _originalPaths[id] = path;
+            _labels[id] = profile.Name;
+        }
+        return sources;
+    }
 
     private Func<string,GameProfile?> ProfileFinder()
     {
@@ -651,7 +669,7 @@ public sealed partial class StudioWindow
             ImGui.TextWrapped(_progress);
             ImGui.PopStyleColor();
         }
-        if (_cts != null && (_fusionPrepareTask != null || _conceptTask != null || _designTask != null || _referenceTask != null || _validateTask != null))
+        if (_cts != null && (_fusionPrepareTask != null || _conceptTask != null || _designTask != null || _referenceTask != null || _validateTask != null || _startTask != null))
         {
             if (ImGui.SmallButton("Cancelar"))
                 _cts.Cancel();
@@ -891,9 +909,10 @@ public sealed partial class StudioWindow
         var originalConcept = concept;
         concept = concept with { Direction = SelectedDirection() };
         var targets = new List<FusionPreparationTarget>();
+        var selectedSources = Sources();
         foreach (string id in _chosen)
         {
-            if (!_originalPaths.TryGetValue(id, out string? path) || _games.FirstOrDefault(g => g.Profile.Id == id) is not { } source)
+            if (!_originalPaths.TryGetValue(id, out string? path) || !selectedSources.TryGetValue(id, out var source))
             { Problem("No se encontró uno de los originales. Actualizá la carpeta y elegí la idea de nuevo."); return; }
             targets.Add(new(path, source, source.Profile.Helpers.Count == 0));
         }
@@ -935,12 +954,28 @@ public sealed partial class StudioWindow
     {
         _creationInputs?.EnsureOriginals();
         result.EnsureOriginalsUnchanged();
+        var selectedPaths = Slots().ToDictionary(slot => slot.Slot, slot => _originalPaths.GetValueOrDefault(slot.Profile));
+        var preparedPaths = result.Slots.ToDictionary(slot => slot.Profile, slot => selectedPaths.GetValueOrDefault(slot.Slot));
         Scan();
         _chosen.Clear(); _chosen.AddRange(result.Slots.Select(slot => slot.Profile));
         foreach (var source in result.Sources.Values)
         {
             int i = _games.FindIndex(g => g.Profile.Id == source.Profile.Id);
-            if (i >= 0) _games[i] = source;
+            string? path = preparedPaths.GetValueOrDefault(source.Profile.Id) ?? _originalPaths.GetValueOrDefault(source.Profile.Id);
+            if (i < 0 && path != null)
+                i = _games.FindIndex(g => _originalPaths.TryGetValue(g.Profile.Id, out var known) &&
+                    Path.GetFullPath(known).Equals(Path.GetFullPath(path), OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal));
+            if (i >= 0)
+            {
+                string previous = _games[i].Profile.Id;
+                _games[i] = source;
+                if (previous != source.Profile.Id)
+                { _originalPaths.Remove(previous); _labels.Remove(previous); _unprepared.Remove(previous); }
+            }
+            else _games.Add(source);
+            if (path != null) _originalPaths[source.Profile.Id] = path;
+            _labels[source.Profile.Id] = source.Profile.Name;
+            _unprepared.Remove(source.Profile.Id);
         }
         string? baseSlot = result.Concept.Direction?.Resolve(result.Slots);
         _baseProfile = result.Slots.FirstOrDefault(slot => slot.Slot == baseSlot)?.Profile;
@@ -1347,8 +1382,14 @@ public sealed partial class StudioWindow
             return;
         }
         _starting = game;
+        ClearProblem();
+        _cts?.Dispose();
+        _startDeadline?.Dispose();
+        _startDeadline = new CancellationTokenSource(StartupTimeout, _workClock);
+        _cts = CancellationTokenSource.CreateLinkedTokenSource(_startDeadline.Token);
+        var token = _cts.Token;
         _progress = $"Arrancando \"{game.Title}\" (la primera vez carga la cinta del Spectrum, unos segundos)...";
-        _startTask = Task.Run(() => StudioSession.Start(game, sources, _romDir));
+        _startTask = Task.Run(() => StartSession(game, sources, _romDir, token), token);
     }
 
     // ------------------------------------------------------------------ background work
@@ -1506,7 +1547,14 @@ public sealed partial class StudioWindow
         if (_startTask is { IsCompleted: true } st)
         {
             _startTask = null;
-            if (st.IsCompletedSuccessfully)
+            _starting = null;
+            if (_startDeadline?.IsCancellationRequested == true)
+                Problem("Se agotó el tiempo de arranque. El juego guardado se conserva. Revisá el arranque del original desde la biblioteca y su plan de preparación antes de volver a iniciarlo.");
+            else if (st.IsCanceled || _cts?.IsCancellationRequested == true)
+                _progress = "Arranque cancelado. El juego guardado se conserva.";
+            else if (st.IsCompletedSuccessfully && st.Result.Error is { } startError)
+                Problem("No se pudo arrancar: " + startError);
+            else if (st.IsCompletedSuccessfully)
             {
                 _host.StartFusion(st.Result);
                 if (st.Result.Error == null) GameStarted?.Invoke(st.Result.Game);
@@ -1515,6 +1563,7 @@ public sealed partial class StudioWindow
             }
             else
                 Problem("No se pudo arrancar: " + Failure(st.Exception));
+            _startDeadline?.Dispose(); _startDeadline = null;
         }
         PollAgent();
         if (!Busy && _manual == null && _agentDir == null) _creationTiming?.Stop(false);
