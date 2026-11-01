@@ -26,6 +26,8 @@ public sealed class AppPreferences
     /// <summary>Last folder of the file picker; only used again while it exists.</summary>
     public string? LastFolder { get; set; }
     public string? Problem { get; private set; }
+    public bool CanRecover => _persist && _unreadable;
+    public string? RecoveryPath { get; private set; }
     public float TextScale => TextPercent / 100f;
 
     public AppPreferences(string? path = null, bool persist = true)
@@ -80,5 +82,21 @@ public sealed class AppPreferences
             try { if (File.Exists(temporary)) File.Delete(temporary); }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         }
+    }
+
+    /// <summary>Explicit user recovery: preserve the unreadable file before saving the session values.</summary>
+    public bool Recover()
+    {
+        if (!CanRecover) return Save();
+        if (!Valid(TextPercent, C64Port) || !Enum.IsDefined(SpectrumJoystick))
+        { Problem = "Las preferencias no son válidas."; return false; }
+        string backup = _path + ".respaldo-" + Guid.NewGuid().ToString("N");
+        try { File.Copy(_path, backup, overwrite: false); RecoveryPath = backup; }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        { Problem = "No pude conservar el archivo anterior. Los cambios siguen solo en esta sesión."; return false; }
+        _unreadable = false;
+        if (Save()) { RecoveryPath = backup; return true; }
+        _unreadable = true;
+        return false;
     }
 }

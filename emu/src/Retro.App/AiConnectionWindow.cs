@@ -9,6 +9,7 @@ namespace Retro.App;
 public static class AiConnectionWindow
 {
     private static bool s_open;
+    public static bool IsOpen => s_open;
     private static int s_selected;
     private static string s_error = "";
     private static Vector2 s_workSize;
@@ -32,6 +33,7 @@ public static class AiConnectionWindow
         ImGui.SetNextWindowSize(Vector2.Min(UiTheme.Px(670, 650), maximum), condition);
         ImGui.SetNextWindowPos(vp.GetCenter(), condition, new Vector2(.5f));
         if (!ImGui.Begin("Conectar IA", ref s_open, ImGuiWindowFlags.NoCollapse)) { ImGui.End(); return; }
+        AiPicker.PersistenceStatus(ai, "conexion");
         ImGui.SetNextItemWidth(-1);
         if (ImGui.Combo("##herramienta", ref s_selected, Names, Names.Length)) s_error = "";
         string id = Ids[s_selected];

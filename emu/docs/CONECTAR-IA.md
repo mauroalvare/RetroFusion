@@ -76,3 +76,10 @@ tu acceso. Copiar y pegar desde un chat sigue disponible sin instalar ninguna CL
 **Uso de IA** permite elegir Equilibrado o Económico y fijar un tope de texto por trabajo.
 La estimación previa es orientativa. **Abrir construcción** muestra lo enviado y el consumo
 que informe la herramienta; esos datos no indican cuánto cupo queda en tu cuenta.
+
+Si la configuración guardada está incompleta, dañada o tiene valores incompatibles,
+RetroEmu conserva el archivo y abre el modo de copiar y pegar. El aviso permite
+ajustar los valores para esa sesión. **Recuperar archivo** guarda primero una copia
+del anterior y después publica la configuración nueva; si falla, el aviso describe
+que los cambios siguen solo en la sesión. La ruta del respaldo queda en la ayuda
+del mensaje. Recuperar o cambiar estos ajustes no envía un pedido de generación.

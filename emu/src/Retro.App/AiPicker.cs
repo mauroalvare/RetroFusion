@@ -45,6 +45,19 @@ public static class AiPicker
             ai.Provider = Ids[provider];
             ai.Save();
         }
+        PersistenceStatus(ai, id);
+    }
+
+    internal static void PersistenceStatus(AiSettings ai, string id)
+    {
+        if (ai.Problem is { } problem) Hint(problem);
+        if (ai.CanRecover)
+        {
+            Hint("Podés conservar el archivo anterior y guardar los valores de esta sesión en uno nuevo.");
+            if (ImGui.Button("Recuperar archivo##" + id)) ai.Recover();
+        }
+        if (ai.RecoveryPath is { } backup)
+        { Hint("Se conservó un respaldo del archivo anterior."); if (ImGui.IsItemHovered()) UiTheme.Tooltip(backup); }
     }
 
     /// <summary>One compact chooser. Connection, model and usage details stay together on demand.</summary>

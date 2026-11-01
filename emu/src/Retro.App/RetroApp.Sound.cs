@@ -19,18 +19,18 @@ public sealed partial class RetroApp
         WorkspaceLayout.KeepOnScreen();
         bool changed = false;
         int volume = _sound.VolumePercent;
-        ImGui.SetNextItemWidth(UiTheme.Px(280));
-        if (ImGui.SliderInt("Volumen", ref volume, 0, 100, "%d %%")) { _sound.VolumePercent = volume; changed = true; }
+        ImGui.TextUnformatted("Volumen"); ImGui.SetNextItemWidth(-1);
+        if (ImGui.SliderInt("##volumen", ref volume, 0, 100, "%d %%")) { _sound.VolumePercent = volume; changed = true; }
         bool muted = _sound.Muted;
         if (ImGui.Checkbox("Silenciar", ref muted)) { _sound.Muted = muted; changed = true; }
         bool background = _sound.MuteInBackground;
         if (ImGui.Checkbox("Silenciar al perder el foco", ref background)) { _sound.MuteInBackground = background; changed = true; }
         ImGui.Spacing();
         int margin = _sound.BufferFrames == 1 ? 0 : _sound.BufferFrames == 4 ? 2 : 1;
-        ImGui.SetNextItemWidth(UiTheme.Px(230));
-        if (ImGui.Combo("Margen de audio", ref margin, AudioMargins, AudioMargins.Length))
+        ImGui.TextUnformatted("Margen de audio"); ImGui.SetNextItemWidth(-1);
+        if (ImGui.Combo("##margen-audio", ref margin, AudioMargins, AudioMargins.Length))
         { _sound.BufferFrames = margin == 0 ? 1 : margin == 2 ? 4 : 2; changed = true; }
-        ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + UiTheme.Px(420));
+        ImGui.PushTextWrapPos(0);
         ImGui.TextDisabled(margin switch {
             0 => "Menor demora. Si escuchás cortes, probá Equilibrado.",
             2 => "Más margen ante pausas del equipo; puede aumentar la demora.",
@@ -42,6 +42,14 @@ public sealed partial class RetroApp
         if (changed) _sound.Save();
         if (s_forceMute) ImGui.TextDisabled("Este inicio está silenciado.");
         if (_sound.Problem is { } problem) ImGui.TextWrapped(problem);
+        if (_sound.CanRecover)
+        {
+            UiTheme.Hint("Podés conservar el archivo anterior y guardar los valores de esta sesión en uno nuevo.");
+            if (ImGui.Button("Recuperar archivo")) _sound.Recover();
+        }
+        if (_sound.RecoveryPath is { } backup)
+        { UiTheme.Hint("Se conservó un respaldo del archivo anterior."); if (ImGui.IsItemHovered()) UiTheme.Tooltip(backup); }
+        if (ImGui.Button("Cerrar")) _soundWindowOpen = false;
         ImGui.End();
     }
 }

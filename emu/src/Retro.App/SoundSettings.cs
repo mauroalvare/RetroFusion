@@ -14,6 +14,8 @@ public sealed class SoundSettings
     public bool MuteInBackground { get; set; }
     public int BufferFrames { get; set; } = 2;
     public string? Problem { get; private set; }
+    public bool CanRecover => _persist && _unreadable;
+    public string? RecoveryPath { get; private set; }
 
     public SoundSettings(string? path = null, bool persist = true)
     {
@@ -54,5 +56,21 @@ public sealed class SoundSettings
             try { if (File.Exists(temporary)) File.Delete(temporary); }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         }
+    }
+
+    /// <summary>Explicit user recovery: preserve the unreadable file before saving the session values.</summary>
+    public bool Recover()
+    {
+        if (!CanRecover) return Save();
+        if (!Valid(VolumePercent, BufferFrames))
+        { Problem = "Las opciones de sonido no son válidas."; return false; }
+        string backup = _path + ".respaldo-" + Guid.NewGuid().ToString("N");
+        try { File.Copy(_path, backup, overwrite: false); RecoveryPath = backup; }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        { Problem = "No pude conservar el archivo anterior. Los cambios siguen solo en esta sesión."; return false; }
+        _unreadable = false;
+        if (Save()) { RecoveryPath = backup; return true; }
+        _unreadable = true;
+        return false;
     }
 }

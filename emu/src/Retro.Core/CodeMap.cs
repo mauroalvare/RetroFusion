@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace Retro.Core;
 
 public enum FlowKind
@@ -189,6 +192,11 @@ public sealed class CodeMap
 /// <summary>Names and comments the user (or an AI) gave to a program, saved per game.</summary>
 public sealed class CodeAnnotations
 {
+    private string? _folder;
+    private bool _unreadable;
+    [JsonIgnore] public string? Problem { get; private set; }
+    [JsonIgnore] public bool CanRecover => _unreadable;
+    [JsonIgnore] public string? RecoveryPath { get; private set; }
     public Dictionary<string, string> Labels { get; set; } = new();
     public Dictionary<string, string> Comments { get; set; } = new();
     public Dictionary<string, string> Summaries { get; set; } = new();
@@ -204,24 +212,85 @@ public sealed class CodeAnnotations
     private static string Folder =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "RetroEmu", "anotaciones");
 
-    public static CodeAnnotations Load(string gameId)
+    private bool Valid() => new[] { Labels, Comments, Summaries, Pseudocode, Patches }
+        .All(values => values != null && values.All(pair => pair.Value != null));
+
+    private static string PathFor(string gameId, string folder)
     {
-        string path = Path.Combine(Folder, gameId + ".json");
-        try
-        {
-            if (File.Exists(path))
-                return System.Text.Json.JsonSerializer.Deserialize<CodeAnnotations>(File.ReadAllText(path)) ?? new();
-        }
-        catch (System.Text.Json.JsonException)
-        {
-        }
-        return new CodeAnnotations();
+        if (string.IsNullOrWhiteSpace(gameId) || gameId is "." or ".." || gameId.Length > 180 ||
+            gameId.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || gameId.Contains('/') || gameId.Contains('\\'))
+            throw new ArgumentException("La identidad de las anotaciones no es válida.");
+        return Path.Combine(folder, gameId + ".json");
     }
 
-    public void Save(string gameId)
+    public static CodeAnnotations Load(string gameId) => Load(gameId, Folder);
+
+    public static CodeAnnotations Load(string gameId, string folder)
     {
-        Directory.CreateDirectory(Folder);
-        File.WriteAllText(Path.Combine(Folder, gameId + ".json"),
-            System.Text.Json.JsonSerializer.Serialize(this, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+        try
+        {
+            string path = PathFor(gameId, folder);
+            if (File.Exists(path))
+            {
+                if (new FileInfo(path).Length > 4 * 1024 * 1024) throw new InvalidDataException();
+                var notes = JsonSerializer.Deserialize<CodeAnnotations>(File.ReadAllText(path)) ?? throw new InvalidDataException();
+                if (!notes.Valid()) throw new InvalidDataException();
+                notes._folder = folder; return notes;
+            }
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or JsonException or ArgumentException)
+        {
+            return new CodeAnnotations { _folder = folder, _unreadable = true,
+                Problem = "No pude leer las anotaciones. Se conservó el archivo; los cambios quedan solo en esta sesión." };
+        }
+        return new CodeAnnotations { _folder = folder };
+    }
+
+    public void Save(string gameId) => TrySave(gameId, _folder ?? Folder);
+    public void Save(string gameId, string folder) => TrySave(gameId, folder);
+
+    private bool TrySave(string gameId, string folder)
+    {
+        if (!Valid()) { Problem = "Las anotaciones contienen valores inválidos."; return false; }
+        if (_unreadable) return false;
+        string? temporary = null;
+        try
+        {
+            string path = PathFor(gameId, folder);
+            Directory.CreateDirectory(folder); temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            using (var file = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                JsonSerializer.Serialize(file, this, new JsonSerializerOptions { WriteIndented = true }); file.Flush(flushToDisk: true);
+            }
+            if (new FileInfo(temporary).Length > 4 * 1024 * 1024) throw new InvalidDataException();
+            File.Move(temporary, path, overwrite: true); _folder = folder; Problem = null; return true;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or ArgumentException)
+        { Problem = "No pude guardar las anotaciones. Los cambios quedan en esta sesión."; return false; }
+        finally
+        {
+            try { if (temporary != null && File.Exists(temporary)) File.Delete(temporary); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+        }
+    }
+
+    /// <summary>Explicit user recovery: preserve the old file before publishing the session's notes.</summary>
+    public bool Recover(string gameId)
+    {
+        string folder = _folder ?? Folder;
+        if (!_unreadable) return TrySave(gameId, folder);
+        if (!Valid()) { Problem = "Las anotaciones contienen valores inválidos."; return false; }
+        string backup;
+        try
+        {
+            string path = PathFor(gameId, folder); backup = path + ".respaldo-" + Guid.NewGuid().ToString("N");
+            File.Copy(path, backup, overwrite: false);
+            RecoveryPath = backup;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException)
+        { Problem = "No pude conservar el archivo anterior. Las anotaciones siguen solo en esta sesión."; return false; }
+        _unreadable = false;
+        if (TrySave(gameId, folder)) { RecoveryPath = backup; return true; }
+        _unreadable = true; return false;
     }
 }

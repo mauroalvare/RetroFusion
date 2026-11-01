@@ -6,6 +6,7 @@ namespace Retro.App;
 public sealed partial class RetroApp
 {
     private bool _preferencesOpen;
+    private bool ConfigurationOpen => _preferencesOpen || _soundWindowOpen || AiConnectionWindow.IsOpen;
     private static readonly string[] JoystickNames = ["Kempston (Alt = disparo)", "Cursor (5 6 7 8 0)", "Sinclair 1 (6 7 8 9 0)"];
     private static readonly string[] C64Ports = ["Puerto 1", "Puerto 2 (la mayoría de los juegos)"];
     private static readonly string[] TextSizeNames = AppPreferences.TextSizes.Select(size => $"{size} %").ToArray();
@@ -81,6 +82,13 @@ public sealed partial class RetroApp
         UiTheme.SameLineIfFits("Cerrar");
         if (ImGui.Button("Cerrar")) _preferencesOpen = false;
         if (_prefs.Problem is { } problem) ImGui.TextWrapped(problem);
+        if (_prefs.CanRecover)
+        {
+            UiTheme.Hint("Podés conservar el archivo anterior y guardar los valores de esta sesión en uno nuevo.");
+            if (ImGui.Button("Recuperar archivo")) _prefs.Recover();
+        }
+        if (_prefs.RecoveryPath is { } backup)
+        { UiTheme.Hint("Se conservó un respaldo del archivo anterior."); if (ImGui.IsItemHovered()) UiTheme.Tooltip(backup); }
         ImGui.PopTextWrapPos();
         ImGui.End();
     }

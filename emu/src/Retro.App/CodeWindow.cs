@@ -115,6 +115,14 @@ public sealed partial class CodeWindow : IDisposable
             ImGui.TextWrapped(_status);
             if (ImGui.SmallButton("Copiar mensaje")) ImGui.SetClipboardText(_status);
         }
+        if (_notes.Problem is { } problem) UiTheme.Hint(problem);
+        if (_notes.CanRecover)
+        {
+            UiTheme.Hint("Para guardar estas anotaciones, conservá primero una copia del archivo anterior.");
+            if (ImGui.Button("Recuperar anotaciones")) _notes.Recover(_gameId);
+        }
+        if (_notes.RecoveryPath is { } backup)
+        { UiTheme.Hint("Se conservó un respaldo de las anotaciones anteriores."); if (ImGui.IsItemHovered()) UiTheme.Tooltip(backup); }
         if (_requestedPage is { } requested) { _activePage = requested; _requestedPage = null; }
         bool variablesSupported = machine.Memory.AddressBits <= 16;
         float pageWidth = new[] { "Cambios", "Análisis con IA", "Buscar variables", "Código" }

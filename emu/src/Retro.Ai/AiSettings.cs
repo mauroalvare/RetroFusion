@@ -6,6 +6,11 @@ namespace Retro.Ai;
 /// <summary>AI connection settings, stored in the user's application data folder.</summary>
 public sealed class AiSettings
 {
+    private string? _path;
+    private bool _unreadable;
+    [System.Text.Json.Serialization.JsonIgnore] public string? Problem { get; private set; }
+    [System.Text.Json.Serialization.JsonIgnore] public bool CanRecover => _unreadable;
+    [System.Text.Json.Serialization.JsonIgnore] public string? RecoveryPath { get; private set; }
     /// <summary>
     /// claude, openai, gemini (APIs, billed apart), sub-claude, sub-codex, sub-google (the
     /// subscription tools: Claude Code, Codex CLI, Antigravity CLI), ollama, manual
@@ -42,25 +47,74 @@ public sealed class AiSettings
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "RetroEmu", "ia.json");
 
     /// <summary>The saved settings; RETROEMU_MODELO (retro-cli --modelo) picks the subscription tool's model for this run.</summary>
-    public static AiSettings Load()
+    public static AiSettings Load() => Load(FilePath);
+
+    public static AiSettings Load(string path)
     {
         var s = new AiSettings();
         try
         {
-            if (File.Exists(FilePath))
-                s = JsonSerializer.Deserialize<AiSettings>(File.ReadAllText(FilePath), GameProfile.Json) ?? s;
+            if (File.Exists(path))
+            {
+                if (new FileInfo(path).Length > 1024 * 1024) throw new InvalidDataException();
+                s = JsonSerializer.Deserialize<AiSettings>(File.ReadAllText(path), GameProfile.Json) ?? throw new InvalidDataException();
+                if (!s.Valid()) throw new InvalidDataException();
+            }
         }
-        catch (JsonException)
+        catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or JsonException)
         {
+            s = new AiSettings { Provider = "manual", _unreadable = true,
+                Problem = "No pude leer la configuración de IA. Se conservó el archivo; los cambios quedan solo en esta sesión." };
         }
+        s._path = path;
         s.SessionModel = Environment.GetEnvironmentVariable("RETROEMU_MODELO");
         return s;
     }
 
-    public void Save()
+    private bool Valid() => Provider is "claude" or "openai" or "gemini" or "sub-claude" or "sub-codex" or "sub-google" or "ollama" or "manual" or "agent"
+        && TextLimitThousands is >= 0 and <= 10000 && CliPaths != null && CliModels != null && CliEfforts != null
+        && !CliPaths.Values.Any(value => value == null) && !CliModels.Values.Any(value => value == null) && !CliEfforts.Values.Any(value => value == null)
+        && ClaudeModel != null && OpenAiModel != null && GeminiModel != null && OllamaUrl != null && OllamaModel != null
+        && ClaudeApiKey != null && OpenAiApiKey != null && GeminiApiKey != null;
+
+    public void Save() => TrySave();
+
+    private bool TrySave()
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
-        File.WriteAllText(FilePath, JsonSerializer.Serialize(this, GameProfile.Json));
+        if (!Valid()) { Problem = "La configuración de IA contiene valores inválidos."; return false; }
+        if (_unreadable) return false;
+        string path = _path ?? FilePath, temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+            using (var file = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                JsonSerializer.Serialize(file, this, GameProfile.Json); file.Flush(flushToDisk: true);
+            }
+            if (new FileInfo(temporary).Length > 1024 * 1024) throw new InvalidDataException();
+            File.Move(temporary, path, overwrite: true); Problem = null; return true;
+        }
+        catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException)
+        { Problem = "No pude guardar la configuración de IA. Los cambios quedan en esta sesión."; return false; }
+        finally
+        {
+            try { if (File.Exists(temporary)) File.Delete(temporary); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+        }
+    }
+
+    /// <summary>Explicit recovery keeps the unreadable configuration before replacing it.</summary>
+    public bool Recover()
+    {
+        if (!_unreadable) return TrySave();
+        if (!Valid()) { Problem = "La configuración de IA contiene valores inválidos."; return false; }
+        string path = _path ?? FilePath, backup = path + ".respaldo-" + Guid.NewGuid().ToString("N");
+        try { File.Copy(path, backup, overwrite: false); RecoveryPath = backup; }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        { Problem = "No pude conservar el archivo anterior. Los cambios siguen solo en esta sesión."; return false; }
+        _unreadable = false;
+        if (TrySave()) { RecoveryPath = backup; return true; }
+        _unreadable = true; return false;
     }
 
     public IAiProvider? CreateProvider() => CreateProvider(null);
