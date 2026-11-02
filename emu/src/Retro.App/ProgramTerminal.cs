@@ -1,112 +1,298 @@
-using System.Text;
-
 namespace Retro.App;
 
-public sealed record TerminalCommand(string Name, string Usage, string Description, Func<IReadOnlyList<string>, IEnumerable<string>> Run);
+/// <summary>Candidates for the word under the cursor. Start..End is the part of the line they replace.</summary>
+public sealed record CompletionSet(int Start, int End, IReadOnlyList<CompletionItem> Items, string Prefix);
 
 /// <summary>A literal in-app command interpreter. It has no host shell or process execution facility.</summary>
 public sealed class ProgramTerminal
 {
-    private readonly Func<IReadOnlyList<TerminalCommand>> _commands;
-    private readonly Func<IEnumerable<string>> _extraCompletions;
-    private readonly List<string> _lines = [];
-    private readonly List<string> _history = [];
-    private int _historyIndex;
-    private string _draft = "";
+    // Names that would run something in a system shell: they get a clear answer instead of a spelling suggestion.
+    private static readonly string[] HostShellWords = ["powershell", "pwsh", "cmd", "bash", "sh", "wsl", "del", "rm", "rmdir", "format", "start", "python", "curl", "wget", "git"];
+    private readonly Func<IReadOnlyList<CommandSpec>> _commands;
+    private readonly List<CommandSpec> _builtIn;
+    public TerminalBuffer Output { get; }
+    public CommandHistory History { get; }
     public string Location { get; set; } = "biblioteca";
-    public string Prompt => "retro:/" + Location + ">";
-    public IReadOnlyList<string> Lines => _lines.AsReadOnly();
-    public IReadOnlyList<string> History => _history.AsReadOnly();
-    public int Revision { get; private set; }
-
-    public ProgramTerminal(Func<IReadOnlyList<TerminalCommand>> commands, Func<IEnumerable<string>>? completions = null)
+    /// <summary>Extra state shown in the prompt, such as the loaded machine; empty when there is nothing to say.</summary>
+    public Func<string>? PromptDetail { get; set; }
+    /// <summary>More places where a capability can be discovered, such as options and actions.</summary>
+    public Func<string, IEnumerable<(string Order, string Description)>>? Capabilities { get; set; }
+    public string Prompt
     {
-        _commands = commands; _extraCompletions = completions ?? (() => []);
-        Write("RETROEMU / SISTEMA DE OPERACIÓN DEL TALLER");
-        Write("Consola interna · no ejecuta órdenes de Windows, Linux ni macOS.");
-        Write("Escribí ayuda. Ejemplo: juegos → jugar 1. Tab completa; ↑/↓ recorren el historial.");
-        Write("Para cambiar de panel: interfaz retro. Durante una partida: Ctrl+Shift+T vuelve a la consola.");
+        get
+        {
+            string detail = PromptDetail?.Invoke() ?? "";
+            return "retro:/" + Location + (detail.Length == 0 ? "" : " " + detail) + ">";
+        }
     }
+
+    public ProgramTerminal(Func<IReadOnlyList<CommandSpec>> commands, TerminalBuffer? output = null, CommandHistory? history = null)
+    {
+        _commands = commands; Output = output ?? new(); History = history ?? new();
+        _builtIn = BuildBuiltIns();
+        Write("RETROEMU · consola interna del taller", TerminalKind.Heading);
+        Write("Procesa órdenes de RetroEmu; no ejecuta programas de Windows, Linux ni macOS.", TerminalKind.Detail);
+        Write("Empezá con: juegos · ayuda · como guardar · Tab completa · ↑/↓ historial · Ctrl+R busca.", TerminalKind.Detail);
+    }
+
+    /// <summary>The whole catalog as it is right now: orders added later appear without any change here.</summary>
+    public IReadOnlyList<CommandSpec> Commands => _commands().Concat(_builtIn).ToList();
 
     public static bool TryParse(string line, out IReadOnlyList<string> arguments, out string? error)
     {
-        var words = new List<string>(); var word = new StringBuilder();
-        arguments = words; error = null;
-        if (line.Length > 2048 || line.Any(character => char.IsControl(character) && character != '\t'))
-        { error = "La orden es demasiado larga o contiene caracteres de control."; return false; }
-        char quote = '\0'; bool started = false;
-        for (int i = 0; i < line.Length; i++)
+        bool valid = CommandLine.TryParse(line, out var tokens, out error);
+        arguments = tokens.Select(token => token.Text).ToArray();
+        return valid;
+    }
+
+    public void Write(string text, TerminalKind kind = TerminalKind.Output) => Output.Append(text, kind);
+
+    /// <summary>Runs one line. False means nothing happened or the order failed, which also stops a pasted sequence.</summary>
+    public bool Submit(string line)
+    {
+        if (string.IsNullOrWhiteSpace(line)) return false;
+        Output.BeginBlock();
+        string shown = line.Length <= TerminalBuffer.MaxLineLength ? line : line[..TerminalBuffer.MaxLineLength];
+        Write(Prompt + " " + shown, TerminalKind.Command);
+        History.Add(line);
+        if (!CommandLine.TryParse(line, out var tokens, out string? error)) { Write("error: " + error, TerminalKind.Error); return false; }
+        if (tokens.Count == 0) return false;
+        var words = tokens.Select(token => token.Text).ToArray();
+        try
         {
-            char c = line[i];
-            if (quote != '\0')
-            {
-                if (c == quote) quote = '\0';
-                else if (c == '\\' && i + 1 < line.Length && line[i + 1] == quote) word.Append(line[++i]);
-                else word.Append(c);
-            }
-            else if (c is '"' or '\'') { quote = c; started = true; }
-            else if (char.IsWhiteSpace(c))
-            {
-                if (started) { words.Add(word.ToString()); word.Clear(); started = false; }
-            }
-            else { word.Append(c); started = true; }
+            var spec = Find(words[0]) ?? throw Unknown(words[0]);
+            if (spec.Planned != null) throw new CommandFailure(CommandProblem.NotImplemented, spec.Name + " todavía no tiene recorrido por órdenes.", spec.Planned);
+            if (spec.Unavailable?.Invoke() is { } unavailable) throw unavailable;
+            var values = Bind(spec, words.Skip(1).ToArray());
+            spec.Run!(new CommandContext(this, spec, values, words.Skip(1).ToArray()));
+            return true;
         }
-        if (quote != '\0') { error = "Falta cerrar una comilla. Usá comillas para nombres con espacios."; return false; }
-        if (started) words.Add(word.ToString());
-        return true;
-    }
-
-    public void Submit(string line)
-    {
-        if (string.IsNullOrWhiteSpace(line)) return;
-        Write(Prompt + " " + line[..Math.Min(line.Length, 2048)]);
-        if (line.Length <= 2048 && (_history.Count == 0 || _history[^1] != line))
-        { _history.Add(line); if (_history.Count > 100) _history.RemoveAt(0); }
-        _historyIndex = _history.Count; _draft = "";
-        if (!TryParse(line, out var words, out string? error)) { Write(error!); return; }
-        if (words.Count == 0) return;
-        string command = words[0].ToLowerInvariant();
-        if (command is "limpiar" or "clear") { _lines.Clear(); Revision++; return; }
-        if (command is "ayuda" or "help" or "?")
+        catch (CommandFailure failure) { Report(failure); }
+        catch (Exception failure) when (failure is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException or NotSupportedException or FormatException)
         {
-            string filter = string.Join(' ', words.Skip(1));
-            var matches = _commands().Where(item => filter.Length == 0 || item.Name.Contains(filter, StringComparison.OrdinalIgnoreCase)).ToArray();
-            foreach (var item in matches) { Write(item.Usage); Write("  " + item.Description); }
-            Write("ayuda [orden] · limpiar · historial. Las acciones nuevas aparecen en acciones; los ajustes, en opciones."); return;
+            Report(new CommandFailure(CommandProblem.Failed, failure.Message, "El programa sigue funcionando. estado muestra la situación actual."));
         }
-        if (command == "historial") { foreach (string entry in _history) Write(entry); return; }
-        var selected = _commands().FirstOrDefault(item => item.Name.Equals(command, StringComparison.OrdinalIgnoreCase));
-        if (selected == null) { Write("Orden desconocida: " + command + ". Escribí ayuda o acciones."); return; }
-        try { foreach (string output in selected.Run(words.Skip(1).ToArray()).Take(240)) Write(output); }
-        catch (Exception failure) when (failure is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException or NotSupportedException)
-        { Write("No se pudo completar: " + failure.Message); }
+        return false;
     }
 
-    public void Write(string text)
+    private void Report(CommandFailure failure)
     {
-        foreach (string line in text.Replace('\r', ' ').Split('\n')) _lines.Add(line[..Math.Min(line.Length, 1000)]);
-        if (_lines.Count > 600) _lines.RemoveRange(0, _lines.Count - 600);
-        Revision++;
+        string label = failure.Problem switch
+        {
+            CommandProblem.UnknownOrder => "orden desconocida",
+            CommandProblem.InvalidArgument => "argumento inválido",
+            CommandProblem.Ambiguous => "selección ambigua",
+            CommandProblem.WrongContext => "no disponible ahora",
+            CommandProblem.NotImplemented => "todavía no implementado",
+            CommandProblem.MissingResource => "falta un recurso",
+            _ => "error"
+        };
+        Write(label + ": " + failure.Message, TerminalKind.Error);
+        foreach (string suggestion in failure.TryInstead) Write("  " + suggestion, TerminalKind.Detail);
     }
 
-    public string Recall(int direction, string current)
+    private CommandSpec? Find(string word) => Commands.FirstOrDefault(command => command.Answers(word));
+
+    private CommandFailure Unknown(string word)
     {
-        if (_historyIndex == _history.Count) _draft = current;
-        _historyIndex = Math.Clamp(_historyIndex + direction, 0, _history.Count);
-        return _historyIndex == _history.Count ? _draft : _history[_historyIndex];
+        string folded = CommandLine.Fold(word);
+        if (HostShellWords.Contains(folded))
+            return new(CommandProblem.UnknownOrder, word + " es un programa del sistema. Esta consola solo procesa órdenes de RetroEmu.", "ayuda muestra todo lo que puede hacer.");
+        var near = Commands.SelectMany(command => command.Aliases.Prepend(command.Name).Select(name => (command.Name, Distance: CommandLine.Distance(word, name))))
+            .Where(item => item.Distance <= Math.Max(2, word.Length / 3)).OrderBy(item => item.Distance).ThenBy(item => item.Name, StringComparer.Ordinal)
+            .Select(item => item.Name).Distinct().Take(3).ToArray();
+        return new(CommandProblem.UnknownOrder, word + ".",
+            near.Length > 0 ? "¿Quisiste decir " + string.Join(", ", near) + "?" : "como " + word + " busca funciones por tema.", "ayuda lista todas las órdenes.");
     }
 
-    public string Complete(string input)
+    /// <summary>Validates the words against the definition, so a handler only sees well-formed values.</summary>
+    private static Dictionary<string, string> Bind(CommandSpec spec, IReadOnlyList<string> words)
     {
-        if (!TryParse(input, out var args, out _) || args.Count > 2) return input;
-        string[] choices;
-        int at = input.LastIndexOf(' ') + 1;
-        string prefix = input[at..];
-        if (at == 0) choices = _commands().Select(command => command.Name).Concat(["ayuda", "limpiar", "historial"]).Distinct().ToArray();
-        else choices = _extraCompletions().ToArray();
-        var matches = choices.Where(choice => choice.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).Order(StringComparer.Ordinal).ToArray();
-        if (matches.Length == 1) return input[..at] + matches[0] + " ";
-        if (matches.Length > 1) Write(string.Join("  ", matches));
-        return input;
+        var values = new Dictionary<string, string>(StringComparer.Ordinal);
+        CommandFailure Misuse(string message) => new(CommandProblem.InvalidArgument, message, ["Uso: " + spec.Usage, .. spec.Examples.Take(2).Select(example => "Ejemplo: " + example)]);
+        int word = 0;
+        foreach (var argument in spec.Arguments)
+        {
+            if (word >= words.Count)
+            {
+                if (!argument.Optional) throw Misuse("Falta " + argument.Name + ".");
+                continue;
+            }
+            string value = argument.Rest ? string.Join(' ', words.Skip(word)) : words[word];
+            word = argument.Rest ? words.Count : word + 1;
+            if (argument.Validate(value) is { } problem) throw Misuse(problem);
+            values[argument.Name] = value;
+        }
+        if (word < words.Count) throw Misuse("Sobran datos: " + string.Join(' ', words.Skip(word)) + ".");
+        return values;
+    }
+
+    /// <summary>What can replace the word at the cursor, using the definition of the order being written.</summary>
+    public CompletionSet Complete(string line, int cursor)
+    {
+        cursor = Math.Clamp(cursor, 0, line.Length);
+        var tokens = CommandLine.Tokenize(line[..cursor], out bool openQuote);
+        bool inside = tokens.Count > 0 && (openQuote || tokens[^1].End == cursor && !char.IsWhiteSpace(line[cursor - 1]));
+        int position = inside ? tokens.Count - 1 : tokens.Count;
+        string prefix = inside ? tokens[^1].Text : "";
+        int start = inside ? tokens[^1].Start : cursor;
+        // The rest of a word to the right of the cursor is replaced too.
+        int end = cursor;
+        while (end < line.Length && !char.IsWhiteSpace(line[end])) end++;
+        IEnumerable<CompletionItem> candidates;
+        if (position == 0) candidates = Commands.SelectMany(command => command.Aliases.Prepend(command.Name).Select(name => new CompletionItem(name, command.Summary)));
+        else
+        {
+            var spec = Find(tokens[0].Text);
+            var earlier = tokens.Skip(1).Take(position - 1).Select(token => token.Text).ToArray();
+            int index = spec == null ? -1 : Math.Min(position - 1, spec.Arguments.Count - 1);
+            bool beyond = spec != null && position - 1 >= spec.Arguments.Count && !(spec.Arguments.Count > 0 && spec.Arguments[^1].Rest);
+            candidates = index < 0 || beyond ? [] : Candidates(spec!.Arguments[index], earlier, prefix);
+        }
+        var all = candidates.DistinctBy(item => item.Value).ToArray();
+        string folded = CommandLine.Fold(prefix);
+        var matches = all.Where(item => CommandLine.Fold(item.Value).StartsWith(folded, StringComparison.Ordinal)).ToArray();
+        // A title can be found by a word inside it.
+        if (matches.Length == 0 && folded.Length > 0) matches = all.Where(item => CommandLine.Fold(item.Value).Contains(folded, StringComparison.Ordinal)).ToArray();
+        return new(start, end, matches.OrderBy(item => item.Value, StringComparer.OrdinalIgnoreCase).Take(256).ToArray(), prefix);
+    }
+
+    private static IEnumerable<CompletionItem> Candidates(CommandArgument argument, IReadOnlyList<string> earlier, string prefix)
+    {
+        if (argument.Complete != null) return argument.Complete(earlier);
+        return argument.Kind switch
+        {
+            ArgumentKind.Toggle => [new("on", "activar"), new("off", "desactivar")],
+            ArgumentKind.Choice => argument.Choices.Select(choice => new CompletionItem(choice)),
+            ArgumentKind.Path => PathCompletion(prefix),
+            _ => []
+        };
+    }
+
+    /// <summary>Reads directory names only, and never more than a screenful of them.</summary>
+    internal static IEnumerable<CompletionItem> PathCompletion(string prefix)
+    {
+        if (prefix.Length == 0) return [];
+        try
+        {
+            string? folder = prefix.EndsWith('\\') || prefix.EndsWith('/') ? prefix : Path.GetDirectoryName(prefix);
+            if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder)) return [];
+            string name = prefix[(prefix.LastIndexOfAny(['\\', '/']) + 1)..];
+            return new DirectoryInfo(folder).EnumerateFileSystemInfos(name + "*").Take(64)
+                .Select(item => new CompletionItem(item.FullName + (item is DirectoryInfo ? Path.DirectorySeparatorChar.ToString() : ""), item is DirectoryInfo ? "carpeta" : "archivo")).ToArray();
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException) { return []; }
+    }
+
+    /// <summary>The syntax of the order being written, shown while typing.</summary>
+    public string? HintFor(string line)
+    {
+        var tokens = CommandLine.Tokenize(line, out _);
+        if (tokens.Count == 0 || Find(tokens[0].Text) is not { } spec) return null;
+        return spec.Usage + " · " + spec.Summary;
+    }
+
+    private List<CommandSpec> BuildBuiltIns() =>
+    [
+        new()
+        {
+            Id = "console.help", Name = "ayuda", Group = "Consola", Summary = "Explica una orden, un grupo o lista todas.",
+            Aliases = ["help", "?", "man"], Keywords = "manual guia sintaxis ordenes comandos",
+            Arguments = [new("tema", ArgumentKind.Word, "Una orden o un grupo.") { Optional = true, Complete = _ => Commands.Select(command => new CompletionItem(command.Name, command.Summary)).Concat(Commands.Select(command => command.Group).Distinct().Select(group => new CompletionItem(group, "grupo"))) }],
+            Examples = ["ayuda", "ayuda jugar", "ayuda Partida"], Result = "Texto generado desde las definiciones de las órdenes.",
+            Run = context => Help(context, context.Optional("tema"))
+        },
+        new()
+        {
+            Id = "console.apropos", Name = "como", Group = "Consola", Summary = "Busca cómo hacer algo sin conocer el nombre de la orden.",
+            Aliases = ["apropos"], Keywords = "encontrar descubrir funciones capacidades tema",
+            Arguments = [new("tema", ArgumentKind.Text, "Lo que querés hacer.") { Rest = true }],
+            Examples = ["como guardar", "como subir el volumen", "como cambiar tema"], Result = "Órdenes, acciones y ajustes que resuelven ese tema.",
+            Run = context => Apropos(context, context.Text("tema"))
+        },
+        new()
+        {
+            Id = "console.clear", Name = "limpiar", Group = "Consola", Summary = "Borra la salida guardada de la consola.",
+            Aliases = ["clear", "cls"], Keywords = "borrar pantalla", Result = "La salida se vacía; el historial de órdenes se conserva. Ctrl+L solo despeja la vista.",
+            Run = _ => Output.Clear()
+        },
+        new()
+        {
+            Id = "console.history", Name = "historial", Group = "Consola", Summary = "Lista, busca o borra las órdenes anteriores.",
+            Aliases = ["history"], Keywords = "ordenes anteriores repetir",
+            Arguments = [new("texto", ArgumentKind.Text, "Filtra las órdenes, o escribí borrar para vaciar el historial.") { Optional = true, Rest = true }],
+            Examples = ["historial", "historial jugar", "historial borrar"], Result = "Numera las órdenes guardadas, de la más antigua a la más nueva.",
+            Run = context =>
+            {
+                string filter = context.Optional("texto") ?? "";
+                if (filter == "borrar") { History.Clear(); context.Success("Historial de órdenes borrado."); return; }
+                var entries = History.Entries.Select((entry, index) => (entry, index)).Where(item => filter.Length == 0 || CommandLine.Fold(item.entry).Contains(CommandLine.Fold(filter))).ToArray();
+                foreach (var (entry, index) in entries) context.Write($"{index + 1,4}  {entry}");
+                if (entries.Length == 0) context.Detail("No hay órdenes que coincidan.");
+            }
+        }
+    ];
+
+    private void Help(CommandContext context, string? topic)
+    {
+        var all = Commands;
+        if (topic == null)
+        {
+            foreach (var group in all.GroupBy(command => command.Group).OrderBy(group => GroupOrder(group.Key)))
+            {
+                context.Heading(group.Key);
+                context.Write("  " + string.Join("  ", group.Select(command => command.Name)));
+            }
+            context.Detail("ayuda <orden> explica una orden. como <tema> busca por lo que querés hacer.");
+            return;
+        }
+        var spec = all.FirstOrDefault(command => command.Answers(topic));
+        if (spec == null)
+        {
+            var group = all.Where(command => CommandLine.Fold(command.Group) == CommandLine.Fold(topic)).ToArray();
+            if (group.Length == 0)
+            {
+                var near = all.Where(command => CommandLine.Fold(command.Name).Contains(CommandLine.Fold(topic))).Take(8).ToArray();
+                if (near.Length == 0) throw new CommandFailure(CommandProblem.UnknownOrder, "No hay ayuda para " + topic + ".", "como " + topic + " busca por tema.");
+                group = near;
+            }
+            context.Table([new("Orden"), new("Función", Flexible: true)], group.Select(command => new[] { command.Name, command.Summary }));
+            return;
+        }
+        context.Heading(spec.Name + " · " + spec.Group);
+        context.Write(spec.Summary);
+        context.Write("Uso: " + spec.Usage);
+        foreach (var argument in spec.Arguments.Where(argument => argument.Description.Length > 0 || argument.Choices.Count > 0))
+            context.Detail($"  {argument.Name}: {argument.Description}" + (argument.Choices.Count > 0 ? " Valores: " + string.Join(", ", argument.Choices) + "." : "")
+                + (argument.Kind == ArgumentKind.Number && argument.Min != int.MinValue ? $" De {argument.Min} a {argument.Max}." : "") + (argument.Optional ? " Opcional." : ""));
+        foreach (string example in spec.Examples) context.Write("Ejemplo: " + example);
+        if (spec.Aliases.Count > 0) context.Detail("También: " + string.Join(", ", spec.Aliases));
+        if (spec.Requires.Length > 0) context.Detail("Requiere: " + spec.Requires);
+        if (spec.Unavailable?.Invoke() is { } blocked) context.Warning("ahora no disponible: " + blocked.Message);
+        if (spec.Result.Length > 0) context.Detail("Resultado: " + spec.Result);
+        foreach (string error in spec.Errors) context.Detail("Puede fallar si " + error);
+        if (spec.Cancellation.Length > 0) context.Detail("Cancelar: " + spec.Cancellation);
+        if (spec.Planned != null) context.Warning("todavía sin recorrido por órdenes. " + spec.Planned);
+    }
+
+    private static int GroupOrder(string group) => Array.IndexOf<string>(["Biblioteca", "Partida", "Análisis", "Proyectos", "Tareas", "Sistema", "Consola"], group) is >= 0 and var order ? order : 99;
+
+    private void Apropos(CommandContext context, string topic)
+    {
+        string[] words = CommandLine.Fold(topic).Split(' ', StringSplitOptions.RemoveEmptyEntries).Where(word => word.Length > 2 || word.All(char.IsDigit)).ToArray();
+        if (words.Length == 0) words = [CommandLine.Fold(topic)];
+        int Score(string text, string name)
+        {
+            string folded = CommandLine.Fold(text), title = CommandLine.Fold(name);
+            return words.Count(folded.Contains) * 2 + words.Count(title.Contains) * 3;
+        }
+        var found = Commands.Select(command => (Score: Score(string.Join(' ', [command.Name, .. command.Aliases, command.Summary, command.Group, command.Keywords]), command.Name), Order: command.Usage, command.Summary))
+            .Where(item => item.Score > 0).ToList();
+        if (Capabilities != null)
+            found.AddRange(Capabilities(topic).Select(item => (Score: Score(item.Order + " " + item.Description, item.Order), item.Order, Summary: item.Description)).Where(item => item.Score > 0));
+        var best = found.OrderByDescending(item => item.Score).ThenBy(item => item.Order, StringComparer.Ordinal).DistinctBy(item => item.Order).Take(10).ToArray();
+        if (best.Length == 0)
+            throw new CommandFailure(CommandProblem.UnknownOrder, "No encontré funciones sobre " + topic + ".", "Probá con otra palabra, o mirá ayuda, acciones y opciones.");
+        context.Table([new("Orden"), new("Para qué sirve", Flexible: true)], best.Select(item => new[] { item.Order, item.Summary }));
     }
 }

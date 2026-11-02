@@ -78,6 +78,22 @@ public sealed class CreatorWindow
     public void ShowSavedProjects() { Open(); _showSavedProjects=true; }
 
     private bool Busy => _writeTask != null || _templateTask != null || _retryTask != null || _manualTask != null || _agentTask != null;
+
+    /// <summary>The job in progress, for the shared task list.</summary>
+    public WorkReport? Work
+    {
+        get
+        {
+            string target = _wish.Trim().Length > 0 ? _wish.Trim()[..Math.Min(_wish.Trim().Length, 48)] : "juego nuevo";
+            void Cancel() => _ = CancelWork();
+            if (_writeTask != null) return new("creación", target, _progress, AppTaskState.WaitingProvider, Cancel: Cancel);
+            if (_manualTask != null || _agentTask != null || _retryTask != null) return new("prueba", target, _progress, Cancel: Cancel);
+            if (_templateTask != null) return new("plantilla", target, _progress);
+            if (_manualPrompt != null) return new("creación", target, "Esperando la respuesta que pegues en el taller", AppTaskState.WaitingUser);
+            if (_agentDir != null) return new("creación", target, "Esperando que tu agente escriba en su carpeta", AppTaskState.WaitingUser);
+            return null;
+        }
+    }
     public Task CancelWork()
     {
         _cts?.Cancel();

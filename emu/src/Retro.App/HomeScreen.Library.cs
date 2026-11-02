@@ -8,7 +8,7 @@ namespace Retro.App;
 public sealed partial class HomeScreen
 {
     private sealed record LibraryCard(string Key, string Title, string Detail, string? Hint, string Machine,
-        IReadOnlyList<string> Systems, LibraryGameKind Kind, bool Openable, Action Play, Func<string?> Picture);
+        IReadOnlyList<string> Systems, LibraryGameKind Kind, bool Openable, Action Play, Func<string?> Picture, string? File = null, string? Preparation = null);
     private readonly FrameCache<(int, int, int), List<LibraryCard>> _catalog = new();
     private readonly FrameCache<(int, int, int, int, int, string, string, LibraryFilterRequest, long), List<LibraryCard>> _filtered = new();
     private readonly FrameCache<(int, int, int, int, string), string[]> _genres = new();
@@ -39,10 +39,11 @@ public sealed partial class HomeScreen
         foreach (var game in library.Originals())
             cards.Add(new(OriginalKey(game), _identification.Get(game.Identity)?.Title ?? game.Name, Name(game.Machine),
                 string.Join(" · ", new[] { game.Name, game.NotYet }.OfType<string>()), game.Machine.Id, [game.Machine.Id],
-                LibraryGameKind.Original, game.NotYet == null && game.Confidence >= 50, () => playOriginal(game.Path), () => ThumbnailFiles.Beside(game.Path)));
+                LibraryGameKind.Original, game.NotYet == null && game.Confidence >= 50, () => playOriginal(game.Path), () => ThumbnailFiles.Beside(game.Path), game.Path,
+                game.ProfileId != null && _profiles.ContainsKey(game.ProfileId) ? "Preparación: perfil registrado para esta edición." : "Preparación: sin perfil comprobado; preparar <juego> intenta crearlo."));
         foreach (var game in _created)
             cards.Add(new(CreatedKey(game), game.Title, game.MachineName, game.Pitch, game.Machine, [game.Machine],
-                LibraryGameKind.Created, Ready(game), () => playOriginal(game.ProgramPath), () => game.PicturePath));
+                LibraryGameKind.Created, Ready(game), () => playOriginal(game.ProgramPath), () => game.PicturePath, game.ProgramPath, game.Passed ? "Prueba automática aprobada." : "Prueba automática pendiente o fallida."));
         foreach (var game in _fusions.Concat(_inspired))
         {
             string[] systems = game.Games.Select(slot => _profiles.GetValueOrDefault(slot.Profile)?.Machine).OfType<string>().Distinct().ToArray();
@@ -52,7 +53,7 @@ public sealed partial class HomeScreen
             cards.Add(new(FusionKey(game), game.Title, $"{(game.IsInspired ? "Con originales" : "Fusión")} · v{game.Version}",
                 missing.Length > 0 ? "Falta: " + missing : game.Pitch, machine, systems,
                 game.IsInspired ? LibraryGameKind.Inspired : LibraryGameKind.Fusion, missing.Length == 0,
-                () => playFusion(game.Id), () => StudioLibrary.PicturePath(game)));
+                () => playFusion(game.Id), () => StudioLibrary.PicturePath(game), null, missing.Length == 0 ? "Originales disponibles." : "Faltan originales."));
         }
         _metadata.Observe(cards.Select(card => card.Key));
         return cards;

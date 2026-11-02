@@ -96,7 +96,7 @@ public sealed class InputMapper
     public static bool ToolShortcutsNeedShift(Retro.Core.IMachine? machine, bool fusion) =>
         machine is Retro.Systems.Pc.PcXt || (!fusion && machine is Spectrum48 or Retro.Systems.C64.C64);
 
-    /// <summary>Ctrl+Shift with O, K, L, M or S: an emulator shortcut that must not reach the machine.</summary>
+    /// <summary>Ctrl+Shift with O, K, L, M, P, S or T: an emulator shortcut that must not reach the machine.</summary>
     public static bool ToolChordHeld(Func<KeyboardKey, bool> down) =>
         (down(KeyboardKey.LeftControl) || down(KeyboardKey.RightControl)) && (down(KeyboardKey.LeftShift) || down(KeyboardKey.RightShift))
         && HostToolKeys.Any(down);
@@ -120,12 +120,27 @@ public sealed class InputMapper
         return !InterfaceActive && !_gamepadHeld;
     }
 
+    private readonly List<KeyboardKey> _heldKeys = [];
+
+    /// <summary>
+    /// The Enter that ran an order is still down when the game takes the keyboard. The machine stays
+    /// deaf until those keys are released, so an order never presses Start or Return by accident.
+    /// </summary>
+    public void HoldKeyboardUntilReleased(params KeyboardKey[] keys) => _heldKeys.AddRange(keys);
+
+    internal bool KeyboardReady(Func<KeyboardKey, bool> down)
+    {
+        _heldKeys.RemoveAll(key => !down(key));
+        return _heldKeys.Count == 0;
+    }
+
     public void Update(Retro.Core.IMachine machine, bool keyboardEnabled)
     {
+        keyboardEnabled = KeyboardReady(KeyDown) && keyboardEnabled && !ToolChordHeld(KeyDown);
         if (machine is Spectrum48 zx)
-            UpdateSpectrum(zx, keyboardEnabled && !ToolChordHeld(KeyDown));
+            UpdateSpectrum(zx, keyboardEnabled);
         else if (machine is Retro.Systems.C64.C64 c64)
-            UpdateC64(c64, keyboardEnabled && !ToolChordHeld(KeyDown));
+            UpdateC64(c64, keyboardEnabled);
         else if (machine is Retro.Systems.Pc.PcXt)
             Apply(machine, CollectPcKeys(KeyDown, keyboardEnabled));
         else if (machine is Retro.Systems.Nes.Nes nes)
@@ -160,7 +175,7 @@ public sealed class InputMapper
         return map.ToArray();
     }
     private static readonly KeyboardKey[] HostFunctionKeys = [KeyboardKey.F2, KeyboardKey.F4, KeyboardKey.F5, KeyboardKey.F8, KeyboardKey.F9, KeyboardKey.F10];
-    private static readonly KeyboardKey[] HostToolKeys = [KeyboardKey.O, KeyboardKey.K, KeyboardKey.L, KeyboardKey.M, KeyboardKey.S, KeyboardKey.P];
+    private static readonly KeyboardKey[] HostToolKeys = [KeyboardKey.O, KeyboardKey.K, KeyboardKey.L, KeyboardKey.M, KeyboardKey.S, KeyboardKey.P, KeyboardKey.T];
     public static HashSet<string> CollectPcKeys(Func<KeyboardKey, bool> down, bool enabled)
     {
         var now = new HashSet<string>();

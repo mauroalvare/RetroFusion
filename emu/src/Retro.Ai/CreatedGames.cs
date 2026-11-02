@@ -180,6 +180,15 @@ public static class CreatedGames
         return report;
     }
 
+    /// <summary>The same trial as a background job: a cancelled run stores nothing.</summary>
+    public static TrialReport TryAgain(CreatedGame g, string firmwareDirectory, CancellationToken ct, Action<TrialProgress>? progress)
+    {
+        var report = HomebrewTrial.Run(File.ReadAllText(g.SourcePath), g.Machine, firmwareDirectory, ct, progress);
+        ct.ThrowIfCancellationRequested();
+        Store(g, report);
+        return report;
+    }
+
     private static void Store(CreatedGame g, TrialReport? report)
     {
         if (report != null)

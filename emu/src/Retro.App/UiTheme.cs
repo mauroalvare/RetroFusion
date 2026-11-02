@@ -34,8 +34,8 @@ internal static class UiTheme
     private static ImFontPtr _labelFont;
     private static ImGuiStyle? _baseStyle;
     // Atlas configurations retain this pointer for future rebuilds. One range table per process.
-    private static readonly GCHandle Ranges = GCHandle.Alloc(new ushort[] { 0x20, 0xFF, 0x2000, 0x206F, 0x2190, 0x2199, 0x2260, 0x2265, 0x25A0, 0x25FF, 0x2713, 0x2717, 0 }, GCHandleType.Pinned);
-    private static readonly GCHandle SymbolRanges = GCHandle.Alloc(new ushort[] { 0x2190, 0x2199, 0x2260, 0x2265, 0x25A0, 0x25FF, 0x2713, 0x2717, 0 }, GCHandleType.Pinned);
+    private static readonly GCHandle Ranges = GCHandle.Alloc(new ushort[] { 0x20, 0xFF, 0x2000, 0x206F, 0x2190, 0x2199, 0x2260, 0x2265, 0x2500, 0x25FF, 0x2605, 0x2606, 0x2713, 0x2717, 0 }, GCHandleType.Pinned);
+    private static readonly GCHandle SymbolRanges = GCHandle.Alloc(new ushort[] { 0x2190, 0x2199, 0x2260, 0x2265, 0x2500, 0x25FF, 0x2605, 0x2606, 0x2713, 0x2717, 0 }, GCHandleType.Pinned);
 
     public static float Px(float value) => value * Scale;
     public static Vector2 Px(float x, float y) => new(x * Scale, y * Scale);
@@ -220,6 +220,20 @@ internal static class UiTheme
 
     /// <summary>Fixed-width text only where columns and addresses carry meaning.</summary>
     public static FontScope FixedWidth() { ImGui.PushFont(_codeFont); return new(); }
+    /// <summary>Fixed cells for the console grid.</summary>
+    public static ImFontPtr ConsoleFont => _codeFont;
+
+    /// <summary>Sober differences between kinds of console text. Warnings and errors also start with a word.</summary>
+    public static uint TerminalInk(TerminalKind kind) => ImGui.ColorConvertFloat4ToU32(kind switch
+    {
+        TerminalKind.Command => HighContrast ? new(1, 1, 1, 1) : new(0.80f, 1, 0.82f, 1),
+        TerminalKind.Detail or TerminalKind.Rule => Muted,
+        TerminalKind.Heading => Accent,
+        TerminalKind.Success => Success,
+        TerminalKind.Warning => Warning,
+        TerminalKind.Error => Error,
+        _ => ImGui.GetStyle().Colors[(int)ImGuiCol.Text]
+    });
     public static FontScope Display() { ImGui.PushFont(_titleFont); return new(); }
     public static FontScope Label() { ImGui.PushFont(_labelFont); return new(); }
 

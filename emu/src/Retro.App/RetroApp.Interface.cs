@@ -7,16 +7,44 @@ namespace Retro.App;
 public sealed partial class RetroApp
 {
     private readonly InterfacePicker _interfacePicker = new();
+    private readonly AppTaskCenter _tasks = new();
     private ProgramTerminal? _terminal;
-    private bool _terminalOpen, _terminalFocus, _pausedBeforeTerminal;
+    private TerminalInput? _terminalInput;
+    private TerminalView? _terminalView;
+    private bool _terminalOpen, _terminalBarKeyboard, _pausedBeforeTerminal;
     private bool _pausedBeforeInterfacePicker;
-    private string _terminalInput = "";
-    private int _terminalDrawnRevision = -1;
-    private ImGuiInputTextCallback? _terminalCallback;
     private bool Hardcore => _prefs.Interface == InterfaceStyle.Hardcore;
     internal Action<string, Vector2, Vector2>? InterfaceControlBounds { get; set; }
-    private ProgramTerminal Terminal => _terminal ??= new(BuildTerminalCommands,
-        () => Commands.Select(command => command.Id).Concat(Options.Select(option => option.Id)).Concat(InterfaceStyles.All.Select(style => style.Id)));
+    /// <summary>The console takes the keyboard only while no dialog is in front of it.</summary>
+    private bool ConsoleOwnsKeyboard => (_terminalOpen || _terminalBarKeyboard) && Hardcore && !_interfacePicker.IsOpen && !_updates.Blocking && !_commands.IsOpen
+        && _pendingOpen == null && _errorPopup == null && _quitNotice == null && !_browser.IsOpen && !ConfigurationOpen;
+
+    private ProgramTerminal Terminal
+    {
+        get
+        {
+            if (_terminal != null) return _terminal;
+            string? history = _autotestSeconds >= 0 ? null : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "RetroEmu", "consola-historial.json");
+            _terminal = new(() => TerminalCatalog, history: new CommandHistory(history) { Persist = _prefs.ConsoleHistory });
+            _terminal.PromptDetail = ConsolePromptDetail;
+            RegisterConsoleCapabilities(_terminal);
+            _terminalInput = new(_terminal, () => ImGui.GetClipboardText() ?? "", ImGui.SetClipboardText)
+            {
+                RunningTasks = () => _tasks.Active.Count,
+                StopFollowing = () => { bool following = _followed != null; _followed = null; return following; },
+            };
+            _terminalView = new(_terminal, _terminalInput, () => new(_prefs.ConsoleCursor, _prefs.ConsoleBlink, _prefs.ConsoleScanlines));
+            return _terminal;
+        }
+    }
+
+    /// <summary>[nes pausa] (2): the machine, whether it runs and how many tasks are alive.</summary>
+    private string ConsolePromptDetail()
+    {
+        string machine = _host.Machine == null || !HasGame ? "" : "[" + _host.Machine.Id + (_host.Paused ? " pausa" : "") + "]";
+        int tasks = _tasks.Active.Count;
+        return machine + (tasks > 0 ? (machine.Length > 0 ? " " : "") + "(" + tasks + ")" : "");
+    }
 
     private void OpenInterfacePicker() => ShowInterfacePicker(null);
     private void ShowInterfacePicker(string? version)
@@ -43,6 +71,7 @@ public sealed partial class RetroApp
     {
         bool wasHardcore = Hardcore;
         _prefs.Interface = style; _prefs.Save(); _themeChanged = true;
+        if (_host.Machine != null) _input.ReleaseAll(_host.Machine);
         if (Hardcore)
         {
             _preferencesOpen = _soundWindowOpen = false;
@@ -50,7 +79,7 @@ public sealed partial class RetroApp
         }
         else if (wasHardcore)
         {
-            _terminalOpen = false; WorkspaceLayout.FooterHeight = 0;
+            _terminalOpen = _terminalBarKeyboard = false; WorkspaceLayout.FooterHeight = 0;
             CloseEditors(); _home.Close(); _debugMode = false;
             if (!HasGame) _home.Open(); else _host.Paused = _pausedBeforeTerminal;
         }
@@ -60,71 +89,88 @@ public sealed partial class RetroApp
     {
         if (!_terminalOpen) _pausedBeforeTerminal = _host.Paused;
         CloseEditors(); _home.Close(); _debugMode = false;
-        _terminalOpen = true; _terminalFocus = true; _host.Paused = true;
+        _terminalOpen = true; _terminalBarKeyboard = false; _host.Paused = true;
         _ = Terminal;
     }
 
+    /// <summary>Hands the keyboard to the game. The Enter that ran the order must not arrive as a key of the machine.</summary>
     private void LeaveTerminal()
     {
-        _terminalOpen = false; _terminalFocus = false;
+        ReleaseConsoleKeyboard();
+        _input.HoldKeyboardUntilReleased(KeyboardKey.Enter, KeyboardKey.KpEnter);
         _host.Continue();
+    }
+
+    /// <summary>A panel or the game takes over: the console stops reading keys and the bar does not take them back.</summary>
+    private void ReleaseConsoleKeyboard()
+    {
+        _terminalOpen = _terminalBarKeyboard = false;
+        ImGui.SetWindowFocus((string)null!);
     }
 
     private void PrepareTerminalLayout()
     {
-        WorkspaceLayout.FooterHeight = Hardcore && !_terminalOpen ? ImGui.GetFrameHeightWithSpacing() * 2 + UiTheme.Px(12) : 0;
+        // The one-row bar leaves the rest of the window to the game.
+        WorkspaceLayout.FooterHeight = Hardcore && !_terminalOpen ? MathF.Ceiling(UiTheme.Px(16) * 1.2f) + UiTheme.Px(8) : 0;
         if (!Hardcore) return;
         _menuHeight = 0; WorkspaceLayout.MenuHeight = WorkspaceLayout.NavigationHeight = 0;
     }
 
-    private unsafe int TerminalInputCallback(ImGuiInputTextCallbackData* pointer)
+    private void SyncTasks()
     {
-        var data = new ImGuiInputTextCallbackDataPtr(pointer);
-        string current = data.BufTextLen == 0 ? "" : System.Text.Encoding.UTF8.GetString((byte*)data.Buf, data.BufTextLen);
-        string next = data.EventFlag == ImGuiInputTextFlags.CallbackCompletion ? Terminal.Complete(current)
-            : Terminal.Recall(data.EventKey == ImGuiKey.UpArrow ? -1 : 1, current);
-        data.DeleteChars(0, data.BufTextLen); data.InsertChars(0, next);
-        // At large sizes keyboard navigation can move focus after a history arrow. Keep editing the recalled line.
-        _terminalFocus = true;
-        return 0;
+        _tasks.Track("biblioteca", _library.Scanning ? new("búsqueda de juegos", Path.GetFileName(Path.TrimEndingDirectorySeparator(_library.Folder)), "Revisando la carpeta") : null);
+        _tasks.Track("identificacion", _gameMetadata.Pending > 0 ? new("identificación", "catálogo en línea", _gameMetadata.Status, AppTaskState.WaitingProvider,
+            _gameMetadata.Asked, _gameMetadata.Asked + _gameMetadata.Pending, "juegos") : null);
+        _tasks.Track("estudio", _studio.Work);
+        _tasks.Track("creador", _creator.Work);
+        _tasks.Track("analisis", _code.Work);
+        _tasks.Poll();
+        ReportTasksToConsole();
+        if (_awaitingStop && _host.Paused && _terminal != null)
+        {
+            _awaitingStop = false;
+            if (_host.Machine is { } machine)
+                _terminal.Write($"Detenida en PC = {machine.Cpu.ProgramCounter:X4}" + (_host.LastStopReason is { Length: > 0 } reason ? " · " + reason : ""), TerminalKind.Detail);
+        }
     }
 
-    private unsafe void DrawTerminal()
+    private void DrawTerminal()
     {
         if (!Hardcore) return;
+        _ = Terminal;
         var viewport = ImGui.GetMainViewport();
         float height = _terminalOpen ? viewport.Size.Y - UiTheme.StatusBarHeight : WorkspaceLayout.FooterHeight;
         ImGui.SetNextWindowPos(viewport.Pos + new Vector2(0, viewport.Size.Y - UiTheme.StatusBarHeight - height));
         ImGui.SetNextWindowSize(new(viewport.Size.X, height));
-        ImGui.Begin("##program-terminal", WorkspaceLayout.EditorFlags);
-        if (_terminalOpen)
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, _terminalOpen ? Vector2.Zero : UiTheme.Px(8, 4));
+        ImGui.Begin("##program-terminal", WorkspaceLayout.EditorFlags | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
+        bool keyboard = ConsoleOwnsKeyboard;
+        if (_terminalOpen) _terminalView!.Draw(keyboard);
+        else
         {
-            using (UiTheme.Label()) ImGui.TextColored(UiTheme.Accent, "RETROEMU / CONSOLE 01");
-            ImGui.Separator();
-            float inputHeight = ImGui.GetFrameHeightWithSpacing() + ImGui.GetTextLineHeightWithSpacing() + UiTheme.Px(6);
-            ImGui.BeginChild("terminal-scroll", new(0, -inputHeight));
-            bool bottom = ImGui.GetScrollY() >= ImGui.GetScrollMaxY() - ImGui.GetTextLineHeight();
-            ImGui.PushTextWrapPos(0);
-            foreach (string line in Terminal.Lines) ImGui.TextUnformatted(line);
-            ImGui.PopTextWrapPos();
-            if (Terminal.Revision != _terminalDrawnRevision && bottom) ImGui.SetScrollHereY(1);
-            _terminalDrawnRevision = Terminal.Revision;
-            ImGui.EndChild();
+            _terminalView!.DrawBar(keyboard);
+            if (ImGui.IsItemClicked()) _terminalBarKeyboard = true;
+            if (keyboard && (ImGui.IsKeyPressed(ImGuiKey.Escape, false) || _terminalInput!.Submitted)) ReleaseConsoleKeyboard();
+            // A click elsewhere gives the keyboard back to the game.
+            else if (keyboard && ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !ImGui.IsItemHovered()) ReleaseConsoleKeyboard();
         }
-        ImGui.TextColored(UiTheme.Accent, Terminal.Prompt + (_terminalOpen ? "" : " · Ctrl+Shift+T abre la consola"));
-        if (_terminalFocus && !_interfacePicker.IsOpen) { ImGui.SetKeyboardFocusHere(); _terminalFocus = false; }
-        ImGui.SetNextItemWidth(-1);
-        _terminalCallback ??= TerminalInputCallback;
-        bool submit = ImGui.InputTextWithHint("##terminal-input", "ayuda · juegos · opciones · acciones", ref _terminalInput, 2048,
-            ImGuiInputTextFlags.EnterReturnsTrue | ImGuiInputTextFlags.CallbackHistory | ImGuiInputTextFlags.CallbackCompletion, _terminalCallback);
-        InterfaceControlBounds?.Invoke("Entrada terminal", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
-        if (submit)
-        {
-            string command = _terminalInput; _terminalInput = "";
-            Terminal.Submit(command); _terminalFocus = _terminalOpen && Hardcore;
-            // Enter may switch to a game or instrument. The small command bar must not reclaim its keyboard.
-            if (!_terminalFocus) ImGui.SetWindowFocus((string)null!);
-        }
+        _terminalInput!.Submitted = false;
+        InterfaceControlBounds?.Invoke("Entrada terminal", _terminalView.InputBounds.Min, _terminalView.InputBounds.Max);
         ImGui.End();
+        ImGui.PopStyleVar();
+    }
+
+    /// <summary>What the status bar says in the console: a notice, the syntax being typed, or the result of an order given from the bar.</summary>
+    private string ConsoleStatus()
+    {
+        if (_terminalInput == null) return "";
+        if (_terminalInput.Notice.Length > 0) return _terminalInput.Notice;
+        if (_terminalInput.Hint is { } hint) return hint;
+        if (!_terminalOpen)
+        {
+            var output = Terminal.Output;
+            if (output.RowCount > 0) return output.RowText(output.Row(output.RowCount - 1));
+        }
+        return _terminalOpen ? "Tab completa · ayuda explica · como <tema> busca" : "";
     }
 }

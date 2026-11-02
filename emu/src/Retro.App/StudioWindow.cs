@@ -221,6 +221,26 @@ public sealed partial class StudioWindow
         _chosen.Select((id, i) => new RecipeGame { Slot = SlotNames[i], Profile = id }).ToList();
 
     public bool IsWorking => Busy || _manual != null || _agentDir != null;
+
+    /// <summary>The job in progress, for the shared task list. Waiting for a provider or for the user is not local work.</summary>
+    public WorkReport? Work
+    {
+        get
+        {
+            string target = _writingConcept?.Title ?? _fusionPrepareConcept?.Title ?? (_preparing.Length > 0 ? _preparing : "creación");
+            void Cancel() => _ = CancelWork();
+            if (_prepareTask != null) return new("preparación", _preparing, _prepareProgress, Cancel: Cancel);
+            if (_fusionPrepareTask != null) return new("investigación", target, _progress, Cancel: Cancel);
+            if (_conceptTask != null) return new("ideas", "fusión", _progress, AppTaskState.WaitingProvider, Cancel: Cancel);
+            if (_designTask != null) return new("construcción", target, _progress, AppTaskState.WaitingProvider, Cancel: Cancel);
+            if (_referenceTask != null) return new("referencias", target, _progress, Cancel: Cancel);
+            if (_validateTask != null) return new("validación", target, _progress, Cancel: Cancel);
+            if (_startTask != null) return new("arranque", target, _progress, Cancel: Cancel);
+            if (_manual != null) return new("construcción", target, "Esperando la respuesta que pegues en el taller", AppTaskState.WaitingUser);
+            if (_agentDir != null) return new("construcción", target, "Esperando que tu agente escriba en su carpeta", AppTaskState.WaitingUser);
+            return null;
+        }
+    }
     private bool _focusWork;
     public void ShowWork() { _open = true; _focusWork = true; _savedPage=false; }
     public void ShowSavedWork() { Open(); _savedPage=true; }

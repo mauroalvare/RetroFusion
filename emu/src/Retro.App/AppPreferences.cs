@@ -9,7 +9,8 @@ public sealed class AppPreferences
     private sealed record Document(int Version, int TextPercent, bool HighContrast, bool IntegerScale, bool Fullscreen,
         bool PowerSaving, bool ShowFps, string SpectrumJoystick, int C64Port, bool TypeLoad, bool TurboWhileLoading,
         bool PauseInBackground = false, string? LastFolder = null, string Interface = "retro", string? InterfaceOfferedVersion = null,
-        bool OnlineGameInfo = false);   // optional v1 fields preserve older preferences
+        bool OnlineGameInfo = false, string ConsoleCursor = "block", bool ConsoleBlink = true, bool ConsoleScanlines = false,
+        bool ConsoleHistory = true);   // optional v1 fields preserve older preferences
     private readonly string _path;
     private readonly bool _persist;
     private bool _unreadable;
@@ -27,6 +28,10 @@ public sealed class AppPreferences
     public InterfaceStyle Interface { get; set; }
     public string? InterfaceOfferedVersion { get; set; }
     public bool OnlineGameInfo { get; set; }
+    public TerminalCursor ConsoleCursor { get; set; }
+    public bool ConsoleBlink { get; set; } = true;
+    public bool ConsoleScanlines { get; set; }
+    public bool ConsoleHistory { get; set; } = true;
     /// <summary>Last folder of the file picker; only used again while it exists.</summary>
     public string? LastFolder { get; set; }
     public string? Problem { get; private set; }
@@ -55,12 +60,18 @@ public sealed class AppPreferences
             InterfaceStyles.TryParse(doc.Interface, out var selected); Interface = selected;
             InterfaceOfferedVersion = doc.InterfaceOfferedVersion is { Length: <= 32 } offered && System.Version.TryParse(offered, out _) ? offered : null;
             OnlineGameInfo = doc.OnlineGameInfo;
+            // An unknown cursor from a later version keeps the default and the rest of the file.
+            ConsoleCursor = CursorNames.GetValueOrDefault(doc.ConsoleCursor ?? "", TerminalCursor.Block);
+            ConsoleBlink = doc.ConsoleBlink; ConsoleScanlines = doc.ConsoleScanlines; ConsoleHistory = doc.ConsoleHistory;
         }
         catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException or JsonException)
         {
             _unreadable = true; Problem = "No pude leer las preferencias. Los cambios quedan solo en esta sesión.";
         }
     }
+
+    internal static readonly IReadOnlyDictionary<string, TerminalCursor> CursorNames = new Dictionary<string, TerminalCursor>
+    { ["block"] = TerminalCursor.Block, ["barra"] = TerminalCursor.Bar, ["subrayado"] = TerminalCursor.Underline };
 
     private static bool Valid(int text, int port) => TextSizes.Contains(text) && port is 1 or 2;
 
@@ -69,6 +80,7 @@ public sealed class AppPreferences
         TextPercent = 100; HighContrast = Fullscreen = ShowFps = false; IntegerScale = PowerSaving = true;
         SpectrumJoystick = JoystickMode.Kempston; C64Port = 2; TypeLoad = TurboWhileLoading = true; PauseInBackground = false;
         Interface = InterfaceStyle.Retro; OnlineGameInfo = false;
+        ConsoleCursor = TerminalCursor.Block; ConsoleBlink = ConsoleHistory = true; ConsoleScanlines = false;
     }
 
     public bool Save()
@@ -82,7 +94,8 @@ public sealed class AppPreferences
             Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(_path))!);
             File.WriteAllText(temporary, JsonSerializer.Serialize(new Document(1, TextPercent, HighContrast, IntegerScale, Fullscreen,
                 PowerSaving, ShowFps, SpectrumJoystick.ToString(), C64Port, TypeLoad, TurboWhileLoading, PauseInBackground, LastFolder,
-                InterfaceStyles.Describe(Interface).Id, InterfaceOfferedVersion, OnlineGameInfo)));
+                InterfaceStyles.Describe(Interface).Id, InterfaceOfferedVersion, OnlineGameInfo,
+                CursorNames.First(pair => pair.Value == ConsoleCursor).Key, ConsoleBlink, ConsoleScanlines, ConsoleHistory)));
             File.Move(temporary, _path, overwrite: true); Problem = null; return true;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)

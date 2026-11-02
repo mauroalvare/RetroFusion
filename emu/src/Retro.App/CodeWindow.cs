@@ -80,6 +80,23 @@ public sealed partial class CodeWindow : IDisposable
     }
 
     public bool IsWorking => _explainTask != null || _modificationTask != null || _autonomousTask != null || _manualModification || _manualExplanation;
+    /// <summary>The job in progress, for the shared task list.</summary>
+    public WorkReport? Work
+    {
+        get
+        {
+            void Cancel() => _ = CancelWork();
+            string target = Path.GetFileName(_host.LoadedMedia ?? "") is { Length: > 0 } name ? name : "juego actual";
+            if (_autonomousTask != null && _autonomousProgress is { } progress)
+                return new("investigación automática", target, progress.Stage + (progress.Note.Length > 0 ? " · " + progress.Note : ""), AppTaskState.Working, progress.Pass, _autonomousPasses, "rondas", Cancel);
+            if (_autonomousTask != null) return new("investigación automática", target, "Arrancando el laboratorio", Cancel: Cancel);
+            if (_explainTask != null) return new("explicación", target, "Esperando la respuesta del proveedor", AppTaskState.WaitingProvider, Cancel: Cancel);
+            if (_modificationTask != null) return new("análisis", target, "Esperando la respuesta del proveedor", AppTaskState.WaitingProvider, Cancel: Cancel);
+            if (_manualModification || _manualExplanation) return new("análisis", target, "Esperando la respuesta que pegues en el panel", AppTaskState.WaitingUser);
+            return null;
+        }
+    }
+
     public void ShowWork() => OpenPage(_explainTask != null || _manualExplanation ? ToolPage.Code : ToolPage.Analysis);
 
     public void Open() => OpenPage(ToolPage.Code);

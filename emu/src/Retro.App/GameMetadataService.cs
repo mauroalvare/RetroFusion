@@ -23,6 +23,8 @@ public sealed class GameMetadataService : IDisposable
     public string Status { get; private set; } = "Identificación local";
     public string? Problem => Cache.Problem;
     public int Pending => _queue.Count + (_task == null ? 0 : 1);
+    /// <summary>Lookups answered in the current pass, so progress is counted rather than guessed.</summary>
+    public int Asked { get; private set; }
 
     public GameMetadataService(GameIdentificationCache? cache = null, HttpClient? http = null)
     { Cache = cache ?? new(); _ownsHttp = http == null; _http = http ?? new HttpClient(); }
@@ -78,7 +80,7 @@ public sealed class GameMetadataService : IDisposable
         }
         if (_task is { IsCompleted: true } finished)
         {
-            _task = null; _cancel?.Dispose(); _cancel = null;
+            _task = null; _cancel?.Dispose(); _cancel = null; Asked++;
             if (finished.IsCompletedSuccessfully && _current is { } completed)
                 Cache.Put(completed.Key, finished.Result, Query(completed), DateTimeOffset.UtcNow);
             else
@@ -91,7 +93,7 @@ public sealed class GameMetadataService : IDisposable
         if (_failed) return;
         if (!_online)
         {
-            _online = true; _queue.Clear();
+            _online = true; _queue.Clear(); Asked = 0;
             foreach (var game in games.DistinctBy(game => game.Identity))
             {
                 if (!LibraryKey.Valid(game.Identity) || !WikidataGameLookup.Supports(game.Machine.Id) || Get(game.Identity)?.Source == "gamelist.xml local") continue;

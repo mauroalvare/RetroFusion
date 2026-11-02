@@ -261,6 +261,8 @@ public sealed partial class RetroApp
     public void Shutdown()
     {
         _updates.Dispose();
+        foreach (var task in _tasks.Active) task.Cancel();
+        _terminal?.History.Save();
         var pending = Task.WhenAll(_studio.CancelWork(), _creator.CancelWork(), _code.CancelWork(), AiPicker.CancelWork());
         try { pending.Wait(TimeSpan.FromSeconds(2)); }
         catch (AggregateException) { /* Cancellation and provider errors are already retained by the jobs. */ }
@@ -278,7 +280,7 @@ public sealed partial class RetroApp
     {
         var io = ImGui.GetIO();
         // The focused debugger screen is itself an ImGui window, but owns game input.
-        return io.WantTextInput || InterfaceWorkspace || ConfigurationOpen || _interfacePicker.IsOpen || _commands.IsOpen || _pendingOpen != null || _browser.IsOpen
+        return io.WantTextInput || ConsoleOwnsKeyboard || InterfaceWorkspace || ConfigurationOpen || _interfacePicker.IsOpen || _commands.IsOpen || _pendingOpen != null || _browser.IsOpen
             || (io.WantCaptureKeyboard && !(_debugMode && _screenFocused));
     }
 
@@ -290,6 +292,7 @@ public sealed partial class RetroApp
         if (!_updates.Blocking && _pendingOpen == null && !_browser.IsOpen) HandleDroppedFiles();
         _library.Poll();
         _gameMetadata.Poll(_library.Entries, _library.Folder, _library.Revision, _prefs.OnlineGameInfo && _autotestSeconds < 0);
+        SyncTasks();
         if (_libraryRevision != _library.Revision)
         {
             _libraryRevision = _library.Revision;
@@ -419,6 +422,8 @@ public sealed partial class RetroApp
         var navigation = ImGuiConfigFlags.NavEnableKeyboard | ImGuiConfigFlags.NavEnableGamepad;
         if (interfaceOnly) io.ConfigFlags |= navigation;
         else io.ConfigFlags &= ~navigation;
+        // The console reads Tab and the arrows itself.
+        if (ConsoleOwnsKeyboard) io.ConfigFlags &= ~ImGuiConfigFlags.NavEnableKeyboard;
     }
 
     /// <summary>Select + Start on the gamepad opens the library, or returns to the game from it.</summary>
@@ -446,7 +451,7 @@ public sealed partial class RetroApp
     /// <summary>Window close button and Juego > Salir: asks first when AI work would be cancelled.</summary>
     public void RequestQuit()
     {
-        _quitNotice = QuitGuard.Notice(_studio.IsWorking, _creator.IsWorking, _code.IsWorking);
+        _quitNotice = QuitGuard.Notice(_studio.IsWorking, _creator.IsWorking, _code.IsWorking, _tasks.Active.Count(task => !task.Tracked));
         if (_quitNotice == null) QuitRequested = true;
     }
 
@@ -720,8 +725,8 @@ public sealed partial class RetroApp
             bool consoleShortcut = (Raylib.IsKeyDown(KeyboardKey.LeftControl) || Raylib.IsKeyDown(KeyboardKey.RightControl)) &&
                 (Raylib.IsKeyDown(KeyboardKey.LeftShift) || Raylib.IsKeyDown(KeyboardKey.RightShift)) && Raylib.IsKeyPressed(KeyboardKey.T);
             if (consoleShortcut) { if (_terminalOpen && HasGame) { OpenPlay(); LeaveTerminal(); } else OpenTerminal(); return; }
-            if (Raylib.IsKeyPressed(KeyboardKey.F11) && !textInput) ToggleFullscreen();
-            return;
+            // With the console closed, the emulator keys of the other styles work in the game too.
+            if (ConsoleOwnsKeyboard) { if (Raylib.IsKeyPressed(KeyboardKey.F11)) ToggleFullscreen(); return; }
         }
         if (textInput)
             return;
@@ -729,18 +734,21 @@ public sealed partial class RetroApp
             ToggleFullscreen();
         bool ctrl = Raylib.IsKeyDown(KeyboardKey.LeftControl) || Raylib.IsKeyDown(KeyboardKey.RightControl);
         bool toolModifier = ctrl && (!ToolShortcutsNeedShift || Raylib.IsKeyDown(KeyboardKey.LeftShift) || Raylib.IsKeyDown(KeyboardKey.RightShift));
-        if (toolModifier && Raylib.IsKeyPressed(KeyboardKey.P)) { _commands.Open(); return; }
-        if (_commands.IsOpen || ConfigurationOpen) return;
-        if (Raylib.IsKeyPressed(KeyboardKey.F12))
-        { if (_debugMode && !InterfaceWorkspace) OpenPlay(); else OpenDebugger(); }
-        if (toolModifier && Raylib.IsKeyPressed(KeyboardKey.O)) _browser.Open();
-        if (toolModifier && Raylib.IsKeyPressed(KeyboardKey.K) && _host.Machine != null)
+        if (!Hardcore)
         {
-            CloseEditors(); _home.Close();
-            _code.Open();
+            if (toolModifier && Raylib.IsKeyPressed(KeyboardKey.P)) { _commands.Open(); return; }
+            if (_commands.IsOpen || ConfigurationOpen) return;
+            if (Raylib.IsKeyPressed(KeyboardKey.F12))
+            { if (_debugMode && !InterfaceWorkspace) OpenPlay(); else OpenDebugger(); }
+            if (toolModifier && Raylib.IsKeyPressed(KeyboardKey.O)) _browser.Open();
+            if (toolModifier && Raylib.IsKeyPressed(KeyboardKey.K) && _host.Machine != null)
+            {
+                CloseEditors(); _home.Close();
+                _code.Open();
+            }
+            if (toolModifier && Raylib.IsKeyPressed(KeyboardKey.L)) { CloseEditors(); _home.Open(); }
+            if (toolModifier && Raylib.IsKeyPressed(KeyboardKey.M) && _host.Machine != null) OpenModifications();
         }
-        if (toolModifier && Raylib.IsKeyPressed(KeyboardKey.L)) { CloseEditors(); _home.Open(); }
-        if (toolModifier && Raylib.IsKeyPressed(KeyboardKey.M) && _host.Machine != null) OpenModifications();
         if (InterfaceWorkspace) return;
         if (_host.Machine == null)
             return;
@@ -1081,43 +1089,25 @@ public sealed partial class RetroApp
 
     private void DrawControlsHelp()
     {
-        if (_host.Fusion is Retro.Studio.StudioSession fusion)
+        if (_host.Fusion is Retro.Studio.StudioSession) ImGui.TextWrapped(ControlsHelp()[0]);
+        else foreach (string line in ControlsHelp()) ImGui.TextUnformatted(line);
+    }
+
+    /// <summary>Controls of the current machine, shared by the help pages and the console.</summary>
+    private string[] ControlsHelp()
+    {
+        if (_host.Fusion is Retro.Studio.StudioSession fusion) return [fusion.Game.HowToPlay];
+        return _host.Machine?.Id switch
         {
-            ImGui.TextWrapped(fusion.Game.HowToPlay);
-            return;
-        }
-        switch (_host.Machine?.Id)
-        {
-            case "zx48":
-                ImGui.TextUnformatted("Teclado: letras y números del juego.");
-                ImGui.TextUnformatted("Shift: CAPS SHIFT    Ctrl: SYMBOL SHIFT    Backspace: DELETE");
-                ImGui.TextUnformatted("Joystick: flechas y Alt. Elegí el tipo en Juego > Controles y hardware.");
-                ImGui.TextUnformatted("Ctrl+Shift+O/L/M/K: abrir, biblioteca, modificar y código.");
-                break;
-            case "c64":
-                ImGui.TextUnformatted("Joystick: flechas y Alt o Ctrl derecho.");
-                ImGui.TextUnformatted("Si no responde, cambiá el puerto en Juego > Controles y hardware.");
-                ImGui.TextUnformatted("Esc: RUN/STOP    RePág: RESTORE    Ctrl izquierdo: C=    Tab: CTRL");
-                ImGui.TextUnformatted("F1, F3, F5 y F7 son las teclas del C64.");
-                ImGui.TextUnformatted("Ctrl+Shift+O/L/M/K: abrir, biblioteca, modificar y código.");
-                break;
-            case "pcxt":
-                ImGui.TextUnformatted("Teclado de PC de 83 teclas, con distribución estadounidense.");
-                ImGui.TextUnformatted("F1–F10 llegan al PC. Ctrl + tecla de función controla el emulador.");
-                ImGui.TextUnformatted("Ctrl+Shift+O/L/M/K: abrir, biblioteca, modificar y código.");
-                break;
-            case "nes":
-                ImGui.TextUnformatted("Flechas: mover    X: A    Z: B");
-                ImGui.TextUnformatted("Enter: Start    Shift derecho: Select");
-                break;
-            case "invaders":
-                ImGui.TextUnformatted("Flechas o A/D: mover    Espacio: disparar");
-                ImGui.TextUnformatted("5 o C: moneda    1/2: empezar    T: tilt");
-                break;
-            default:
-                ImGui.TextUnformatted("Abrí un juego para ver sus controles.");
-                break;
-        }
+            "zx48" => ["Teclado: letras y números del juego.", "Shift: CAPS SHIFT    Ctrl: SYMBOL SHIFT    Backspace: DELETE",
+                "Joystick: flechas y Alt. Elegí el tipo en Juego > Controles y hardware.", "Ctrl+Shift+O/L/M/K: abrir, biblioteca, modificar y código."],
+            "c64" => ["Joystick: flechas y Alt o Ctrl derecho.", "Si no responde, cambiá el puerto en Juego > Controles y hardware.",
+                "Esc: RUN/STOP    RePág: RESTORE    Ctrl izquierdo: C=    Tab: CTRL", "F1, F3, F5 y F7 son las teclas del C64.", "Ctrl+Shift+O/L/M/K: abrir, biblioteca, modificar y código."],
+            "pcxt" => ["Teclado de PC de 83 teclas, con distribución estadounidense.", "F1–F10 llegan al PC. Ctrl + tecla de función controla el emulador.", "Ctrl+Shift+O/L/M/K: abrir, biblioteca, modificar y código."],
+            "nes" => ["Flechas: mover    X: A    Z: B", "Enter: Start    Shift derecho: Select"],
+            "invaders" => ["Flechas o A/D: mover    Espacio: disparar", "5 o C: moneda    1/2: empezar    T: tilt"],
+            _ => ["Abrí un juego para ver sus controles."]
+        };
     }
 
     private void DrawShortcutsHelp()
@@ -1194,7 +1184,8 @@ public sealed partial class RetroApp
         ImGui.Begin("##status", ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoSavedSettings
             | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoScrollbar);
         string status;
-        if (_home.IsOpen) status = _library.Scanning ? "Buscando juegos..." : $"{_home.GameCount} {(_home.GameCount == 1 ? "juego" : "juegos")} en la biblioteca";
+        if (Hardcore && (_terminalOpen || _terminalBarKeyboard)) status = ConsoleStatus();
+        else if (_home.IsOpen) status = _library.Scanning ? "Buscando juegos..." : $"{_home.GameCount} {(_home.GameCount == 1 ? "juego" : "juegos")} en la biblioteca";
         else if (_hub!=HubPage.None) status = _hub==HubPage.Create ? "Taller de creación · Ideas, proyectos y trabajos guardados." : _hub==HubPage.Tools ? "Herramientas · Partida, análisis y configuración." : "Ayuda · Controles, atajos y próximos pasos.";
         else if (ShowEmptyPreview) status = _creator.IsOpen ? "Creación desde cero · Prepará una idea o empezá desde una plantilla."
             : "Creación con originales · Elegí los juegos y definí cómo se combinan.";
@@ -1214,29 +1205,50 @@ public sealed partial class RetroApp
             }
         }
         if (_prefs.ShowFps) status = $"{Raylib.GetFPS()} cuadros/s · {status}";
-        int jobs = (_studio.IsWorking ? 1 : 0) + (_creator.IsWorking ? 1 : 0) + (_code.IsWorking ? 1 : 0);
+        // A scan of a few milliseconds is not worth a button that flickers.
+        var running = _tasks.Active.Where(task => task.Elapsed > TimeSpan.FromSeconds(1)).ToArray();
+        int jobs = running.Length;
         bool work = jobs > 0;
-        string workLabel = jobs > 1 ? $"{jobs} trabajos en curso" : "Ver trabajo en curso";
+        string workLabel = jobs > 1 ? $"{jobs} tareas en curso" : jobs == 1 ? _tasks.IsQuiet(running[0]) ? "Tarea sin actividad" : "Tarea: " + running[0].Kind : "";
         float buttonWidth = ImGui.CalcTextSize(workLabel).X + ImGui.GetStyle().FramePadding.X * 2;
+        // The console's status line uses its cells: at large text sizes the proportional font leaves room for very little.
+        if (Hardcore) ImGui.PushFont(UiTheme.ConsoleFont);
         ImGui.TextUnformatted(UiTheme.Fit(status, ImGui.GetContentRegionAvail().X - (work ? buttonWidth + UiTheme.Px(12) : 0)));
+        if (Hardcore) ImGui.PopFont();
         if (ImGui.IsItemHovered()) UiTheme.Tooltip(status);
         if (work)
         {
             ImGui.SameLine(Math.Max(ImGui.GetCursorPosX(), ImGui.GetWindowWidth() - buttonWidth - UiTheme.Px(8)));
-            if (ImGui.SmallButton(workLabel))
-            { if (jobs == 1) RevealCurrentWork(); else ImGui.OpenPopup("trabajos-activos"); }
-            if (ImGui.BeginPopup("trabajos-activos"))
-            {
-                if (_studio.IsWorking && ImGui.Selectable("Fusión o creación con originales"))
-                { CloseEditors(); _home.Close(); _studio.ShowWork(); }
-                if (_creator.IsWorking && ImGui.Selectable("Juego nuevo desde cero"))
-                { CloseEditors(); _home.Close(); _creator.ShowWork(); }
-                if (_code.IsWorking && ImGui.Selectable("Análisis y modificaciones"))
-                { CloseEditors(); _home.Close(); _code.ShowWork(); }
-                ImGui.EndPopup();
-            }
+            if (ImGui.SmallButton(workLabel)) ImGui.OpenPopup("tareas-activas");
+            DrawTaskList();
         }
         ImGui.End(); ImGui.PopStyleVar();
+    }
+
+    /// <summary>Every long operation in one list: what it is waiting for, how far it got and how to stop it.</summary>
+    private void DrawTaskList()
+    {
+        ImGui.SetNextWindowSizeConstraints(new(Math.Min(UiTheme.Px(420), ImGui.GetMainViewport().Size.X - 24), 0), ImGui.GetMainViewport().Size - new Vector2(24));
+        if (!ImGui.BeginPopup("tareas-activas")) return;
+        UiTheme.Eyebrow("TAREAS EN CURSO");
+        foreach (var task in _tasks.Active)
+        {
+            ImGui.PushID(task.Id);
+            ImGui.TextUnformatted(task.Kind + " · " + task.Target);
+            UiTheme.Hint(_tasks.Describe(task) + " · " + AppTaskCenter.Duration(task.Elapsed));
+            if (task.Stage.Length > 0) UiTheme.Hint(task.Stage);
+            // A bar only where something was counted; a guessed percentage would be a lie.
+            if (task.Fraction is { } fraction) ImGui.ProgressBar((float)fraction, new(-1, 0), AppTaskCenter.Progress(task));
+            if (_tasks.Advice(task) is { Length: > 0 } advice) UiTheme.Hint(advice);
+            ImGui.BeginDisabled(!task.CanCancel);
+            if (ImGui.SmallButton(task.CancelRequested ? "Cancelando…" : "Cancelar")) task.Cancel();
+            ImGui.EndDisabled();
+            if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled)) UiTheme.Tooltip("Lo que ya produjo se conserva.");
+            ImGui.PopID();
+            ImGui.Separator();
+        }
+        if ((_studio.IsWorking || _creator.IsWorking || _code.IsWorking) && ImGui.Button("Ver el taller")) { ImGui.CloseCurrentPopup(); RevealCurrentWork(); }
+        ImGui.EndPopup();
     }
 
     private void DrawPopups()

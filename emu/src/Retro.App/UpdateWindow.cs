@@ -23,6 +23,9 @@ public sealed class UpdateWindow : IDisposable
     private double? _fraction;
     public bool RestartRequested { get; private set; }
     public bool Blocking => _open;
+    /// <summary>A line for the console; installing always goes through the window.</summary>
+    public string Summary => !_packaged ? "Esta copia no es un paquete instalado: el actualizador no está disponible." :
+        _ready != null ? $"RetroEmu {_ready.ToVersion} está listo; actualizar abrir lo instala." : _status.Length > 0 ? _status : "Sin consultar en esta sesión; actualizar abrir busca la última entrega.";
 
     public UpdateWindow(string[] args, HttpClient? http = null, string? root = null, string? settings = null, Action<UpdatePlan>? install = null)
     {

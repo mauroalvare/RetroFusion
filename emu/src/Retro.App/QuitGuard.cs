@@ -4,12 +4,13 @@ namespace Retro.App;
 public static class QuitGuard
 {
     /// <summary>Null when nothing would be lost; otherwise the notice for the confirmation.</summary>
-    public static string? Notice(bool fusion, bool creator, bool analysis)
+    public static string? Notice(bool fusion, bool creator, bool analysis, int backgroundTasks = 0)
     {
         var work = new List<string>();
         if (fusion) work.Add("una fusión o creación con originales");
         if (creator) work.Add("un juego nuevo desde cero");
         if (analysis) work.Add("un análisis o una modificación");
+        if (backgroundTasks > 0) work.Add(backgroundTasks == 1 ? "una tarea de la consola" : $"{backgroundTasks} tareas de la consola");
         if (work.Count == 0) return null;
         string list = work.Count == 1 ? work[0] : string.Join(", ", work.Take(work.Count - 1)) + " y " + work[^1];
         return $"Hay trabajo en curso: {list}. Si salís ahora se cancela. " +
