@@ -27,6 +27,23 @@ public static class UpdateCleanup
     internal static void MarkPreparation(UpdatePlan plan) => WriteReceipt(plan, "preparing");
     internal static void ClearPreparation(UpdatePlan plan) => File.Delete(ReceiptPath(plan));
 
+    /// <summary>Older installed versions can consume this receipt without reading the newer journal.</summary>
+    internal static void MarkRestored(UpdatePlan plan)
+    {
+        plan.Validate();
+        if (plan.Format < 2 || plan.State != "rolled-back" || plan.RollbackNext != -1)
+            throw new InvalidDataException("La recuperación todavía no terminó.");
+        string snapshot = Path.Combine(plan.Job, "registro");
+        var original = PackageManifest.Read(snapshot);
+        if (original.Version != plan.FromVersion || original.Runtime != plan.Runtime)
+            throw new InvalidDataException("El registro restaurado no corresponde al programa anterior.");
+        original.Verify(plan.OldRoot, exact: false);
+        if (!File.ReadAllBytes(Path.Combine(snapshot, PackageManifest.FileName)).AsSpan()
+            .SequenceEqual(File.ReadAllBytes(Path.Combine(plan.OldRoot, PackageManifest.FileName))))
+            throw new InvalidDataException("El registro restaurado cambió. Se conservan los temporales.");
+        WriteReceipt(plan, "finished");
+    }
+
     internal static void DiscardPreparation(UpdatePlan plan)
     {
         plan.Validate();

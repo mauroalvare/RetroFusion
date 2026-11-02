@@ -75,6 +75,58 @@ public class CleanupTests
         Assert.That(Directory.Exists(_plan.Backup),Is.True);
     }
 
+    private async Task RollBack()
+    {
+        using var gate = UpdateInstaller.Lock(_plan);
+        Assert.ThrowsAsync<InvalidOperationException>(async () => await UpdateInstaller.ApplyAsync(_plan,
+            () => throw new InvalidOperationException("Fallo de arranque propio")));
+        await Task.CompletedTask;
+        Assert.That(_plan.State, Is.EqualTo("rolled-back"));
+        Assert.That(_plan.RollbackNext, Is.EqualTo(-1));
+    }
+
+    [Test] public async Task VerifiedRollbackLeavesAReceiptThatDoesNotNeedTheNewJournalReader()
+    {
+        await RollBack();
+        UpdateCleanup.MarkRestored(_plan);
+        // A prior version rejects journal 3. Receipt cleanup must not need to parse it at all.
+        File.WriteAllText(_plan.FilePath, "lector anterior incompatible");
+        UpdateCleanup.Sweep(_installed);
+        Assert.That(Directory.Exists(UpdatePlan.Metadata(_root)), Is.False);
+        PackageManifest.Read(_installed).Verify(_installed, exact: false);
+        PlayerData();
+    }
+
+    [Test] public async Task ChangedRestoredProgramKeepsEveryRecoveryFile()
+    {
+        await RollBack();
+        File.WriteAllText(Path.Combine(_installed, "RetroEmu.dll"), "Cambio ajeno");
+        Assert.Throws<InvalidDataException>(() => UpdateCleanup.MarkRestored(_plan));
+        UpdateCleanup.Sweep(_installed);
+        Assert.That(Directory.Exists(_plan.Job), Is.True);
+        Assert.That(Directory.GetFiles(UpdatePlan.Metadata(_root), "limpiar-*.json"), Is.Empty);
+        PlayerData();
+    }
+
+    [Test] public async Task ChangedRestoredManifestCannotAuthorizeDeletion()
+    {
+        await RollBack();
+        File.AppendAllText(Path.Combine(_installed, PackageManifest.FileName), " ");
+        Assert.Throws<InvalidDataException>(() => UpdateCleanup.MarkRestored(_plan));
+        Assert.That(Directory.GetFiles(UpdatePlan.Metadata(_root), "limpiar-*.json"), Is.Empty);
+        Assert.That(Directory.Exists(_plan.Job), Is.True);
+        PlayerData();
+    }
+
+    [TestCase("prepared"), TestCase("applying"), TestCase("recovery-needed"), TestCase("rolled-back")]
+    public void AnUnfinishedRollbackCannotAuthorizeDeletion(string state)
+    {
+        _plan.State = state; _plan.Save();
+        Assert.Throws<InvalidDataException>(() => UpdateCleanup.MarkRestored(_plan));
+        Assert.That(File.Exists(_plan.FilePath), Is.True);
+        PlayerData();
+    }
+
     [TestCase("apply.lock")] [TestCase("prepare.lock")]
     public async Task DoesNotCleanWhileAnotherUpdateOwnsEitherLock(string name)
     {

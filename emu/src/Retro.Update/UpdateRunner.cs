@@ -61,6 +61,7 @@ public static class UpdateRunner
             if (plan.State is "applying" or "recovery-needed")
             {
                 UpdateInstaller.Rollback(plan);
+                QueueRestoredCleanup(plan);
                 using var recovered = Launch(plan.OldRoot, plan, acknowledge: false);
                 return 0;
             }
@@ -89,6 +90,7 @@ public static class UpdateRunner
             }
             catch
             {
+                QueueRestoredCleanup(plan);
                 if (Directory.Exists(plan.OldRoot)) { shortcut.Restore(); using var previous = Launch(plan.OldRoot, plan, acknowledge: false); reopened = true; }
                 throw;
             }
@@ -134,10 +136,19 @@ public static class UpdateRunner
             EnsureClosed(plan.OldRoot);
             using var gate = UpdateInstaller.Lock(plan);
             UpdateInstaller.Rollback(plan);
+            QueueRestoredCleanup(plan);
             using var previous = Launch(plan.OldRoot, plan, acknowledge: false);
             return 0;
         }
         catch (Exception error) { WriteError(plan, error.Message); return 1; }
+    }
+
+    private static void QueueRestoredCleanup(UpdatePlan plan)
+    {
+        if (plan.Format < 2 || plan.State != "rolled-back") return;
+        try { UpdateCleanup.MarkRestored(plan); }
+        catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException)
+        { WriteError(plan, "No se pudo confirmar la limpieza después de recuperar. Se conservan los temporales. " + error.Message); }
     }
 
     private static async Task WaitRelay(UpdatePlan plan, CancellationToken ct)

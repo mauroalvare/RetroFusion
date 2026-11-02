@@ -4305,5 +4305,9 @@
   "{0}: {1}/{2}/{3}/{4}, disparo {5}": "{0}: {1}/{2}/{3}/{4}, fire {5}",
   "{0}→{1}, {2}, esperado [{3}, {4}]; ": "{0}→{1}, {2}, expected [{3}, {4}]; ",
   "{0} \"{1}\": {2} bytes en ${3}, {4} ({5})": "{0} \"{1}\": {2} bytes at 3, {4} ({5})",
-  "{0}: \"{1}\" {2} bytes en {3}": "{0}: \"{1}\" {2} bytes at {3}"
+  "{0}: \"{1}\" {2} bytes en {3}": "{0}: \"{1}\" {2} bytes at {3}",
+  "La recuperación todavía no terminó.": "Recovery has not finished yet.",
+  "El registro restaurado no corresponde al programa anterior.": "The restored manifest does not match the previous program.",
+  "El registro restaurado cambió. Se conservan los temporales.": "The restored manifest changed. Temporary files are being kept.",
+  "No se pudo confirmar la limpieza después de recuperar. Se conservan los temporales. ": "Cleanup could not be confirmed after recovery. Temporary files are being kept. "
 }

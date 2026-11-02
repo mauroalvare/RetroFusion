@@ -2140,3 +2140,17 @@ automática, con un aviso que explica el motivo. Recuperar archivo copia el orig
 completo a un respaldo antes de guardar los valores de la sesión en v1. Los campos
 desconocidos no se pierden sin esa acción explícita. Los archivos inválidos conservan
 el recorrido previo de recuperación y valores temporales.
+
+## D-126 — Limpiar una recuperación completa con lectores anteriores
+
+Un diario 3 recuperado puede devolver el programa a 0.3.7, cuyo lector no conoce ese
+formato. El ayudante nuevo verifica la restauración contra el manifiesto original
+guardado: versión, plataforma, todos los hashes del programa y los bytes del manifiesto.
+Solo con el diario completamente deshecho publica un recibo finished, ya comprendido
+por el limpiador anterior. Ese limpiador espera a que termine el ayudante y elimina
+descarga, respaldo, diario y recibo, sin interpretar el formato nuevo.
+
+Un estado rolled-back sin esa verificación no basta para borrar. Ante archivos ajenos,
+manifiesto alterado o recuperación incompleta se conservan los temporales. Los trabajos
+legados de formato 1 tampoco se autorizan con este recibo: podían contener carpetas del
+jugador. El aviso de una limpieza diferida no impide abrir el programa restaurado.
