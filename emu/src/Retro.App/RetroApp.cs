@@ -137,14 +137,7 @@ public sealed partial class RetroApp
         s_forceMute = args.Contains("--mute"); s_mute = _sound.Muted;
         s_volume = _sound.VolumePercent / 100f; s_output.Reset();
         StartAudioStream();
-        try
-        {
-            _host.Start(MachineCatalog.Get("zx48"), _romDir);
-        }
-        catch (Exception e)
-        {
-            _errorPopup = e.Message + UiText.Get("\n\nCopiá la ROM a la carpeta firmware/ junto al programa.");
-        }
+        StartOptionalDefaultMachine(_host, _romDir);
         bool openedFile = false;
         for (int i = 0; i < args.Length; i++)
         {
@@ -209,6 +202,14 @@ public sealed partial class RetroApp
         _updates.ControlBounds = (name, min, max) => InterfaceControlBounds?.Invoke(name, min, max);
         if (Hardcore) OpenTerminal();
         if (args.Contains("--interface-picker")) OpenInterfacePicker();
+    }
+
+    /// <summary>The default machine is optional; its firmware cannot block the library or an unrelated cartridge.</summary>
+    internal static void StartOptionalDefaultMachine(EmulatorHost host, string firmware)
+    {
+        try { host.Start(MachineCatalog.Get("zx48"), firmware); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException)
+        { host.Status = UiText.Get("Biblioteca lista. El firmware se comprueba al abrir cada sistema."); }
     }
 
     /// <summary>Without a sound device everything else keeps working: games run silent, at their real speed.</summary>
@@ -449,6 +450,7 @@ public sealed partial class RetroApp
                     audioDisabled = _audioDisabled, audioDeviceReady = (bool)Raylib.IsAudioDeviceReady(),
                     audioStreamReady = AudioReady, aiDisabled = _ai.ProvidersDisabled,
                     onlineMetadata = _prefs.OnlineGameInfo, style = InterfaceStyles.Describe(_prefs.Interface).Id,
+                    blockingError = _errorPopup != null,
                     palette = _prefs.ConsolePalette, width = Raylib.GetScreenWidth(), height = Raylib.GetScreenHeight()
                 }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
             // The emulated screen too, through the same path as Juego > Guardar captura (out/autotest-capturas).

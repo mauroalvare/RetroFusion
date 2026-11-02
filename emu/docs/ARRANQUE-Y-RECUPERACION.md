@@ -5,6 +5,9 @@ Estos cambios están preparados después de 0.3.7. No modifican los paquetes ya 
 El paquete de Windows x64 incluye el runtime de .NET y las bibliotecas gráficas y de audio.
 Se extrae completo y se abre RetroEmu.exe. No hace falta instalar el SDK, Python, una CLI
 de IA ni conectar una cuenta para jugar. Los juegos se aportan por separado.
+La falta o daño del firmware de la máquina predeterminada no bloquea la biblioteca ni
+un cartucho de otro sistema. Si encendés explícitamente una máquina que lo necesita,
+su falta se informa en ese momento.
 El sistema operativo y el controlador de video deben permitir OpenGL 3.3.
 Hay paquetes x64 para Windows y Linux; no se promete compatibilidad con cualquier sistema.
 Cada edición del sistema debe estar admitida por [.NET 10](https://learn.microsoft.com/en-us/dotnet/core/install/windows).

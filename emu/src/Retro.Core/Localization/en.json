@@ -4469,5 +4469,7 @@
   "Prueba cancelada. El juego guardado se conserva.": "Trial cancelled. The saved game is preserved.",
   "El paquete Linux incluye una comprobación previa al runtime, con requisitos de glibc y bibliotecas del sistema.": "The Linux package includes a check before loading the runtime, covering glibc and system library requirements.",
   "Los talleres distinguen errores, cancelaciones y resultados parciales; un fallo al guardar anotaciones conserva la respuesta en la sesión.": "Workshops distinguish errors, cancellations and partial results; a failure to save annotations keeps the answer in the session.",
-  "sistema componentes instalar oficial reparar": "system components install official repair"
+  "sistema componentes instalar oficial reparar": "system components install official repair",
+  "Biblioteca lista. El firmware se comprueba al abrir cada sistema.": "Library ready. Firmware is checked when you open each system.",
+  "La falta del firmware de una máquina no bloquea la biblioteca ni los cartuchos de otros sistemas.": "Missing firmware for one machine does not block the library or cartridges for other systems."
 }

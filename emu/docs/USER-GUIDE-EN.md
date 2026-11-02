@@ -3,6 +3,9 @@
 Extract the complete Windows x64 package and open RetroEmu.exe. The package includes
 its .NET runtime and native libraries; playing needs no SDK, Python, AI account or AI CLI.
 Bring your own games. A graphics driver providing OpenGL 3.3 is required.
+Missing or damaged firmware for the default machine does not block the library or a
+cartridge for another system. Starting a machine that requires it explicitly still reports
+the missing firmware.
 Firmware supplied with the package retains its respective licenses.
 --no-ai starts a manual session without loading or saving personal AI settings and blocks
 automatic provider creation. It can be combined with --preparar for local preparation.

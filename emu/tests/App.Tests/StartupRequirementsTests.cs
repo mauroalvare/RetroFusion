@@ -38,6 +38,21 @@ public sealed class StartupRequirementsTests
     }
 
     [TestCase(false), TestCase(true)]
+    public void MissingOrDamagedDefaultFirmwareDoesNotPreventOpeningTheLibrary(bool damaged)
+    {
+        string root = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "retro-optional-fw-" + Guid.NewGuid().ToString("N"))).FullName;
+        try
+        {
+            if (damaged) File.WriteAllBytes(Path.Combine(root, "48.rom"), new byte[16385]);
+            var host = new EmulatorHost();
+            Assert.DoesNotThrow(() => RetroApp.StartOptionalDefaultMachine(host, root));
+            Assert.That(host.Machine, Is.Null); Assert.That(host.Status, Does.Contain("Biblioteca lista"));
+            Assert.Catch(() => host.Start(Retro.Machines.MachineCatalog.Get("zx48"), root), "Explicitly starting the system must still report its missing or damaged firmware.");
+        }
+        finally { File.Delete(Path.Combine(root, "48.rom")); Directory.Delete(root); }
+    }
+
+    [TestCase(false), TestCase(true)]
     public void OnlyNoAudioSkipsInitializingTheDeviceAndMuteRetainsTheOrdinaryInitialization(bool disabled)
     {
         Assert.That(StartupRequirements.WantsAudio(disabled ? ["--mute", "--no-audio"] : ["--mute"]), Is.EqualTo(!disabled));
