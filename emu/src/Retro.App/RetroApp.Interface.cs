@@ -11,12 +11,12 @@ public sealed partial class RetroApp
     private ProgramTerminal? _terminal;
     private TerminalInput? _terminalInput;
     private TerminalView? _terminalView;
-    private bool _terminalOpen, _terminalBarKeyboard, _pausedBeforeTerminal;
+    private bool _terminalOpen, _terminalBarKeyboard, _pausedBeforeTerminal, _consoleWaitForEnterRelease;
     private bool _pausedBeforeInterfacePicker;
     private bool Hardcore => _prefs.Interface == InterfaceStyle.Hardcore;
     internal Action<string, Vector2, Vector2>? InterfaceControlBounds { get; set; }
     /// <summary>The console takes the keyboard only while no dialog is in front of it.</summary>
-    private bool ConsoleOwnsKeyboard => (_terminalOpen || _terminalBarKeyboard) && Hardcore && !_interfacePicker.IsOpen && !_updates.Blocking && !_commands.IsOpen
+    private bool ConsoleOwnsKeyboard => (_terminalOpen || _terminalBarKeyboard && Hardcore) && !_interfacePicker.IsOpen && !_updates.Blocking && !_commands.IsOpen
         && _pendingOpen == null && _errorPopup == null && _quitNotice == null && !_browser.IsOpen && !ConfigurationOpen;
 
     private ProgramTerminal Terminal
@@ -147,7 +147,7 @@ public sealed partial class RetroApp
 
     private void DrawTerminal()
     {
-        if (!Hardcore) return;
+        if (!Hardcore && !_terminalOpen) return;
         _ = Terminal;
         var viewport = ImGui.GetMainViewport();
         float height = _terminalOpen ? viewport.Size.Y - UiTheme.StatusBarHeight : WorkspaceLayout.FooterHeight;
@@ -155,7 +155,8 @@ public sealed partial class RetroApp
         ImGui.SetNextWindowSize(new(viewport.Size.X, height));
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, _terminalOpen ? Vector2.Zero : UiTheme.Px(8, 4));
         ImGui.Begin("##program-terminal", WorkspaceLayout.EditorFlags | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
-        bool keyboard = ConsoleOwnsKeyboard;
+        if (_consoleWaitForEnterRelease && !ImGui.IsKeyDown(ImGuiKey.Enter) && !ImGui.IsKeyDown(ImGuiKey.KeypadEnter)) _consoleWaitForEnterRelease = false;
+        bool keyboard = ConsoleOwnsKeyboard && !_consoleWaitForEnterRelease;
         if (_terminalOpen) _terminalView!.Draw(keyboard);
         else
         {

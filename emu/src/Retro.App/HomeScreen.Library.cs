@@ -8,9 +8,9 @@ namespace Retro.App;
 public sealed partial class HomeScreen
 {
     private sealed record LibraryCard(string Key, string Title, string Detail, string? Hint, string Machine,
-        IReadOnlyList<string> Systems, LibraryGameKind Kind, bool Openable, Action Play, Func<string?> Picture, string? File = null, string? Preparation = null);
-    private readonly FrameCache<(int, int, int), List<LibraryCard>> _catalog = new();
-    private readonly FrameCache<(int, int, int, int, int, string, string, LibraryFilterRequest, long), List<LibraryCard>> _filtered = new();
+        IReadOnlyList<string> Systems, LibraryGameKind Kind, bool Openable, Action Play, Func<string?> Picture, string? File = null, string? Preparation = null, bool Missing = false);
+    private readonly FrameCache<(int, int, int, int, string), List<LibraryCard>> _catalog = new();
+    private readonly FrameCache<(int, int, int, int, int, string, string, LibraryFilterRequest, long, string), List<LibraryCard>> _filtered = new();
     private readonly FrameCache<(int, int, int, int, string), string[]> _genres = new();
     private LibraryFilterRequest _filters = new();
     private bool _filtersExpanded;
@@ -29,7 +29,7 @@ public sealed partial class HomeScreen
         get
         {
             _identification.UpdateLocal(library.Entries, library.Folder, library.Revision);
-            return _catalog.Get((library.Revision, _contentRevision, _identification.Revision), BuildCatalog);
+            return _catalog.Get((library.Revision, _contentRevision, _identification.Revision, _activity.Revision, UiText.Language), BuildCatalog);
         }
     }
 
@@ -55,11 +55,22 @@ public sealed partial class HomeScreen
                 game.IsInspired ? LibraryGameKind.Inspired : LibraryGameKind.Fusion, missing.Length == 0,
                 () => playFusion(game.Id), () => StudioLibrary.PicturePath(game), null, missing.Length == 0 ? "Originales disponibles" : "Faltan originales"));
         }
+        var present = cards.Select(card => card.Key).ToHashSet(StringComparer.Ordinal);
+        foreach (string key in _activity.Favorites.Concat(_activity.Recents).Distinct().Where(key => !present.Contains(key)))
+        {
+            // The activity store intentionally contains identities only, never a stale personal path or title.
+            var kind = key.StartsWith("original:", StringComparison.Ordinal) ? LibraryGameKind.Original
+                : key.StartsWith("created:", StringComparison.Ordinal) ? LibraryGameKind.Created : LibraryGameKind.Fusion;
+            string code = key[(key.IndexOf(':') + 1)..][..8];
+            cards.Add(new(key, _identification.Get(key)?.Title ?? UiText.Format($"Juego ausente · {code}"), "Archivo ausente",
+                "No encuentro este contenido en la biblioteca. Agregá su carpeta y usá escanear; la marca se recupera por contenido. También podés quitar el favorito.",
+                "", [], kind, false, () => { }, () => null, Preparation: "Preparación: archivo ausente", Missing: true));
+        }
         _metadata.Observe(cards.Select(card => card.Key));
         return cards;
     }
 
-    private bool InSection(LibraryCard card) => _section switch
+    private bool InSection(LibraryCard card) => card.Missing && _section is not ("favorites" or "recent") ? false : _section switch
     {
         "originals" => card.Kind == LibraryGameKind.Original,
         "created" => card.Kind is LibraryGameKind.Created or LibraryGameKind.Inspired,
@@ -76,7 +87,7 @@ public sealed partial class HomeScreen
         var request = _filters with { Search = _search };
         var now = _clock.GetUtcNow();
         return _filtered.Get((library.Revision, _contentRevision, _metadata.Revision, _identification.Revision, _activity.Revision, _section, _machine, request,
-            now.UtcTicks / TimeSpan.TicksPerMinute), () =>
+            now.UtcTicks / TimeSpan.TicksPerMinute, UiText.Language), () =>
         {
             var selected = catalog.Select((card, index) => (card, index)).Where(item => InSection(item.card));
             if (_section is "favorites" or "recent") selected = selected.DistinctBy(item => item.card.Key);
@@ -246,6 +257,12 @@ public sealed partial class HomeScreen
         _editProblem = ""; _focusEditor = true;
     }
 
+    private static string Compatibility(LibraryCard card) => card.Missing ? "Sin archivo para comprobar"
+        : !card.Openable ? card.Hint ?? "No se puede abrir"
+        : card.Kind == LibraryGameKind.Original ? "Formato reconocido; compatibilidad de esta edición por comprobar"
+        : "Programa disponible; revisá sus informes de validación";
+    private const string Playability = "La ficha no certifica controles, progreso ni final; requieren una prueba de juego.";
+
     private void DrawMetadataEditor()
     {
         if (_editing is not { } card) return;
@@ -256,7 +273,11 @@ public sealed partial class HomeScreen
         if (!ImGui.Begin(UiText.Label("Ficha del juego###library-game-info"), ref open, ImGuiWindowFlags.NoDocking))
         { ImGui.End(); if (!open) _editing = null; return; }
         WorkspaceLayout.KeepOnScreen();
+        ImGui.BeginChild("contenido-ficha", new Vector2(0, -ImGui.GetFrameHeightWithSpacing() * 2));
         UiTheme.Heading(card.Title, localizeTitle: false);
+        UiTheme.Hint(UiText.Get("Compatibilidad: ") + UiText.Get(Compatibility(card)));
+        UiTheme.Hint(UiText.Get("Jugabilidad: ") + UiText.Get(Playability));
+        UiTheme.Hint(card.Preparation ?? "Preparación: no aplica.");
         bool favorite = _activity.IsFavorite(card.Key);
         if (ImGui.Checkbox(UiText.Label("Favorito"), ref favorite)) _activity.SetFavorite(card.Key, favorite);
         if (_identification.Get(card.Key) is { } detected)
@@ -302,6 +323,7 @@ public sealed partial class HomeScreen
         if (info.AddedAt is { } added) UiTheme.Hint(UiText.Get("Registrado en este catálogo: ") + added.ToLocalTime().ToString("dd/MM/yyyy"));
         if (_activity.LastPlayed(card.Key) is { } played) UiTheme.Hint(UiText.Get("Última partida: ") + played.ToLocalTime().ToString("dd/MM/yyyy HH:mm"));
         if (_editProblem.Length > 0) UiTheme.Hint(_editProblem);
+        ImGui.EndChild();
         if (UiTheme.PrimaryButton("Guardar ficha"))
         {
             if (_metadata.Update(card.Key, ParseGenres(_editGenres), _editHasYear ? _editYear : null)) _editing = null;

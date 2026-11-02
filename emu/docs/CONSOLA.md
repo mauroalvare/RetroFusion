@@ -106,6 +106,12 @@ los atajos de herramientas llevan Ctrl+Shift.
 
 ## Cobertura por órdenes
 
+El buscador gráfico también incluye las órdenes del catálogo, con parámetros y ejemplos
+en la ayuda al pasar el puntero. Elegir una abre la consola con su nombre preparado y
+su ayuda; completá los argumentos y pulsá Enter para ejecutarla. Al volver a Biblioteca
+o a la partida se conserva el estilo gráfico elegido. Las acciones siguen operando
+directamente sobre el contexto actual.
+
 **Completo** significa que el recorrido llega al resultado escribiendo. **Parcial** significa
 que la orden abre o consulta, y una parte sigue en un instrumento visual.
 

@@ -11,6 +11,11 @@ public sealed record AppCommand(string Id, string Title, string Group, string Ke
     private string _title = Title, _group = Group;
     public string Title { get => UiText.Get(_title); init => _title = value; }
     public string Group { get => UiText.Get(_group); init => _group = value; }
+    public string Usage { get; init; } = "";
+    public IReadOnlyList<CommandArgument> Parameters { get; init; } = [];
+    public IReadOnlyList<string> Examples { get; init; } = [];
+    public string Description { get; init; } = "";
+    public bool IsOrder { get; init; }
     public bool Enabled => CanExecute?.Invoke() ?? true;
 }
 
@@ -23,11 +28,26 @@ public sealed class CommandPalette
     public bool IsOpen => _open || _request;
     public void Open() { _request = true; _focus = true; _query = ""; _selected = 0; }
 
+    /// <summary>Actions act on the current context; selecting an order only prepares its editable line.</summary>
+    public static IReadOnlyList<AppCommand> WithOrders(IEnumerable<AppCommand> actions, IEnumerable<CommandSpec> orders, Action<CommandSpec> prepare)
+    {
+        var result = actions.Select(action => action with
+        {
+            Usage = action.Usage.Length > 0 ? action.Usage : TerminalLanguage.Name("hacer") + " " + action.Id,
+            Examples = action.Examples.Count > 0 ? action.Examples : [TerminalLanguage.Name("hacer") + " " + action.Id]
+        }).ToList();
+        foreach (var order in orders.DistinctBy(order => order.Id))
+            result.Add(new("order:" + order.Id, order.Usage, UiText.Get("Órdenes") + " · " + order.Group,
+                string.Join(' ', order.Aliases.Prepend(order.Keywords)), "", () => prepare(order))
+            { Usage = order.Usage, Parameters = order.Arguments, Examples = order.Examples.Select(TerminalLanguage.Example).ToArray(), Description = order.Summary, IsOrder = true });
+        return result;
+    }
+
     public static IReadOnlyList<AppCommand> Search(IEnumerable<AppCommand> commands, string query)
     {
         string[] words = Normalize(query).Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (words.Length == 0) return commands.ToList();
-        return commands.Where(command => words.All(word => Normalize(command.Title + " " + UiText.Get(command.Group) + " " + UiText.Get(command.Keywords) + " " + command.Id).Contains(word)))
+        return commands.Where(command => words.All(word => Normalize(command.Title + " " + UiText.Get(command.Group) + " " + UiText.Get(command.Keywords) + " " + command.Id + " " + command.Usage + " " + command.Description + " " + string.Join(' ', command.Examples)).Contains(word)))
             .OrderByDescending(command => words.Length > 0 && Normalize(command.Title).StartsWith(string.Join(' ', words)))
             .ThenBy(command => command.Group, StringComparer.Ordinal).ThenBy(command => command.Title, StringComparer.Ordinal).ToList();
     }
@@ -46,7 +66,7 @@ public sealed class CommandPalette
         // A modal owns the dimmed navigation area too; reserving it can leave no result row at 200%.
         WorkspaceLayout.KeepOnScreen(modal:true);
         bool roomy = ImGui.GetWindowHeight() >= UiTheme.Px(400);
-        if (roomy) UiTheme.Hint("Encontrá una herramienta, una opción o una acción de la partida.");
+        if (roomy) UiTheme.Hint("Encontrá acciones y órdenes. Una orden prepara la línea; Enter la ejecuta en la consola.");
         if (_focus) { ImGui.SetKeyboardFocusHere(); _focus = false; }
         ImGui.SetNextItemWidth(-1);
         string before = _query;
@@ -72,9 +92,12 @@ public sealed class CommandPalette
             if (ImGui.IsItemFocused()) _selected = i;
             ImGui.EndDisabled();
             if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled)) UiTheme.Tooltip(command.Title + "\n" + command.Group +
-                (command.Shortcut.Length > 0 ? " · " + command.Shortcut : "") + (!command.Enabled ? "\n" + command.Unavailable : ""));
+                (command.Shortcut.Length > 0 ? " · " + command.Shortcut : "") + (!command.Enabled ? "\n" + UiText.Get(command.Unavailable) : "")
+                + (command.Description.Length > 0 ? "\n" + command.Description : "") + (command.Usage.Length > 0 ? "\n" + UiText.Get("Uso: ") + command.Usage : "")
+                + string.Concat(command.Examples.Select(example => "\n" + UiText.Get("Ejemplo: ") + example)));
             if (searchFocused && i == _selected && (ImGui.IsKeyPressed(ImGuiKey.UpArrow) || ImGui.IsKeyPressed(ImGuiKey.DownArrow))) ImGui.SetScrollHereY();
             if (roomy) UiTheme.Hint(command.Group + (command.Shortcut.Length > 0 ? " · " + command.Shortcut : "") + (!command.Enabled ? " · " + command.Unavailable : ""));
+            if (roomy && command.Description.Length > 0) UiTheme.Hint(command.Description);
             ImGui.PopID();
         }
         ImGui.EndChild();

@@ -4309,5 +4309,22 @@
   "La recuperación todavía no terminó.": "Recovery has not finished yet.",
   "El registro restaurado no corresponde al programa anterior.": "The restored manifest does not match the previous program.",
   "El registro restaurado cambió. Se conservan los temporales.": "The restored manifest changed. Temporary files are being kept.",
-  "No se pudo confirmar la limpieza después de recuperar. Se conservan los temporales. ": "Cleanup could not be confirmed after recovery. Temporary files are being kept. "
+  "No se pudo confirmar la limpieza después de recuperar. Se conservan los temporales. ": "Cleanup could not be confirmed after recovery. Temporary files are being kept. ",
+  "Juego ausente · {0}": "Missing game · {0}",
+  "Archivo ausente": "Missing file",
+  "No encuentro este contenido en la biblioteca. Agregá su carpeta y usá escanear; la marca se recupera por contenido. También podés quitar el favorito.": "This content is missing from the library. Add its folder and use scan; the mark is restored by content. You can also remove the favorite.",
+  "Preparación: archivo ausente": "Preparation: missing file",
+  "Sin archivo para comprobar": "No file to check",
+  "Formato reconocido; compatibilidad de esta edición por comprobar": "Format recognized; compatibility of this edition needs checking",
+  "Programa disponible; revisá sus informes de validación": "Program available; review its validation reports",
+  "La ficha no certifica controles, progreso ni final; requieren una prueba de juego.": "The card does not certify controls, progress or completion; these require a play test.",
+  "Compatibilidad: ": "Compatibility: ",
+  "Jugabilidad: ": "Playability: ",
+  "COMPATIBILIDAD": "COMPATIBILITY",
+  "JUGABILIDAD": "PLAYABILITY",
+  "PARA FUSIONES": "FOR FUSIONS",
+  "Órdenes": "Commands",
+  "Encontrá acciones y órdenes. Una orden prepara la línea; Enter la ejecuta en la consola.": "Find actions and commands. Selecting a command prepares the line; Enter runs it in the console.",
+  "Los favoritos ausentes siguen visibles y recuperan su marca cuando vuelve el mismo contenido.": "Missing favorites stay visible and recover their mark when the same content returns.",
+  "El buscador incluye órdenes con parámetros y ejemplos; elegir una prepara la línea sin ejecutarla.": "Search includes commands with parameters and examples; selecting one prepares the line without running it."
 }

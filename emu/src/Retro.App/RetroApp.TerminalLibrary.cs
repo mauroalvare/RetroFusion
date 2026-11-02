@@ -272,6 +272,8 @@ public sealed partial class RetroApp
         context.Write(UiText.Get("Año: ") + game.Info.YearLabel + (game.Info.WorkYear ? " · año de la obra; el de esta plataforma no está determinado" : ""));
         context.Write(UiText.Get("Género: ") + (game.Info.Genres.Count == 0 ? "sin clasificar" : string.Join(", ", game.Info.Genres)));
         context.Write(game.Openable ? "Archivo: disponible; la jugabilidad depende de su compatibilidad." : UiText.Get("Archivo: no se puede abrir") + (game.Hint is { Length: > 0 } hint ? " · " + hint : "") + ".");
+        context.Write(UiText.Get("Compatibilidad: ") + UiText.Get(game.Compatibility));
+        context.Write(UiText.Get("Jugabilidad: ") + UiText.Get(game.Playability));
         if (game.Path != null) context.Detail(UiText.Get("Ubicación: ") + game.Path);
         context.Write(game.Preparation);
         if (game.Detected is { } facts)

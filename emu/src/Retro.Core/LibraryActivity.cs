@@ -67,6 +67,7 @@ public sealed class LibraryActivity
     }
 
     public bool IsFavorite(string key) => _games.TryGetValue(key, out var entry) && entry.Favorite;
+    public IReadOnlyList<string> Favorites => _games.Where(g => g.Value.Favorite).Select(g => g.Key).Order(StringComparer.Ordinal).ToArray();
     public DateTimeOffset? LastPlayed(string key) => _games.GetValueOrDefault(key)?.Played;
     public IReadOnlyList<string> Recents => _games.Where(g => g.Value.Played != null)
         .OrderByDescending(g => g.Value.Played).ThenBy(g => g.Key, StringComparer.Ordinal).Select(g => g.Key).ToArray();

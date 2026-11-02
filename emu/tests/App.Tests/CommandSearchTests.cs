@@ -5,6 +5,25 @@ namespace App.Tests;
 
 public sealed class CommandSearchTests
 {
+    [Test]
+    public void OrdersExposeTheirParametersExamplesAndAliasesWithoutExecutingThem()
+    {
+        int prepared = 0;
+        var order = new CommandSpec
+        {
+            Id = "sample", Name = "muestra", Group = "Análisis", Summary = "Lee una muestra de memoria.", Aliases = ["mues"],
+            Arguments = [new("direccion", ArgumentKind.Hex)], Examples = ["muestra 8000"],
+            Run = _ => Assert.Fail("Searching or preparing must never run the order.")
+        };
+        var commands = CommandPalette.WithOrders([Command("sound", "Sonido")], [order, order], _ => prepared++);
+        Assert.That(commands, Has.Count.EqualTo(2), "The same order ID is presented once.");
+        var found = CommandPalette.Search(commands, "mues 8000").Single();
+        Assert.That(found.IsOrder, Is.True); Assert.That(found.Parameters, Is.SameAs(order.Arguments));
+        Assert.That(found.Usage, Is.EqualTo(order.Usage)); Assert.That(found.Examples, Is.EqualTo(order.Examples));
+        Assert.That(prepared, Is.Zero); found.Execute(); Assert.That(prepared, Is.EqualTo(1));
+        Assert.That(commands[0].Usage, Is.EqualTo("hacer sound"));
+    }
+
     private static AppCommand Command(string id, string title, string group = "", string keywords = "") =>
         new(id, title, group, keywords, "", () => Assert.Fail("Buscar no debe ejecutar acciones."));
 

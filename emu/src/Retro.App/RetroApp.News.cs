@@ -46,7 +46,9 @@ internal static class ReleaseNotes
             "El actualizador reemplaza los archivos de forma atómica para poder recuperarse después de un corte.",
             "La elección de interfaz se vuelve a ofrecer después de cada actualización, también si se hizo manualmente.",
             "Terminal real es el nuevo nombre de la interfaz por comandos.",
-            "El idioma se elige en Preferencias; la terminal ofrece las órdenes correspondientes al idioma elegido."
+            "El idioma se elige en Preferencias; la terminal ofrece las órdenes correspondientes al idioma elegido.",
+            "Los favoritos ausentes siguen visibles y recuperan su marca cuando vuelve el mismo contenido.",
+            "El buscador incluye órdenes con parámetros y ejemplos; elegir una prepara la línea sin ejecutarla."
         ]),
         new("0.3.7", [
             "Consola interna con ayuda, historial, autocompletado y tareas cancelables en segundo plano.",

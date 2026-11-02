@@ -8,6 +8,15 @@ public sealed partial class RetroApp
     private IReadOnlyList<AppCommand>? _commandCatalog;
     private (bool Shift, bool Pc, bool C64) _commandContext;
 
+    private void PrepareConsoleOrder(CommandSpec order)
+    {
+        OpenTerminal();
+        Terminal.Submit(TerminalLanguage.Name("ayuda") + " " + order.Name);
+        _terminalInput!.Editor.Set(order.Name + (order.Arguments.Count > 0 ? " " : ""));
+        _terminalInput.FollowPrompt = true;
+        _consoleWaitForEnterRelease = true;
+    }
+
     private IReadOnlyList<AppCommand> Commands
     {
         get

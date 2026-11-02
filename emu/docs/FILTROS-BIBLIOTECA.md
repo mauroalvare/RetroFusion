@@ -66,4 +66,12 @@ Con poca altura, el botón **Filtros** queda junto a la búsqueda. El orden y la
 Abrir archivo y Actualizar biblioteca están dentro de ese panel. **Ver resultados** cierra
 el panel y recupera espacio para la lista. Abrir también sigue disponible desde Juego.
 Los paneles permiten desplazamiento; el listado reserva espacio suficiente para alcanzar
-los botones Jugar y Ficha. La edición tiene sus propios botones Guardar y Cancelar.
+los botones Jugar y Ficha. La edición mantiene Guardar y Cancelar al pie mientras sus campos
+se desplazan. La ficha distingue compatibilidad, jugabilidad y preparación para fusión;
+reconocer el formato o abrirlo no certifica controles, progreso ni final.
+
+Al renombrar o mover dentro de la biblioteca, escaneá de nuevo: la ficha y el favorito
+siguen al contenido. Varias copias aparecen por ruta en Originales, y una sola vez en
+Favoritos y Recientes. Si desaparecen todas, queda una entrada deshabilitada que permite
+quitar la marca. Agregá la carpeta y escaneá para recuperar el acceso. La actividad no
+guarda nombres ni rutas; sin identificación local, la entrada ausente muestra una clave corta.

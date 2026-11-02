@@ -192,7 +192,9 @@ public sealed partial class HomeScreen
             if (detected.Publisher != null) Fact("EDITORA", detected.Publisher);
             Fact("ORIGEN DE LOS DATOS", detected.Source);
         }
-        Fact("ESTADO", card.Openable ? card.Preparation ?? "Disponible" : card.Hint ?? "No se puede abrir");
+        Fact("COMPATIBILIDAD", Compatibility(card));
+        Fact("JUGABILIDAD", Playability);
+        Fact("PARA FUSIONES", card.Preparation ?? "Preparación: no aplica.");
         if (_activity.LastPlayed(card.Key) is { } played) Fact("ÚLTIMA PARTIDA", played.ToLocalTime().ToString("dd/MM/yyyy HH:mm"));
         UiTheme.EndPanel();
 

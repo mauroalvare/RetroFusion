@@ -3,7 +3,11 @@ using Retro.Core;
 namespace Retro.App;
 
 internal sealed record TerminalGame(string Key, string Title, string Systems, string Kind, bool Openable,
-    LibraryGameInfo Info, IdentifiedGame? Detected, bool Favorite, Action Play, string? Hint, string? Path, string Preparation);
+    LibraryGameInfo Info, IdentifiedGame? Detected, bool Favorite, Action Play, string? Hint, string? Path, string Preparation)
+{
+    public string Compatibility { get; init; } = "";
+    public string Playability { get; init; } = "";
+}
 
 public sealed partial class HomeScreen
 {
@@ -17,7 +21,7 @@ public sealed partial class HomeScreen
         if (!_refreshed) Refresh();
         return (filtered ? FilteredCards() : Catalog).DistinctBy(card => card.Key).Select(card => new TerminalGame(card.Key, card.Title,
             string.Join(",", card.Systems), card.Kind.ToString(), card.Openable, EffectiveInfo(card.Key), _identification.Get(card.Key), _activity.IsFavorite(card.Key), card.Play,
-            card.Hint, card.File, card.Preparation ?? "Preparación: no aplica.")).ToArray();
+            card.Hint, card.File, card.Preparation ?? "Preparación: no aplica.") { Compatibility = Compatibility(card), Playability = Playability }).ToArray();
     }
 
     internal IEnumerable<(string Id, string Name)> TerminalMachines() => Machines.Select(machine => (machine.Id, Name(machine)));
@@ -30,8 +34,8 @@ public sealed partial class HomeScreen
         var catalog = Catalog.DistinctBy(card => card.Key).ToArray();
         var rows = new List<(string, int)>
         {
-            ("biblioteca", catalog.Length), ("originales", catalog.Count(card => card.Kind == LibraryGameKind.Original)),
-            ("creados", catalog.Count(card => card.Kind is LibraryGameKind.Created or LibraryGameKind.Inspired)), ("fusiones", catalog.Count(card => card.Kind == LibraryGameKind.Fusion)),
+            ("biblioteca", catalog.Count(card => !card.Missing)), ("originales", catalog.Count(card => !card.Missing && card.Kind == LibraryGameKind.Original)),
+            ("creados", catalog.Count(card => !card.Missing && card.Kind is LibraryGameKind.Created or LibraryGameKind.Inspired)), ("fusiones", catalog.Count(card => !card.Missing && card.Kind == LibraryGameKind.Fusion)),
             ("favoritos", catalog.Count(card => _activity.IsFavorite(card.Key))), ("recientes", catalog.Count(card => _activity.LastPlayed(card.Key) != null))
         };
         rows.AddRange(Machines.Select(machine => (machine.Id, catalog.Count(card => card.Systems.Contains(machine.Id)))));

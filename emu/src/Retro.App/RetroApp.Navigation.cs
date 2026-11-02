@@ -67,6 +67,7 @@ public sealed partial class RetroApp
                 }
             }
             if (ImGui.Button(UiText.Label("Buscar…"),new(UiTheme.Px(88),0))) _commands.Open();
+            InterfaceControlBounds?.Invoke("Buscar acciones", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
             if (ImGui.IsItemHovered()) UiTheme.Tooltip(UiText.Get("Todas las acciones y sus atajos · ")+ToolShortcut("P"));
         }
         ImGui.End(); ImGui.PopStyleVar(2);

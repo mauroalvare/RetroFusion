@@ -23,10 +23,11 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   usan los catálogos comunes de los estilos gráficos. Los metadatos no se consultan en línea
   hasta habilitarlo; las pruebas usan respuestas simuladas, no certifican disponibilidad
   permanente del proveedor.
-- Los contratos de orden, acción y ajuste son tres definiciones: `CommandSpec` describe
-  argumentos, ejemplos y errores; `AppCommand` y `AppOption` son más simples. El buscador
-  gráfico lista acciones, no órdenes de consola, y una orden sin acción equivalente solo se
-  descubre desde la consola.
+- Los contratos de orden, acción y ajuste son tres definiciones. El buscador combina las
+  acciones con las órdenes de `CommandSpec`, incluidos parámetros, ejemplos y ayuda.
+  Elegir una orden prepara una línea editable y muestra su ayuda; no ejecuta la operación.
+  La consola se superpone al estilo gráfico actual sin cambiar la preferencia guardada.
+  Una acción opera sobre el contexto actual; su orden equivalente puede pedir argumentos.
 - La consola dibuja una grilla de ancho fijo. Un carácter fuera de las fuentes instaladas se
   ve como signo de pregunta, aunque se conserva al copiarlo: los emojis y la escritura de
   derecha a izquierda no tienen soporte. Las fuentes dependen del sistema: la auditoría de
@@ -45,8 +46,10 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   dispositivo deja de pedir sonido con el programa abierto se trata igual, y vuelve solo si responde.
 - El historial de órdenes se guarda en claro en la cuenta del usuario; las rutas escritas en una
   orden quedan ahí. `historial borrar` lo vacía y `consola-historial` lo desactiva.
-- Un favorito o un reciente cuyo archivo ya no está deja de listarse hasta que el archivo
-  vuelve: el dato se conserva, pero no hay una entrada para archivos desaparecidos.
+- Un favorito o reciente ausente se muestra deshabilitado después de escanear. La actividad
+  guarda solo identidad, sin rutas ni títulos: si no hay identificación local se muestra una
+  clave corta. Agregar la carpeta y escanear recupera el acceso cuando vuelve el mismo
+  contenido. No se busca automáticamente fuera de la biblioteca elegida.
 
 - Rechazar una cabecera inválida, bytes sobrantes o valores fuera de rango no detecta
   toda alteración posible de RAM en un estado. Varios formatos anteriores no tienen

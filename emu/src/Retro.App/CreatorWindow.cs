@@ -165,6 +165,7 @@ public sealed class CreatorWindow
         ImGui.Combo("##maquina-creador", ref _machine, Templates.All.Select(template => template.Name).ToArray(), Templates.All.Count);
         UiTheme.Section("2 · Contá la idea", "Qué hace el jugador, qué busca y qué te gustaría que tenga de especial.");
         ImGui.InputTextMultiline("##pedido-crear", ref _wish, 4000, new Vector2(-1, UiTheme.Px(86)));
+        ObserveControl("Idea");
         AiPicker.Hint("También podés dejarla vacía para explorar una idea nueva.");
         UiTheme.EndCard(); ImGui.TableNextColumn(); UiTheme.BeginCard("creator-method");
         UiTheme.Section("3 · Elegí cómo crearlo");
@@ -258,6 +259,7 @@ public sealed class CreatorWindow
             _manualDraft = null;
             _pasted = "";
         }
+        ObserveControl("Cancelar respuesta");
     }
 
     private void DrawAgent()

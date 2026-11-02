@@ -407,7 +407,7 @@ public sealed partial class RetroApp
         DrawSoundWindow();
         DrawPreferencesWindow();
         AiConnectionWindow.Draw(_ai);
-        _commands.Draw(Commands);
+        _commands.Draw(_commands.IsOpen ? CommandPalette.WithOrders(Commands, Terminal.Commands, PrepareConsoleOrder) : Commands);
         DrawTerminal();
         ImGui.EndDisabled();
         _updates.Draw();

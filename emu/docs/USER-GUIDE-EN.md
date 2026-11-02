@@ -30,6 +30,10 @@ Select a library folder, open a game or drop a supported file on the window. The
 provides search, system/genre/year filters, favorites, recents and details. Recognizing
 a format does not prove gameplay or readiness for fusion; these are separate evidence levels.
 Optional online metadata lookup is off by default and personal corrections take priority.
+After renaming or moving files within the selected folder, scan again. Identical copies
+share one favorite and recent entry. Missing entries remain visible and disabled; adding
+their folder and scanning restores access by content. Activity stores identities only,
+so an unknown missing game shows a short key. Card Save and Cancel stay below the scrolling fields.
 
 Return to game resumes from the library or tools. While playing, the keyboard belongs to
 the emulated machine. In the library, dialogs and pause, Tab and arrows navigate, Enter or
@@ -46,6 +50,10 @@ A file from a later version is read conservatively: known valid values may be us
 the file remains unchanged. Recover file keeps a complete backup before saving this version.
 
 ## Real terminal
+
+Graphical search also lists commands with parameters and examples. Selecting one opens
+an editable console line with its help; it does not execute it. Complete the arguments
+and press Enter. Returning to the library or game retains the selected graphical style.
 
 Press Ctrl+Shift+T to switch between game and console. The console is an internal command
 interpreter, without host shell execution.

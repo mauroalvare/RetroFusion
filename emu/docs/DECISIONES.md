@@ -2154,3 +2154,23 @@ Un estado rolled-back sin esa verificación no basta para borrar. Ante archivos 
 manifiesto alterado o recuperación incompleta se conservan los temporales. Los trabajos
 legados de formato 1 tampoco se autorizan con este recibo: podían contener carpetas del
 jugador. El aviso de una limpieza diferida no impide abrir el programa restaurado.
+
+## D-127 — Favoritos ausentes y evidencia de la ficha
+
+LibraryActivity v1 sigue guardando solo identidades. Expone una instantánea de favoritos;
+HomeScreen agrega entradas ausentes para Favoritos/Recientes después de escanear, sin
+inventar una ruta ni aumentar las cantidades de archivos presentes. Una copia recupera
+el acceso por identidad de contenido; varias rutas conservan sus acciones pero comparten
+favorito. Una entrada desconocida muestra una clave corta y permite quitar la marca.
+La caché incluye revisión de actividad e idioma. La ficha separa compatibilidad,
+jugabilidad y preparación, y sus botones quedan fuera del cuerpo desplazable.
+
+## D-128 — Descubrimiento de órdenes desde el buscador gráfico
+
+AppCommand incluye uso, parámetros, ejemplos y descripción. CommandPalette proyecta
+CommandSpec al abrir el buscador; no mantiene una segunda lista de sintaxis y elimina
+IDs de orden repetidos. Las acciones directas conservan su recorrido para el contexto
+actual; las órdenes permiten indicar argumentos. Elegir una orden muestra ayuda y
+prepara su nombre en la consola sin ejecutarla. Se espera a soltar el Enter de selección
+antes de aceptar entradas. La consola puede superponerse a un estilo gráfico sin
+sobrescribir esa preferencia y se cierra al volver a Biblioteca o jugar.
