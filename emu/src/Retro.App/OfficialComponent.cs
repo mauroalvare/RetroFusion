@@ -140,7 +140,7 @@ internal static class OfficialComponent
     private static async Task<int> RunInstaller(string path, CancellationToken cancellation)
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
-        var start = new ProcessStartInfo(path) { UseShellExecute = true, Verb = "runas" };
+        var start = new ProcessStartInfo(path) { UseShellExecute = true, Verb = "runas", WorkingDirectory = Path.GetDirectoryName(path)! };
         start.ArgumentList.Add("/install"); start.ArgumentList.Add("/norestart");
         using var process = Process.Start(start) ?? throw new IOException(UiText.Get("No se pudo abrir el instalador oficial."));
         // Once elevated, Windows and the official installer own cancellation; do not terminate a system installation.
