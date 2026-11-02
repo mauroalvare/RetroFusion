@@ -4334,5 +4334,6 @@
   "No se aplicó el parche: una dirección no admite escritura. Se restauró la partida anterior; revisá el rango.": "The patch was not applied: an address is not writable. The previous game state was restored; check the range.",
   "Parches aplicados: {0} de {1}. Revisá los rangos que no admiten escritura.": "Patches applied: {0} of {1}. Check the ranges that are not writable.",
   "No se pudo deshacer el parche. La partida y el respaldo se conservaron; volvé a cargar el original.": "The patch could not be undone. The game state and backup were preserved; reload the original.",
-  "Parche deshecho; se restauraron los bytes originales.": "Patch undone; the original bytes were restored."
+  "Parche deshecho; se restauraron los bytes originales.": "Patch undone; the original bytes were restored.",
+  "Parche guardado inválido o incompleto. Se conserva el respaldo; volvé a cargar el original antes de corregirlo.": "The saved patch is invalid or incomplete. The backup is preserved; reload the original before correcting it."
 }

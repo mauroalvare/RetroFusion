@@ -665,6 +665,17 @@ public sealed partial class CodeWindow : IDisposable
     private static byte[] Hex(string s) =>
         s.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(h => byte.Parse(h, NumberStyles.HexNumber)).ToArray();
 
+    internal static bool TryReadPatch(string key, string value, int addressBits, out uint address, out byte[] original, out byte[] replacement)
+    {
+        address = 0; original = replacement = [];
+        if (addressBits is < 1 or > 32 || !uint.TryParse(key, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out address)) return false;
+        var parts = value.Split('|');
+        if (parts.Length != 2) return false;
+        try { original = Hex(parts[0]); replacement = Hex(parts[1]); }
+        catch (Exception error) when (error is FormatException or OverflowException) { return false; }
+        return original.Length > 0 && original.Length == replacement.Length && (ulong)address + (uint)original.Length <= 1UL << addressBits;
+    }
+
     private void DrawPatches(IMachine m)
     {
         ImGui.TextWrapped(UiText.Get("Los parches modifican la partida en memoria. Podés guardarlos y volver a aplicarlos al cargar el juego."));
@@ -677,15 +688,19 @@ public sealed partial class CodeWindow : IDisposable
         {
             int applied = 0;
             foreach (var (key, value) in _notes.Patches)
-                if (Write(m, uint.Parse(key, NumberStyles.HexNumber), Hex(value.Split('|')[1]))) applied++;
+                if (TryReadPatch(key, value, m.Memory.AddressBits, out uint address, out _, out byte[] replacement) && Write(m, address, replacement)) applied++;
             _status = UiText.Format($"Parches aplicados: {applied} de {_notes.Patches.Count}. Revisá los rangos que no admiten escritura.");
         }
         ImGui.Separator();
         foreach (var (key, value) in _notes.Patches.OrderBy(p => p.Key).ToList())
         {
-            uint a = uint.Parse(key, NumberStyles.HexNumber);
+            if (!TryReadPatch(key, value, m.Memory.AddressBits, out uint a, out byte[] original, out byte[] replacement))
+            {
+                ImGui.TextWrapped(UiText.Get("Parche guardado inválido o incompleto. Se conserva el respaldo; volvé a cargar el original antes de corregirlo."));
+                continue;
+            }
             var parts = value.Split('|');
-            bool applied = Hex(parts[1]).Select((b, i) => m.Memory.Peek((uint)(a + i)) == b).All(x => x);
+            bool applied = replacement.Select((b, i) => m.Memory.Peek(a + (uint)i) == b).All(x => x);
             ImGui.TextUnformatted(UiText.Get(UiText.Format($"${key}  {parts[0]}  ->  {parts[1]}   {(applied ? UiText.Get("(aplicado)") : UiText.Get("(no aplicado)"))}")));
             if (_map?.RoutineAt(a) is { } r)
             {
@@ -696,7 +711,7 @@ public sealed partial class CodeWindow : IDisposable
             ImGui.SameLine();
             if (ImGui.SmallButton(UiText.Label(UiText.Get("Deshacer##") + key)))
             {
-                if (Write(m, a, Hex(parts[0])))
+                if (Write(m, a, original))
                 { _notes.Patches.Remove(key); _notes.Save(_gameId); _status = "Parche deshecho; se restauraron los bytes originales."; Analyze(m); }
                 else _status = "No se pudo deshacer el parche. La partida y el respaldo se conservaron; volvé a cargar el original.";
             }

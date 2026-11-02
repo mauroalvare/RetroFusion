@@ -2189,3 +2189,6 @@ Deshacer elimina el registro solo cuando la restauración se comprobó. Aplicar 
 parches informa cuántos se aplicaron: cada parche es una transacción independiente.
 Los originales en disco no se modifican. Las pruebas usan código sintético en una NES
 real emulada y comparan bytes y estado antes/después de un rechazo.
+La lista visual y Aplicar todos comparten la validación de dirección, hexadecimal,
+longitudes y límites; una anotación dañada no ofrece Deshacer ni se elimina como si su
+respaldo fuera completo.

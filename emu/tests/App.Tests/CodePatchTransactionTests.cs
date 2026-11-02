@@ -36,6 +36,22 @@ public sealed class CodePatchTransactionTests
     private static bool Write(IMachine machine, uint address, byte[] bytes) =>
         (bool)typeof(CodeWindow).GetMethod("Write", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, [machine, address, bytes])!;
 
+    [TestCase("8000", "AA|BB CC"), TestCase("8000", "AA BB|CC"), TestCase("8000", "GG|CC")]
+    [TestCase("8000", "AA"), TestCase("8000", "|"), TestCase("XXXX", "AA|BB"), TestCase("FFFF", "AA BB|CC DD")]
+    public void DamagedOrIncompleteBackupsCannotBeAppliedOrRemovedAsIfTheyWereComplete(string address, string saved)
+    {
+        Assert.That(CodeWindow.TryReadPatch(address, saved, 16, out _, out _, out _), Is.False);
+    }
+
+    [Test]
+    public void ValidPatchRecordsPreserveBytesAndAddressesAbove64K()
+    {
+        Assert.That(CodeWindow.TryReadPatch("10003", "EA 20|00 FF", 20, out uint address, out byte[] original, out byte[] replacement), Is.True);
+        Assert.That(address, Is.EqualTo(0x10003));
+        Assert.That(original, Is.EqualTo(new byte[] { 0xEA, 0x20 }));
+        Assert.That(replacement, Is.EqualTo(new byte[] { 0, 0xFF }));
+    }
+
     [TestCase(0x1FFFu), TestCase(0xFFFFu)]
     public void ARejectedPatchDoesNotLeaveAPartialWriteOrWrapTheAddressSpace(uint address)
     {
