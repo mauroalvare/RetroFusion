@@ -94,6 +94,14 @@ public sealed class CreatorWindow
             return null;
         }
     }
+    public AppTaskState WorkEnding { get; private set; } = AppTaskState.PartlyCompleted;
+    public string WorkDetail => _problem ?? _progress;
+    internal WorkSnapshot ReadWork()
+    {
+        var snapshot = new WorkSnapshot(Work, WorkEnding, WorkDetail);
+        if (snapshot.Report != null) WorkEnding = AppTaskState.PartlyCompleted;
+        return snapshot;
+    }
     public Task CancelWork()
     {
         _cts?.Cancel();
@@ -523,7 +531,8 @@ public sealed class CreatorWindow
     {
         _problem = _problemDetail = null;
         _progress = UiText.Format($"Probando \"{UiText.Raw(g.Title)}\" de nuevo...");
-        _retryTask = Task.Run(() => (g, CreatedGames.TryAgain(g, _romDir)));
+        var token = BeginTrial();
+        _retryTask = Task.Run(() => (g, CreatedGames.TryAgain(g, _romDir, token, TrialProgress)), token);
     }
 
     private void Poll()
@@ -531,9 +540,11 @@ public sealed class CreatorWindow
         PollAgent();
         if (_manualTask is { IsCompleted: true } mt)
         {
+            bool cancelled = mt.IsCanceled || _cts?.IsCancellationRequested == true;
+            WorkEnding = cancelled ? AppTaskState.Cancelled : AppTaskCenter.FinishedState(mt);
             _manualTask = null;
             EndTrial();
-            if (mt.IsCanceled)
+            if (cancelled)
                 _progress = "Prueba cancelada. Podés volver a pegar o probar la respuesta.";
             else if (!mt.IsCompletedSuccessfully)
                 Problem(Failure(mt.Exception));
@@ -557,9 +568,11 @@ public sealed class CreatorWindow
         }
         if (_agentTask is { IsCompleted: true } at)
         {
+            bool cancelled = at.IsCanceled || _cts?.IsCancellationRequested == true;
+            WorkEnding = cancelled ? AppTaskState.Cancelled : AppTaskCenter.FinishedState(at);
             _agentTask = null;
             EndTrial();
-            if (at.IsCanceled)
+            if (cancelled)
                 _progress = "Prueba cancelada. Los archivos del agente se conservan.";
             else if (!at.IsCompletedSuccessfully)
                 Problem(Failure(at.Exception));
@@ -576,7 +589,10 @@ public sealed class CreatorWindow
                     _play(g.ProgramPath);
                 }
                 else
+                {
+                    WorkEnding = AppTaskState.PartlyCompleted;
                     _progress = "El juego del agente todavía no pasa la prueba (el agente tiene el informe en su carpeta).";
+                }
             }
         }
         if (_exportTask is { IsCompleted: true } et)
@@ -588,12 +604,14 @@ public sealed class CreatorWindow
         }
         if (_writeTask is { IsCompleted: true } wt)
         {
+            bool cancelled = wt.IsCanceled || _cts?.IsCancellationRequested == true;
+            WorkEnding = cancelled ? AppTaskState.Cancelled : AppTaskCenter.FinishedState(wt);
             _build.Stop(_cts?.IsCancellationRequested != true && wt.IsCompletedSuccessfully && wt.Result.Ok);
             _writeTask = null;
             EndTrial();
             var work = _activeWork; _activeWork = null;
             RefreshWork();
-            if (wt.IsCanceled)
+            if (cancelled)
                 _progress = "Trabajo cancelado. El borrador completo queda en Trabajos guardados para continuar.";
             else if (!wt.IsCompletedSuccessfully)
                 Problem(Failure(wt.Exception));
@@ -622,6 +640,7 @@ public sealed class CreatorWindow
         }
         if (_templateTask is { IsCompleted: true } tt)
         {
+            WorkEnding = AppTaskCenter.FinishedState(tt);
             _templateTask = null;
             _games = null;
             if (!tt.IsCompletedSuccessfully)
@@ -634,9 +653,14 @@ public sealed class CreatorWindow
         }
         if (_retryTask is { IsCompleted: true } rt)
         {
+            bool cancelled = rt.IsCanceled || _cts?.IsCancellationRequested == true;
+            WorkEnding = cancelled ? AppTaskState.Cancelled : AppTaskCenter.FinishedState(rt);
             _retryTask = null;
+            EndTrial();
             _games = null;
-            if (!rt.IsCompletedSuccessfully)
+            if (cancelled)
+                _progress = "Prueba cancelada. El juego guardado se conserva.";
+            else if (!rt.IsCompletedSuccessfully)
                 Problem(Failure(rt.Exception));
             else if (rt.Result.report.Ok)
             {
@@ -650,6 +674,7 @@ public sealed class CreatorWindow
 
     private void Problem(string text, string? detail = null)
     {
+        if (WorkEnding != AppTaskState.Cancelled) WorkEnding = AppTaskState.Failed;
         _progress = "";
         _problem = text;
         _problemDetail = detail;

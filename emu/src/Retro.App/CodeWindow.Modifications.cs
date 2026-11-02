@@ -304,17 +304,20 @@ public sealed partial class CodeWindow
     private void PollModificationAdvice()
     {
         if (_modificationTask is not { IsCompleted: true } task) return;
+        bool cancelled = task.IsCanceled || _modificationCts?.IsCancellationRequested == true;
+        WorkEnding = cancelled ? AppTaskState.Cancelled : AppTaskCenter.FinishedState(task);
         _modificationTask = null; _modificationActivity.Stop();
         _modificationCts?.Dispose(); _modificationCts = null;
         if (_mediaRevision != _modificationRevision || !ReferenceEquals(_machine, _modificationMachine))
-        { _ = task.Exception; _analysisReply = null; return; }
+        { WorkEnding = AppTaskState.Cancelled; _workDetail = ""; _ = task.Exception; _analysisReply = null; return; }
         if (_analysisReply is { IsCompletedSuccessfully: true } reply) _analysisAnswer = reply.Result;
         _analysisReply = null;
-        if (task.IsCanceled || task.Exception?.GetBaseException() is OperationCanceledException) _status = "Análisis cancelado.";
+        if (cancelled || task.Exception?.GetBaseException() is OperationCanceledException) _status = "Análisis cancelado.";
         else if (task.IsFaulted) AnalysisFailed(task.Exception!.GetBaseException());
         else
             try { AcceptAnalysis(task.Result); }
-            catch (AiException error) { AnalysisFailed(error); }
+            catch (AiException error) { WorkEnding = AppTaskState.Failed; AnalysisFailed(error); }
+        _workDetail = _status;
     }
 
     private void ReleaseModifications() { _modifications?.ReleaseAll(); _proposalFeedback.Clear(); RememberSelection(); }

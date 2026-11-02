@@ -241,6 +241,15 @@ public sealed partial class StudioWindow
             return null;
         }
     }
+    public AppTaskState WorkEnding { get; private set; } = AppTaskState.PartlyCompleted;
+    private bool _lastWorkWasPreparation;
+    public string WorkDetail => _problem ?? (_lastWorkWasPreparation ? _status : _progress);
+    internal WorkSnapshot ReadWork()
+    {
+        var snapshot = new WorkSnapshot(Work, WorkEnding, WorkDetail);
+        if (snapshot.Report != null) WorkEnding = AppTaskState.PartlyCompleted;
+        return snapshot;
+    }
     private bool _focusWork;
     public void ShowWork() { _open = true; _focusWork = true; _savedPage=false; }
     public void ShowSavedWork() { Open(); _savedPage=true; }
@@ -792,6 +801,7 @@ public sealed partial class StudioWindow
     // ------------------------------------------------------------------ actions
     private void Problem(string text, ValidationReport? report = null)
     {
+        if (WorkEnding != AppTaskState.Cancelled) WorkEnding = AppTaskState.Failed;
         _problem = text;
         _problemDetail = report?.Summary;
         _progress = "";
@@ -1432,6 +1442,8 @@ public sealed partial class StudioWindow
             _cts?.Cancel();
         if (_fusionPrepareTask is { IsCompleted: true } prepared)
         {
+            WorkEnding = _cts?.IsCancellationRequested == true ? AppTaskState.Cancelled : AppTaskCenter.FinishedState(prepared);
+            _lastWorkWasPreparation = false;
             _fusionPrepareTask = null;
             if (_cts?.IsCancellationRequested == true || prepared.IsCanceled)
             { _build.Stop(false); _creationTiming?.Stop(false); PauseResearch(); _progress = _creationDeadline?.IsCancellationRequested == true
@@ -1450,6 +1462,8 @@ public sealed partial class StudioWindow
         }
         if (_referenceTask is { IsCompleted: true } rt)
         {
+            WorkEnding = _cts?.IsCancellationRequested == true ? AppTaskState.Cancelled : AppTaskCenter.FinishedState(rt);
+            _lastWorkWasPreparation = false;
             _referenceTask = null;
             var ready = _afterReferences; _afterReferences = null;
             if (rt.IsCanceled || _cts?.IsCancellationRequested == true) _progress = "Preparación cancelada.";
@@ -1463,6 +1477,8 @@ public sealed partial class StudioWindow
         }
         if (_prepareTask is { IsCompleted: true } pt)
         {
+            WorkEnding = AppTaskCenter.FinishedState(pt);
+            _lastWorkWasPreparation = true;
             _prepareTask = null;
             if (pt.IsFaulted)
             {
@@ -1478,11 +1494,16 @@ public sealed partial class StudioWindow
                 _preparationSummary = string.Join("\n", r.CheckedData.Concat(r.UnresolvedData));
             }
             else
+            {
+                WorkEnding = AppTaskState.PartlyCompleted;
                 _status = UiText.Format($"No se pudo preparar {_preparing}: {pt.Result.Problem}");
+            }
             Console.WriteLine(UiText.Get("preparar: ") + _status);
         }
         if (_conceptTask is { IsCompleted: true } ct)
         {
+            WorkEnding = _cts?.IsCancellationRequested == true ? AppTaskState.Cancelled : AppTaskCenter.FinishedState(ct);
+            _lastWorkWasPreparation = false;
             _build.Stop(_cts?.IsCancellationRequested != true && ct.IsCompletedSuccessfully);
             _conceptTask = null;
             if (ct.IsCompletedSuccessfully)
@@ -1495,6 +1516,8 @@ public sealed partial class StudioWindow
         }
         if (_designTask is { IsCompleted: true } dt)
         {
+            WorkEnding = _cts?.IsCancellationRequested == true ? AppTaskState.Cancelled : AppTaskCenter.FinishedState(dt);
+            _lastWorkWasPreparation = false;
             _build.Stop(_cts?.IsCancellationRequested != true && dt.IsCompletedSuccessfully && dt.Result.Game != null);
             _designTask = null;
             RefreshWork();
@@ -1549,6 +1572,8 @@ public sealed partial class StudioWindow
         }
         if (_validateTask is { IsCompleted: true } vt)
         {
+            WorkEnding = _cts?.IsCancellationRequested == true ? AppTaskState.Cancelled : AppTaskCenter.FinishedState(vt);
+            _lastWorkWasPreparation = false;
             _validateTask = null;
             var then = _afterValidate;
             _afterValidate = null;
@@ -1559,6 +1584,7 @@ public sealed partial class StudioWindow
                 _progress = "";
                 if (vt.Result.report.Ok)
                     _lastTest = vt.Result.report.Summary;
+                else WorkEnding = AppTaskState.PartlyCompleted;
                 then?.Invoke(vt.Result.game, vt.Result.report);
             }
             else
@@ -1566,6 +1592,8 @@ public sealed partial class StudioWindow
         }
         if (_startTask is { IsCompleted: true } st)
         {
+            WorkEnding = _cts?.IsCancellationRequested == true ? AppTaskState.Cancelled : AppTaskCenter.FinishedState(st);
+            _lastWorkWasPreparation = false;
             _startTask = null;
             _starting = null;
             if (_startDeadline?.IsCancellationRequested == true)

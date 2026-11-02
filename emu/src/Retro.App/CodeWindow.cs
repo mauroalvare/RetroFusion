@@ -96,6 +96,15 @@ public sealed partial class CodeWindow : IDisposable
             return null;
         }
     }
+    public AppTaskState WorkEnding { get; private set; } = AppTaskState.PartlyCompleted;
+    private string _workDetail = "";
+    public string WorkDetail => _workDetail;
+    internal WorkSnapshot ReadWork()
+    {
+        var snapshot = new WorkSnapshot(Work, WorkEnding, WorkDetail);
+        if (snapshot.Report != null) { WorkEnding = AppTaskState.PartlyCompleted; _workDetail = ""; }
+        return snapshot;
+    }
 
     public void ShowWork() => OpenPage(_explainTask != null || _manualExplanation ? ToolPage.Code : ToolPage.Analysis);
 
@@ -771,10 +780,8 @@ public sealed partial class CodeWindow : IDisposable
                 try
                 {
                     CodeExplainer.Apply(CodeExplainer.Parse(_pasted), r, _notes);
-                    _notes.Save(_gameId);
-                    _rename = "";
-                    _pasted = ""; _manualExplanation = false;
-                    _explainStatus = "Listo: nombre, explicación, pseudocódigo y comentarios guardados.";
+                    if (SaveExplanation("Listo: nombre, explicación, pseudocódigo y comentarios guardados."))
+                    { _pasted = ""; _manualExplanation = false; }
                 }
                 catch (AiException e)
                 {
@@ -788,31 +795,43 @@ public sealed partial class CodeWindow : IDisposable
     {
         if (_explainTask is not { IsCompleted: true } t)
             return;
+        bool cancelled = t.IsCanceled || _cts?.IsCancellationRequested == true;
+        WorkEnding = cancelled ? AppTaskState.Cancelled : AppTaskCenter.FinishedState(t);
         _explainTask = null;
         _routineActivity.Stop();
         _cts?.Dispose(); _cts = null;
         if (_explainRevision != _mediaRevision || !ReferenceEquals(m, _explainMachine))
         {
+            WorkEnding = AppTaskState.Cancelled;
+            _workDetail = "";
             _ = t.Exception;
             return;
         }
-        if (t.IsCanceled || t.Exception?.GetBaseException() is OperationCanceledException)
+        if (cancelled || t.Exception?.GetBaseException() is OperationCanceledException)
         {
             _explainStatus = "Cancelado.";
+            _workDetail = _explainStatus;
             return;
         }
         if (t.IsFaulted)
         {
             _explainStatus = UiText.Get("Error: ") + t.Exception!.GetBaseException().Message;
+            _workDetail = _explainStatus;
             return;
         }
         if (_map != null && _map.Routines.TryGetValue(_explainFor, out var r))
         {
             CodeExplainer.Apply(t.Result, r, _notes);
-            _notes.Save(_gameId);
-            _rename = "";
-            _explainStatus = UiText.Format($"Listo: {UiText.Raw(t.Result.Name)}. Nombre, explicación, pseudocódigo y comentarios guardados.");
+            SaveExplanation(UiText.Format($"Listo: {UiText.Raw(t.Result.Name)}. Nombre, explicación, pseudocódigo y comentarios guardados."));
         }
+    }
+
+    private bool SaveExplanation(string success)
+    {
+        _notes.Save(_gameId); _rename = "";
+        if (_notes.Problem is { } problem)
+        { WorkEnding = AppTaskState.PartlyCompleted; _workDetail = _explainStatus = UiText.Message(problem); return false; }
+        WorkEnding = AppTaskState.Completed; _workDetail = _explainStatus = UiText.Get(success); return true;
     }
 
     // ------------------------------------------------------------------ variables

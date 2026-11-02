@@ -133,9 +133,10 @@ public sealed partial class RetroApp
         _tasks.Track("identificacion", _gameMetadata.Pending > 0 ? new("identificación", "catálogo en línea", _gameMetadata.Status, AppTaskState.WaitingProvider,
             _gameMetadata.Asked, _gameMetadata.Asked + _gameMetadata.Pending, "juegos") : null);
         _tasks.Track("candidatos", _gameMetadata.SearchingCandidates ? new("candidatos", "catálogo en línea", _gameMetadata.CandidateStatus, AppTaskState.WaitingProvider, Cancel: _gameMetadata.StopCandidates) : null);
-        _tasks.Track("estudio", _studio.Work);
-        _tasks.Track("creador", _creator.Work);
-        _tasks.Track("analisis", _code.Work);
+        var studio = _studio.ReadWork(); var creator = _creator.ReadWork(); var code = _code.ReadWork();
+        _tasks.Track("estudio", studio.Report, studio.Ending, studio.Detail);
+        _tasks.Track("creador", creator.Report, creator.Ending, creator.Detail);
+        _tasks.Track("analisis", code.Report, code.Ending, code.Detail);
         _tasks.Poll();
         ReportTasksToConsole();
         if (_awaitingStop && _host.Paused && _terminal != null)

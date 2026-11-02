@@ -183,15 +183,19 @@ public sealed partial class CodeWindow
             }
         }
         if (_autonomousTask is not { IsCompleted: true } task) return;
+        WorkEnding = AppTaskCenter.FinishedState(task);
         try
         {
             _autonomousWork = task.GetAwaiter().GetResult();
+            WorkEnding = _autonomousWork.Status switch { "complete" => AppTaskState.Completed, "error" => AppTaskState.Failed,
+                "paused" => AppTaskState.Cancelled, _ => AppTaskState.PartlyCompleted };
             _autonomousMessage = "";
             RefreshAutonomousHistory();
         }
         catch (Exception error) when (error is not OutOfMemoryException)
         { _autonomousMessage = UiText.Get("El análisis se detuvo: ") + error.Message + UiText.Get(". Se conserva el último checkpoint que pudo guardarse."); }
-        finally { _autonomousTask = null; _autonomousCts?.Dispose(); _autonomousCts = null; }
+        finally { _workDetail = _autonomousMessage.Length > 0 ? _autonomousMessage : _autonomousWork?.StopReason ?? "";
+            _autonomousTask = null; _autonomousCts?.Dispose(); _autonomousCts = null; }
         if (_analysisAutotestSection.Length > 0) _analysisAutotestScrollFrames = 8;
     }
 

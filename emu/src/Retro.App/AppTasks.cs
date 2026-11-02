@@ -12,6 +12,8 @@ public enum AppTaskState { Queued, Working, WaitingProvider, WaitingUser, Paused
 public sealed record WorkReport(string Kind, string Target, string Stage, AppTaskState State = AppTaskState.Working,
     long? Done = null, long? Total = null, string Unit = "", Action? Cancel = null);
 
+internal sealed record WorkSnapshot(WorkReport? Report, AppTaskState Ending, string Detail);
+
 /// <summary>A long operation. Measured progress is optional: without a real count there is no percentage.</summary>
 public sealed class AppTask
 {
@@ -121,6 +123,8 @@ public sealed class AppTask
 /// <summary>All long operations of the session, whichever workshop or order started them.</summary>
 public sealed class AppTaskCenter(TimeProvider? clock = null)
 {
+    internal static AppTaskState FinishedState(Task task) => task.IsCanceled || task.Exception?.GetBaseException() is OperationCanceledException
+        ? AppTaskState.Cancelled : task.IsFaulted ? AppTaskState.Failed : task.IsCompletedSuccessfully ? AppTaskState.Completed : AppTaskState.PartlyCompleted;
     private const int KeepFinished = 64;
     private readonly TimeProvider _clock = clock ?? TimeProvider.System;
     private readonly object _gate = new();
@@ -174,21 +178,26 @@ public sealed class AppTaskCenter(TimeProvider? clock = null)
         return task;
     }
 
-    /// <summary>Follows a job owned by a workshop. A null report means the job ended since the last frame.</summary>
-    public void Track(string key, WorkReport? report, AppTaskState ending = AppTaskState.Completed)
+    /// <summary>A disappearing report alone cannot prove success. The owner must supply its observed ending.</summary>
+    public void Track(string key, WorkReport? report, AppTaskState ending = AppTaskState.PartlyCompleted, string? detail = null)
     {
+        void Finish(AppTask task)
+        {
+            var state = task.CancelRequested ? AppTaskState.Cancelled : ending;
+            if (!string.IsNullOrWhiteSpace(detail)) { if (state == AppTaskState.Failed) task.Error(detail); else task.Result(detail); }
+            else if (state == AppTaskState.PartlyCompleted) task.Result(UiText.Get("El proceso dejó de informar el trabajo; no se confirmó que esté terminado."));
+            task.Finish(state);
+            lock (_gate) _finished.Enqueue(task);
+        }
         if (report == null)
         {
             if (_tracked.Remove(key, out var ended))
-            {
-                ended.Task.Finish(ended.Task.CancelRequested ? AppTaskState.Cancelled : ending);
-                lock (_gate) _finished.Enqueue(ended.Task);
-            }
+                Finish(ended.Task);
             return;
         }
         if (!_tracked.TryGetValue(key, out var entry) || entry.Last.Kind != report.Kind || entry.Last.Target != report.Target)
         {
-            if (entry.Task != null) { entry.Task.Finish(AppTaskState.Completed); lock (_gate) _finished.Enqueue(entry.Task); }
+            if (entry.Task != null) Finish(entry.Task);
             entry.Task = Add(report.Kind, report.Target, null, report.Cancel, null);
             entry.Task.Tracked = true;
         }
