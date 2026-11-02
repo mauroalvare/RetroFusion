@@ -2074,3 +2074,18 @@ Dos coincidencias siguen sin asignarse automáticamente, pero una persona puede 
 Cada uno dice por qué se propone. `GameIdentificationCache.Entry` agrega `Confirmed` y `Rejected`,
 opcionales y compatibles con archivos anteriores: una decisión personal gana a cualquier respuesta
 posterior del catálogo.
+
+## D-122 — Reemplazos atómicos y diario de actualización 3
+
+Los cortes reales de proceso al retirar `Retro.Update.dll` o `RetroEmu.dll` con 0.3.7
+dejaban ausente un archivo necesario para iniciar la recuperación. Los datos propios
+seguían intactos y el ayudante del paquete podía restaurarlos, pero el arranque normal
+fallaba. El diario 3 registra cada reemplazo con un respaldo y usa `File.Replace`:
+el destino permanece presente tanto al aplicar como al deshacer. El respaldo y los
+archivos de ambos lados deben coincidir con sus hashes antes de recuperar.
+
+Se siguen leyendo los diarios 1 y 2; la preparación mantiene el formato 2 hasta empezar
+a aplicar. El formato nuevo evita que una versión antigua interprete un reemplazo como
+dos movimientos. `Retro.Update.dll` se instala primero y se recupera último. Un corte
+anterior al primer reemplazo conserva el programa anterior íntegro. El cambio queda
+local y no modifica las entregas publicadas.

@@ -11,7 +11,7 @@ public static class UpdateInstaller
 
     public static async Task ApplyAsync(UpdatePlan plan, Func<Task> activate, Action<string>? afterMove = null, Func<Task>? deactivate = null)
     {
-        if (plan.Format == 2) { await ApplyInPlaceAsync(plan, activate, afterMove, deactivate); return; }
+        if (plan.Format >= 2) { await ApplyInPlaceAsync(plan, activate, afterMove, deactivate); return; }
         plan.Validate();
         if (plan.State != "prepared") throw new InvalidOperationException("Este trabajo no está listo para instalar.");
         var old = PackageManifest.Read(plan.OldRoot); var next = PackageManifest.Read(plan.NewRoot);
@@ -89,7 +89,8 @@ public static class UpdateInstaller
                 throw new IOException("Un archivo propio coincide con uno de la nueva entrega: " + relative);
         }
         PackageManifest.CopyPackage(plan.PayloadRoot, plan.CandidateRoot);
-        plan.State = "applying"; plan.Save();
+        // Older updaters must not interpret an atomic replacement as two destructive moves.
+        plan.Format = 3; plan.State = "applying"; plan.Save();
         try
         {
             // Install recovery support first and keep the rest of the program present between replacements.
@@ -99,13 +100,14 @@ public static class UpdateInstaller
                 if (PackageManifest.Protected(relative) && (File.Exists(target) || Directory.Exists(target))) continue;
                 if (File.Exists(target) && old.Files.TryGetValue(relative, out string? previousHash) &&
                     previousHash.Equals(next.Files[relative], StringComparison.OrdinalIgnoreCase)) continue;
-                if (File.Exists(target)) Move(target, PackageManifest.Within(plan.Backup, relative));
-                Move(PackageManifest.Within(plan.CandidateRoot, relative), target);
+                string incoming = PackageManifest.Within(plan.CandidateRoot, relative);
+                if (File.Exists(target)) Replace(incoming, target, PackageManifest.Within(plan.Backup, relative));
+                else Move(incoming, target);
             }
             foreach (string relative in old.Files.Keys.Where(p => !PackageManifest.Protected(p) && !nextNames.Contains(p)))
                 Move(PackageManifest.Within(plan.OldRoot, relative), PackageManifest.Within(plan.Backup, relative));
-            Move(Path.Combine(plan.OldRoot, PackageManifest.FileName), Path.Combine(plan.Backup, PackageManifest.FileName));
-            Move(Path.Combine(plan.CandidateRoot, PackageManifest.FileName), Path.Combine(plan.OldRoot, PackageManifest.FileName));
+            Replace(Path.Combine(plan.CandidateRoot, PackageManifest.FileName), Path.Combine(plan.OldRoot, PackageManifest.FileName),
+                Path.Combine(plan.Backup, PackageManifest.FileName));
             next.Verify(plan.OldRoot, exact: false);
             await activate();
             plan.State = "committed"; plan.Error = null;
@@ -134,6 +136,29 @@ public static class UpdateInstaller
             Directory.CreateDirectory(Path.GetDirectoryName(to)!); MoveFile(from, to);
             afterMove?.Invoke(to);
         }
+
+        void Replace(string from, string to, string backup)
+        {
+            var move = plan.MoveFor(from, to) with { Backup = Path.GetRelativePath(plan.Parent, backup).Replace('\\', '/') };
+            plan.ValidateMove(move);
+            foreach (string path in new[] { from, to, backup }) PackageManifest.NoLinks(Path.GetDirectoryName(path)!);
+            if (File.Exists(backup) || Directory.Exists(backup)) throw new IOException("Ya existe un respaldo para este archivo.");
+            plan.Moves.Add(move); plan.Save();
+            Directory.CreateDirectory(Path.GetDirectoryName(backup)!);
+            ReplaceFile(from, to, backup);
+            afterMove?.Invoke(to);
+        }
+    }
+
+    private static void ReplaceFile(string from, string to, string backup)
+    {
+        long deadline = System.Diagnostics.Stopwatch.GetTimestamp() + System.Diagnostics.Stopwatch.Frequency * 3;
+        while (true)
+        {
+            try { File.Replace(from, to, backup); return; }
+            catch (Exception error) when ((error is IOException or UnauthorizedAccessException) &&
+                System.Diagnostics.Stopwatch.GetTimestamp() < deadline) { Thread.Sleep(50); }
+        }
     }
 
     private static void MoveFile(string from, string to)
@@ -161,6 +186,26 @@ public static class UpdateInstaller
         {
             var move = plan.Moves[plan.RollbackNext.Value];
             plan.ValidateMove(move); string from = plan.Resolve(move.From), to = plan.Resolve(move.To);
+            if (move.Backup is { } saved)
+            {
+                string backup = plan.Resolve(saved);
+                foreach (string path in new[] { from, to, backup }) PackageManifest.NoLinks(Path.GetDirectoryName(path)!);
+                string relative = Path.GetRelativePath(plan.OldRoot, to).Replace('\\', '/');
+                string Expected(string root)
+                {
+                    if (relative == PackageManifest.FileName) return Hash(Path.Combine(root, PackageManifest.FileName));
+                    return PackageManifest.Read(root).Files[relative];
+                }
+                bool Matches(string path, string expected) => File.Exists(path) && Hash(path).Equals(expected, StringComparison.OrdinalIgnoreCase);
+                string oldHash = Expected(Path.Combine(plan.Job, "registro")), newHash = Expected(plan.PayloadRoot);
+                // Before the swap and after its inverse the incoming file and old target are both present.
+                // After the swap only the new target and the old backup are present. File.Replace is atomic.
+                if (!File.Exists(from) && Matches(to, newHash) && Matches(backup, oldHash)) ReplaceFile(backup, to, from);
+                else if (!Matches(from, newHash) || !Matches(to, oldHash) || File.Exists(backup))
+                    throw new IOException("No se puede recuperar el reemplazo sin sobrescribir datos.");
+                plan.RollbackNext--; plan.Save();
+                continue;
+            }
             bool source = File.Exists(from) || Directory.Exists(from), destination = File.Exists(to) || Directory.Exists(to);
             if (!(source && !destination)) // intent saved, move not performed (or already recovered)
             {
@@ -172,5 +217,11 @@ public static class UpdateInstaller
             plan.RollbackNext--; plan.Save();
         }
         plan.State = "rolled-back"; plan.Save();
+    }
+
+    private static string Hash(string path)
+    {
+        using var stream = File.OpenRead(path);
+        return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(stream));
     }
 }

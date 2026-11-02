@@ -124,7 +124,7 @@ public static class UpdateRunner
     public static async Task<int> RecoverAsync(string path, int parentId, long parentStarted)
     {
         var plan = UpdatePlan.Read(path);
-        if (plan.Format != 2 || !PackageManifest.Paths.Equals(Root, plan.PayloadRoot) ||
+        if (plan.Format < 2 || !PackageManifest.Paths.Equals(Root, plan.PayloadRoot) ||
             plan.ToVersion != AppVersion.ToString(3) || plan.State is not ("applying" or "recovery-needed"))
             return 1;
         try
@@ -238,7 +238,7 @@ public static class UpdateRunner
         {
             bool isNew = PackageManifest.Paths.Equals(Root, plan.NewRoot);
             if (plan.State == "committed") continue;
-            if (plan.Format == 2)
+            if (plan.Format >= 2)
             {
                 if (plan.State is "prepared" or "rolled-back") continue;
                 using var self = Process.GetCurrentProcess();

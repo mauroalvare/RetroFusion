@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace Retro.Update;
 
-public sealed record UpdateMove(string From, string To);
+public sealed record UpdateMove(string From, string To, string? Backup = null);
 
 public sealed class UpdatePlan
 {
@@ -57,7 +57,7 @@ public sealed class UpdatePlan
 
     public void Validate()
     {
-        if (Format is not (1 or 2) || !Guid.TryParseExact(Id, "N", out _) || Path.GetFileName(Job) != Id ||
+        if (Format is not (1 or 2 or 3) || !Guid.TryParseExact(Id, "N", out _) || Path.GetFileName(Job) != Id ||
             Path.GetFileName(Directory.GetParent(Job)!.FullName) != ".retroemu-updates" || Path.GetFileName(FilePath) != "plan.json" ||
             string.IsNullOrWhiteSpace(FromName) || FromName.StartsWith('.') || FromName is "." or ".." ||
             FromName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || FromName.Contains('/') || FromName.Contains('\\'))
@@ -80,6 +80,7 @@ public sealed class UpdatePlan
     public void ValidateMove(UpdateMove move)
     {
         string from = Resolve(move.From), to = Resolve(move.To);
+        if (move.Backup != null && Format != 3) throw new InvalidDataException("Reemplazo ajeno al formato del diario.");
         bool Same(string a, string b) => PackageManifest.Paths.Equals(a, b);
         if (Format == 1)
         {
@@ -92,7 +93,7 @@ public sealed class UpdatePlan
         else
         {
             string relative = Path.GetRelativePath(OldRoot, from).Replace('\\', '/');
-            if (!relative.StartsWith("../", StringComparison.Ordinal) && !PackageManifest.Protected(relative) &&
+            if (move.Backup == null && !relative.StartsWith("../", StringComparison.Ordinal) && !PackageManifest.Protected(relative) &&
                 Same(PackageManifest.Within(Backup, relative), to))
             {
                 _original ??= PackageManifest.Read(Path.Combine(Job, "registro"));
@@ -104,7 +105,16 @@ public sealed class UpdatePlan
             {
                 _payload ??= PackageManifest.Read(PayloadRoot);
                 if (_payload.Version != ToVersion || _payload.Runtime != Runtime) throw new InvalidDataException("Registro nuevo incorrecto.");
-                if (relative == PackageManifest.FileName || _payload.Files.ContainsKey(relative)) return;
+                if (relative == PackageManifest.FileName || _payload.Files.ContainsKey(relative))
+                {
+                    if (move.Backup == null) return;
+                    _original ??= PackageManifest.Read(Path.Combine(Job, "registro"));
+                    if (PackageManifest.Protected(relative) || !Same(Resolve(move.Backup), PackageManifest.Within(Backup, relative)) ||
+                        _original.Version != FromVersion || _original.Runtime != Runtime ||
+                        relative != PackageManifest.FileName && !_original.Files.ContainsKey(relative))
+                        throw new InvalidDataException("Respaldo ajeno al programa anterior.");
+                    return;
+                }
             }
         }
         throw new InvalidDataException("Movimiento ajeno a la actualización.");
@@ -113,7 +123,7 @@ public sealed class UpdatePlan
     public void Save()
     {
         Validate(); Directory.CreateDirectory(Job);
-        if (Format == 2)
+        if (Format >= 2)
         {
             string snapshot = Path.Combine(Job, "registro", PackageManifest.FileName);
             PackageManifest.NoLinks(Path.GetDirectoryName(snapshot)!);
@@ -211,7 +221,7 @@ public static class UpdatePreparation
         try
         {
             using var gate = new FileStream(Path.Combine(UpdatePlan.Metadata(plan.Parent), "prepare.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
-            var prepared = UpdatePlan.Pending(installed).FirstOrDefault(p => p.Format == 2 &&
+            var prepared = UpdatePlan.Pending(installed).FirstOrDefault(p => p.Format >= 2 &&
                 p.State is "prepared" or "rolled-back" && p.ToVersion == asset.Version.ToString(3) && p.FromVersion == previous.Version);
             if (prepared != null)
             {

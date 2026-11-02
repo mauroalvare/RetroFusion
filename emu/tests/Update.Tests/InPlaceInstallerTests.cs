@@ -92,8 +92,7 @@ public class InPlaceInstallerTests
     }
 
     [TestCase(1)] [TestCase(2)] [TestCase(3)] [TestCase(4)] [TestCase(5)] [TestCase(6)]
-    [TestCase(7)] [TestCase(8)] [TestCase(9)] [TestCase(10)] [TestCase(11)] [TestCase(12)]
-    [TestCase(13)] [TestCase(14)]
+    [TestCase(7)] [TestCase(8)]
     public void EveryReplacementCanFailWithoutChangingPlayerFiles(int failAt)
     {
         var plan=Plan(); int moves=0;
@@ -170,6 +169,48 @@ public class InPlaceInstallerTests
         Assert.That(plan.Moves.Any(m=>m.From.EndsWith("runtime-sin-cambios.dll")||m.To.EndsWith("runtime-sin-cambios.dll")),Is.False);
         Assert.That(File.ReadAllBytes(path),Is.EqualTo(new byte[]{9,8,7}));
         AssertPlayerData();
+    }
+
+    [Test]
+    public async Task StartupFilesAreAlwaysPresentAfterEveryReplacement()
+    {
+        var plan = Plan();
+        using (UpdateInstaller.Lock(plan))
+            await UpdateInstaller.ApplyAsync(plan, () => Task.CompletedTask, _ =>
+            {
+                foreach (string name in new[] { "Retro.Update.dll", "RetroEmu.exe", "RetroEmu.dll", "RetroEmu.deps.json", "RetroEmu.runtimeconfig.json", PackageManifest.FileName })
+                    Assert.That(File.Exists(Path.Combine(_installed, name)), Is.True, name);
+            });
+        Assert.That(plan.Format, Is.EqualTo(3));
+        Assert.That(plan.Moves.Count(move => move.Backup != null), Is.EqualTo(6));
+    }
+
+    [TestCase(false, false)] [TestCase(true, false)] [TestCase(true, true)]
+    public void AtomicReplacementRecoversAnIntentASwapAndAnInterruptedInverse(bool swapped, bool inverseDone)
+    {
+        var plan = Plan();
+        Directory.CreateDirectory(plan.CandidateRoot);
+        string name = "RetroEmu.dll", incoming = Path.Combine(plan.CandidateRoot, name), target = Path.Combine(_installed, name), saved = Path.Combine(plan.Backup, name);
+        File.Copy(Path.Combine(plan.PayloadRoot, name), incoming);
+        plan.Format = 3; plan.State = "applying";
+        plan.Moves.Add(plan.MoveFor(incoming, target) with { Backup = Path.GetRelativePath(plan.Parent, saved).Replace('\\', '/') });
+        plan.Save();
+        Directory.CreateDirectory(plan.Backup);
+        if (swapped) File.Replace(incoming, target, saved);
+        if (inverseDone) File.Replace(saved, target, incoming);
+        var recovered = UpdatePlan.Read(plan.FilePath); UpdateInstaller.Rollback(recovered);
+        Assert.That(recovered.State, Is.EqualTo("rolled-back")); AssertPlayerData();
+        PackageManifest.Read(_installed).Verify(_installed, exact: false);
+        Assert.DoesNotThrow(() => UpdateInstaller.Rollback(UpdatePlan.Read(plan.FilePath)));
+    }
+
+    [Test]
+    public void AtomicReplacementCannotUsePlayerFilesAsABackup()
+    {
+        var plan = Plan(); plan.Format = 3;
+        var move = plan.MoveFor(Path.Combine(plan.CandidateRoot, "RetroEmu.dll"), Path.Combine(_installed, "RetroEmu.dll"))
+            with { Backup = Path.GetRelativePath(plan.Parent, Path.Combine(_installed, "ROMs/uno.tap")).Replace('\\', '/') };
+        Assert.Throws<InvalidDataException>(() => plan.ValidateMove(move)); AssertPlayerData();
     }
 
     [Test]

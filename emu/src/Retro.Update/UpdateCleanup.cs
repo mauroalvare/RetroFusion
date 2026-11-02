@@ -83,7 +83,7 @@ public static class UpdateCleanup
             PackageManifest? current = null;
             foreach (var plan in UpdatePlan.Pending(installed))
             {
-                if (plan.Format != 2 || plan.State != "committed") continue;
+                if (plan.Format < 2 || plan.State != "committed") continue;
                 try
                 {
                     if (InUse(plan.Job)) { deferred = true; continue; }
