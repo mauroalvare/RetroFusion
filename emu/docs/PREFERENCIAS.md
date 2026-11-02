@@ -3,6 +3,17 @@
 Abrí **Opciones > Preferencias**. Los cambios se aplican en el momento y se conservan
 al cerrar y actualizar el programa.
 
+## Idioma y versión del archivo
+
+**Idioma / Language** elige castellano o inglés para menús, mensajes y comandos.
+Se conserva al reiniciar y actualizar; --language en permite elegirlo al abrir.
+No traduce los títulos, archivos ni contenido de tus juegos.
+
+Si el archivo declara una versión posterior, se leen los campos conocidos y válidos,
+pero no se lo sobrescribe. **Recuperar archivo** conserva una copia completa antes de
+guardar los valores de esta sesión en el formato actual. Un archivo inválido también
+se conserva y permite usar valores temporales.
+
 ## Lectura
 
 - **Tamaño del texto:** 100, 125, 150, 175 o 200 %. Agranda letras, botones y márgenes
@@ -93,7 +104,7 @@ estaba guardado se conserva. Sin trabajos en curso, el programa sale como siempr
 
 ## Consola
 
-Cursor, parpadeo, líneas de monitor e historial de órdenes de Terminal hardcore. Están en el grupo
+Cursor, parpadeo, líneas de monitor e historial de órdenes de Terminal real. Están en el grupo
 **Consola**; la [guía de la consola](CONSOLA.md) explica cada uno.
 
 ## Dónde se guardan

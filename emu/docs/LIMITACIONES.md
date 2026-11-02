@@ -15,7 +15,7 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   reconstruir la antigüedad de archivos ya existentes. [Uso y datos](FILTROS-BIBLIOTECA.md).
   La actividad se limita al historial conservado; la ausencia de una partida registrada
   no prueba que nunca se haya abierto ese juego.
-- La terminal hardcore es interna y navega con órdenes. Los editores avanzados conservan
+- La terminal real es interna y navega con órdenes. Los editores avanzados conservan
   sus paneles visuales, abiertos mediante `hacer`; no se duplican como editores de texto.
   La [matriz de cobertura](CONSOLA.md#cobertura-por-órdenes) dice qué recorridos se
   completan escribiendo y cuáles son parciales: crear, fusionar, conectar la IA, editar
@@ -622,6 +622,21 @@ en el programa nuevo no promete lectura de formatos nuevos en programas anterior
 - El silencio al perder el foco no pausa la partida. [Opciones de sonido](SONIDO.md).
 
 ## Interfaz y apertura
+
+- **Idioma y recuperación posteriores a 0.3.7:** hay catálogo local es/en para la
+  interfaz, comandos, CLI e informes, con guías de usuario y diseño en inglés.
+  El contenido de juegos, títulos personales, rutas, código y documentos históricos
+  conserva su idioma. Los detalles de excepciones del sistema pueden conservar el
+  idioma de Windows. [Guía en inglés](USER-GUIDE-EN.md).
+- **Arranque de emergencia:** Windows puede consultar y preparar una actualización
+  sin cargar la interfaz gráfica ni audio. Sigue requiriendo un ejecutable y runtime
+  que el sistema pueda cargar, un manifiesto válido, permisos de escritura y una
+  versión posterior disponible. No resuelve por sí mismo la falta de OpenGL ni repara
+  cualquier instalación dañada. Windows 10, Linux gráfico y la PC de los avisos de audio
+  todavía requieren una comprobación propia. [Alcance y uso](ARRANQUE-Y-RECUPERACION.md).
+- **Pruebas ocultas:** --autotest fuerza proveedores de IA deshabilitados y usa carpetas
+  de fusiones, creaciones y perfiles junto a su evidencia. No debe heredar bibliotecas
+  del jugador al buscar en las carpetas superiores.
 
 - La tipografía usa fuentes instaladas o la incorporada de ImGui; puede variar entre sistemas.
 - **Tamaño del texto y contraste:** 100 a 200 % en pasos de 25. Escalan menús, barras,

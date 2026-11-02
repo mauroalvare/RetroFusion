@@ -9,7 +9,7 @@ También está en Preferencias y en Buscar acción.
 | --- | --- |
 | Retro | Diseño principal y predeterminado: banco de electrónica, instrumentos y tonos cálidos. Menús, botones, teclado y mando. |
 | Terminal verde | La misma interfaz gráfica, negra y verde, con texto de ancho fijo. Se siguen usando menús y botones. |
-| Terminal hardcore | Consola inventada dentro de RetroEmu: órdenes, secciones virtuales, historial y autocompletado. No abre una terminal del sistema. |
+| Terminal real | Consola inventada dentro de RetroEmu: órdenes, secciones virtuales, historial y autocompletado. No abre una terminal del sistema. |
 
 Cambiar de estilo conserva la biblioteca, favoritos, fichas, proyectos y ajustes. La
 configuración se guarda en `preferencias.json`. Los archivos de preferencias anteriores
@@ -27,13 +27,28 @@ provienen del mismo catálogo que dibuja la biblioteca.
 
 ## Después de actualizar
 
-La elección se ofrece después de que el programa actualizado dibuja su primer cuadro
-y confirma un recibo válido del actualizador: carpeta, versión y estado en aplicación.
-Un inicio normal, un recibo ajeno o una recuperación fallida no activan esa oferta.
+La elección se ofrece después de cada actualización confirmada, al dibujar el primer
+cuadro y validar el recibo del actualizador. También se ofrece en el primer inicio y
+cuando cambia la versión de una actualización manual. Un reinicio habitual de la misma
+versión no repite la pregunta. Un recibo ajeno o una recuperación fallida no la habilitan.
+
 Se conserva el estilo actual seleccionado; mirar otra vista previa no lo aplica.
 **Usar este estilo** lo cambia; **Conservar el actual** mantiene la elección anterior.
-La versión respondida se recuerda para no repetir la pregunta por esa entrega.
+La versión del último inicio se guarda al responder. Después queda abierta **Novedades**,
+que también se abre desde Ayuda o con la orden novedades (news en inglés).
 Elegir un estilo no demora la confirmación ni la limpieza de la actualización.
+
+El nombre visible es **Terminal real**, con identificador real. Se sigue aceptando
+hardcore al leer preferencias anteriores y como alias de inicio, para conservar la elección.
+
+## Idioma
+
+Preferencias permite elegir Español o English. Los menús, mensajes, ayuda, órdenes y
+autocompletado siguen ese idioma; los scripts en castellano siguen siendo aceptados.
+Los títulos personales, rutas, código y campos de los archivos guardados conservan su contenido.
+Se incluyen las guías de diseño, ensamblador y API en inglés y una
+[guía de usuario en inglés](USER-GUIDE-EN.md). La documentación técnica histórica permanece
+en castellano. --language en permite seleccionar inglés al arrancar.
 
 Las vistas previas dibujan una misma escena con datos inventados, usando la paleta, las
 fuentes, las ilustraciones y el diseño de tablas reales de cada estilo: una mejora de esos
@@ -101,7 +116,7 @@ son [CC0](https://www.wikidata.org/wiki/Wikidata:Data_access); se usa su
 Su cobertura varía, especialmente en homebrew, reediciones y colecciones con nombres
 abreviados. Reconocer un título por nombre y sistema no verifica una edición por hash.
 
-## Usar la terminal hardcore
+## Usar la terminal real
 
 La [guía de la consola](CONSOLA.md) explica las órdenes, las teclas, las tareas en segundo
 plano y qué recorridos se completan por órdenes. Empezá con `ayuda` o `como <tema>`.

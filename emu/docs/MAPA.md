@@ -25,7 +25,7 @@ datos, las opciones compartidas y la elección tras actualizar. La [guía de la 
 describe órdenes, teclas, tareas y la matriz de cobertura por órdenes.
 `Retro.App/Terminal/` separa búfer, tokenizador, definiciones, editor de línea, historial, teclado
 y dibujo; `RetroApp.Terminal*.cs` define las órdenes y `AppTasks.cs` el modelo común de tareas.
-`--interface retro|terminal|hardcore` elige el estilo al iniciar; `--interface-picker`
+`--interface retro|terminal|real` elige el estilo al iniciar; `--interface-picker`
 abre sus vistas previas. Los recorridos nativos con datos propios se seleccionan a mano en
 App.Tests: `TerminalNativeTests`, `ProductFlowNativeTests` e `InterfaceCaptureTests`. Son ocultos y
 silenciados, comparten una ventana por proceso (`NativeHarness`) y no corren con la selección

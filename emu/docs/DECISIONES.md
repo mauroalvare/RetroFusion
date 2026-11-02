@@ -2089,3 +2089,54 @@ a aplicar. El formato nuevo evita que una versión antigua interprete un reempla
 dos movimientos. `Retro.Update.dll` se instala primero y se recupera último. Un corte
 anterior al primer reemplazo conserva el programa anterior íntegro. El cambio queda
 local y no modifica las entregas publicadas.
+
+## D-123 — Supervisor de arranque sin interfaz gráfica
+
+Program mantiene en el proceso padre solo la coordinación administrada. AppStartup
+carga gráficos y audio en un hijo. El primer cuadro, después de confirmar el recibo
+del actualizador, entrega una señal en una carpeta temporal propia. Si el hijo falla o
+demora un minuto, el padre ofrece la recuperación de Windows, sin cargar raylib/cimgui.
+El detalle viaja por un archivo de error: WinExe no garantiza una consola redirigida.
+
+StartupUpdater comparte ReleaseClient y UpdatePreparation con el actualizador normal:
+primera confirmación para consultar metadatos y segunda para descargar/verificar/aplicar.
+--repair abre ese recorrido directamente. --no-update lo deshabilita; --autotest y los
+arranques del actualizador no consultan ni muestran diálogos de emergencia. El ayudante
+sigue necesitando que Windows pueda ejecutar el programa y su runtime administrado.
+No se presenta como reparación de cualquier EXE o manifiesto dañado.
+--no-ai y --autotest construyen ajustes manuales sin cargar la configuración personal.
+ProvidersDisabled bloquea construir cualquier proveedor y guardar ajustes de IA durante
+esa sesión. El inicio de paquete en --autotest aísla también fusiones, creaciones y
+perfiles junto a la captura, para no descubrir datos del usuario en carpetas superiores.
+
+## D-124 — Idioma y elección después de cada actualización
+
+UiText en Retro.Core usa un catálogo local es/en. Los formatos conservan valores,
+alineación y precisión; los datos del usuario no se traducen. La variante Message se
+limita a diagnósticos generados por el programa. Los rótulos ImGui con identidad explícita
+### la conservan. Las guías incorporadas eligen recurso por idioma, también después
+de abrirlas en castellano. No se usa traducción por red ni un proveedor de IA.
+
+Preferencias v1 agrega Language y LastStartedVersion opcionales. Cada recibo válido
+de actualización vuelve a ofrecer estilos y Novedades; el cambio de versión detecta
+también una actualización manual. La respuesta guarda la versión y evita repetir la
+pregunta en un reinicio habitual.
+
+El nombre visible es Terminal real; su orden y argumento público usan real. Hardcore
+permanece solo como nombre interno y alias legado. El campo Interface guardado sigue
+escribiendo hardcore para que una recuperación a 0.3.7 conserve el estilo elegido.
+Se aceptan ambos valores al leer. Los identificadores de órdenes, archivos y valores
+persistidos no cambian al cambiar de idioma; se ofrecen nombres y elecciones en inglés,
+sin romper órdenes previas en castellano. La referencia de cada idioma sale del catálogo.
+Las claves multilínea se normalizan a LF para que la misma traducción sirva con fuentes
+guardadas con LF o CRLF. Los rótulos con ## traducen solo su parte visible; los archivos,
+títulos y otros datos usados como rótulos se entregan directamente a ImGui.
+
+## D-125 — Preferencias de versiones posteriores sin pérdida de campos
+
+AppPreferences y SoundSettings reconocen un documento de versión posterior y pueden
+usar sus campos conocidos si son válidos. Se conserva entero y se bloquea la escritura
+automática, con un aviso que explica el motivo. Recuperar archivo copia el original
+completo a un respaldo antes de guardar los valores de la sesión en v1. Los campos
+desconocidos no se pierden sin esa acción explícita. Los archivos inválidos conservan
+el recorrido previo de recuperación y valores temporales.

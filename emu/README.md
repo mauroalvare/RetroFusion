@@ -2,6 +2,14 @@
 
 Jugá tus juegos originales, combiná sus reglas o creá un juego de 8 bits.
 
+English: [user guide](docs/USER-GUIDE-EN.md) · [command reference](docs/CONSOLE-EN.md).
+Choose English in Preferences or start with --language en.
+
+Los cambios locales posteriores a 0.3.7 incorporan idioma inglés, **Terminal real**,
+**Ayuda > Novedades**, selección de interfaz después de actualizar y
+[recuperación del arranque](docs/ARRANQUE-Y-RECUPERACION.md) mediante --repair.
+La entrega pública vigente sigue siendo 0.3.7.
+
 ## Empezar
 
 1. Abrí **RetroEmu.exe** en Windows o **RetroEmu** en Linux.
