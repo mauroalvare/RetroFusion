@@ -148,6 +148,7 @@ public sealed partial class RetroApp
     private void DrawTerminal()
     {
         if (!Hardcore && !_terminalOpen) return;
+        using var colors = UiTheme.PushConsoleColors();
         _ = Terminal;
         var viewport = ImGui.GetMainViewport();
         float height = _terminalOpen ? viewport.Size.Y - UiTheme.StatusBarHeight : WorkspaceLayout.FooterHeight;

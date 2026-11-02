@@ -5,7 +5,7 @@ internal static class TerminalLanguage
 {
     private static readonly IReadOnlyDictionary<string, string> Names = new Dictionary<string, string>(StringComparer.Ordinal)
     {
-        ["ayuda"]="help", ["como"]="how", ["limpiar"]="clear", ["historial"]="history",
+        ["ayuda"]="help", ["como"]="how", ["limpiar"]="clear", ["historial"]="history", ["requisitos"]="requirements", ["paleta"]="palette",
         ["proyectos"]="projects", ["proyecto"]="project", ["validar"]="validate", ["retomar-trabajo"]="resume-work", ["preparar"]="prepare",
         ["tareas"]="tasks", ["tarea"]="task", ["seguir"]="follow", ["cancelar"]="cancel", ["retomar"]="resume-task",
         ["jugar"]="play", ["abrir"]="open", ["continuar"]="continue", ["pausa"]="pause", ["reiniciar"]="reset",
@@ -34,14 +34,15 @@ internal static class TerminalLanguage
         ["ver"]="view", ["copiar"]="copy", ["ultimo"]="last", ["todo"]="all", ["orden"]="order", ["disponibles"]="available",
         ["nombre-desc"]="name-desc", ["año-desc"]="year-desc", ["agregados"]="added", ["buscar"]="search", ["vaciar"]="clear",
         ["creado"]="created", ["inspirado"]="inspired", ["sin"]="unknown", ["nunca"]="never", ["agregados7"]="added7", ["agregados30"]="added30",
-        ["fusiones"]="fusions", ["herramientas"]="tools", ["opciones"]="options", ["ayuda"]="help", ["barra"]="bar", ["subrayado"]="underline"
+        ["fusiones"]="fusions", ["herramientas"]="tools", ["opciones"]="options", ["ayuda"]="help", ["barra"]="bar", ["subrayado"]="underline",
+        ["usar"]="use", ["editar"]="edit"
     };
     private static readonly IReadOnlyDictionary<string, string> Options = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["idioma"]="language", ["interfaz"]="interface", ["texto"]="text-size", ["contraste"]="contrast", ["consulta-fichas"]="online-metadata",
         ["pantalla-completa"]="fullscreen", ["escala-entera"]="integer-scale", ["fps"]="fps", ["joystick-zx"]="zx-joystick", ["puerto-c64"]="c64-port",
         ["load-cintas"]="tape-load", ["turbo-carga"]="loading-turbo", ["ahorro"]="power-saving", ["pausa-fondo"]="background-pause",
-        ["consola-cursor"]="console-cursor", ["consola-parpadeo"]="console-blink", ["consola-crt"]="console-scanlines", ["consola-historial"]="console-history",
+        ["consola-cursor"]="console-cursor", ["consola-parpadeo"]="console-blink", ["consola-crt"]="console-scanlines", ["consola-historial"]="console-history", ["consola-paleta"]="console-palette",
         ["volumen"]="volume", ["silencio"]="mute", ["silencio-fondo"]="background-mute", ["buffer-audio"]="audio-buffer"
     };
     public static string Name(string canonical) => UiText.English ? Names.GetValueOrDefault(canonical, canonical) : canonical;
@@ -50,6 +51,7 @@ internal static class TerminalLanguage
     public static string CanonicalOption(string input) => Options.FirstOrDefault(pair => pair.Value == input).Key ?? input;
     public static string CanonicalChoice(string input, IReadOnlyList<string> allowed)
     {
+        if (CommandLine.Fold(input) == "ambar" && allowed.Contains("amber")) return "amber";
         if (input.Equals("hardcore", StringComparison.OrdinalIgnoreCase) && allowed.Contains("real")) return "real";
         string folded = CommandLine.Fold(input);
         // Accepted canonical words keep their spelling, as in the original interpreter contract.

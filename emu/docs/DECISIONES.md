@@ -2192,3 +2192,33 @@ real emulada y comparan bytes y estado antes/después de un rechazo.
 La lista visual y Aplicar todos comparten la validación de dirección, hexadecimal,
 longitudes y límites; una anotación dañada no ofrece Deshacer ni se elimina como si su
 respaldo fuera completo.
+
+## D-130 — Ámbar y comprobación de arranque sin gráficos
+
+amber es un estilo gráfico con paleta propia y tipografía de ancho fijo. Acepta ámbar
+como alias de entrada, conserva el identificador en preferencias v1 y usa la misma
+paleta en pantalla y vista previa. Un lector anterior vuelve a Retro si no lo conoce.
+El selector distribuye sus tarjetas según el ancho y mantiene el pie accesible.
+
+--no-audio omite InitAudioDevice y crear canales, sin alterar ajustes guardados. Buscar
+la salida de audio lo habilita explícitamente. --mute conserva su semántica de silencio.
+--check-startup archivo.json (alias --comprobar-arranque) actúa antes de leer ajustes o
+recuperar actualizaciones. No carga gráficos ni audio. Distingue presencia de archivos,
+origen del runtime cargado, componentes opcionales y controlador todavía sin comprobar.
+requisitos y la sección de Ayuda comparten ese informe, enriquecido por la ventana actual.
+--autotest-report archivo.json solo junto a --autotest permite registrar cuadros reales,
+estado de audio y bloqueo de IA, sin depender de la salida de consola de WinExe.
+
+## D-131 — Paletas libres de terminal y reintentos sin duplicación
+
+ConsolePalette y ConsoleColors son campos opcionales de preferencias v1. Ocho colores
+RGB #RRGGBB describen fondo, texto, acento/cursor, secundario, selección y tres estados.
+Los presets y la paleta libre no cambian el modo de interfaz ni la partida. Se aplican
+también a la consola temporal del estilo gráfico; alto contraste conserva la elección.
+El editor modifica un borrador y solo Aplicar lo guarda. Un RGB inválido no sobrescribe
+el archivo; si ya está dañado se conserva hasta recuperación explícita con respaldo.
+La orden paleta/palette y la opción consola-paleta/console-palette usan el mismo estado.
+Los lectores previos ignoran estos campos; no implementan paletas personalizadas.
+
+AppTask.Resume solo acepta tareas terminadas con continuación disponible. Consume esa
+continuación una vez para evitar duplicados; si el callback falla, vuelve a habilitarla.

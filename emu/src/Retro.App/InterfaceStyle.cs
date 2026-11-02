@@ -1,6 +1,6 @@
 namespace Retro.App;
 
-public enum InterfaceStyle { Retro, Terminal, Hardcore }
+public enum InterfaceStyle { Retro, Terminal, Hardcore, Amber }
 
 public sealed record InterfaceDescription(InterfaceStyle Style, string Id, string Name, string Description)
 {
@@ -31,12 +31,18 @@ public static class InterfaceStyles
         {
             Handling = "Órdenes escritas",
             Features = ["Autocompletado, historial y búsqueda de órdenes anteriores.", "Tareas largas en segundo plano, sin perder el prompt.", "Los editores visuales se siguen abriendo con hacer."]
+        },
+        new(InterfaceStyle.Amber, "amber", "Ámbar · pantalla de fósforo", "Fondo oscuro, texto ámbar y tipografía de ancho fijo. Conserva los menús, botones y herramientas, con una consola del mismo color.")
+        {
+            Handling = "Menús y botones, tonos ámbar",
+            Features = ["Vistas previas y pantallas con la misma paleta cálida.", "Alto contraste disponible sin cambiar el tema elegido."]
         }
     ]);
 
     public static bool TryParse(string? id, out InterfaceStyle style)
     {
         if (string.Equals(id, "hardcore", StringComparison.OrdinalIgnoreCase)) id = "real";
+        if (id != null && CommandLine.Fold(id) == "ambar") id = "amber";
         var match = All.FirstOrDefault(item => item.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
         style = match?.Style ?? InterfaceStyle.Retro;
         return match != null;

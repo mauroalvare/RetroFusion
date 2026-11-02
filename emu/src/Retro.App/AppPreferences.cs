@@ -11,7 +11,7 @@ public sealed class AppPreferences
         bool PauseInBackground = false, string? LastFolder = null, string Interface = "retro", string? InterfaceOfferedVersion = null,
         bool OnlineGameInfo = false, string ConsoleCursor = "block", bool ConsoleBlink = true, bool ConsoleScanlines = false,
         bool ConsoleHistory = true, string? LibraryFolder = null, string? LastStartedVersion = null,
-        string Language = "es");   // optional v1 fields preserve older preferences
+        string Language = "es", string ConsolePalette = "auto", TerminalColors? ConsoleColors = null);   // optional v1 fields preserve older preferences
     private readonly string _path;
     private readonly bool _persist;
     private bool _unreadable;
@@ -35,6 +35,8 @@ public sealed class AppPreferences
     public bool ConsoleBlink { get; set; } = true;
     public bool ConsoleScanlines { get; set; }
     public bool ConsoleHistory { get; set; } = true;
+    public string ConsolePalette { get; set; } = "auto";
+    public TerminalColors ConsoleColors { get; set; } = TerminalPalettes.Green;
     /// <summary>Last folder of the file picker; only used again while it exists.</summary>
     public string? LastFolder { get; set; }
     /// <summary>The games folder chosen by the user; without one, the folder next to the program is found.</summary>
@@ -72,6 +74,10 @@ public sealed class AppPreferences
             ConsoleCursor = CursorNames.GetValueOrDefault(doc.ConsoleCursor ?? "", TerminalCursor.Block);
             ConsoleBlink = doc.ConsoleBlink; ConsoleScanlines = doc.ConsoleScanlines; ConsoleHistory = doc.ConsoleHistory;
             LibraryFolder = doc.LibraryFolder is { Length: > 0 and <= 1024 } library ? library : null;
+            string paletteId = doc.ConsolePalette ?? "auto";
+            ConsolePalette = TerminalPalettes.Known(paletteId) ? paletteId : "auto";
+            if (doc.ConsoleColors != null && !TerminalPalettes.Valid(doc.ConsoleColors)) throw new InvalidDataException();
+            ConsoleColors = doc.ConsoleColors ?? TerminalPalettes.Green;
             if (doc.Version > 1)
             {
                 _unreadable = true;
@@ -96,11 +102,12 @@ public sealed class AppPreferences
         Interface = InterfaceStyle.Retro; OnlineGameInfo = false;
         Language = "es";
         ConsoleCursor = TerminalCursor.Block; ConsoleBlink = ConsoleHistory = true; ConsoleScanlines = false;
+        ConsolePalette = "auto"; ConsoleColors = TerminalPalettes.Green;
     }
 
     public bool Save()
     {
-        if (!Valid(TextPercent, C64Port) || !Enum.IsDefined(SpectrumJoystick) || !Enum.IsDefined(Interface) || Language is not ("es" or "en")) { Problem = "Las preferencias no son válidas."; return false; }
+        if (!Valid(TextPercent, C64Port) || !Enum.IsDefined(SpectrumJoystick) || !Enum.IsDefined(Interface) || Language is not ("es" or "en") || !TerminalPalettes.Known(ConsolePalette) || !TerminalPalettes.Valid(ConsoleColors)) { Problem = "Las preferencias no son válidas."; return false; }
         if (!_persist) return true;
         if (_unreadable) return false;
         string temporary = _path + "." + Guid.NewGuid().ToString("N") + UiText.Get(".tmp");
@@ -110,7 +117,7 @@ public sealed class AppPreferences
             File.WriteAllText(temporary, JsonSerializer.Serialize(new Document(1, TextPercent, HighContrast, IntegerScale, Fullscreen,
                 PowerSaving, ShowFps, SpectrumJoystick.ToString(), C64Port, TypeLoad, TurboWhileLoading, PauseInBackground, LastFolder,
                 Interface == InterfaceStyle.Hardcore ? "hardcore" : InterfaceStyles.Describe(Interface).Id, InterfaceOfferedVersion, OnlineGameInfo,
-                CursorNames.First(pair => pair.Value == ConsoleCursor).Key, ConsoleBlink, ConsoleScanlines, ConsoleHistory, LibraryFolder, LastStartedVersion, Language)));
+                CursorNames.First(pair => pair.Value == ConsoleCursor).Key, ConsoleBlink, ConsoleScanlines, ConsoleHistory, LibraryFolder, LastStartedVersion, Language, ConsolePalette, ConsoleColors)));
             File.Move(temporary, _path, overwrite: true); Problem = null; return true;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
@@ -126,7 +133,7 @@ public sealed class AppPreferences
     public bool Recover()
     {
         if (!CanRecover) return Save();
-        if (!Valid(TextPercent, C64Port) || !Enum.IsDefined(SpectrumJoystick))
+        if (!Valid(TextPercent, C64Port) || !Enum.IsDefined(SpectrumJoystick) || !Enum.IsDefined(Interface) || Language is not ("es" or "en") || !TerminalPalettes.Known(ConsolePalette) || !TerminalPalettes.Valid(ConsoleColors))
         { Problem = "Las preferencias no son válidas."; return false; }
         string backup = _path + UiText.Get(".respaldo-") + Guid.NewGuid().ToString("N");
         try { File.Copy(_path, backup, overwrite: false); RecoveryPath = backup; }

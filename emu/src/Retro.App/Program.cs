@@ -1,6 +1,16 @@
 using Retro.App;
 using Retro.Update;
 
+int requirementsIndex = Array.FindIndex(args, arg => arg is "--check-startup" or "--comprobar-arranque");
+if (requirementsIndex >= 0)
+{
+    int languageIndex = Array.IndexOf(args, "--language");
+    UiText.Language = languageIndex >= 0 && languageIndex + 1 < args.Length && args[languageIndex + 1] is "es" or "en" ? args[languageIndex + 1] : "es";
+    Environment.ExitCode = requirementsIndex + 1 < args.Length && !args[requirementsIndex + 1].StartsWith("--", StringComparison.Ordinal)
+        ? StartupRequirements.Write(args[requirementsIndex + 1], AppContext.BaseDirectory, !StartupRequirements.WantsAudio(args)) : 2;
+    return;
+}
+
 UiText.Language = UiText.StartupLanguage(args);
 
 if (args.Length == 2 && args[0] == "--apply-update")

@@ -18,7 +18,7 @@ public sealed partial class RetroApp
         text.AppendLine(UiText.Format($"Ventana: {Raylib.GetScreenWidth()}x{Raylib.GetScreenHeight()} · escala {Raylib.GetWindowScaleDPI().X:F2} · texto {_prefs.TextPercent} %"));
         text.AppendLine(UiText.Format($"Interfaz: {InterfaceStyles.Describe(_prefs.Interface).Id} · contraste {(_prefs.HighContrast ? UiText.Get("alto") : UiText.Get("normal"))}"));
         text.AppendLine(UiText.Format($"Máquina: {_host.Machine?.Id ?? UiText.Get("ninguna")} · {(_host.Paused ? UiText.Get("en pausa") : UiText.Get("en ejecución"))} · medio {(_host.LoadedMedia != null ? UiText.Get("cargado") : UiText.Get("sin cargar"))}"));
-        text.AppendLine(UiText.Get("Audio: ") + (AudioReady ? "salida activa" : Raylib.IsAudioDeviceReady() ? "dispositivo sin canal de salida" : "sin dispositivo"));
+        text.AppendLine(UiText.Get("Audio: ") + UiText.Get(_audioDisabled ? "desactivado para este inicio (--no-audio)" : AudioReady ? "salida activa" : Raylib.IsAudioDeviceReady() ? "dispositivo sin canal de salida" : "sin dispositivo"));
         text.AppendLine(UiText.Format($"Biblioteca: {_library.Entries.Count} archivos · {(_library.Scanning ? UiText.Get("actualizando") : UiText.Get("al día"))}"));
         text.AppendLine(UiText.Format($"Memoria administrada: {GC.GetTotalMemory(false) / (1024 * 1024)} MB"));
         foreach (var task in _tasks.Active) text.AppendLine(UiText.Format($"Tarea: {task.Kind} · {AppTaskCenter.StateName(task.State)} · {AppTaskCenter.Duration(task.Elapsed)}"));

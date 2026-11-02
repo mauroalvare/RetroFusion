@@ -6,7 +6,7 @@ namespace App.Tests;
 [TestFixture, NonParallelizable]
 public sealed class InterfaceStyleTests
 {
-    [TestCase(InterfaceStyle.Retro), TestCase(InterfaceStyle.Terminal), TestCase(InterfaceStyle.Hardcore)]
+    [TestCase(InterfaceStyle.Retro), TestCase(InterfaceStyle.Terminal), TestCase(InterfaceStyle.Hardcore), TestCase(InterfaceStyle.Amber)]
     public void StyleAndUpdateOfferPersistWithoutChangingOtherPreferences(InterfaceStyle style)
     {
         string root = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "retro-style-" + Guid.NewGuid().ToString("N"))).FullName;
@@ -94,5 +94,25 @@ public sealed class InterfaceStyleTests
             UiTheme.Apply(); Assert.That(ImGui.GetStyle().Colors[(int)ImGuiCol.Text], Is.EqualTo(original)); Assert.That(UiTheme.Accent, Is.EqualTo(accent));
         }
         finally { ImGui.DestroyContext(context); }
+    }
+
+    [Test]
+    public void AmberIsTheSamePaletteInThePreviewAndTheInterfaceAndHighContrastCanBeReversed()
+    {
+        nint context = ImGui.CreateContext();
+        try
+        {
+            Assert.That(InterfaceStyles.TryParse("ámbar", out var selected), Is.True);
+            Assert.That(selected, Is.EqualTo(InterfaceStyle.Amber));
+            UiTheme.Apply(appearance: selected);
+            var palette = UiTheme.PaletteOf(selected);
+            Assert.That(ImGui.GetStyle().Colors[(int)ImGuiCol.Text], Is.EqualTo(palette.Text));
+            Assert.That(palette.Text.X, Is.GreaterThan(palette.Text.Y));
+            Assert.That(palette.Text.Y, Is.GreaterThan(palette.Text.Z));
+            Assert.That(UiTheme.TerminalInk(TerminalKind.Command), Is.EqualTo(ImGui.ColorConvertFloat4ToU32(TerminalPalettes.Color(TerminalPalettes.Amber.Text))));
+            UiTheme.Apply(1, true, selected); Assert.That(ImGui.GetStyle().Colors[(int)ImGuiCol.Text].X, Is.EqualTo(1));
+            UiTheme.Apply(appearance: selected); Assert.That(ImGui.GetStyle().Colors[(int)ImGuiCol.Text], Is.EqualTo(palette.Text));
+        }
+        finally { UiTheme.Apply(); ImGui.DestroyContext(context); }
     }
 }

@@ -6,6 +6,11 @@ Bring your own games. A graphics driver providing OpenGL 3.3 is required.
 Firmware supplied with the package retains its respective licenses.
 --no-ai starts a manual session without loading or saving personal AI settings and blocks
 automatic provider creation. It can be combined with --preparar for local preparation.
+--no-audio skips sound-device initialization entirely; --mute only silences output.
+Use Sound > Find audio output to enable it explicitly in the same session.
+--check-startup report.json --language en saves a requirements report before graphics,
+sound, settings and AI are loaded. It does not test the OpenGL driver; a present DLL
+does not certify that it loads. The executable and its managed runtime must already run.
 
 ## Language and interface
 
@@ -18,6 +23,8 @@ identifiers retain their original content.
 Retro is the graphical workbench. Green terminal uses the same menus and buttons in a
 green palette. Real terminal provides RetroEmu commands with help, history and completion.
 Choose Options > Interface styles to preview or change them. Looking does not apply a style.
+Amber adds a warm phosphor appearance with menus and buttons. Use --interface amber
+or select it in the preview picker.
 
 Every confirmed update asks for an interface again. A manual update is detected by the
 changed program version. An ordinary restart of that version does not repeat the question.
@@ -50,6 +57,16 @@ A file from a later version is read conservatively: known valid values may be us
 the file remains unchanged. Recover file keeps a complete backup before saving this version.
 
 ## Real terminal
+
+Choose a terminal palette in Preferences > Console, or use palette list and
+palette use green|amber|ice|paper. Paper has a light background. palette edit opens
+the color editor; palette color text #F092FF changes any RGB directly. Editable fields
+are background, text, accent/cursor, muted, selection, success, warning and error.
+Apply saves the preview; Cancel keeps the preceding colors. palette reset follows
+the interface style while retaining the last custom colors. High contrast overrides
+colors temporarily and restores the choice when turned off. Palettes persist across
+restarts and also apply to the console opened over a graphical interface.
+requirements shows what is present, already checked or optional for startup.
 
 Graphical search also lists commands with parameters and examples. Selecting one opens
 an editable console line with its help; it does not execute it. Complete the arguments

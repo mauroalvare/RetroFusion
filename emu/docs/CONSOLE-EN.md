@@ -91,11 +91,12 @@ Use help <command> for examples, requirements and errors.
 
 | Command | Function |
 | --- | --- |
+| `requirements` | Shows requirements and what was checked during this startup. |
 | `news` | Shows new features and changes in recent versions. |
 | `status` | Shows the machine, session, library, interface and tasks. |
 | `options [text…]` (`ajustes`, `preferencias`) | Lists program settings with current values. |
 | `option <id> [value…]` (`ajuste`) | Reads, changes or resets a setting shared by all styles. |
-| `interface <retro\|terminal\|real\|preview>` (`estilo`, `tema`) | Changes the style or opens the preview selector. |
+| `interface <retro\|terminal\|real\|amber\|preview>` (`estilo`, `tema`) | Changes the style or opens the preview selector. |
 | `actions [text…]` | Lists program features with their current availability. |
 | `do <id>` | Runs a catalog action; visual tools open their panel. |
 | `update [status\|open]` (`version`, `actualizaciones`) | Checks the version or opens the program updater. |
@@ -108,6 +109,7 @@ Use help <command> for examples, requirements and errors.
 | --- | --- |
 | `copy [last\|all]` | Copies the last command's result or all output, without decoration. |
 | `shortcuts` (`teclas`) | Lists console and game keys. |
+| `palette [view\|list\|use\|color\|edit\|reset] [value] [rgb]` | Selects a palette or customizes any terminal RGB color. |
 | `help [topic]` (`?`, `man`) | Explains a command or group, or lists all commands. |
 | `how <topic…>` (`apropos`) | Finds how to do something without knowing the command name. |
 | `clear` (`cls`) | Clears stored console output. |

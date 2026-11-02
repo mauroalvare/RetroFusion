@@ -9,7 +9,7 @@ public sealed partial class RetroApp
     private bool _preferencesOpen;
     private string _preferencesGroup = "";
     private string _preferencesSearch = "";
-    private bool ConfigurationOpen => _preferencesOpen || _soundWindowOpen || _newsOpen || AiConnectionWindow.IsOpen;
+    private bool ConfigurationOpen => _preferencesOpen || _soundWindowOpen || _newsOpen || _paletteEditorOpen || AiConnectionWindow.IsOpen;
     private static readonly string[] JoystickNames = ["Kempston (Alt = disparo)", "Cursor (5 6 7 8 0)", "Sinclair 1 (6 7 8 9 0)"];
     private static readonly string[] C64Ports = ["Puerto 1", "Puerto 2 (la mayoría de los juegos)"];
 
@@ -68,12 +68,17 @@ public sealed partial class RetroApp
         ImGui.PushTextWrapPos(0);
         if (_preferencesSearch.Trim().Length > 0) DrawSharedOptions(search: _preferencesSearch);
         else DrawSharedOptions(_preferencesGroup);
+        if (_preferencesGroup == UiText.Get("Consola") || CommandLine.Fold(_preferencesSearch).Contains("palet") || CommandLine.Fold(_preferencesSearch).Contains("color"))
+        {
+            if (ImGui.Button(UiText.Label("Personalizar colores…"))) OpenPaletteEditor();
+            InterfaceControlBounds?.Invoke("Personalizar paleta", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
+        }
         ImGui.PopTextWrapPos();
         ImGui.EndChild();
         ImGui.Separator();
         // Settings apply as they change: the footer says what happened to them instead of asking for a save.
         string? problem = _prefs.Problem ?? _sound.Problem;
-        if (!compact || problem != null) UiTheme.Hint(UiTheme.Fit(problem ?? UiText.Get("Los cambios se aplican y se guardan al instante, para los tres estilos."), ImGui.GetContentRegionAvail().X));
+        if (!compact || problem != null) UiTheme.Hint(UiTheme.Fit(problem ?? UiText.Get("Los cambios se aplican y se guardan al instante, para todos los estilos."), ImGui.GetContentRegionAvail().X));
         if (ImGui.Button(UiText.Label("Restablecer todo"))) ResetPreferences();
         InterfaceControlBounds?.Invoke("Restablecer todo", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
         if (ImGui.IsItemHovered()) UiTheme.Tooltip("Vuelve a los valores iniciales de pantalla, sonido, controles y consola. No cambia tus juegos, partidas ni fichas.");

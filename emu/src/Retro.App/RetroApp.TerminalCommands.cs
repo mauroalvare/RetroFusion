@@ -8,7 +8,7 @@ public sealed partial class RetroApp
     private IReadOnlyList<CommandSpec>? _terminalCatalog;
     private IReadOnlyList<CommandSpec> TerminalCatalog
     {
-        get => _terminalCatalog ??= [.. LibraryOrders(), .. PlayOrders(), .. AnalysisOrders(), .. ProjectOrders(), .. TaskOrders(), .. SystemOrders()];
+        get => _terminalCatalog ??= [.. LibraryOrders(), .. PlayOrders(), .. AnalysisOrders(), .. ProjectOrders(), .. TaskOrders(), .. SystemOrders(), .. PaletteOrders()];
         set => _terminalCatalog = value;
     }
 
@@ -17,6 +17,17 @@ public sealed partial class RetroApp
 
     private IEnumerable<CommandSpec> SystemOrders() =>
     [
+        new()
+        {
+            Id = "system.requirements", Name = "requisitos", Group = "Sistema", Summary = "Muestra los requisitos y qué se comprobó en este arranque.",
+            Aliases = ["requirements"], Keywords = "arranque dependencias minimo audio opengl runtime sdk",
+            Examples = ["requisitos"], Result = "Distingue archivos presentes, ventana inicializada y componentes opcionales.",
+            Run = context =>
+            {
+                foreach (var check in StartupRequirements.Inspect(AppContext.BaseDirectory, Raylib_cs.Raylib.IsWindowReady(), _audioDisabled))
+                    context.Write(StartupRequirements.StatusName(check.Status) + " · " + check.Detail);
+            }
+        },
         new()
         {
             Id = "system.news", Name = "novedades", Group = "Sistema", Summary = "Muestra las funciones nuevas y los cambios de las últimas versiones.",
@@ -57,7 +68,7 @@ public sealed partial class RetroApp
                 new("valor", ArgumentKind.Text, "Nuevo valor, o restablecer para volver al inicial.") { Optional = true, Rest = true, Complete = earlier => Options.FirstOrDefault(option => option.Id == earlier.FirstOrDefault())?.Completions() ?? [] }
             ],
             Examples = ["opcion volumen", "opcion volumen 60", "opcion contraste on", "opcion volumen restablecer"],
-            Errors = ["el valor no está entre los admitidos"], Result = "El cambio se ve al instante en los tres estilos.",
+            Errors = ["el valor no está entre los admitidos"], Result = "El cambio se ve al instante en todos los estilos.",
             Run = context =>
             {
                 string id = TerminalLanguage.CanonicalOption(context.Text("id"));
@@ -84,7 +95,7 @@ public sealed partial class RetroApp
         {
             Id = "system.interface", Name = "interfaz", Group = "Sistema", Summary = "Cambia el estilo o abre la elección con vistas previas.",
             Aliases = ["estilo", "tema"], Keywords = "apariencia retro terminal real cambiar grafica",
-            Arguments = [new("estilo", ArgumentKind.Choice, "El estilo que querés usar.") { Choices = ["retro", "terminal", "real", "preview"] }],
+            Arguments = [new("estilo", ArgumentKind.Choice, "El estilo que querés usar.") { Choices = ["retro", "terminal", "real", "amber", "preview"] }],
             Examples = ["interfaz retro", "interfaz preview"], Result = "Los datos, ajustes y la partida se conservan.",
             Run = context =>
             {

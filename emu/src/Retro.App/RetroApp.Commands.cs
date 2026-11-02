@@ -28,6 +28,7 @@ public sealed partial class RetroApp
     }
 
     private IReadOnlyList<AppCommand> BuildCommands() => [
+        new("palette", "Personalizar colores de la terminal…", "Opciones", "paleta colores fondo texto cursor", "", OpenPaletteEditor),
         new("auto-analysis","Investigar variables automáticamente…","Herramientas","memoria candidatos evidencia presupuesto hexadecimal", "",OpenAutomaticAnalysis,
             ()=>_host.LoadedMediaSource!=null && _host.Fusion==null && _host.Machine?.Memory.AddressBits<=16,"Abrí un original de 8 bits."),
         new("create-hub", "Abrir el taller de creación", "Crear", "inicio proyectos", "", () => OpenHub(HubPage.Create)),

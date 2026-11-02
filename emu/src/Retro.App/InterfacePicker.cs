@@ -83,11 +83,15 @@ internal sealed class InterfacePicker
             }
             return;
         }
-        float card = (width - ImGui.GetStyle().ItemSpacing.X * 2) / 3;
-        foreach (var choice in InterfaceStyles.All)
+        float spacing = ImGui.GetStyle().ItemSpacing.X;
+        float needed = InterfaceStyles.All.Max(choice => ImGui.CalcTextSize(choice.ShortName + UiText.Get(" · actual")).X) + UiTheme.Px(24);
+        int columns = width >= needed * InterfaceStyles.All.Count + spacing * (InterfaceStyles.All.Count - 1) ? InterfaceStyles.All.Count : 2;
+        float card = (width - spacing * (columns - 1)) / columns;
+        for (int i = 0; i < InterfaceStyles.All.Count; i++)
         {
+            var choice = InterfaceStyles.All[i];
             ImGui.PushID(choice.Id);
-            if (choice.Style != InterfaceStyles.All[0].Style) ImGui.SameLine();
+            if (i % columns != 0) ImGui.SameLine();
             ImGui.PushStyleColor(ImGuiCol.Button, Selected == choice.Style ? ImGui.GetStyle().Colors[(int)ImGuiCol.Header] : UiTheme.Panel);
             var size = new Vector2(card, ImGui.GetTextLineHeight() * 2 + UiTheme.Px(14));
             if (ImGui.Button("##elegir", size)) Selected = choice.Style;

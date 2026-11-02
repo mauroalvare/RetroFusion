@@ -31,6 +31,8 @@ public sealed partial class RetroApp
         AppOption.Choice("consola-cursor", "Cursor de la consola", "Consola", "Forma del cursor en Terminal real.",
             () => AppPreferences.CursorNames.First(pair => pair.Value == _prefs.ConsoleCursor).Key, value => { _prefs.ConsoleCursor = AppPreferences.CursorNames[value]; _prefs.Save(); },
             new("block", "Bloque"), new("barra", "Barra"), new("subrayado", "Subrayado")) with { Default = "block" },
+        AppOption.Choice("consola-paleta", "Paleta de la terminal", "Consola", "Elegí colores independientes del modo de interfaz. Personalizada conserva tus ocho colores RGB.",
+            () => _prefs.ConsolePalette, SetConsolePalette, TerminalPalettes.All.Select(palette => new OptionChoice(palette.Id, palette.Name)).ToArray()) with { Default = "auto" },
         AppOption.Toggle("consola-parpadeo", "Parpadeo del cursor", "Consola", "Desactivalo si el movimiento te molesta; el cursor queda fijo.", () => _prefs.ConsoleBlink, value => { _prefs.ConsoleBlink = value; _prefs.Save(); }) with { Default = "on" },
         AppOption.Toggle("consola-crt", "Líneas de monitor CRT", "Consola", "Dibuja líneas tenues sobre la consola. Reduce un poco la lectura.", () => _prefs.ConsoleScanlines, value => { _prefs.ConsoleScanlines = value; _prefs.Save(); }) with { Default = "off" },
         AppOption.Toggle("consola-historial", "Recordar las órdenes", "Consola", "Guarda las órdenes en este equipo para la próxima sesión. El diagnóstico nunca las incluye.",

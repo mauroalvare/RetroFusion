@@ -279,7 +279,7 @@ internal sealed class TerminalView(ProgramTerminal terminal, TerminalInput input
     {
         var style = look();
         if (style.Blink && (ImGui.GetTime() - _lastInput) % 1.06 > 0.53) return;
-        uint ink = UiTheme.TerminalInk(TerminalKind.Command);
+        uint ink = UiTheme.ConsoleCursorInk;
         var cell = new Vector2(_cell, _rowHeight);
         switch (style.Cursor)
         {

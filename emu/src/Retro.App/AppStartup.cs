@@ -40,7 +40,7 @@ internal static class AppStartup
         }
         Raylib.SetExitKey(KeyboardKey.Null);
         // A computer without sound output carries on: the app detects it and runs in silence.
-        Raylib.InitAudioDevice();
+        if (StartupRequirements.WantsAudio(args)) Raylib.InitAudioDevice();
         rlImGui.Setup(true, true);
         if (args.Contains("--autotest"))
             unsafe { ImGuiNET.ImGui.GetIO().NativePtr->IniFilename = null; }
@@ -88,7 +88,7 @@ internal static class AppStartup
         }
         app.Shutdown();
         rlImGui.Shutdown();
-        Raylib.CloseAudioDevice();
+        if (Raylib.IsAudioDeviceReady()) Raylib.CloseAudioDevice();
         Raylib.CloseWindow();
     }
 }

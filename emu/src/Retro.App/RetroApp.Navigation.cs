@@ -170,13 +170,16 @@ public sealed partial class RetroApp
         UiTheme.Heading("Manual de operación","Controles, atajos y ayuda para los trabajos del taller.");
         if (ImGui.Button(UiText.Label("Novedades de las últimas versiones…"))) OpenNews();
         UiTheme.BeginCard("console-help");
-        UiTheme.Section("Tres formas de manejarlo");
+        UiTheme.Section("Estilos y formas de manejo");
         foreach (var style in InterfaceStyles.All) ImGui.BulletText(UiText.Get(style.ShortName+": "+style.Handling.ToLowerInvariant()+"."));
         if (ImGui.Button(UiText.Label("Ver estilos y vistas previas…"))) OpenInterfacePicker();
         UiTheme.SameLineIfFits("Copiar diagnóstico");
         if (ImGui.Button(UiText.Label("Copiar diagnóstico"))) { ImGui.SetClipboardText(DiagnosticReport()); _diagnosticCopied=true; }
         if (ImGui.IsItemHovered()) UiTheme.Tooltip("Lleva al portapapeles un resumen técnico sin títulos, rutas personales ni credenciales.");
         if (_diagnosticCopied) UiTheme.Hint("Diagnóstico copiado. Revisalo antes de compartirlo.");
+        if (ImGui.CollapsingHeader(UiText.Label("Requisitos para abrir y jugar")))
+            foreach (var check in StartupRequirements.Inspect(AppContext.BaseDirectory, Raylib_cs.Raylib.IsWindowReady(), _audioDisabled))
+            { ImGui.Bullet(); ImGui.TextWrapped(StartupRequirements.StatusName(check.Status) + " · " + check.Detail); }
         UiTheme.EndCard();
         UiTheme.BeginCard("play-help");
         UiTheme.Section("Abrir y jugar");

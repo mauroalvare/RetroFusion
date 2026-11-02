@@ -32,6 +32,10 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   ve como signo de pregunta, aunque se conserva al copiarlo: los emojis y la escritura de
   derecha a izquierda no tienen soporte. Las fuentes dependen del sistema: la auditoría de
   caracteres se comprobó con las fuentes de Windows, no en Linux ni macOS.
+- Los ocho colores de la terminal admiten cualquier RGB; una combinación elegida puede ser
+  difícil de leer. El editor permite previsualizar, cancelar y restaurar la base. Alto contraste
+  aplica colores accesibles sin borrar la paleta guardada. Ámbar es otro estilo gráfico;
+  la paleta de la consola se elige por separado. No se importan temas de otras terminales.
 - `tareas` conoce el avance que cada proceso informa. Una espera de IA por copiar y pegar o por
   carpeta de agente figura como esperando tu respuesta y no se cancela desde la lista, sino
   en su taller. `retomar` solo vale para tareas que dejaron cómo reintentarse; las de los
@@ -44,6 +48,11 @@ se trata de una limitación deducida que todavía necesita una prueba específic
 - Sin una salida de audio utilizable el programa funciona en silencio, a la velocidad normal, y la
   barra de estado lo indica. **Opciones > Sonido** o `hacer audio-retry` la vuelven a buscar. Si el
   dispositivo deja de pedir sonido con el programa abierto se trata igual, y vuelve solo si responde.
+  `--no-audio` evita inicializar el dispositivo hasta pedir **Buscar salida**; `--mute` solo silencia.
+  La comprobación `--check-startup informe.json` funciona antes de abrir gráficos y enumera archivos
+  y requisitos. Encontrar una DLL no demuestra que pueda cargarse ni certifica el controlador gráfico.
+  El paquete autocontenido lleva .NET; jugar no requiere SDK, Python ni una cuenta de IA. El firmware
+  depende de la máquina. Una prueba con audio desactivado no certifica una PC sin dispositivo físico.
 - El historial de órdenes se guarda en claro en la cuenta del usuario; las rutas escritas en una
   orden quedan ahí. `historial borrar` lo vacía y `consola-historial` lo desactiva.
 - Un favorito o reciente ausente se muestra deshabilitado después de escanear. La actividad

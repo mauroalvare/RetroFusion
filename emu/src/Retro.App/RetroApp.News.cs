@@ -48,7 +48,10 @@ internal static class ReleaseNotes
             "Terminal real es el nuevo nombre de la interfaz por comandos.",
             "El idioma se elige en Preferencias; la terminal ofrece las órdenes correspondientes al idioma elegido.",
             "Los favoritos ausentes siguen visibles y recuperan su marca cuando vuelve el mismo contenido.",
-            "El buscador incluye órdenes con parámetros y ejemplos; elegir una prepara la línea sin ejecutarla."
+            "El buscador incluye órdenes con parámetros y ejemplos; elegir una prepara la línea sin ejecutarla.",
+            "Ámbar agrega una pantalla cálida con menús y botones.",
+            "La terminal tiene paletas y ocho colores RGB libres, con vista previa, Aplicar y Cancelar.",
+            "Requisitos muestra qué falta para arrancar; --no-audio permite abrir sin inicializar sonido."
         ]),
         new("0.3.7", [
             "Consola interna con ayuda, historial, autocompletado y tareas cancelables en segundo plano.",

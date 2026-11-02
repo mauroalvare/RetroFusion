@@ -10,14 +10,14 @@ namespace Retro.App;
 internal static class UiTheme
 {
     public const float BaseFontSize = 20;
-    public static Vector4 Muted => HighContrast ? new(0.86f, 0.89f, 0.93f, 1) : Terminal ? new(0.43f, 0.68f, 0.46f, 1) : new(0.67f, 0.69f, 0.63f, 1);
-    public static Vector4 Accent => HighContrast ? new(0.55f, 0.86f, 1, 1) : Terminal ? new(0.45f, 1, 0.53f, 1) : new(0.88f, 0.67f, 0.36f, 1);
-    public static Vector4 Panel => HighContrast ? new(0,0,0,1) : Terminal ? new(0.015f, 0.035f, 0.02f, 1) : new(0.09f,0.115f,0.10f,1);
-    public static Vector4 Warning => HighContrast ? new(1, 0.82f, 0.36f, 1) : new(0.96f, 0.75f, 0.42f, 1);
+    public static Vector4 Muted => HighContrast ? new(0.86f, 0.89f, 0.93f, 1) : PaletteOf(Interface).Muted;
+    public static Vector4 Accent => HighContrast ? new(0.55f, 0.86f, 1, 1) : PaletteOf(Interface).Accent;
+    public static Vector4 Panel => HighContrast ? new(0,0,0,1) : PaletteOf(Interface).Panel;
+    public static Vector4 Warning => HighContrast ? new(1, 0.82f, 0.36f, 1) : Interface == InterfaceStyle.Hardcore ? TerminalPalettes.Color(_consoleColors.Warning) : new(0.96f, 0.75f, 0.42f, 1);
     /// <summary>Current instruction, PC and SP in the debugger.</summary>
     public static Vector4 Highlight => HighContrast ? new(1, 1, 0.2f, 1) : new(1, 1, 0.3f, 1);
-    public static Vector4 Error => HighContrast ? new(1, 0.6f, 0.55f, 1) : new(1, 0.5f, 0.4f, 1);
-    public static Vector4 Success => HighContrast ? new(0.6f, 1, 0.6f, 1) : new(0.55f, 0.85f, 0.55f, 1);
+    public static Vector4 Error => HighContrast ? new(1, 0.6f, 0.55f, 1) : Interface == InterfaceStyle.Hardcore ? TerminalPalettes.Color(_consoleColors.Error) : new(1, 0.5f, 0.4f, 1);
+    public static Vector4 Success => HighContrast ? new(0.6f, 1, 0.6f, 1) : Interface == InterfaceStyle.Hardcore ? TerminalPalettes.Color(_consoleColors.Success) : new(0.55f, 0.85f, 0.55f, 1);
     /// <summary>Text and spacing factor chosen in the preferences (1 = 20 px body text).</summary>
     public static float Scale { get; private set; } = 1;
     public static bool HighContrast { get; private set; }
@@ -50,7 +50,23 @@ internal static class UiTheme
     private static readonly StylePalette TerminalPalette = new(new(0.008f, 0.018f, 0.01f, 1), new(0.015f, 0.035f, 0.02f, 1), new(0.025f, 0.10f, 0.04f, 1),
         new(0.025f, 0.10f, 0.04f, 1), new(0.07f, 0.24f, 0.10f, 1), new(0.18f, 0.42f, 0.22f, 1), new(0.57f, 0.94f, 0.61f, 1), new(0.80f, 1, 0.82f, 1),
         new(0.43f, 0.68f, 0.46f, 1), new(0.45f, 1, 0.53f, 1), new(0.01f, 0.035f, 0.015f, 1), false);
-    public static StylePalette PaletteOf(InterfaceStyle style) => style == InterfaceStyle.Retro ? RetroPalette : TerminalPalette;
+    private static readonly StylePalette AmberPalette = new(new(0.025f, 0.016f, 0.006f, 1), new(0.045f, 0.029f, 0.01f, 1), new(0.10f, 0.06f, 0.016f, 1),
+        new(0.10f, 0.06f, 0.016f, 1), new(0.19f, 0.115f, 0.03f, 1), new(0.47f, 0.31f, 0.10f, 1), new(1, 0.79f, 0.40f, 1), new(1, 0.94f, 0.73f, 1),
+        new(0.78f, 0.60f, 0.34f, 1), new(1, 0.73f, 0.20f, 1), new(0.04f, 0.025f, 0.005f, 1), false);
+    private static TerminalColors _consoleColors = TerminalPalettes.Green;
+    private static StylePalette _hardcorePalette = ConsoleStyle(TerminalPalettes.Green);
+    internal static TerminalColors ConsoleColors => HighContrast ? TerminalPalettes.HighContrast : _consoleColors;
+    public static StylePalette PaletteOf(InterfaceStyle style) => style switch
+    { InterfaceStyle.Retro => RetroPalette, InterfaceStyle.Amber => AmberPalette, InterfaceStyle.Hardcore => _hardcorePalette, _ => TerminalPalette };
+
+    private static StylePalette ConsoleStyle(TerminalColors colors)
+    {
+        Vector4 background = TerminalPalettes.Color(colors.Background), text = TerminalPalettes.Color(colors.Text), accent = TerminalPalettes.Color(colors.Accent);
+        float light = accent.X * 0.299f + accent.Y * 0.587f + accent.Z * 0.114f;
+        return new(background, Vector4.Lerp(background, text, 0.025f), Vector4.Lerp(background, text, 0.065f),
+            Vector4.Lerp(background, text, 0.065f), TerminalPalettes.Color(colors.Selection), Vector4.Lerp(background, text, 0.32f),
+            text, text, TerminalPalettes.Color(colors.Muted), accent, light > 0.55f ? new(0, 0, 0, 1) : new(1, 1, 1, 1), false);
+    }
     public static ImFontPtr PreviewFont(InterfaceStyle style) => style == InterfaceStyle.Retro ? _retroFont : _codeFont;
     public static ImFontPtr PreviewLabelFont(InterfaceStyle style) => style == InterfaceStyle.Retro && !Terminal ? _labelFont : _codeFont;
     public static ImFontPtr PreviewTitleFont(InterfaceStyle style) => style == InterfaceStyle.Retro && !Terminal ? _titleFont : style == InterfaceStyle.Retro ? _retroFont : _codeFont;
@@ -63,9 +79,12 @@ internal static class UiTheme
     public static Vector2 Px(float x, float y) => new(x * Scale, y * Scale);
 
     /// <summary>Style, palette and font. Call between frames: a new text size rebuilds the font atlas.</summary>
-    public static unsafe void Apply(float scale = 1, bool highContrast = false, InterfaceStyle appearance = InterfaceStyle.Retro)
+    public static unsafe void Apply(float scale = 1, bool highContrast = false, InterfaceStyle appearance = InterfaceStyle.Retro,
+        string consolePalette = "auto", TerminalColors? customColors = null)
     {
         Scale = Math.Clamp(scale, 1, 2); HighContrast = highContrast; Interface = appearance;
+        _consoleColors = TerminalPalettes.Resolve(consolePalette, customColors, appearance);
+        _hardcorePalette = ConsoleStyle(TerminalPalettes.Resolve(consolePalette, customColors, InterfaceStyle.Hardcore));
         var style = ImGui.GetStyle();
         // ScaleAllSizes multiplies the current sizes, so every change starts again from the unscaled style.
         if (_baseStyle is { } unscaled) *style.NativePtr = unscaled; else _baseStyle = *style.NativePtr;
@@ -132,17 +151,18 @@ internal static class UiTheme
             if (Enum.TryParse<ImGuiCol>(name,out var key)) colors[(int)key]=highContrast?new(0,0.27f,0.55f,1):new(0.33f,0.28f,0.18f,1);
         if (Terminal && !HighContrast)
         {
-            colors[(int)ImGuiCol.Text] = TerminalPalette.Text;
-            foreach (var key in new[] { ImGuiCol.WindowBg, ImGuiCol.PopupBg, ImGuiCol.MenuBarBg, ImGuiCol.TitleBg, ImGuiCol.ScrollbarBg }) colors[(int)key] = TerminalPalette.Window;
-            foreach (var key in new[] { ImGuiCol.Button, ImGuiCol.FrameBg, ImGuiCol.Header, ImGuiCol.TitleBgActive }) colors[(int)key] = TerminalPalette.Button;
-            foreach (var key in new[] { ImGuiCol.ButtonHovered, ImGuiCol.ButtonActive, ImGuiCol.FrameBgHovered, ImGuiCol.FrameBgActive, ImGuiCol.HeaderHovered, ImGuiCol.HeaderActive, ImGuiCol.ScrollbarGrab }) colors[(int)key] = new(0.07f, 0.24f, 0.10f, 1);
-            colors[(int)ImGuiCol.Border] = colors[(int)ImGuiCol.Separator] = TerminalPalette.Border;
+            var palette = PaletteOf(appearance);
+            colors[(int)ImGuiCol.Text] = palette.Text;
+            foreach (var key in new[] { ImGuiCol.WindowBg, ImGuiCol.PopupBg, ImGuiCol.MenuBarBg, ImGuiCol.TitleBg, ImGuiCol.ScrollbarBg }) colors[(int)key] = palette.Window;
+            foreach (var key in new[] { ImGuiCol.Button, ImGuiCol.FrameBg }) colors[(int)key] = palette.Button;
+            foreach (var key in new[] { ImGuiCol.Header, ImGuiCol.TitleBgActive, ImGuiCol.ButtonHovered, ImGuiCol.ButtonActive, ImGuiCol.FrameBgHovered, ImGuiCol.FrameBgActive, ImGuiCol.HeaderHovered, ImGuiCol.HeaderActive, ImGuiCol.ScrollbarGrab }) colors[(int)key] = palette.Header;
+            colors[(int)ImGuiCol.Border] = colors[(int)ImGuiCol.Separator] = palette.Border;
             colors[(int)ImGuiCol.CheckMark] = colors[(int)ImGuiCol.NavCursor] = Accent;
-            colors[(int)ImGuiCol.TableHeaderBg] = new(0.025f, 0.09f, 0.035f, 1);
-            colors[(int)ImGuiCol.TextSelectedBg] = new(0.12f, 0.40f, 0.17f, 0.8f);
-            colors[(int)ImGuiCol.TableBorderStrong] = colors[(int)ImGuiCol.TableBorderLight] = new(0.12f, 0.27f, 0.15f, 1);
+            colors[(int)ImGuiCol.TableHeaderBg] = palette.Frame;
+            colors[(int)ImGuiCol.TextSelectedBg] = new(palette.Accent.X * 0.28f, palette.Accent.Y * 0.28f, palette.Accent.Z * 0.28f, 0.85f);
+            colors[(int)ImGuiCol.TableBorderStrong] = colors[(int)ImGuiCol.TableBorderLight] = palette.Border;
             foreach (string name in new[] { "Tab", "TabDimmed", "TabUnfocused", "TabSelected", "TabActive", "TabHovered", "TabDimmedSelected", "TabUnfocusedActive" })
-                if (Enum.TryParse<ImGuiCol>(name, out var key)) colors[(int)key] = new(0.03f, 0.13f, 0.05f, 1);
+                if (Enum.TryParse<ImGuiCol>(name, out var key)) colors[(int)key] = palette.Frame;
         }
         colors[(int)ImGuiCol.ResizeGrip]=new(Accent.X,Accent.Y,Accent.Z,0.25f);
         colors[(int)ImGuiCol.ResizeGripHovered]=new(Accent.X,Accent.Y,Accent.Z,0.7f);
@@ -252,16 +272,31 @@ internal static class UiTheme
     public static ImFontPtr ConsoleFont => _codeFont;
 
     /// <summary>Sober differences between kinds of console text. Warnings and errors also start with a word.</summary>
-    public static uint TerminalInk(TerminalKind kind) => ImGui.ColorConvertFloat4ToU32(kind switch
+    public static uint TerminalInk(TerminalKind kind)
     {
-        TerminalKind.Command => HighContrast ? new(1, 1, 1, 1) : new(0.80f, 1, 0.82f, 1),
-        TerminalKind.Detail or TerminalKind.Rule => Muted,
-        TerminalKind.Heading => Accent,
-        TerminalKind.Success => Success,
-        TerminalKind.Warning => Warning,
-        TerminalKind.Error => Error,
-        _ => ImGui.GetStyle().Colors[(int)ImGuiCol.Text]
-    });
+        var colors = ConsoleColors;
+        return ImGui.ColorConvertFloat4ToU32(TerminalPalettes.Color(kind switch
+        {
+            TerminalKind.Detail or TerminalKind.Rule => colors.Muted, TerminalKind.Heading => colors.Accent,
+            TerminalKind.Success => colors.Success, TerminalKind.Warning => colors.Warning, TerminalKind.Error => colors.Error,
+            _ => colors.Text
+        }));
+    }
+    public static uint ConsoleCursorInk => ImGui.ColorConvertFloat4ToU32(TerminalPalettes.Color(ConsoleColors.Accent));
+    internal static ConsoleColorScope PushConsoleColors()
+    {
+        var colors = ConsoleColors;
+        ImGui.PushStyleColor(ImGuiCol.WindowBg, TerminalPalettes.Color(colors.Background));
+        ImGui.PushStyleColor(ImGuiCol.Text, TerminalPalettes.Color(colors.Text));
+        ImGui.PushStyleColor(ImGuiCol.PopupBg, TerminalPalettes.Color(colors.Background));
+        ImGui.PushStyleColor(ImGuiCol.Border, TerminalPalettes.Color(colors.Muted));
+        ImGui.PushStyleColor(ImGuiCol.ScrollbarBg, TerminalPalettes.Color(colors.Background));
+        ImGui.PushStyleColor(ImGuiCol.ScrollbarGrab, TerminalPalettes.Color(colors.Muted));
+        ImGui.PushStyleColor(ImGuiCol.ScrollbarGrabActive, TerminalPalettes.Color(colors.Accent));
+        ImGui.PushStyleColor(ImGuiCol.TextSelectedBg, TerminalPalettes.Color(colors.Selection));
+        return new();
+    }
+    internal readonly struct ConsoleColorScope : IDisposable { public void Dispose() => ImGui.PopStyleColor(8); }
     public static FontScope Display() { ImGui.PushFont(_titleFont); return new(); }
     public static FontScope Label() { ImGui.PushFont(_labelFont); return new(); }
 
@@ -295,10 +330,11 @@ internal static class UiTheme
     {
         if (Terminal && !HighContrast)
         {
-            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.39f, 0.85f, 0.45f, 1));
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.56f, 1, 0.63f, 1));
-            ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.28f, 0.7f, 0.34f, 1));
-            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.01f, 0.035f, 0.015f, 1));
+            var palette = PaletteOf(Interface);
+            ImGui.PushStyleColor(ImGuiCol.Button, palette.Accent);
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, palette.Bright);
+            ImGui.PushStyleColor(ImGuiCol.ButtonActive, Vector4.Lerp(palette.Accent, palette.Window, 0.15f));
+            ImGui.PushStyleColor(ImGuiCol.Text, palette.OnAccent);
             bool chosen = ImGui.Button(UiText.Label(label), size); ImGui.PopStyleColor(4); return chosen;
         }
         ImGui.PushStyleColor(ImGuiCol.Button, HighContrast ? new Vector4(0, 0.32f, 0.68f, 1) : new Vector4(0.83f, 0.62f, 0.32f, 1));

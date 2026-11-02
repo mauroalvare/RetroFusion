@@ -28,6 +28,13 @@ se conserva y permite usar valores temporales.
 Los dos también están en **Opciones > Accesibilidad**. No cambian los colores de la
 pantalla emulada: el juego se ve como en la máquina original.
 
+## Colores de la terminal
+
+**Consola > Paleta de la terminal** elige fósforo verde, ámbar, hielo, papel claro,
+automática o personalizada. **Personalizar colores** permite editar ocho RGB, con
+Aplicar, Cancelar y restauración de la vista previa. Se guardan en las preferencias;
+no cambian el modo de interfaz ni la partida. Alto contraste conserva esa elección.
+
 ## Pantalla
 
 - **Pantalla completa** (F11) se recuerda para el próximo inicio.

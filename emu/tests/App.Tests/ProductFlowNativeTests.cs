@@ -118,6 +118,11 @@ public sealed class ProductFlowNativeTests
         ui.Call("SetInterface", InterfaceStyle.Terminal); ui.Frames(3);
         ui.Set("_preferencesGroup", "Consola"); ui.Set("_preferencesOpen", true); ui.Frames(4);
         Assert.That(ui.Bounds.ContainsKey("Opción:indicador"), Is.True, "The generic form presents the new option.");
+        // The shared catalog can grow. Reach the last setting through the actual scroll area.
+        for (int attempt = 0; attempt < 30 && !ui.Bounds["Opción:indicador"].Visible; attempt++)
+        {
+            ui.MoveMouse(new(520, 320)); ImGui.GetIO().AddMouseWheelEvent(0, -1); ui.Frames(2);
+        }
         ui.Click("Opción:indicador"); Assert.That(indicator, Is.False, "The checkbox writes through the same contract.");
         Assert.That(CommandPalette.Search(commands, "novedad").Select(command => command.Id), Has.Member("accion-nueva"));
     }

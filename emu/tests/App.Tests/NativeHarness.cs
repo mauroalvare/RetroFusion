@@ -38,7 +38,7 @@ internal sealed class NativeHarness : IDisposable
             Raylib.SetConfigFlags(ConfigFlags.HiddenWindow | ConfigFlags.ResizableWindow | ConfigFlags.HighDpiWindow);
             Raylib.InitWindow(width, height, "RetroEmu hidden QA"); Raylib.SetExitKey(KeyboardKey.Null);
             // Set by the case that proves a computer without a sound device; the backend reports it just like a failed start.
-            if (Environment.GetEnvironmentVariable("RETROEMU_QA_NO_AUDIO") != "1") Raylib.InitAudioDevice();
+            if (Environment.GetEnvironmentVariable("RETROEMU_QA_NO_AUDIO") != "1" && StartupRequirements.WantsAudio(arguments)) Raylib.InitAudioDevice();
             rlImGui.Setup(true, true); s_windowReady = true;
             unsafe { ImGui.GetIO().NativePtr->IniFilename = null; }
 

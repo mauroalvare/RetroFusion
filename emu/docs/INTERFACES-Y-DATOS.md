@@ -1,6 +1,6 @@
 # Identificación de juegos y estilos de interfaz
 
-## Una biblioteca, tres formas de usarla
+## Una biblioteca, varios estilos
 
 **Opciones > Estilos de interfaz** muestra una vista previa y explica cada estilo.
 También está en Preferencias y en Buscar acción.
@@ -10,11 +10,15 @@ También está en Preferencias y en Buscar acción.
 | Retro | Diseño principal y predeterminado: banco de electrónica, instrumentos y tonos cálidos. Menús, botones, teclado y mando. |
 | Terminal verde | La misma interfaz gráfica, negra y verde, con texto de ancho fijo. Se siguen usando menús y botones. |
 | Terminal real | Consola inventada dentro de RetroEmu: órdenes, secciones virtuales, historial y autocompletado. No abre una terminal del sistema. |
+| Ámbar | Menús y botones, fondo oscuro, texto cálido de ancho fijo. Se elige con amber o el alias ámbar. |
 
 Cambiar de estilo conserva la biblioteca, favoritos, fichas, proyectos y ajustes. La
 configuración se guarda en `preferencias.json`. Los archivos de preferencias anteriores
 siguen usando Retro; un identificador de estilo desconocido también vuelve a Retro.
 Alto contraste puede reemplazar el verde por la paleta accesible.
+La terminal permite elegir sus propios colores, independientemente del modo gráfico:
+presets y ocho RGB libres con la orden paleta o Preferencias > Consola. La vista previa
+de Terminal real usa la paleta elegida. Los colores no cambian la imagen del juego.
 
 Las preferencias gráficas, el panel Sonido y la orden `opcion` leen el mismo catálogo
 `AppOption`: definición, valores permitidos, lectura y aplicación. El buscador de

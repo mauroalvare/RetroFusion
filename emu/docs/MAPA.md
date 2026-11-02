@@ -20,14 +20,17 @@ La biblioteca incorpora filtros combinables de género, año, sistema, tipo, dis
 y actividad, con orden por nombre o fechas. **Ficha**, junto a Jugar, permite completar
 los datos personales sin cambiar originales ni perfiles de emulación. Detalle en
 [Filtrar y ordenar la biblioteca](FILTROS-BIBLIOTECA.md).
-La [identificación y los tres estilos](INTERFACES-Y-DATOS.md) detalla las fuentes de
+La [identificación y los estilos](INTERFACES-Y-DATOS.md) detalla las fuentes de
 datos, las opciones compartidas y la elección tras actualizar. La [guía de la consola](CONSOLA.md)
 describe órdenes, teclas, tareas y la matriz de cobertura por órdenes.
 `Retro.App/Terminal/` separa búfer, tokenizador, definiciones, editor de línea, historial, teclado
 y dibujo; `RetroApp.Terminal*.cs` define las órdenes y `AppTasks.cs` el modelo común de tareas.
-`--interface retro|terminal|real` elige el estilo al iniciar; `--interface-picker`
-abre sus vistas previas. Los recorridos nativos con datos propios se seleccionan a mano en
-App.Tests: `TerminalNativeTests`, `ProductFlowNativeTests` e `InterfaceCaptureTests`. Son ocultos y
+`--interface retro|terminal|real|amber` elige el estilo al iniciar; `--interface-picker`
+abre sus vistas previas. `paleta` personaliza ocho RGB y paletas; `requisitos` y `--check-startup archivo.json`
+explican el arranque. `--no-audio` omite el dispositivo; `--mute` conserva su inicialización.
+Los recorridos nativos con datos propios se seleccionan a mano en
+App.Tests: `TerminalNativeTests`, `ProductFlowNativeTests`, `InterfaceCaptureTests`,
+`AmberThemeNativeTests` y `TerminalPaletteNativeTests`. Son ocultos y
 silenciados, comparten una ventana por proceso (`NativeHarness`) y no corren con la selección
 general. Con `RETROEMU_QA_SHOTS=<carpeta>` escriben capturas y `rendimiento.txt`.
 

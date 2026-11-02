@@ -19,9 +19,10 @@ public sealed partial class RetroApp
         if (_host.SoundDeviceMissing)
         {
             ImGui.PushStyleColor(ImGuiCol.Text, UiTheme.Warning);
-            ImGui.TextWrapped(UiText.Get("No se encontró una salida de audio. Los juegos funcionan sin sonido y a su velocidad normal."));
+            ImGui.TextWrapped(UiText.Get(_audioDisabled ? "Audio desactivado para este inicio (--no-audio). Podés activarlo buscando la salida desde Sonido."
+                : "No se encontró una salida de audio. Los juegos funcionan sin sonido y a su velocidad normal."));
             ImGui.PopStyleColor();
-            UiTheme.Hint(_audioRetried ? "Sigue sin aparecer. Revisá que Windows tenga un dispositivo de salida activo y que ningún programa lo use en modo exclusivo."
+            if (!_audioDisabled) UiTheme.Hint(_audioRetried ? "Sigue sin aparecer. Revisá que Windows tenga un dispositivo de salida activo y que ningún programa lo use en modo exclusivo."
                 : "Conectá unos auriculares o parlantes, o activá la salida en la configuración de sonido del equipo.");
             if (ImGui.Button(UiText.Label("Buscar la salida de audio"))) RetryAudio();
             ImGui.Spacing();

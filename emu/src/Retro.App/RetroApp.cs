@@ -48,6 +48,7 @@ public sealed partial class RetroApp
     private List<MachineCatalog.Candidate> _versions = new();   // versions of the last opened game
     private readonly AppPreferences _prefs;
     private bool _themeChanged;
+    private bool _audioDisabled;
     private float _menuHeight = 28;
     private bool _arrangeDebugger;
     private string? _currentMedia;   // the original file of the game being played, for its library thumbnail
@@ -68,6 +69,7 @@ public sealed partial class RetroApp
     // --preparar <file>: prepares that game for the fusions from the studio
     private string? _autoPrepare;
     private string? _autotestShot;
+    private string? _autotestReport;
     private double _elapsed;
     private int _windowFrames;
     private string? _autotestResearchAction;
@@ -75,6 +77,7 @@ public sealed partial class RetroApp
 
     public RetroApp(string[] args)
     {
+        _audioDisabled = !StartupRequirements.WantsAudio(args);
         _ai = args.Contains("--autotest") || args.Contains("--no-ai")
             ? new Retro.Ai.AiSettings { Provider = "manual", ProvidersDisabled = true } : Retro.Ai.AiSettings.Load();
         _input.KeySink = _host.SetInput;
@@ -152,6 +155,7 @@ public sealed partial class RetroApp
                 _autotestSeconds = double.Parse(args[++i], CultureInfo.InvariantCulture);
                 _autotestShot = args[++i];
             }
+            else if (args[i] == "--autotest-report" && args.Contains("--autotest") && i + 1 < args.Length) _autotestReport = args[++i];
             else if (args[i] == "--studio" && i + 1 < args.Length)
                 _autoStudio = args[++i];
             else if (args[i] == "--games-folder" && i + 1 < args.Length) i++;
@@ -210,7 +214,7 @@ public sealed partial class RetroApp
     /// <summary>Without a sound device everything else keeps working: games run silent, at their real speed.</summary>
     private unsafe void StartAudioStream()
     {
-        if (!Raylib.IsAudioDeviceReady())
+        if (_audioDisabled || !Raylib.IsAudioDeviceReady())
         {
             _stream = default; _host.SoundDeviceMissing = true; _audioRetried = false;
             return;
@@ -226,13 +230,14 @@ public sealed partial class RetroApp
         _audioRetried = false;
     }
 
-    private bool AudioReady => Raylib.IsAudioDeviceReady() && Raylib.IsAudioStreamValid(_stream);
+    private bool AudioReady => !_audioDisabled && Raylib.IsAudioDeviceReady() && Raylib.IsAudioStreamValid(_stream);
     private bool _audioRetried;
 
     /// <summary>A device plugged in later is picked up without restarting the program.</summary>
     private void RetryAudio()
     {
         if (AudioReady) return;
+        _audioDisabled = false;
         if (!Raylib.IsAudioDeviceReady()) Raylib.InitAudioDevice();
         if (Raylib.IsAudioDeviceReady()) StartAudioStream(); else _audioRetried = true;
     }
@@ -240,7 +245,7 @@ public sealed partial class RetroApp
     /// <summary>The user's game folder ("ROMs", exact case: "roms" holds the firmware).</summary>
     private static string? FindGamesFolder() => PlayerFolders.Find("ROMs");
 
-    private void ConfigureStyle() => UiTheme.Apply(_prefs.TextScale, _prefs.HighContrast, _prefs.Interface);
+    private void ConfigureStyle() => UiTheme.Apply(_prefs.TextScale, _prefs.HighContrast, _prefs.Interface, _prefs.ConsolePalette, _prefs.ConsoleColors);
 
     private void ShowInDebugger(uint address)
     {
@@ -406,6 +411,7 @@ public sealed partial class RetroApp
         DrawPopups();
         DrawSoundWindow();
         DrawPreferencesWindow();
+        DrawPaletteEditor();
         AiConnectionWindow.Draw(_ai);
         _commands.Draw(_commands.IsOpen ? CommandPalette.WithOrders(Commands, Terminal.Commands, PrepareConsoleOrder) : Commands);
         DrawTerminal();
@@ -433,6 +439,16 @@ public sealed partial class RetroApp
         if (_autotestSeconds >= 0 && _elapsed >= _autotestSeconds && _autotestShot != null)
         {
             FramebufferCapture.Save(_autotestShot);
+            if (_autotestReport != null)
+                File.WriteAllText(_autotestReport, System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    version = typeof(RetroApp).Assembly.GetName().Version?.ToString(3), machine = _host.Machine?.Id,
+                    frames = _host.Machine?.FrameCount ?? 0, elapsed = _elapsed, paused = _host.Paused,
+                    audioDisabled = _audioDisabled, audioDeviceReady = (bool)Raylib.IsAudioDeviceReady(),
+                    audioStreamReady = AudioReady, aiDisabled = _ai.ProvidersDisabled,
+                    onlineMetadata = _prefs.OnlineGameInfo, style = InterfaceStyles.Describe(_prefs.Interface).Id,
+                    palette = _prefs.ConsolePalette, width = Raylib.GetScreenWidth(), height = Raylib.GetScreenHeight()
+                }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
             // The emulated screen too, through the same path as Juego > Guardar captura (out/autotest-capturas).
             if (!_home.IsOpen) { SaveCapture(); Console.WriteLine(UiText.Get("captura: ") + _host.Status); }
             foreach (var group in _library.Entries.GroupBy(e => e.Machine.Name))

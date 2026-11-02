@@ -6,7 +6,7 @@ a otro intérprete del equipo. Los juegos siguen mostrando su imagen; el resto d
 ventana es la consola.
 
 Para activarla: **Opciones > Estilos de interfaz**, o `--interface real` al iniciar.
-Para salir de ella: `interfaz retro`. Los tres estilos comparten biblioteca, favoritos,
+Para salir de ella: `interfaz retro`. Todos los estilos comparten biblioteca, favoritos,
 fichas, partidas, proyectos y ajustes.
 
 ## Primeros pasos
@@ -23,7 +23,30 @@ teclado al juego. Si no sabés cómo se llama una orden, `como <tema>` busca por
 querés hacer: `como guardar`, `como subir el volumen`. `ayuda <orden>` explica una orden y
 `ayuda <grupo>` lista un grupo.
 
-## Línea de órdenes
+## Colores y paletas
+
+La terminal conserva sus colores al cambiar de interfaz y reiniciar. En **Preferencias >
+Consola**, elegí una paleta o abrí **Personalizar colores**. Hay fósforo verde, ámbar,
+hielo y papel claro, además de **Seguir el estilo** y una paleta personalizada.
+
+~~~text
+paleta lista
+paleta usar amber
+paleta color background #100C22
+paleta color text #F092FF
+paleta editar
+paleta restablecer
+~~~
+
+Se pueden elegir libremente fondo, texto, acento/cursor, texto secundario, selección,
+resultados correctos, avisos y errores. El editor muestra una vista previa: **Aplicar**
+guarda; **Cancelar** conserva la paleta anterior. Sus botones quedan al pie y, con poca
+altura, permite elegir un color por vez. Alto contraste reemplaza temporalmente los
+colores; al desactivarlo vuelve la elección. `restablecer` sigue el estilo sin borrar
+los últimos colores personalizados. En inglés: `palette list`, `palette use amber`,
+`palette color text #F092FF`, `palette edit` y `palette reset`.
+
+## Edición de la línea
 
 | Teclas | Función |
 | --- | --- |
@@ -233,11 +256,12 @@ que coincida. `ayuda <orden>` agrega argumentos, ejemplos y errores.
 
 | Orden | Función |
 | --- | --- |
+| `requisitos` (`requirements`) | Muestra los requisitos y qué se comprobó en este arranque. |
 | `novedades` (`news`) | Muestra las funciones nuevas y los cambios de las últimas versiones. |
 | `estado` (`status`) | Muestra máquina, partida, biblioteca, interfaz y tareas. |
 | `opciones [texto…]` (`ajustes`, `preferencias`) | Lista los ajustes del programa con su valor actual. |
 | `opcion <id> [valor…]` (`ajuste`) | Lee, cambia o restablece un ajuste compartido con todos los estilos. |
-| `interfaz <retro\|terminal\|real\|preview>` (`estilo`, `tema`) | Cambia el estilo o abre la elección con vistas previas. |
+| `interfaz <retro\|terminal\|real\|amber\|preview>` (`estilo`, `tema`) | Cambia el estilo o abre la elección con vistas previas. |
 | `acciones [texto…]` | Lista las funciones del programa con su disponibilidad actual. |
 | `hacer <id>` | Ejecuta una acción del catálogo; los instrumentos visuales abren su panel. |
 | `actualizar [estado\|abrir]` (`version`, `actualizaciones`) | Consulta la versión o abre el actualizador del programa. |
@@ -250,6 +274,7 @@ que coincida. `ayuda <orden>` agrega argumentos, ejemplos y errores.
 | --- | --- |
 | `copiar [ultimo\|todo]` (`copy`) | Copia el resultado de la última orden o toda la salida, sin decoraciones. |
 | `atajos` (`teclas`) | Lista las teclas de la consola y de la partida. |
+| `paleta [ver\|lista\|usar\|color\|editar\|restablecer] [valor] [rgb]` (`palette`) | Elige una paleta o personaliza cualquier color RGB de la terminal. |
 | `ayuda [tema]` (`help`, `?`, `man`) | Explica una orden, un grupo o lista todas. |
 | `como <tema…>` (`apropos`) | Busca cómo hacer algo sin conocer el nombre de la orden. |
 | `limpiar` (`clear`, `cls`) | Borra la salida guardada de la consola. |

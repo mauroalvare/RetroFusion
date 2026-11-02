@@ -15,6 +15,23 @@ Sonido y el diagnóstico muestran el problema. Buscar la salida de audio permite
 después de conectar parlantes o auriculares. Un aviso de audio por sí solo no demuestra
 por qué una computadora no llegó a mostrar la ventana.
 
+--no-audio evita por completo inicializar el dispositivo y crear el canal de salida.
+A diferencia de --mute, sirve para probar un inicio sin pasar por el controlador de audio.
+Es una elección de esa sesión; **Buscar la salida de audio** lo habilita explícitamente.
+
+La orden requisitos (requirements en inglés) y **Ayuda > Requisitos para abrir y jugar**
+separan archivos presentes, ventana inicializada y componentes opcionales. Para guardar
+el informe aunque falten las DLL gráficas, sin abrir ventana, audio, ajustes ni IA:
+
+~~~text
+RetroEmu.exe --check-startup comprobacion.json --language es
+~~~
+
+El informe describe el runtime que realmente está cargado. La presencia de una DLL no
+certifica que pueda cargarse, y este modo sin ventana no prueba el controlador OpenGL.
+Necesita que Windows ya haya podido ejecutar el programa y su runtime administrado.
+Con archivos requeridos ausentes devuelve código 2 y conserva el informe generado.
+
 ## Si la ventana no llega a abrir
 
 El ejecutable supervisa la apertura desde un proceso que no usa OpenGL, raylib ni el
