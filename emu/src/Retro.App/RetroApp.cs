@@ -309,6 +309,7 @@ public sealed partial class RetroApp
         if (_updates.RestartRequested) QuitRequested = true;
         if (!_updates.Blocking && _pendingOpen == null && !_browser.IsOpen) HandleDroppedFiles();
         _library.Poll();
+        WatchAudioDevice();
         _gameMetadata.Poll(_library.Entries, _library.Folder, _library.Revision, _prefs.OnlineGameInfo && _autotestSeconds < 0);
         SyncTasks();
         if (_libraryRevision != _library.Revision)
@@ -525,11 +526,22 @@ public sealed partial class RetroApp
     private static volatile bool s_mute, s_forceMute;
     private static volatile float s_volume = 1;
     private static readonly AudioOutput s_output = new();
+    private static long s_lastPull;
+
+    /// <summary>Headphones that disconnect mid-game stop the callback: the queue must not keep pacing the emulation.</summary>
+    private void WatchAudioDevice()
+    {
+        if (!AudioReady) return;
+        long last = Interlocked.Read(ref s_lastPull);
+        // Until the first pull the stream is still starting.
+        if (last != 0) _host.SoundDeviceMissing = RetroAudioWatch.Silent(System.Diagnostics.Stopwatch.GetElapsedTime(last));
+    }
 
     [System.Runtime.InteropServices.UnmanagedCallersOnly(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
     private static unsafe void AudioCallback(void* buffer, uint frames)
     {
         var span = new Span<short>(buffer, (int)frames);
+        Interlocked.Exchange(ref s_lastPull, System.Diagnostics.Stopwatch.GetTimestamp());
         var q = s_queue;
         if (q == null)
         {

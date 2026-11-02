@@ -1,5 +1,11 @@
 namespace Retro.App;
 
+/// <summary>A running device asks for samples many times per second: a long silence means it went away.</summary>
+internal static class RetroAudioWatch
+{
+    public static bool Silent(TimeSpan sinceLastPull) => sinceLastPull > TimeSpan.FromSeconds(1.5);
+}
+
 /// <summary>Callback-owned gain ramp; no allocations or locks in sample processing.</summary>
 public sealed class AudioOutput
 {

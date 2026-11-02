@@ -30,18 +30,22 @@ internal static partial class StartupReport
         return RetroApp.Anonymize(text.ToString());
     }
 
-    /// <summary>Largest window that fits a screen, leaving room for the title bar and the taskbar.</summary>
-    internal static (int Width, int Height) FittedSize(int screenWidth, int screenHeight) =>
-        (Math.Max(640, Math.Min(1280, screenWidth - 40)), Math.Max(480, Math.Min(840, screenHeight - 100)));
+    /// <summary>Largest window that fits a screen, leaving room for the title bar and the taskbar. All sizes are in pixels.</summary>
+    internal static (int Width, int Height) FittedSize(int width, int height, int screenWidth, int screenHeight) =>
+        (Math.Max(Math.Min(640, width), Math.Min(width, screenWidth - 40)), Math.Max(Math.Min(480, height), Math.Min(height, screenHeight - 100)));
 
-    /// <summary>A 1366×768 screen must not get a window taller than itself, with its status bar out of reach.</summary>
+    /// <summary>
+    /// A small or scaled screen must not get a window taller than itself, with its status bar out of reach:
+    /// 1280×840 at 150 % is 1260 pixels high. The render size counts that scale; the monitor size is already in pixels.
+    /// </summary>
     public static void FitWindowToMonitor()
     {
         int monitor = Raylib_cs.Raylib.GetCurrentMonitor();
         int screenWidth = Raylib_cs.Raylib.GetMonitorWidth(monitor), screenHeight = Raylib_cs.Raylib.GetMonitorHeight(monitor);
-        if (screenWidth <= 0 || screenHeight <= 0) return;
-        var (width, height) = FittedSize(screenWidth, screenHeight);
-        if (width == 1280 && height == 840) return;
+        int current = Raylib_cs.Raylib.GetRenderWidth(), currentHeight = Raylib_cs.Raylib.GetRenderHeight();
+        if (screenWidth <= 0 || screenHeight <= 0 || current <= 0 || currentHeight <= 0) return;
+        var (width, height) = FittedSize(current, currentHeight, screenWidth, screenHeight);
+        if (width == current && height == currentHeight) return;
         Raylib_cs.Raylib.SetWindowSize(width, height);
         Raylib_cs.Raylib.SetWindowPosition(Math.Max(0, (screenWidth - width) / 2), Math.Max(30, (screenHeight - height) / 2 - 20));
     }

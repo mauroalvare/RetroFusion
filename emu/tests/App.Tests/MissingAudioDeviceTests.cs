@@ -33,9 +33,14 @@ public sealed class MissingAudioDeviceTests
         Assert.That(stalled, Is.LessThan(0.9), "A stalled device slows the machine down: that is what must not happen when none exists.");
     }
 
-    [TestCase(3840, 2160, 1280, 840), TestCase(1920, 1080, 1280, 840), TestCase(1366, 768, 1280, 668), TestCase(1280, 720, 1240, 620), TestCase(1024, 600, 984, 500), TestCase(800, 480, 760, 480)]
-    public void TheWindowNeverStartsLargerThanTheScreen(int screenWidth, int screenHeight, int width, int height) =>
-        Assert.That(StartupReport.FittedSize(screenWidth, screenHeight), Is.EqualTo((width, height)));
+    [TestCase(1280, 840, 3840, 2160, 1280, 840), TestCase(1280, 840, 1920, 1080, 1280, 840), TestCase(1280, 840, 1366, 768, 1280, 668), TestCase(1280, 840, 1280, 720, 1240, 620),
+     TestCase(1280, 840, 1024, 600, 984, 500), TestCase(1280, 840, 800, 480, 760, 480), TestCase(1920, 1260, 1920, 1080, 1880, 980), TestCase(2560, 1680, 2560, 1600, 2520, 1500)]
+    public void TheWindowNeverStartsLargerThanTheScreenAtAnyScale(int width, int height, int screenWidth, int screenHeight, int fittedWidth, int fittedHeight) =>
+        Assert.That(StartupReport.FittedSize(width, height, screenWidth, screenHeight), Is.EqualTo((fittedWidth, fittedHeight)));
+
+    [TestCase(0.5, false), TestCase(1.4, false), TestCase(1.6, true), TestCase(30, true)]
+    public void ASoundDeviceThatStopsPullingCountsAsMissingUntilItReturns(double seconds, bool missing) =>
+        Assert.That(RetroAudioWatch.Silent(TimeSpan.FromSeconds(seconds)), Is.EqualTo(missing));
 
     [Test]
     public void AFailureReportSaysWhatHappenedWithoutPersonalFolders()

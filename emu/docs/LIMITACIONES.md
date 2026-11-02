@@ -42,7 +42,7 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   Windows 10; las pruebas nativas corren en Windows 11 con una ventana oculta.
 - Sin una salida de audio utilizable el programa funciona en silencio, a la velocidad normal, y la
   barra de estado lo indica. **Opciones > Sonido** o `hacer audio-retry` la vuelven a buscar. Si el
-  dispositivo desaparece con el programa abierto, esa situación todavía no se detecta.
+  dispositivo deja de pedir sonido con el programa abierto se trata igual, y vuelve solo si responde.
 - El historial de órdenes se guarda en claro en la cuenta del usuario; las rutas escritas en una
   orden quedan ahí. `historial borrar` lo vacía y `consola-historial` lo desactiva.
 - Un favorito o un reciente cuyo archivo ya no está deja de listarse hasta que el archivo
