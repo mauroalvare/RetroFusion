@@ -123,7 +123,9 @@ public sealed partial class HomeScreen
                 : _section == "recent" ? "Acá aparecen los juegos que abriste." : "Abrí un archivo o agregalo a la biblioteca.");
             return;
         }
-        DrawGameList(cards);
+        if (UiTheme.Interface == InterfaceStyle.Amber) DrawLoungeCards(cards);
+        else if (UiTheme.Interface == InterfaceStyle.Terminal) DrawExplorerFiles(cards);
+        else DrawGameList(cards);
     }
 
     private void TrackLibraryControl(string name) => LibraryControlBounds?.Invoke(name, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
@@ -155,7 +157,7 @@ public sealed partial class HomeScreen
         // The order joins the row only while the search box keeps a useful width.
         bool inline = ImGui.GetContentRegionAvail().X < UiTheme.Px(640);
         float order = inline ? 0 : Math.Min(UiTheme.Px(220), ImGui.GetContentRegionAvail().X * 0.3f);
-        ImGui.SetNextItemWidth(Math.Max(UiTheme.Px(80), ImGui.GetContentRegionAvail().X - button - spacing - (inline ? 0 : order + spacing)));
+        ImGui.SetNextItemWidth(Math.Max(UiTheme.Px(UiTheme.Interface == InterfaceStyle.Retro ? 80 : 24), ImGui.GetContentRegionAvail().X - button - spacing - (inline ? 0 : order + spacing)));
         if (_focusSearch) { ImGui.SetKeyboardFocusHere(); _focusSearch = false; }
         ImGui.InputTextWithHint("##buscar", UiText.Get("Buscar nombre o género (Ctrl+F)"), ref _search, 150);
         ImGui.SameLine();

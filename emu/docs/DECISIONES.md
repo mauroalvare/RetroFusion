@@ -2222,3 +2222,34 @@ Los lectores previos ignoran estos campos; no implementan paletas personalizadas
 
 AppTask.Resume solo acepta tareas terminadas con continuación disponible. Consume esa
 continuación una vez para evitar duplicados; si el callback falla, vuelve a habilitarla.
+
+## D-132 — Distribución y colores independientes por interfaz
+
+Retro conserva los paneles e instrumentos; Explorador tiene navegación lateral, árbol de
+sistemas y archivos compactos; Salón usa tarjetas, selección y navegación al pie; Terminal
+real sigue por órdenes. Los talleres avanzados y los servicios de juegos son compartidos.
+El espacio común descuenta barra lateral y barra al pie también al dibujar el juego.
+En ventanas pequeñas las barras se reducen y Explorador evita repetir las acciones de fila.
+La biblioteca recuerda la identidad del juego que se abrió y revela esa selección al volver.
+
+Los identificadores públicos son retro/explorer/lounge/real. terminal y amber/ámbar se
+aceptan como alias anteriores; el campo Interface mantiene esos valores históricos al
+guardar para que el lector anterior pueda volver al estilo correspondiente. El enum interno
+Amber conserva su valor numérico, pero su nombre visible es Salón; ámbar es una paleta.
+
+InterfacePalettes es un mapa opcional de preferencias v1, con Palette y ocho RGB por diseño.
+Los campos ConsolePalette/ConsoleColors se conservan para el lector previo. Una antigua
+paleta global se copia a cada diseño; a partir de ahí las ediciones son independientes.
+Se conservan entradas desconocidas válidas, con límites de cantidad y longitud. Una entrada
+dañada impide sobrescribir el archivo y conserva la biblioteca elegida; Recuperar guarda
+respaldo. Los alias de claves se normalizan, rechazando duplicados ambiguos sin borrar datos.
+
+Cambiar color no cambia estructura ni partida. El selector usa la paleta guardada de cada
+diseño. El editor muestra el borrador sobre una vista de la interfaz actual; solo Aplicar
+guarda, y un cambio de interfaz descarta el borrador sin escribirlo sobre la otra.
+
+La selección de biblioteca usa identidad de contenido más archivo; cada copia tiene un ID
+de control distinto. Favoritos y partidas siguen por identidad. El clipper revela la copia
+elegida y virtualiza la grilla, sin confundir nombres iguales o copias idénticas. La prueba
+de 6000 archivos incluye deliberadamente contenidos repetidos y retorno a uno lejano.
+AppOption.Scope distingue los ajustes compartidos, de sesión y de esta interfaz.

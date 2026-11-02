@@ -11,7 +11,8 @@ public sealed class AppPreferences
         bool PauseInBackground = false, string? LastFolder = null, string Interface = "retro", string? InterfaceOfferedVersion = null,
         bool OnlineGameInfo = false, string ConsoleCursor = "block", bool ConsoleBlink = true, bool ConsoleScanlines = false,
         bool ConsoleHistory = true, string? LibraryFolder = null, string? LastStartedVersion = null,
-        string Language = "es", string ConsolePalette = "auto", TerminalColors? ConsoleColors = null);   // optional v1 fields preserve older preferences
+        string Language = "es", string ConsolePalette = "auto", TerminalColors? ConsoleColors = null,
+        Dictionary<string, InterfacePalette>? InterfacePalettes = null);   // optional v1 fields preserve older preferences
     private readonly string _path;
     private readonly bool _persist;
     private bool _unreadable;
@@ -35,8 +36,21 @@ public sealed class AppPreferences
     public bool ConsoleBlink { get; set; } = true;
     public bool ConsoleScanlines { get; set; }
     public bool ConsoleHistory { get; set; } = true;
-    public string ConsolePalette { get; set; } = "auto";
-    public TerminalColors ConsoleColors { get; set; } = TerminalPalettes.Green;
+    private readonly Dictionary<string, InterfacePalette> _interfacePalettes = new(StringComparer.Ordinal);
+    public IReadOnlyDictionary<string, InterfacePalette> InterfacePalettes => _interfacePalettes;
+    public InterfacePalette PaletteFor(InterfaceStyle style) => _interfacePalettes.GetValueOrDefault(InterfaceStyles.Describe(style).Id)
+        ?? new("auto", TerminalPalettes.DefaultFor(style));
+    // Keep the public and persisted legacy names, but address the currently selected interface.
+    public string ConsolePalette
+    {
+        get => PaletteFor(Interface).Palette;
+        set => _interfacePalettes[InterfaceStyles.Describe(Interface).Id] = new(value, ConsoleColors);
+    }
+    public TerminalColors ConsoleColors
+    {
+        get => PaletteFor(Interface).Colors;
+        set => _interfacePalettes[InterfaceStyles.Describe(Interface).Id] = new(ConsolePalette, value);
+    }
     /// <summary>Last folder of the file picker; only used again while it exists.</summary>
     public string? LastFolder { get; set; }
     /// <summary>The games folder chosen by the user; without one, the folder next to the program is found.</summary>
@@ -75,9 +89,22 @@ public sealed class AppPreferences
             ConsoleBlink = doc.ConsoleBlink; ConsoleScanlines = doc.ConsoleScanlines; ConsoleHistory = doc.ConsoleHistory;
             LibraryFolder = doc.LibraryFolder is { Length: > 0 and <= 1024 } library ? library : null;
             string paletteId = doc.ConsolePalette ?? "auto";
-            ConsolePalette = TerminalPalettes.Known(paletteId) ? paletteId : "auto";
             if (doc.ConsoleColors != null && !TerminalPalettes.Valid(doc.ConsoleColors)) throw new InvalidDataException();
-            ConsoleColors = doc.ConsoleColors ?? TerminalPalettes.Green;
+            if (doc.InterfacePalettes != null)
+            {
+                if (!ValidPalettes(doc.InterfacePalettes)) throw new InvalidDataException();
+                foreach (var pair in doc.InterfacePalettes)
+                {
+                    string key = InterfaceStyles.TryParse(pair.Key, out var style) ? InterfaceStyles.Describe(style).Id : pair.Key;
+                    if (!_interfacePalettes.TryAdd(key, pair.Value)) throw new InvalidDataException();
+                }
+            }
+            else if (paletteId != "auto" || doc.ConsoleColors is { } oldColors && oldColors != TerminalPalettes.Green)
+            {
+                // The old console palette was global. Copy it, then let each layout evolve independently.
+                foreach (var style in InterfaceStyles.All)
+                    _interfacePalettes[style.Id] = new(TerminalPalettes.Known(paletteId) ? paletteId : "auto", doc.ConsoleColors ?? TerminalPalettes.Green);
+            }
             if (doc.Version > 1)
             {
                 _unreadable = true;
@@ -94,6 +121,9 @@ public sealed class AppPreferences
     { ["block"] = TerminalCursor.Block, ["barra"] = TerminalCursor.Bar, ["subrayado"] = TerminalCursor.Underline };
 
     private static bool Valid(int text, int port) => TextSizes.Contains(text) && port is 1 or 2;
+    private static bool ValidPalettes(IReadOnlyDictionary<string, InterfacePalette> palettes) => palettes.Count <= 32
+        && palettes.All(pair => pair.Key.Length is > 0 and <= 32 && pair.Key.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_')
+            && pair.Value != null && TerminalPalettes.Known(pair.Value.Palette) && TerminalPalettes.Valid(pair.Value.Colors));
 
     public void Defaults()
     {
@@ -102,12 +132,12 @@ public sealed class AppPreferences
         Interface = InterfaceStyle.Retro; OnlineGameInfo = false;
         Language = "es";
         ConsoleCursor = TerminalCursor.Block; ConsoleBlink = ConsoleHistory = true; ConsoleScanlines = false;
-        ConsolePalette = "auto"; ConsoleColors = TerminalPalettes.Green;
+        _interfacePalettes.Clear();
     }
 
     public bool Save()
     {
-        if (!Valid(TextPercent, C64Port) || !Enum.IsDefined(SpectrumJoystick) || !Enum.IsDefined(Interface) || Language is not ("es" or "en") || !TerminalPalettes.Known(ConsolePalette) || !TerminalPalettes.Valid(ConsoleColors)) { Problem = "Las preferencias no son válidas."; return false; }
+        if (!Valid(TextPercent, C64Port) || !Enum.IsDefined(SpectrumJoystick) || !Enum.IsDefined(Interface) || Language is not ("es" or "en") || !ValidPalettes(_interfacePalettes)) { Problem = "Las preferencias no son válidas."; return false; }
         if (!_persist) return true;
         if (_unreadable) return false;
         string temporary = _path + "." + Guid.NewGuid().ToString("N") + UiText.Get(".tmp");
@@ -116,8 +146,8 @@ public sealed class AppPreferences
             Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(_path))!);
             File.WriteAllText(temporary, JsonSerializer.Serialize(new Document(1, TextPercent, HighContrast, IntegerScale, Fullscreen,
                 PowerSaving, ShowFps, SpectrumJoystick.ToString(), C64Port, TypeLoad, TurboWhileLoading, PauseInBackground, LastFolder,
-                Interface == InterfaceStyle.Hardcore ? "hardcore" : InterfaceStyles.Describe(Interface).Id, InterfaceOfferedVersion, OnlineGameInfo,
-                CursorNames.First(pair => pair.Value == ConsoleCursor).Key, ConsoleBlink, ConsoleScanlines, ConsoleHistory, LibraryFolder, LastStartedVersion, Language, ConsolePalette, ConsoleColors)));
+                Interface switch { InterfaceStyle.Hardcore => "hardcore", InterfaceStyle.Terminal => "terminal", InterfaceStyle.Amber => "amber", _ => "retro" }, InterfaceOfferedVersion, OnlineGameInfo,
+                CursorNames.First(pair => pair.Value == ConsoleCursor).Key, ConsoleBlink, ConsoleScanlines, ConsoleHistory, LibraryFolder, LastStartedVersion, Language, ConsolePalette, ConsoleColors, _interfacePalettes)));
             File.Move(temporary, _path, overwrite: true); Problem = null; return true;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
@@ -133,7 +163,7 @@ public sealed class AppPreferences
     public bool Recover()
     {
         if (!CanRecover) return Save();
-        if (!Valid(TextPercent, C64Port) || !Enum.IsDefined(SpectrumJoystick) || !Enum.IsDefined(Interface) || Language is not ("es" or "en") || !TerminalPalettes.Known(ConsolePalette) || !TerminalPalettes.Valid(ConsoleColors))
+        if (!Valid(TextPercent, C64Port) || !Enum.IsDefined(SpectrumJoystick) || !Enum.IsDefined(Interface) || Language is not ("es" or "en") || !ValidPalettes(_interfacePalettes))
         { Problem = "Las preferencias no son válidas."; return false; }
         string backup = _path + UiText.Get(".respaldo-") + Guid.NewGuid().ToString("N");
         try { File.Copy(_path, backup, overwrite: false); RecoveryPath = backup; }

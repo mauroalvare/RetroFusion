@@ -20,11 +20,14 @@ Menus, help, diagnostics, terminal vocabulary, CLI output and included design gu
 the selected language. Existing game text, personal titles, paths, source code and saved
 identifiers retain their original content.
 
-Retro is the graphical workbench. Green terminal uses the same menus and buttons in a
-green palette. Real terminal provides RetroEmu commands with help, history and completion.
+Retro is the graphical workbench with panels and instruments. Explorer uses a sidebar,
+system tree and compact file list. Lounge uses picture cards, large actions for the selection
+and bottom navigation. Real terminal provides commands with help, history and completion.
+These are different layouts. Each keeps its own colors, independently of the others.
 Choose Options > Interface styles to preview or change them. Looking does not apply a style.
-Amber adds a warm phosphor appearance with menus and buttons. Use --interface amber
-or select it in the preview picker.
+Lounge also has an Options button at the top. Use --interface retro|explorer|lounge|real.
+The old terminal, amber and hardcore identifiers remain accepted for compatibility.
+Amber is now a palette that can be applied to any layout.
 
 Every confirmed update asks for an interface again. A manual update is detected by the
 changed program version. An ordinary restart of that version does not repeat the question.
@@ -58,9 +61,9 @@ the file remains unchanged. Recover file keeps a complete backup before saving t
 
 ## Real terminal
 
-Choose a terminal palette in Preferences > Console, or use palette list and
+Choose colors for the current interface in Preferences > Interface, or use palette list and
 palette use green|amber|ice|paper. Paper has a light background. palette edit opens
-the color editor; palette color text #F092FF changes any RGB directly. Editable fields
+the color editor, previewing the actual layout; palette color text #F092FF changes any RGB directly. Editable fields
 are background, text, accent/cursor, muted, selection, success, warning and error.
 Apply saves the preview; Cancel keeps the preceding colors. palette reset follows
 the interface style while retaining the last custom colors. High contrast overrides

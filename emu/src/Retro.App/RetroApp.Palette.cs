@@ -6,6 +6,7 @@ namespace Retro.App;
 public sealed partial class RetroApp
 {
     private bool _paletteEditorOpen, _paletteEditorFocus, _paletteReturnToConsole;
+    private InterfaceStyle _paletteInterface;
     private Vector3[] _paletteDraft = [];
     private int _paletteField;
     private TerminalColors EffectiveConsoleColors => TerminalPalettes.Resolve(_prefs.ConsolePalette, _prefs.ConsoleColors, _prefs.Interface);
@@ -29,6 +30,7 @@ public sealed partial class RetroApp
     private void OpenPaletteEditor()
     {
         SetPaletteDraft(EffectiveConsoleColors); _paletteEditorOpen = _paletteEditorFocus = true;
+        _paletteInterface = _prefs.Interface;
         _paletteField = 0;
         _paletteReturnToConsole = _terminalOpen; ReleaseConsoleKeyboard();
     }
@@ -43,16 +45,18 @@ public sealed partial class RetroApp
     private void DrawPaletteEditor()
     {
         if (!_paletteEditorOpen) return;
-        var room = WorkspaceLayout.Available();
+        // A draft belongs to the interface on which it was opened; never save it onto another one.
+        if (_prefs.Interface != _paletteInterface) { _paletteReturnToConsole = false; ClosePaletteEditor(); return; }
+        var room = Vector2.Max(new(100, 80), ImGui.GetMainViewport().Size - new Vector2(16, 16 + UiTheme.StatusBarHeight));
         ImGui.SetNextWindowSize(Vector2.Min(UiTheme.Px(700, 680), room), ImGuiCond.Appearing);
         ImGui.SetNextWindowSizeConstraints(Vector2.Min(UiTheme.Px(360, 280), room), room);
         if (_paletteEditorFocus) { ImGui.SetNextWindowFocus(); _paletteEditorFocus = false; }
         bool compact = UiTheme.CompactHeight;
         if (compact) ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(ImGui.GetStyle().WindowPadding.X, UiTheme.Px(8)));
         bool open = true;
-        if (ImGui.Begin(UiText.Label("Colores de la terminal###terminal-palette"), ref open, ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
+        if (ImGui.Begin(UiText.Get("Colores · ") + InterfaceStyles.Describe(_paletteInterface).ShortName + "###terminal-palette", ref open, ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
         {
-            WorkspaceLayout.KeepOnScreen();
+            WorkspaceLayout.KeepOnScreen(modal: true);
             string applyLabel = compact ? "OK" : "Aplicar colores", resetLabel = compact ? "Base" : "Restaurar colores";
             string[] actions = [applyLabel, "Cancelar", resetLabel];
             float width = ImGui.GetContentRegionAvail().X, used = 0; int rows = 1;
@@ -81,14 +85,11 @@ public sealed partial class RetroApp
             }
             else
             {
-                UiTheme.Hint("Elegí cualquier color RGB. La vista previa cambia primero; Aplicar guarda la paleta personalizada.");
+                UiTheme.Hint("Elegí los colores de esta interfaz. Cada diseño conserva su propia paleta; Aplicar guarda y Cancelar conserva la anterior.");
                 var colors = TerminalPalettes.FromValues(_paletteDraft.Select(TerminalPalettes.Hex).ToArray());
-                var start = ImGui.GetCursorScreenPos(); var preview = new Vector2(ImGui.GetContentRegionAvail().X, ImGui.GetTextLineHeightWithSpacing() * 3 + UiTheme.Px(16));
+                var start = ImGui.GetCursorScreenPos(); var preview = new Vector2(ImGui.GetContentRegionAvail().X, UiTheme.Px(170));
                 var draw = ImGui.GetWindowDrawList();
-                draw.AddRectFilled(start, start + preview, ImGui.ColorConvertFloat4ToU32(TerminalPalettes.Color(colors.Background)));
-                draw.AddText(start + UiTheme.Px(8, 6), ImGui.ColorConvertFloat4ToU32(TerminalPalettes.Color(colors.Accent)), "retro:/> " + TerminalLanguage.Name("juegos"));
-                draw.AddText(start + new Vector2(UiTheme.Px(8), UiTheme.Px(6) + ImGui.GetTextLineHeightWithSpacing()), ImGui.ColorConvertFloat4ToU32(TerminalPalettes.Color(colors.Text)), UiText.Get("Tu terminal, tus colores."));
-                draw.AddText(start + new Vector2(UiTheme.Px(8), UiTheme.Px(6) + ImGui.GetTextLineHeightWithSpacing() * 2), ImGui.ColorConvertFloat4ToU32(TerminalPalettes.Color(colors.Muted)), UiText.Get("La partida se conserva."));
+                InterfaceScene.Draw(draw, _paletteInterface, start, preview, UiTheme.PaletteForColors(_paletteInterface, colors));
                 ImGui.Dummy(preview);
             }
             foreach (int i in compact ? new[] { _paletteField } : Enumerable.Range(0, TerminalPalettes.Fields.Count))
@@ -119,7 +120,7 @@ public sealed partial class RetroApp
     [
         new()
         {
-            Id = "system.palette", Name = "paleta", Group = "Consola", Summary = "Elige una paleta o personaliza cualquier color RGB de la terminal.",
+            Id = "system.palette", Name = "paleta", Group = "Interfaz", Summary = "Elige una paleta o personaliza ocho colores RGB de la interfaz actual.",
             Aliases = ["palette"], Keywords = "colores fondo texto acento cursor tema personalizar",
             Arguments = [
                 new("accion", ArgumentKind.Choice, "Sin indicar, muestra la paleta actual.") { Optional = true, Choices = ["ver", "lista", "usar", "color", "editar", "restablecer"] },
@@ -127,7 +128,7 @@ public sealed partial class RetroApp
                 new("rgb", ArgumentKind.Word, "Seis cifras hexadecimales, con # opcional.") { Optional = true }
             ],
             Examples = ["paleta lista", "paleta usar amber", "paleta color text #FFC966", "paleta editar", "paleta restablecer"],
-            Result = "Los colores se guardan sin cambiar la partida ni el modo de interfaz. Alto contraste conserva la paleta elegida.",
+            Result = "Cada interfaz guarda sus propios colores. Cambiar la paleta conserva la partida y la organización de la pantalla.",
             Run = context =>
             {
                 string action = context.Optional("accion") ?? "ver";
@@ -150,6 +151,7 @@ public sealed partial class RetroApp
                 }
                 catch (ArgumentException error) { throw new CommandFailure(CommandProblem.InvalidArgument, error.Message, "paleta lista", "paleta color text #FFC966", "paleta restablecer"); }
                 context.Heading(UiText.Get("Paleta: ") + TerminalPalettes.All.First(palette => palette.Id == _prefs.ConsolePalette).Name);
+                context.Detail(InterfaceStyles.Describe(_prefs.Interface).ShortName);
                 var colors = EffectiveConsoleColors;
                 context.Table([new("Color"), new("RGB")], TerminalPalettes.Fields.Select((field, index) => new[] { field.Id, colors.Values[index] }));
             }

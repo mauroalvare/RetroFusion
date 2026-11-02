@@ -68,7 +68,7 @@ public sealed partial class RetroApp
         ImGui.PushTextWrapPos(0);
         if (_preferencesSearch.Trim().Length > 0) DrawSharedOptions(search: _preferencesSearch);
         else DrawSharedOptions(_preferencesGroup);
-        if (_preferencesGroup == UiText.Get("Consola") || CommandLine.Fold(_preferencesSearch).Contains("palet") || CommandLine.Fold(_preferencesSearch).Contains("color"))
+        if (_preferencesGroup == UiText.Get("Interfaz") || _preferencesGroup == UiText.Get("Consola") || CommandLine.Fold(_preferencesSearch).Contains("palet") || CommandLine.Fold(_preferencesSearch).Contains("color"))
         {
             if (ImGui.Button(UiText.Label("Personalizar colores…"))) OpenPaletteEditor();
             InterfaceControlBounds?.Invoke("Personalizar paleta", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
@@ -78,7 +78,7 @@ public sealed partial class RetroApp
         ImGui.Separator();
         // Settings apply as they change: the footer says what happened to them instead of asking for a save.
         string? problem = _prefs.Problem ?? _sound.Problem;
-        if (!compact || problem != null) UiTheme.Hint(UiTheme.Fit(problem ?? UiText.Get("Los cambios se aplican y se guardan al instante, para todos los estilos."), ImGui.GetContentRegionAvail().X));
+        if (!compact || problem != null) UiTheme.Hint(UiTheme.Fit(problem ?? UiText.Get("Los cambios se guardan al instante. Los colores pertenecen a la interfaz elegida."), ImGui.GetContentRegionAvail().X));
         if (ImGui.Button(UiText.Label("Restablecer todo"))) ResetPreferences();
         InterfaceControlBounds?.Invoke("Restablecer todo", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
         if (ImGui.IsItemHovered()) UiTheme.Tooltip("Vuelve a los valores iniciales de pantalla, sonido, controles y consola. No cambia tus juegos, partidas ni fichas.");

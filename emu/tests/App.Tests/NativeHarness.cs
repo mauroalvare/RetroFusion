@@ -55,6 +55,7 @@ internal sealed class NativeHarness : IDisposable
             var clipMin = ImGui.GetWindowDrawList().GetClipRectMin(); var clipMax = ImGui.GetWindowDrawList().GetClipRectMax();
             Bounds[name] = (min.X >= clipMin.X && max.X <= clipMax.X && min.Y >= clipMin.Y && max.Y <= clipMax.Y, min, max);
         };
+        ((HomeScreen)Get("_home")).LibraryControlBounds = App.InterfaceControlBounds;
         Frames(5);
     }
 

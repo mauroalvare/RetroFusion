@@ -8,6 +8,9 @@ namespace Retro.App;
 public sealed partial class HomeScreen
 {
     private string? _selectedKey;
+    private string? _selectedFile;
+    private bool MatchesSelection(LibraryCard card) => card.Key == _selectedKey && (_selectedFile == null || string.Equals(card.File, _selectedFile,
+        OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal));
     private bool _scrollToSelection, _shortActions;
     private string PlayLabel => _shortActions ? "▶" : "Jugar";
     private string CardLabel => _shortActions ? "i" : "Ficha";
@@ -22,8 +25,9 @@ public sealed partial class HomeScreen
         bool detail = available >= UiTheme.Px(860) && !UiTheme.CompactHeight;
         float detailWidth = detail ? Math.Clamp(available * 0.30f, UiTheme.Px(270), UiTheme.Px(350)) : 0;
         // A choice that was filtered out is replaced, so the panel never describes something that is not on the list.
-        var selected = cards.FirstOrDefault(card => card.Key == _selectedKey);
-        if (selected == null && cards.Count > 0) { selected = cards[0]; _selectedKey = selected.Key; }
+        var selected = cards.FirstOrDefault(MatchesSelection) ?? cards.FirstOrDefault(card => card.Key == _selectedKey);
+        if (selected == null && cards.Count > 0) selected = cards[0];
+        if (selected != null) { _selectedKey = selected.Key; _selectedFile = selected.File; }
         if (detail) ImGui.BeginChild("lista-juegos", new(available - detailWidth - ImGui.GetStyle().ItemSpacing.X, 0));
         DrawRows(cards);
         if (detail)
@@ -35,7 +39,7 @@ public sealed partial class HomeScreen
 
     private unsafe void DrawRows(IReadOnlyList<LibraryCard> cards)
     {
-        _compactRows = ImGui.GetContentRegionAvail().X < UiTheme.Px(640) || UiTheme.CompactHeight;
+        _compactRows = UiTheme.Interface == InterfaceStyle.Terminal || ImGui.GetContentRegionAvail().X < UiTheme.Px(640) || UiTheme.CompactHeight;
         bool showSystem = ImGui.GetContentRegionAvail().X >= UiTheme.Px(520);
         // Only a list narrower than the buttons themselves leaves the star to Ficha.
         bool showFavorite = ImGui.GetContentRegionAvail().X >= UiTheme.Px(200);
@@ -56,7 +60,7 @@ public sealed partial class HomeScreen
             clipper.Begin(cards.Count, RowHeight + ImGui.GetStyle().CellPadding.Y * 2);
             if (_scrollToSelection)
             {
-                int index = cards.ToList().FindIndex(card => card.Key == _selectedKey);
+                int index = cards.ToList().FindIndex(MatchesSelection);
                 if (index >= 0) clipper.IncludeItemByIndex(index);
             }
             while (clipper.Step())
@@ -71,17 +75,18 @@ public sealed partial class HomeScreen
         float height = RowHeight;
         ImGui.TableNextRow(ImGuiTableRowFlags.None, height);
         ImGui.PushID(card.Key);
+        ImGui.PushID(card.File ?? "");
         ImGui.TableNextColumn();
         var start = ImGui.GetCursorScreenPos();
-        bool selected = _selectedKey == card.Key;
+        bool selected = MatchesSelection(card);
         if (ImGui.Selectable("##fila", selected, ImGuiSelectableFlags.SpanAllColumns | ImGuiSelectableFlags.AllowOverlap | ImGuiSelectableFlags.AllowDoubleClick, new(0, height)))
         {
             bool enter = ImGui.IsItemFocused() && (ImGui.IsKeyPressed(ImGuiKey.Enter, false) || ImGui.IsKeyPressed(ImGuiKey.KeypadEnter, false));
-            _selectedKey = card.Key;
+            _selectedKey = card.Key; _selectedFile = card.File;
             if ((ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left) || enter && selected) && card.Openable && !library.Scanning) { Close(); card.Play(); }
         }
-        if (ImGui.IsItemFocused() && !selected) _selectedKey = card.Key;
-        if (selected && _scrollToSelection) { ImGui.SetScrollHereY(); _scrollToSelection = false; }
+        if (ImGui.IsItemFocused() && !selected) { _selectedKey = card.Key; _selectedFile = card.File; }
+        if (selected && _scrollToSelection) { ImGui.SetScrollHereY(0); _scrollToSelection = false; }
         if (ImGui.IsItemHovered()) UiTheme.Tooltip(card.Title + (string.IsNullOrWhiteSpace(card.Hint) ? "" : "\n" + card.Hint));
         LibraryControlBounds?.Invoke("Fila:" + card.Key, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
         var size = _compactRows ? new Vector2(0, 0) : new Vector2(height * 1.35f, height - UiTheme.Px(6));
@@ -124,13 +129,14 @@ public sealed partial class HomeScreen
         ImGui.BeginDisabled(!card.Openable || library.Scanning);
         if (UiTheme.PrimaryButton(PlayLabel + UiText.Get("###jugar"))) { Close(); card.Play(); }
         LibraryControlBounds?.Invoke(UiText.Get("Jugar:") + card.Key, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
+        if (card.File != null) LibraryControlBounds?.Invoke("Jugar archivo:" + card.Key + "@" + card.File, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
         ImGui.EndDisabled();
         if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled)) UiTheme.Tooltip(card.Openable ? "Jugar" : card.Hint ?? "Este formato todavía no se puede abrir.");
         ImGui.SameLine();
         if (ImGui.Button(UiText.Label(CardLabel + UiText.Get("###ficha")))) OpenMetadata(card.Key);
         LibraryControlBounds?.Invoke(UiText.Get("Ficha:") + card.Key, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
         if (_shortActions && ImGui.IsItemHovered()) UiTheme.Tooltip("Ficha");
-        ImGui.PopID();
+        ImGui.PopID(); ImGui.PopID();
     }
 
     private void Picture(ImDrawListPtr draw, LibraryCard card, Vector2 at, Vector2 size)
@@ -159,7 +165,7 @@ public sealed partial class HomeScreen
             star[i] = center + new Vector2(MathF.Cos(angle), MathF.Sin(angle)) * radius;
         }
         var draw = ImGui.GetWindowDrawList();
-        uint color = favorite ? ImGui.ColorConvertFloat4ToU32(new Vector4(1, 0.78f, 0.25f, 1)) : ImGui.GetColorU32(ImGuiCol.TextDisabled);
+        uint color = favorite ? ImGui.ColorConvertFloat4ToU32(UiTheme.Accent) : ImGui.GetColorU32(ImGuiCol.TextDisabled);
         for (int i = 0; i < star.Length; i++) draw.AddLine(star[i], star[(i + 1) % star.Length], color, favorite ? 2 : 1);
         if (ImGui.IsItemHovered()) UiTheme.Tooltip(favorite ? "Quitar de favoritos" : "Agregar a favoritos");
     }

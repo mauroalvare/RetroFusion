@@ -60,7 +60,7 @@ public sealed partial class RetroApp
         },
         new()
         {
-            Id = "system.option", Name = "opcion", Group = "Sistema", Summary = "Lee, cambia o restablece un ajuste compartido con todos los estilos.",
+            Id = "system.option", Name = "opcion", Group = "Sistema", Summary = "Lee, cambia o restablece un ajuste e indica su alcance.",
             Aliases = ["ajuste"], Keywords = "configurar valor volumen texto contraste",
             Arguments =
             [
@@ -68,7 +68,7 @@ public sealed partial class RetroApp
                 new("valor", ArgumentKind.Text, "Nuevo valor, o restablecer para volver al inicial.") { Optional = true, Rest = true, Complete = earlier => Options.FirstOrDefault(option => option.Id == earlier.FirstOrDefault())?.Completions() ?? [] }
             ],
             Examples = ["opcion volumen", "opcion volumen 60", "opcion contraste on", "opcion volumen restablecer"],
-            Errors = ["el valor no está entre los admitidos"], Result = "El cambio se ve al instante en todos los estilos.",
+            Errors = ["el valor no está entre los admitidos"], Result = "El cambio se aplica al instante; la ayuda de cada opción indica su alcance.",
             Run = context =>
             {
                 string id = TerminalLanguage.CanonicalOption(context.Text("id"));
@@ -95,7 +95,7 @@ public sealed partial class RetroApp
         {
             Id = "system.interface", Name = "interfaz", Group = "Sistema", Summary = "Cambia el estilo o abre la elección con vistas previas.",
             Aliases = ["estilo", "tema"], Keywords = "apariencia retro terminal real cambiar grafica",
-            Arguments = [new("estilo", ArgumentKind.Choice, "El estilo que querés usar.") { Choices = ["retro", "terminal", "real", "amber", "preview"] }],
+            Arguments = [new("estilo", ArgumentKind.Choice, "El estilo que querés usar.") { Choices = ["retro", "explorer", "real", "lounge", "preview"] }],
             Examples = ["interfaz retro", "interfaz preview"], Result = "Los datos, ajustes y la partida se conservan.",
             Run = context =>
             {

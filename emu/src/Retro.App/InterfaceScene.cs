@@ -18,21 +18,69 @@ internal static class InterfaceScene
         ("La mina de Ohm", "Commodore 64", "c64", "1988", "Aventura"),
     ];
 
-    public static void Draw(ImDrawListPtr draw, InterfaceStyle style, Vector2 at, Vector2 size)
+    public static void Draw(ImDrawListPtr draw, InterfaceStyle style, Vector2 at, Vector2 size, UiTheme.StylePalette? previewPalette = null)
     {
-        var palette = UiTheme.PaletteOf(style);
+        var palette = previewPalette ?? UiTheme.PaletteOf(style);
         float unit = Math.Min(size.X / Width, size.Y / Height);
         var scene = new Vector2(Width, Height) * unit;
         at += (size - scene) / 2;
         draw.PushClipRect(at, at + scene, true);
         draw.AddRectFilled(at, at + scene, Color(palette.Window));
         if (style == InterfaceStyle.Hardcore) Console(draw, palette, at, unit);
+        else if (style == InterfaceStyle.Terminal) Explorer(draw, palette, at, unit);
+        else if (style == InterfaceStyle.Amber) Lounge(draw, palette, at, unit);
         else Library(draw, palette, at, unit, style);
         draw.PopClipRect();
         draw.AddRect(at, at + scene, Color(palette.Border));
     }
 
     private static uint Color(Vector4 color) => ImGui.ColorConvertFloat4ToU32(color);
+
+    private static void Explorer(ImDrawListPtr draw, UiTheme.StylePalette palette, Vector2 at, float unit)
+    {
+        Vector2 P(float x, float y) => at + new Vector2(x, y) * unit;
+        void Text(float x, float y, string value, Vector4 ink) => draw.AddText(UiTheme.ConsoleFont, 12 * unit, P(x, y), Color(ink), UiText.Get(value));
+        draw.AddRectFilled(P(0, 0), P(108, 400), Color(palette.Panel));
+        Text(8, 8, "EXPLORADOR", palette.Accent);
+        string[] modes = ["Biblioteca", "Jugar", "Crear", "Analizar", "Herramientas", "Ayuda"];
+        for (int i = 0; i < modes.Length; i++) Text(8, 40 + i * 24, modes[i], palette.Text);
+        draw.AddRect(P(112, 8), P(230, 392), Color(palette.Border));
+        Text(120, 16, "BIBLIOTECA", palette.Accent);
+        string[] tree = ["Todos", "Favoritos", "Recientes", "Sistemas", "  zx48", "  c64", "  nes", "Proyectos"];
+        for (int i = 0; i < tree.Length; i++) Text(120, 44 + i * 22, tree[i], palette.Text);
+        Text(240, 16, "Biblioteca / Todos", palette.Accent);
+        draw.AddRectFilled(P(240, 42), P(632, 66), Color(palette.Frame)); Text(248, 48, "Buscar nombre o género", palette.Muted);
+        Text(244, 82, "Juego", palette.Muted); Text(540, 82, "Sistema", palette.Muted);
+        for (int i = 0; i < Demo.Length; i++)
+        {
+            float y = 108 + i * 34;
+            if (i == 0) draw.AddRectFilled(P(240, y - 4), P(632, y + 22), Color(palette.Header));
+            Text(244, y, Demo[i].Title, palette.Text); Text(540, y, Demo[i].Machine, palette.Muted);
+        }
+        draw.AddLine(P(240, 330), P(632, 330), Color(palette.Border));
+        Text(244, 342, Demo[0].Title, palette.Text); Text(244, 370, "Jugar   Ficha", palette.Accent);
+    }
+
+    private static void Lounge(ImDrawListPtr draw, UiTheme.StylePalette palette, Vector2 at, float unit)
+    {
+        Vector2 P(float x, float y) => at + new Vector2(x, y) * unit;
+        void Text(float x, float y, string value, Vector4 ink) => draw.AddText(UiTheme.PreviewFont(InterfaceStyle.Amber), 13 * unit, P(x, y), Color(ink), UiText.Get(value));
+        draw.AddRectFilled(P(0, 0), P(640, 30), Color(palette.Panel));
+        Text(12, 8, "SALÓN", palette.Accent); Text(500, 8, "Opciones", palette.Text);
+        Text(12, 44, "Tu biblioteca", palette.Text);
+        for (int i = 0; i < Demo.Length; i++)
+        {
+            float x = 12 + i % 2 * 314, y = 70 + i / 2 * 128;
+            draw.AddRectFilled(P(x, y), P(x + 302, y + 116), Color(i == 0 ? palette.Header : palette.Panel), unit * 5);
+            draw.AddRect(P(x, y), P(x + 302, y + 116), Color(i == 0 ? palette.Accent : palette.Border), unit * 5);
+            HardwareArt.Draw(draw, Demo[i].Machine, P(x + 8, y + 8), new Vector2(105, 68) * unit);
+            Text(x + 120, y + 18, Demo[i].Title, palette.Text); Text(x + 120, y + 45, Demo[i].Machine, palette.Muted);
+        }
+        Text(12, 334, "Jugar   Ficha", palette.Accent);
+        draw.AddRectFilled(P(0, 368), P(640, 400), Color(palette.Panel));
+        string[] dock = ["Biblioteca", "Jugar", "Crear", "Analizar", "Herramientas", "Ayuda"];
+        for (int i = 0; i < dock.Length; i++) Text(10 + i * 106, 378, dock[i], i == 0 ? palette.Accent : palette.Muted);
+    }
 
     private static void Library(ImDrawListPtr draw, UiTheme.StylePalette palette, Vector2 at, float unit, InterfaceStyle style)
     {

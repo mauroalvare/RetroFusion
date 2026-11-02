@@ -9,8 +9,10 @@ internal static class WorkspaceLayout
     public static float MenuHeight { get; set; } = 28;
     public static float NavigationHeight { get; set; }
     public static float FooterHeight { get; set; }
-    public static Vector2 Origin => ImGui.GetMainViewport().Pos + new Vector2(0, MenuHeight + NavigationHeight);
-    public static Vector2 Size => Vector2.Max(new(100, 80), ImGui.GetMainViewport().Size - new Vector2(0, MenuHeight + NavigationHeight + UiTheme.StatusBarHeight + FooterHeight));
+    public static float SidebarWidth { get; set; }
+    public static float DockHeight { get; set; }
+    public static Vector2 Origin => ImGui.GetMainViewport().Pos + new Vector2(SidebarWidth, MenuHeight + NavigationHeight);
+    public static Vector2 Size => Vector2.Max(new(100, 80), ImGui.GetMainViewport().Size - new Vector2(SidebarWidth, MenuHeight + NavigationHeight + UiTheme.StatusBarHeight + FooterHeight + DockHeight));
     public const ImGuiWindowFlags EditorFlags = ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoResize |
         ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoSavedSettings;
 

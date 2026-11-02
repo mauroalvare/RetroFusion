@@ -32,10 +32,13 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   ve como signo de pregunta, aunque se conserva al copiarlo: los emojis y la escritura de
   derecha a izquierda no tienen soporte. Las fuentes dependen del sistema: la auditoría de
   caracteres se comprobó con las fuentes de Windows, no en Linux ni macOS.
-- Los ocho colores de la terminal admiten cualquier RGB; una combinación elegida puede ser
+- Los ocho colores de cada interfaz admiten cualquier RGB; una combinación elegida puede ser
   difícil de leer. El editor permite previsualizar, cancelar y restaurar la base. Alto contraste
-  aplica colores accesibles sin borrar la paleta guardada. Ámbar es otro estilo gráfico;
-  la paleta de la consola se elige por separado. No se importan temas de otras terminales.
+  aplica colores accesibles sin borrar la paleta guardada. Retro, Explorador, Salón y Terminal
+  real tienen distribuciones y navegación propias; comparten los editores avanzados y servicios
+  de juegos, estados y proyectos. Ámbar es una paleta, aplicable a cualquier diseño.
+  No se importan temas de otras terminales. La preferencia de colores nueva sigue en v1;
+  un programa antiguo puede leer los campos comunes, pero al guardar pierde los campos nuevos.
 - `tareas` conoce el avance que cada proceso informa. Una espera de IA por copiar y pegar o por
   carpeta de agente figura como esperando tu respuesta y no se cancela desde la lista, sino
   en su taller. `retomar` solo vale para tareas que dejaron cómo reintentarse; las de los

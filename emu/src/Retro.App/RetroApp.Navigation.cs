@@ -21,6 +21,8 @@ public sealed partial class RetroApp
 
     private void DrawNavigation()
     {
+        if (_prefs.Interface == InterfaceStyle.Terminal) { DrawExplorerNavigation(); return; }
+        if (_prefs.Interface == InterfaceStyle.Amber) { DrawLoungeNavigation(); return; }
         WorkspaceLayout.MenuHeight=_menuHeight;
         if (UiTheme.CompactHeight) { WorkspaceLayout.NavigationHeight = 0; return; }
         float height;
@@ -43,7 +45,7 @@ public sealed partial class RetroApp
             if (ImGui.GetContentRegionAvail().X<required)
             {
                 ImGui.SetNextItemWidth(Math.Max(UiTheme.Px(100),ImGui.GetContentRegionAvail().X-UiTheme.Px(106)-resumeWidth));
-                if (ImGui.Combo("##workspace",ref selected,labels,labels.Length)) Navigate(selected);
+                WorkspaceChoice();
                 ImGui.SameLine();
                 if (resume) { if (UiTheme.PrimaryButton(resumeLabel)) OpenPlay(); ImGui.SameLine(); }
             }
@@ -54,7 +56,8 @@ public sealed partial class RetroApp
                 {
                     if (i>0) ImGui.SameLine();
                     ImGui.PushID(i);
-                    if (RetroArt.ModeButton(UiText.Format($"{i+1:00} {labels[i].ToUpperInvariant()}"),selected==i)) Navigate(i);
+                    if (RetroArt.ModeButton(UiText.Format($"{i+1:00} {labels[i].ToUpperInvariant()}"),selected==i)) NavigateWorkspace(i);
+                    TrackWorkspace(i);
                     ImGui.PopID();
                 }
                 ImGui.SameLine(Math.Max(ImGui.GetCursorPosX(),ImGui.GetWindowWidth()-UiTheme.Px(106)-resumeWidth));
@@ -72,18 +75,6 @@ public sealed partial class RetroApp
         }
         ImGui.End(); ImGui.PopStyleVar(2);
 
-        void Navigate(int page)
-        {
-            switch(page)
-            {
-                case 0: CloseEditors(); _home.Open(); break;
-                case 1: OpenPlay(); break;
-                case 2: OpenHub(HubPage.Create); break;
-                case 3: OpenAnalyzer(); break;
-                case 4: OpenHub(HubPage.Tools); break;
-                case 5: OpenHub(HubPage.Help); break;
-            }
-        }
     }
 
     private void DrawHub()
@@ -205,6 +196,7 @@ public sealed partial class RetroApp
 
     private void ToolRows(string id,(string Title,string Detail,string Command)[] items)
     {
+        if (_prefs.Interface != InterfaceStyle.Retro) { DrawLayoutTools(id, items); return; }
         bool compact=ImGui.GetContentRegionAvail().X<UiTheme.Px(560);
         if (!compact && !ImGui.BeginTable(id,3,ImGuiTableFlags.SizingStretchProp)) return;
         if (!compact)

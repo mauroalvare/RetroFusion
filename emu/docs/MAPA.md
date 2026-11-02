@@ -25,8 +25,10 @@ datos, las opciones compartidas y la elección tras actualizar. La [guía de la 
 describe órdenes, teclas, tareas y la matriz de cobertura por órdenes.
 `Retro.App/Terminal/` separa búfer, tokenizador, definiciones, editor de línea, historial, teclado
 y dibujo; `RetroApp.Terminal*.cs` define las órdenes y `AppTasks.cs` el modelo común de tareas.
-`--interface retro|terminal|real|amber` elige el estilo al iniciar; `--interface-picker`
-abre sus vistas previas. `paleta` personaliza ocho RGB y paletas; `requisitos` y `--check-startup archivo.json`
+`--interface retro|explorer|real|lounge` elige el diseño al iniciar; `--interface-picker`
+abre sus vistas previas. `RetroApp.Layouts.cs` define las barras lateral y de Salón;
+`HomeScreen.Layouts.cs` dibuja árbol, listado y tarjetas. `paleta` personaliza ocho RGB por interfaz;
+`requisitos` y `--check-startup archivo.json`
 explican el arranque. `--no-audio` omite el dispositivo; `--mute` conserva su inicialización.
 Los recorridos nativos con datos propios se seleccionan a mano en
 App.Tests: `TerminalNativeTests`, `ProductFlowNativeTests`, `InterfaceCaptureTests`,

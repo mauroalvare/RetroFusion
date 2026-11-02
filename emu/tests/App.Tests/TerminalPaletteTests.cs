@@ -14,7 +14,7 @@ public sealed class TerminalPaletteTests
         try
         {
             var colors = TerminalPalettes.Change(TerminalPalettes.Amber, "texto", "abc123");
-            var prefs = new AppPreferences(path) { ConsolePalette = "custom", ConsoleColors = colors, Interface = InterfaceStyle.Hardcore, TextPercent = 175 };
+            var prefs = new AppPreferences(path) { Interface = InterfaceStyle.Hardcore, ConsolePalette = "custom", ConsoleColors = colors, TextPercent = 175 };
             Assert.That(prefs.Save(), Is.True);
             var loaded = new AppPreferences(path);
             Assert.That(loaded.ConsoleColors, Is.EqualTo(colors)); Assert.That(loaded.ConsolePalette, Is.EqualTo("custom"));
@@ -44,13 +44,13 @@ public sealed class TerminalPaletteTests
         {
             var prefs = new AppPreferences(path) { ConsolePalette = "custom", TextPercent = 175, LibraryFolder = "biblioteca propia" };
             Assert.That(prefs.Save(), Is.True);
-            string damaged = File.ReadAllText(path).Replace("#020502", "invalid color"); File.WriteAllText(path, damaged);
+            string damaged = File.ReadAllText(path).Replace(prefs.ConsoleColors.Background, "invalid color"); File.WriteAllText(path, damaged);
             var loaded = new AppPreferences(path); Assert.That(loaded.CanRecover, Is.True); Assert.That(loaded.TextPercent, Is.EqualTo(175));
             Assert.That(loaded.LibraryFolder, Is.EqualTo("biblioteca propia"), "A damaged color must not change the selected library.");
             Assert.That(loaded.Save(), Is.False); Assert.That(File.ReadAllText(path), Is.EqualTo(damaged));
             Assert.That(loaded.Recover(), Is.True); backup = loaded.RecoveryPath;
             Assert.That(File.ReadAllText(backup!), Is.EqualTo(damaged));
-            Assert.That(new AppPreferences(path).ConsoleColors, Is.EqualTo(TerminalPalettes.Green));
+            Assert.That(new AppPreferences(path).ConsoleColors, Is.EqualTo(TerminalPalettes.DefaultFor(InterfaceStyle.Retro)));
         }
         finally { File.Delete(path); if (backup != null) File.Delete(backup); }
     }

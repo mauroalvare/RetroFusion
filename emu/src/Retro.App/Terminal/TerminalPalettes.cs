@@ -9,6 +9,8 @@ public sealed record TerminalColors(string Background, string Text, string Accen
     internal IReadOnlyList<string> Values => [Background, Text, Accent, Muted, Selection, Success, Warning, Error];
 }
 
+public sealed record InterfacePalette(string Palette, TerminalColors Colors);
+
 internal sealed record TerminalPalettePreset(string Id, string Label, TerminalColors Colors)
 {
     public string Name => UiText.Get(Label);
@@ -20,6 +22,7 @@ internal static class TerminalPalettes
     public static readonly TerminalColors Green = new("#020502", "#91F09C", "#73FF87", "#6EAE75", "#1F662B", "#8CD98C", "#F5BF6B", "#FF8066");
     public static readonly TerminalColors Amber = new("#060402", "#FFC966", "#FFBA33", "#C79957", "#57390F", "#ACD980", "#FFE08A", "#FF8D70");
     public static readonly TerminalColors HighContrast = new("#000000", "#FFFFFF", "#FFFF33", "#DDE3ED", "#004C99", "#99FF99", "#FFD15C", "#FF998C");
+    public static readonly TerminalColors Retro = new("#111412", "#E8E3D1", "#E0AB5C", "#ABB0A1", "#4D4029", "#8CD98C", "#F5BF6B", "#FF8066");
     public static readonly IReadOnlyList<TerminalPalettePreset> All = Array.AsReadOnly<TerminalPalettePreset>([
         new("auto", "Seguir el estilo de interfaz", Green), new("green", "Fósforo verde", Green), new("amber", "Fósforo ámbar", Amber),
         new("ice", "Hielo", new("#021019", "#A8E2FF", "#55C7FF", "#6EA3BE", "#103D5C", "#9CE8B3", "#FFD080", "#FF9292")),
@@ -33,8 +36,9 @@ internal static class TerminalPalettes
 
     public static bool Known(string id) => All.Any(preset => preset.Id == id);
     public static bool Valid(TerminalColors? colors) => colors != null && colors.Values.All(value => value is { Length: 7 } && value[0] == '#' && value[1..].All(char.IsAsciiHexDigit));
+    public static TerminalColors DefaultFor(InterfaceStyle style) => style == InterfaceStyle.Retro ? Retro : style == InterfaceStyle.Amber ? Amber : Green;
     public static TerminalColors Resolve(string id, TerminalColors? custom, InterfaceStyle style) => id == "custom" && Valid(custom) ? custom!
-        : id is "auto" or "custom" || !Known(id) ? style == InterfaceStyle.Amber ? Amber : Green : All.First(preset => preset.Id == id).Colors;
+        : id is "auto" or "custom" || !Known(id) ? DefaultFor(style) : All.First(preset => preset.Id == id).Colors;
     public static string CanonicalField(string id) => CommandLine.Fold(id) switch
     {
         "fondo" => "background", "texto" => "text", "acento" or "cursor" => "accent", "secundario" => "muted",

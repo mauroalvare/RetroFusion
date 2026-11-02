@@ -139,6 +139,10 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
             if (_section == "home") Select("all");
             _focusSearch = true;
         }
+        if (UiTheme.Interface is InterfaceStyle.Terminal or InterfaceStyle.Amber)
+        {
+            DrawAlternativeLibrary(); DrawMetadataEditor(); return;
+        }
         var viewport = ImGui.GetMainViewport();
         ImGui.SetNextWindowPos(WorkspaceLayout.Origin);
         ImGui.SetNextWindowSize(WorkspaceLayout.Size);
@@ -267,7 +271,7 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
 
     private void DrawCompactNavigation()
     {
-        bool shared = _section != "home" && UiTheme.CompactHeight;
+        bool shared = UiTheme.CompactHeight && (_section != "home" || UiTheme.Interface != InterfaceStyle.Retro);
         ImGui.SetNextItemWidth(shared ? ImGui.GetContentRegionAvail().X * 0.34f : canReturn() ? Math.Max(UiTheme.Px(150), ImGui.GetContentRegionAvail().X - UiTheme.Px(168)) : -1);
         if (ImGui.BeginCombo("##seccion-biblioteca", UiText.Get(_section == "home" ? "Inicio" : SectionTitle())))
         {
@@ -290,6 +294,7 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
     {
         if (ImGui.Selectable(UiText.Label(label), _section == section && _machine == machine, ImGuiSelectableFlags.None, new Vector2(0, UiTheme.Px(28))))
             Select(section, machine);
+        TrackLibraryControl("Sección:" + section + (machine.Length > 0 ? ":" + machine : ""));
     }
 
     private static string Name(MachineInfo machine) => machine.Id == "invaders" ? "Space Invaders" : machine.Name;
@@ -373,10 +378,13 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
         CreatedGame? created = null;
         try { created = CreatedGames.All().FirstOrDefault(g => Path.GetFullPath(g.ProgramPath).Equals(Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase)); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
-        _activity.Played(created == null ? LibraryKey.Original(machine, files) : CreatedKey(created));
+        _selectedKey = created == null ? LibraryKey.Original(machine, files) : CreatedKey(created);
+        _selectedFile = path;
+        _scrollToSelection = true; _activity.Played(_selectedKey);
     }
 
-    public void RecordFusion(StudioGame game) => _activity.Played(FusionKey(game));
+    public void RecordFusion(StudioGame game)
+    { _selectedKey = FusionKey(game); _selectedFile = null; _scrollToSelection = true; _activity.Played(_selectedKey); }
 
     public void Dispose() => _thumbnails.Dispose();
 }

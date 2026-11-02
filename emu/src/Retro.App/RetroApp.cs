@@ -245,7 +245,7 @@ public sealed partial class RetroApp
     /// <summary>The user's game folder ("ROMs", exact case: "roms" holds the firmware).</summary>
     private static string? FindGamesFolder() => PlayerFolders.Find("ROMs");
 
-    private void ConfigureStyle() => UiTheme.Apply(_prefs.TextScale, _prefs.HighContrast, _prefs.Interface, _prefs.ConsolePalette, _prefs.ConsoleColors);
+    private void ConfigureStyle() => UiTheme.Apply(_prefs.TextScale, _prefs.HighContrast, _prefs.Interface, _prefs.ConsolePalette, _prefs.ConsoleColors, _prefs.InterfacePalettes);
 
     private void ShowInDebugger(uint address)
     {
@@ -389,12 +389,13 @@ public sealed partial class RetroApp
         PrepareTerminalLayout();
         SetKeyboardNavigation(m);
         Raylib.BeginDrawing();
-        Raylib.ClearBackground(UiTheme.Terminal ? new Color(2, 5, 3, 255) : new Color(15, 18, 16, 255));
+        var background = UiTheme.HighContrast ? Vector4.Zero : UiTheme.PaletteOf(_prefs.Interface).Window;
+        Raylib.ClearBackground(new Color((byte)(background.X * 255), (byte)(background.Y * 255), (byte)(background.Z * 255), (byte)255));
         if (!InterfaceWorkspace && !_debugMode && _texW != 0)
             DrawPlayScreen();
         rlImGui.Begin(dt);
         ImGui.BeginDisabled(_updates.Blocking || _interfacePicker.IsOpen);
-        if (!Hardcore) { DrawMenu(); DrawNavigation(); }
+        if (!Hardcore) { if (_prefs.Interface != InterfaceStyle.Amber) DrawMenu(); DrawNavigation(); }
         if (_debugMode && !InterfaceWorkspace)
             DrawDebugger();
         DrawStatusBar();
@@ -596,13 +597,14 @@ public sealed partial class RetroApp
     private void DrawPlayScreen()
     {
         // Bars measured on the previous frame, so a larger text size never covers the picture.
-        float top = _menuHeight + WorkspaceLayout.NavigationHeight, bottom = UiTheme.StatusBarHeight + WorkspaceLayout.FooterHeight;
-        float w = Math.Max(1, Raylib.GetScreenWidth()), h = Math.Max(1, Raylib.GetScreenHeight() - top - bottom);
+        float top = _menuHeight + WorkspaceLayout.NavigationHeight, bottom = UiTheme.StatusBarHeight + WorkspaceLayout.FooterHeight + WorkspaceLayout.DockHeight;
+        float left = WorkspaceLayout.SidebarWidth;
+        float w = Math.Max(1, Raylib.GetScreenWidth() - left), h = Math.Max(1, Raylib.GetScreenHeight() - top - bottom);
         float s = MathF.Min(w / _texW, h / _texH);
         if (_prefs.IntegerScale)
             s = MathF.Min(s, MathF.Max(1, MathF.Floor(s)));
         float dw = _texW * s, dh = _texH * s;
-        var dest = new Rectangle((w - dw) / 2, top + (h - dh) / 2, dw, dh);
+        var dest = new Rectangle(left + (w - dw) / 2, top + (h - dh) / 2, dw, dh);
         Raylib.DrawTexturePro(_screenTex, new Rectangle(0, 0, _texW, _texH), dest, Vector2.Zero, 0, Color.White);
         _screenFocused = true;
     }
@@ -909,12 +911,15 @@ public sealed partial class RetroApp
             ImGui.SetWindowFocus();
         float menuWidth = ImGui.CalcTextSize(UiText.Get(UiText.Get("Biblioteca Juego Crear Herramientas Opciones Ayuda") + (UiTheme.CompactHeight ? " Volver a jugar" : ""))).X + ImGui.GetStyle().ItemSpacing.X * 14;
         bool compactMenu = ImGui.GetMainViewport().WorkSize.X < menuWidth;
-        if (compactMenu && !ImGui.BeginMenu(UiText.Label("Menú")))
+        bool menuOpen = !compactMenu || ImGui.BeginMenu(UiText.Label("Menú"));
+        if (compactMenu) InterfaceControlBounds?.Invoke("Menú principal", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
+        if (!menuOpen)
         {
             if (ImGui.MenuItem(UiText.Label("Buscar acción…"), ToolShortcut("P"))) _commands.Open();
             ImGui.EndMainMenuBar(); return;
         }
         if (ImGui.MenuItem(UiText.Label("Biblioteca"), ToolShortcut("L"))) { CloseEditors(); _home.Open(); }
+        TrackWorkspace(0);
         if (UiTheme.CompactHeight && ImGui.MenuItem(UiText.Label("Volver a jugar"), "", false, _host.Machine != null)) OpenPlay();
         if (ImGui.BeginMenu(UiText.Label("Juego")))
         {

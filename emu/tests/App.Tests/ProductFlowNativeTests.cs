@@ -145,7 +145,7 @@ public sealed class ProductFlowNativeTests
         Assert.That(ui.App.OfferInterfaceOnStartup("9.0.1"), Is.False, "An ordinary restart does not ask again.");
         Assert.That(ui.App.OfferInterfaceAfterUpdate("9.0.1"), Is.True, "Every validated update asks again.");
         Assert.That(ui.App.OfferInterfaceAfterUpdate("9.0.2"), Is.True); ui.Frames(4);
-        Choose("Elegir terminal"); ui.Frames(2); Choose("Usar este estilo"); ui.Frames(4);
+        Choose("Elegir explorer"); ui.Frames(2); Choose("Usar este estilo"); ui.Frames(4);
         Assert.That(prefs.Interface, Is.EqualTo(InterfaceStyle.Terminal));
         ui.Call("OpenInterfacePicker"); ui.Frames(4);
         Assert.That(picker.GetType().GetProperty("IsOpen")!.GetValue(picker), Is.EqualTo(true), "The choice stays available from the settings.");

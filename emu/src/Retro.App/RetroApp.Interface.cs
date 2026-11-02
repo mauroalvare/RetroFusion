@@ -120,9 +120,10 @@ public sealed partial class RetroApp
 
     private void PrepareTerminalLayout()
     {
+        WorkspaceLayout.SidebarWidth = WorkspaceLayout.DockHeight = 0;
         // The one-row bar leaves the rest of the window to the game.
         WorkspaceLayout.FooterHeight = Hardcore && !_terminalOpen ? MathF.Ceiling(UiTheme.Px(16) * 1.2f) + UiTheme.Px(8) : 0;
-        if (!Hardcore) return;
+        if (!Hardcore) { PrepareGraphicalLayout(); return; }
         _menuHeight = 0; WorkspaceLayout.MenuHeight = WorkspaceLayout.NavigationHeight = 0;
     }
 

@@ -4,7 +4,7 @@ namespace Retro.App;
 
 public enum AppOptionKind { Toggle, Choice, Number }
 /// <summary>How far a change reaches, shown next to the setting.</summary>
-public enum OptionScope { Saved, Session }
+public enum OptionScope { Saved, Session, Interface }
 public sealed record OptionChoice(string Value, string Label)
 {
     private string _label = Label;
@@ -22,7 +22,8 @@ public sealed record AppOption(string Id, string Title, string Group, string Des
     /// <summary>Value of a fresh installation; a setting without one depends on the equipment.</summary>
     public string? Default { get; init; }
     public OptionScope Scope { get; init; } = OptionScope.Saved;
-    public string ScopeName => UiText.Get(Scope == OptionScope.Saved ? "se guarda para todos los estilos" : "solo esta sesión");
+    public string ScopeName => UiText.Get(Scope switch
+    { OptionScope.Saved => "se guarda para todos los estilos", OptionScope.Interface => "se guarda para esta interfaz", _ => "solo esta sesión" });
     public string Values => Kind switch
     {
         AppOptionKind.Toggle => "on, off",

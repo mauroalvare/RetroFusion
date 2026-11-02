@@ -13,16 +13,17 @@ internal static class UiTheme
     public static Vector4 Muted => HighContrast ? new(0.86f, 0.89f, 0.93f, 1) : PaletteOf(Interface).Muted;
     public static Vector4 Accent => HighContrast ? new(0.55f, 0.86f, 1, 1) : PaletteOf(Interface).Accent;
     public static Vector4 Panel => HighContrast ? new(0,0,0,1) : PaletteOf(Interface).Panel;
-    public static Vector4 Warning => HighContrast ? new(1, 0.82f, 0.36f, 1) : Interface == InterfaceStyle.Hardcore ? TerminalPalettes.Color(_consoleColors.Warning) : new(0.96f, 0.75f, 0.42f, 1);
+    public static Vector4 Warning => HighContrast ? new(1, 0.82f, 0.36f, 1) : TerminalPalettes.Color(_consoleColors.Warning);
     /// <summary>Current instruction, PC and SP in the debugger.</summary>
     public static Vector4 Highlight => HighContrast ? new(1, 1, 0.2f, 1) : new(1, 1, 0.3f, 1);
-    public static Vector4 Error => HighContrast ? new(1, 0.6f, 0.55f, 1) : Interface == InterfaceStyle.Hardcore ? TerminalPalettes.Color(_consoleColors.Error) : new(1, 0.5f, 0.4f, 1);
-    public static Vector4 Success => HighContrast ? new(0.6f, 1, 0.6f, 1) : Interface == InterfaceStyle.Hardcore ? TerminalPalettes.Color(_consoleColors.Success) : new(0.55f, 0.85f, 0.55f, 1);
+    public static Vector4 Error => HighContrast ? new(1, 0.6f, 0.55f, 1) : TerminalPalettes.Color(_consoleColors.Error);
+    public static Vector4 Success => HighContrast ? new(0.6f, 1, 0.6f, 1) : TerminalPalettes.Color(_consoleColors.Success);
     /// <summary>Text and spacing factor chosen in the preferences (1 = 20 px body text).</summary>
     public static float Scale { get; private set; } = 1;
     public static bool HighContrast { get; private set; }
     public static InterfaceStyle Interface { get; private set; }
-    public static bool Terminal => Interface != InterfaceStyle.Retro;
+    public static bool Terminal => Interface is InterfaceStyle.Terminal or InterfaceStyle.Hardcore;
+    private static bool _customAppearance;
     /// <summary>Height of the status bar at the bottom of the window.</summary>
     public static float StatusBarHeight => MathF.Round((BaseFontSize + 8) * Scale);
     internal static bool CompactHeight => ImGui.GetMainViewport().Size.Y < Px(440);
@@ -55,8 +56,10 @@ internal static class UiTheme
         new(0.78f, 0.60f, 0.34f, 1), new(1, 0.73f, 0.20f, 1), new(0.04f, 0.025f, 0.005f, 1), false);
     private static TerminalColors _consoleColors = TerminalPalettes.Green;
     private static StylePalette _hardcorePalette = ConsoleStyle(TerminalPalettes.Green);
+    private static readonly Dictionary<InterfaceStyle, StylePalette> CustomPalettes = new();
     internal static TerminalColors ConsoleColors => HighContrast ? TerminalPalettes.HighContrast : _consoleColors;
-    public static StylePalette PaletteOf(InterfaceStyle style) => style switch
+    public static StylePalette PaletteOf(InterfaceStyle style) => CustomPalettes.GetValueOrDefault(style, BasePalette(style));
+    private static StylePalette BasePalette(InterfaceStyle style) => style switch
     { InterfaceStyle.Retro => RetroPalette, InterfaceStyle.Amber => AmberPalette, InterfaceStyle.Hardcore => _hardcorePalette, _ => TerminalPalette };
 
     private static StylePalette ConsoleStyle(TerminalColors colors)
@@ -67,9 +70,11 @@ internal static class UiTheme
             Vector4.Lerp(background, text, 0.065f), TerminalPalettes.Color(colors.Selection), Vector4.Lerp(background, text, 0.32f),
             text, text, TerminalPalettes.Color(colors.Muted), accent, light > 0.55f ? new(0, 0, 0, 1) : new(1, 1, 1, 1), false);
     }
-    public static ImFontPtr PreviewFont(InterfaceStyle style) => style == InterfaceStyle.Retro ? _retroFont : _codeFont;
-    public static ImFontPtr PreviewLabelFont(InterfaceStyle style) => style == InterfaceStyle.Retro && !Terminal ? _labelFont : _codeFont;
-    public static ImFontPtr PreviewTitleFont(InterfaceStyle style) => style == InterfaceStyle.Retro && !Terminal ? _titleFont : style == InterfaceStyle.Retro ? _retroFont : _codeFont;
+    internal static StylePalette PaletteForColors(InterfaceStyle style, TerminalColors colors) => ConsoleStyle(colors)
+        with { Rounded = style is InterfaceStyle.Retro or InterfaceStyle.Amber };
+    public static ImFontPtr PreviewFont(InterfaceStyle style) => style is InterfaceStyle.Retro or InterfaceStyle.Amber ? _retroFont : _codeFont;
+    public static ImFontPtr PreviewLabelFont(InterfaceStyle style) => (style is InterfaceStyle.Retro or InterfaceStyle.Amber) && !Terminal ? _labelFont : _codeFont;
+    public static ImFontPtr PreviewTitleFont(InterfaceStyle style) => style is InterfaceStyle.Retro or InterfaceStyle.Amber ? !Terminal ? _titleFont : _retroFont : _codeFont;
 
     /// <summary>The faces the interface writes with, for the glyph audit.</summary>
     internal static IEnumerable<(string Name, ImFontPtr Font)> Fonts =>
@@ -80,17 +85,27 @@ internal static class UiTheme
 
     /// <summary>Style, palette and font. Call between frames: a new text size rebuilds the font atlas.</summary>
     public static unsafe void Apply(float scale = 1, bool highContrast = false, InterfaceStyle appearance = InterfaceStyle.Retro,
-        string consolePalette = "auto", TerminalColors? customColors = null)
+        string consolePalette = "auto", TerminalColors? customColors = null, IReadOnlyDictionary<string, InterfacePalette>? savedPalettes = null)
     {
         Scale = Math.Clamp(scale, 1, 2); HighContrast = highContrast; Interface = appearance;
         _consoleColors = TerminalPalettes.Resolve(consolePalette, customColors, appearance);
-        _hardcorePalette = ConsoleStyle(TerminalPalettes.Resolve(consolePalette, customColors, InterfaceStyle.Hardcore));
+        CustomPalettes.Clear();
+        _hardcorePalette = ConsoleStyle(TerminalPalettes.Green);
+        foreach (var layout in InterfaceStyles.All)
+        {
+            InterfacePalette? saved = savedPalettes?.GetValueOrDefault(layout.Id);
+            if (layout.Style == appearance) saved = new(consolePalette, customColors ?? TerminalPalettes.DefaultFor(appearance));
+            if (saved is { Palette: not "auto" })
+                CustomPalettes[layout.Style] = ConsoleStyle(TerminalPalettes.Resolve(saved.Palette, saved.Colors, layout.Style)) with { Rounded = layout.Style is InterfaceStyle.Retro or InterfaceStyle.Amber };
+        }
+        _customAppearance = consolePalette != "auto";
         var style = ImGui.GetStyle();
         // ScaleAllSizes multiplies the current sizes, so every change starts again from the unscaled style.
         if (_baseStyle is { } unscaled) *style.NativePtr = unscaled; else _baseStyle = *style.NativePtr;
         style.WindowRounding = 3; style.ChildRounding = 2; style.FrameRounding = 2;
         style.PopupRounding = 3; style.GrabRounding = 1; style.TabRounding = 1;
         if (Terminal) style.WindowRounding = style.ChildRounding = style.FrameRounding = style.PopupRounding = style.GrabRounding = style.TabRounding = 0;
+        if (appearance == InterfaceStyle.Amber) { style.WindowRounding = 8; style.ChildRounding = 6; style.FrameRounding = 6; }
         style.WindowPadding = new(14, 14); style.FramePadding = new(9, 6);
         style.ItemSpacing = new(10, 9); style.CellPadding = new(10, 10);
         style.WindowBorderSize = 1; style.FrameBorderSize = 1; style.ScrollbarSize = 14;
@@ -149,7 +164,7 @@ internal static class UiTheme
             if (Enum.TryParse<ImGuiCol>(name,out var key)) colors[(int)key]=highContrast?new(0.03f,0.03f,0.04f,1):new(0.13f,0.16f,0.13f,1);
         foreach(string name in new[]{"TabSelected","TabActive","TabHovered","TabDimmedSelected","TabUnfocusedActive"})
             if (Enum.TryParse<ImGuiCol>(name,out var key)) colors[(int)key]=highContrast?new(0,0.27f,0.55f,1):new(0.33f,0.28f,0.18f,1);
-        if (Terminal && !HighContrast)
+        if ((appearance != InterfaceStyle.Retro || _customAppearance) && !HighContrast)
         {
             var palette = PaletteOf(appearance);
             colors[(int)ImGuiCol.Text] = palette.Text;
@@ -171,6 +186,7 @@ internal static class UiTheme
         colors[(int)ImGuiCol.SliderGrabActive]=Accent;
 
         colors[(int)ImGuiCol.TextDisabled] = Muted;
+        if (!highContrast) colors[(int)ImGuiCol.TextSelectedBg] = TerminalPalettes.Color(_consoleColors.Selection);
         colors[(int)ImGuiCol.ModalWindowDimBg] = new(0, 0, 0, highContrast ? 0.8f : 0.65f);
         colors[(int)ImGuiCol.ChildBg] = new(0, 0, 0, 0);
         ImGui.GetIO().FontGlobalScale = 1;
@@ -328,7 +344,7 @@ internal static class UiTheme
 
     public static bool PrimaryButton(string label, Vector2 size = default)
     {
-        if (Terminal && !HighContrast)
+        if ((Interface != InterfaceStyle.Retro || _customAppearance) && !HighContrast)
         {
             var palette = PaletteOf(Interface);
             ImGui.PushStyleColor(ImGuiCol.Button, palette.Accent);

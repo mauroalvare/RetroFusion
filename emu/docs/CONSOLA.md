@@ -25,8 +25,8 @@ querés hacer: `como guardar`, `como subir el volumen`. `ayuda <orden>` explica 
 
 ## Colores y paletas
 
-La terminal conserva sus colores al cambiar de interfaz y reiniciar. En **Preferencias >
-Consola**, elegí una paleta o abrí **Personalizar colores**. Hay fósforo verde, ámbar,
+Cada interfaz conserva sus propios colores al cambiar de diseño y reiniciar. En **Preferencias >
+Interfaz**, elegí una paleta o abrí **Personalizar colores**. Hay fósforo verde, ámbar,
 hielo y papel claro, además de **Seguir el estilo** y una paleta personalizada.
 
 ~~~text
@@ -38,11 +38,11 @@ paleta editar
 paleta restablecer
 ~~~
 
-Se pueden elegir libremente fondo, texto, acento/cursor, texto secundario, selección,
+La orden actúa sobre la interfaz actual, incluidos sus menús y botones. Se pueden elegir libremente fondo, texto, acento/cursor, texto secundario, selección,
 resultados correctos, avisos y errores. El editor muestra una vista previa: **Aplicar**
 guarda; **Cancelar** conserva la paleta anterior. Sus botones quedan al pie y, con poca
 altura, permite elegir un color por vez. Alto contraste reemplaza temporalmente los
-colores; al desactivarlo vuelve la elección. `restablecer` sigue el estilo sin borrar
+colores; al desactivarlo vuelve la elección. `restablecer` vuelve a la base de este diseño sin borrar
 los últimos colores personalizados. En inglés: `palette list`, `palette use amber`,
 `palette color text #F092FF`, `palette edit` y `palette reset`.
 
@@ -169,6 +169,12 @@ que coincida. `ayuda <orden>` agrega argumentos, ejemplos y errores.
 
 <!-- referencia-inicio -->
 
+### Interfaz
+
+| Orden | Función |
+| --- | --- |
+| `paleta [ver\|lista\|usar\|color\|editar\|restablecer] [valor] [rgb]` (`palette`) | Elige una paleta o personaliza ocho colores RGB de la interfaz actual. |
+
 ### Biblioteca
 
 | Orden | Función |
@@ -260,8 +266,8 @@ que coincida. `ayuda <orden>` agrega argumentos, ejemplos y errores.
 | `novedades` (`news`) | Muestra las funciones nuevas y los cambios de las últimas versiones. |
 | `estado` (`status`) | Muestra máquina, partida, biblioteca, interfaz y tareas. |
 | `opciones [texto…]` (`ajustes`, `preferencias`) | Lista los ajustes del programa con su valor actual. |
-| `opcion <id> [valor…]` (`ajuste`) | Lee, cambia o restablece un ajuste compartido con todos los estilos. |
-| `interfaz <retro\|terminal\|real\|amber\|preview>` (`estilo`, `tema`) | Cambia el estilo o abre la elección con vistas previas. |
+| `opcion <id> [valor…]` (`ajuste`) | Lee, cambia o restablece un ajuste e indica su alcance. |
+| `interfaz <retro\|explorer\|real\|lounge\|preview>` (`estilo`, `tema`) | Cambia el estilo o abre la elección con vistas previas. |
 | `acciones [texto…]` | Lista las funciones del programa con su disponibilidad actual. |
 | `hacer <id>` | Ejecuta una acción del catálogo; los instrumentos visuales abren su panel. |
 | `actualizar [estado\|abrir]` (`version`, `actualizaciones`) | Consulta la versión o abre el actualizador del programa. |
@@ -274,7 +280,6 @@ que coincida. `ayuda <orden>` agrega argumentos, ejemplos y errores.
 | --- | --- |
 | `copiar [ultimo\|todo]` (`copy`) | Copia el resultado de la última orden o toda la salida, sin decoraciones. |
 | `atajos` (`teclas`) | Lista las teclas de la consola y de la partida. |
-| `paleta [ver\|lista\|usar\|color\|editar\|restablecer] [valor] [rgb]` (`palette`) | Elige una paleta o personaliza cualquier color RGB de la terminal. |
 | `ayuda [tema]` (`help`, `?`, `man`) | Explica una orden, un grupo o lista todas. |
 | `como <tema…>` (`apropos`) | Busca cómo hacer algo sin conocer el nombre de la orden. |
 | `limpiar` (`clear`, `cls`) | Borra la salida guardada de la consola. |

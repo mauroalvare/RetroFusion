@@ -22,27 +22,28 @@ public static class InterfaceStyles
             Handling = "Menús, botones y mando",
             Features = ["Biblioteca con ilustraciones de cada máquina y panel de detalle.", "Tipografías de instrumental técnico."]
         },
-        new(InterfaceStyle.Terminal, "terminal", "Terminal verde · interfaz gráfica", "Negro, fósforo verde y letras de ancho fijo. Conserva todos los menús y botones; no necesitás escribir comandos.")
+        new(InterfaceStyle.Terminal, "explorer", "Explorador · árbol y listado", "Navegación lateral, árbol de sistemas y listado de archivos. Elegís una entrada y sus acciones sin escribir comandos.")
         {
-            Handling = "Menús y botones, sin comandos",
-            Features = ["Las mismas pantallas y acciones que Retro.", "Texto de ancho fijo y contraste fuerte entre verde y negro."]
+            Handling = "Árbol, listas y teclado",
+            Features = ["Secciones y herramientas en una barra lateral.", "Biblioteca compacta con árbol de sistemas y acciones sobre la selección.", "Colores propios, independientes de los otros diseños."]
         },
         new(InterfaceStyle.Hardcore, "real", "Terminal real · por comandos", "Una consola dentro de RetroEmu. Buscá juegos, jugá y ajustá el equipo escribiendo órdenes. Incluye ayuda, historial y autocompletado. Volvés con interfaz retro.")
         {
             Handling = "Órdenes escritas",
             Features = ["Autocompletado, historial y búsqueda de órdenes anteriores.", "Tareas largas en segundo plano, sin perder el prompt.", "Los editores visuales se siguen abriendo con hacer."]
         },
-        new(InterfaceStyle.Amber, "amber", "Ámbar · pantalla de fósforo", "Fondo oscuro, texto ámbar y tipografía de ancho fijo. Conserva los menús, botones y herramientas, con una consola del mismo color.")
+        new(InterfaceStyle.Amber, "lounge", "Salón · biblioteca visual", "Tarjetas de juegos con imagen, una ficha de selección y navegación al pie. Un diseño para elegir qué jugar con accesos grandes.")
         {
-            Handling = "Menús y botones, tonos ámbar",
-            Features = ["Vistas previas y pantallas con la misma paleta cálida.", "Alto contraste disponible sin cambiar el tema elegido."]
+            Handling = "Tarjetas y navegación al pie",
+            Features = ["Biblioteca visual en una grilla de tarjetas.", "Acciones grandes sobre el juego seleccionado.", "Elegí sus colores sin cambiar la organización."]
         }
     ]);
 
     public static bool TryParse(string? id, out InterfaceStyle style)
     {
         if (string.Equals(id, "hardcore", StringComparison.OrdinalIgnoreCase)) id = "real";
-        if (id != null && CommandLine.Fold(id) == "ambar") id = "amber";
+        if (id != null && CommandLine.Fold(id) is "ambar" or "amber" or "salon") id = "lounge";
+        if (id != null && CommandLine.Fold(id) is "explorador" or "terminal") id = "explorer";
         var match = All.FirstOrDefault(item => item.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
         style = match?.Style ?? InterfaceStyle.Retro;
         return match != null;

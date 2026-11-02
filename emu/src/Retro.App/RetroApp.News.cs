@@ -49,8 +49,8 @@ internal static class ReleaseNotes
             "El idioma se elige en Preferencias; la terminal ofrece las órdenes correspondientes al idioma elegido.",
             "Los favoritos ausentes siguen visibles y recuperan su marca cuando vuelve el mismo contenido.",
             "El buscador incluye órdenes con parámetros y ejemplos; elegir una prepara la línea sin ejecutarla.",
-            "Ámbar agrega una pantalla cálida con menús y botones.",
-            "La terminal tiene paletas y ocho colores RGB libres, con vista previa, Aplicar y Cancelar.",
+            "Retro, Explorador, Salón y Terminal real tienen navegación y distribución propias; los colores se eligen aparte.",
+            "Cada interfaz conserva su propia paleta y ocho colores RGB libres, con vista previa, Aplicar y Cancelar.",
             "Requisitos muestra qué falta para arrancar; --no-audio permite abrir sin inicializar sonido."
         ]),
         new("0.3.7", [

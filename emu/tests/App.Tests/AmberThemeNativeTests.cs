@@ -19,8 +19,8 @@ public sealed class AmberThemeNativeTests
         string? media = host.LoadedMediaSource; long frame = host.Machine!.FrameCount;
         Assert.That(media, Is.Not.Null); Assert.That(frame, Is.GreaterThan(0));
         ui.Call("OpenTerminal"); ui.Frames(3); ui.Enter("interfaz preview"); ui.Frames(3);
-        if (!ui.Bounds.ContainsKey("Elegir amber")) { ui.Click("Estilo"); ui.Frames(2); }
-        ui.Click("Elegir amber"); ui.Frames(2); ui.Capture($"ambar-preview-{text}-{language}");
+        if (!ui.Bounds.ContainsKey("Elegir lounge")) { ui.Click("Estilo"); ui.Frames(2); }
+        ui.Click("Elegir lounge"); ui.Frames(2); ui.Capture($"ambar-preview-{text}-{language}");
         Assert.That(prefs.Interface, Is.EqualTo(InterfaceStyle.Hardcore));
         ui.Click("Usar este estilo"); ui.Frames(4);
         Assert.That(prefs.Interface, Is.EqualTo(InterfaceStyle.Amber));

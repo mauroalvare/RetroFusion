@@ -8,17 +8,24 @@ También está en Preferencias y en Buscar acción.
 | Estilo | Cómo se usa |
 | --- | --- |
 | Retro | Diseño principal y predeterminado: banco de electrónica, instrumentos y tonos cálidos. Menús, botones, teclado y mando. |
-| Terminal verde | La misma interfaz gráfica, negra y verde, con texto de ancho fijo. Se siguen usando menús y botones. |
+| Explorador | Navegación lateral, árbol de sistemas y listado compacto de archivos, con acciones sobre la selección. Se adapta a un selector de sección cuando falta ancho. |
 | Terminal real | Consola inventada dentro de RetroEmu: órdenes, secciones virtuales, historial y autocompletado. No abre una terminal del sistema. |
-| Ámbar | Menús y botones, fondo oscuro, texto cálido de ancho fijo. Se elige con amber o el alias ámbar. |
+| Salón | Grilla de tarjetas con imágenes, acciones grandes y navegación al pie. En una ventana pequeña las tarjetas son horizontales y conservan Jugar/Ficha. |
 
 Cambiar de estilo conserva la biblioteca, favoritos, fichas, proyectos y ajustes. La
 configuración se guarda en `preferencias.json`. Los archivos de preferencias anteriores
 siguen usando Retro; un identificador de estilo desconocido también vuelve a Retro.
-Alto contraste puede reemplazar el verde por la paleta accesible.
-La terminal permite elegir sus propios colores, independientemente del modo gráfico:
-presets y ocho RGB libres con la orden paleta o Preferencias > Consola. La vista previa
-de Terminal real usa la paleta elegida. Los colores no cambian la imagen del juego.
+El diseño y el color se eligen por separado. Cada interfaz guarda su propia paleta:
+base, verde, ámbar, hielo, papel claro o personalizada. **Preferencias > Interfaz**,
+`paleta editar` y `paleta usar amber` cambian los colores de la interfaz actual,
+incluidos menús, botones y consola. Ocho RGB libres y un borrador con Aplicar/Cancelar.
+Cambiar de diseño recupera sus colores; alto contraste los reemplaza temporalmente sin
+borrarlos. Los colores no cambian la imagen del juego ni reorganizan la biblioteca.
+Al leer una antigua paleta global se copia a cada diseño, que después es independiente.
+
+Los identificadores actuales son retro, explorer, lounge y real. Para archivos e
+inicios antiguos siguen aceptándose terminal (Explorador), amber/ámbar (Salón) y
+hardcore (Terminal real). Ámbar también es el nombre de una paleta, aplicable a todos.
 
 Las preferencias gráficas, el panel Sonido y la orden `opcion` leen el mismo catálogo
 `AppOption`: definición, valores permitidos, lectura y aplicación. El buscador de
@@ -26,7 +33,8 @@ acciones y `acciones`/`hacer` usan `AppCommand`, incluidos requisitos y disponib
 Agregar una opción o acción a esos catálogos la incorpora a todos sus accesos. Cada
 ajuste declara su valor inicial, sus valores permitidos y su alcance, de donde salen el
 botón **Volver al valor inicial** y `opcion <id> restablecer`. No hay configuraciones
-separadas por tema. Los filtros y las acciones de juego de la consola
+separadas para juegos, sonido o controles. Las paletas sí pertenecen a cada diseño.
+Los filtros y las acciones de juego de la consola
 provienen del mismo catálogo que dibuja la biblioteca.
 
 ## Después de actualizar
@@ -54,9 +62,9 @@ Se incluyen las guías de diseño, ensamblador y API en inglés y una
 [guía de usuario en inglés](USER-GUIDE-EN.md). La documentación técnica histórica permanece
 en castellano. --language en permite seleccionar inglés al arrancar.
 
-Las vistas previas dibujan una misma escena con datos inventados, usando la paleta, las
-fuentes, las ilustraciones y el diseño de tablas reales de cada estilo: una mejora de esos
-componentes llega sola a la vista previa. **Ampliar** la lleva a toda la ventana. Mirar no
+Las vistas previas muestran la distribución de cada diseño con datos inventados, usando
+sus colores guardados, fuentes, ilustraciones y tablas. El editor de colores previsualiza
+el diseño actual con el borrador. **Ampliar** lleva la vista a toda la ventana. Mirar no
 aplica nada y no toca el programa en ejecución. En ventanas chicas se compactan los rótulos
 a **Usar estilo** y **Conservar**; el selector y el pie permanecen visibles.
 La partida queda en pausa mientras se elige y recupera su estado previo al conservar

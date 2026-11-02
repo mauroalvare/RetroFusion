@@ -51,7 +51,8 @@ internal static class TerminalLanguage
     public static string CanonicalOption(string input) => Options.FirstOrDefault(pair => pair.Value == input).Key ?? input;
     public static string CanonicalChoice(string input, IReadOnlyList<string> allowed)
     {
-        if (CommandLine.Fold(input) == "ambar" && allowed.Contains("amber")) return "amber";
+        if (CommandLine.Fold(input) is "ambar" or "amber" or "salon" && allowed.Contains("lounge")) return "lounge";
+        if (CommandLine.Fold(input) is "explorador" or "terminal" && allowed.Contains("explorer")) return "explorer";
         if (input.Equals("hardcore", StringComparison.OrdinalIgnoreCase) && allowed.Contains("real")) return "real";
         string folded = CommandLine.Fold(input);
         // Accepted canonical words keep their spelling, as in the original interpreter contract.
