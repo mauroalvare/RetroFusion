@@ -2174,3 +2174,18 @@ actual; las órdenes permiten indicar argumentos. Elegir una orden muestra ayuda
 prepara su nombre en la consola sin ejecutarla. Se espera a soltar el Enter de selección
 antes de aceptar entradas. La consola puede superponerse a un estilo gráfico sin
 sobrescribir esa preferencia y se cierra al volver a Biblioteca o jugar.
+
+## D-129 — Parches completos o restauración de la partida
+
+CodeWindow rechaza rangos que salen del espacio de direcciones, sin envolver al inicio.
+Antes de escribir conserva estado, imagen y bytes de programa; si alguna dirección no
+acepta el valor restaura todo, incluida la copia editable de ROM que el estado puede
+no contener. Una ampliación de parche incorpora los bytes originales adicionales;
+una reducción restaura la cola anterior. Los rangos de dos registros guardados no se
+pueden superponer: se pide deshacer el anterior. Los respaldos legados de longitud
+inconsistente se conservan y se avisa, sin inventar los bytes perdidos.
+
+Deshacer elimina el registro solo cuando la restauración se comprobó. Aplicar varios
+parches informa cuántos se aplicaron: cada parche es una transacción independiente.
+Los originales en disco no se modifican. Las pruebas usan código sintético en una NES
+real emulada y comparan bytes y estado antes/después de un rechazo.

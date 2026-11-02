@@ -60,6 +60,12 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   actuales de la sesión. No reconstruye valores que no pudieron leerse. Los respaldos
   completados se conservan también si falla el guardado posterior y no se eliminan
   automáticamente.
+- Un parche rechazado restaura la partida y sus bytes de programa; no se permiten rangos
+  superpuestos entre parches guardados. Deshacé el anterior para reemplazar ese rango.
+  Un respaldo creado por una versión anterior con longitudes inconsistentes no permite
+  reconstruir los bytes originales que nunca se guardaron. Se conserva y se pide cargar
+  el original antes de crear otro parche. Aplicar varios parches informa resultados por
+  parche; no es una transacción única para toda la lista.
 - Las pruebas de interfaz incluyen ejecución oculta y eventos de ImGui. No sustituyen
   una comprobación física de cada teclado, mando, pantalla o entorno gráfico soportado.
 

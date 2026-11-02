@@ -4326,5 +4326,13 @@
   "Órdenes": "Commands",
   "Encontrá acciones y órdenes. Una orden prepara la línea; Enter la ejecuta en la consola.": "Find actions and commands. Selecting a command prepares the line; Enter runs it in the console.",
   "Los favoritos ausentes siguen visibles y recuperan su marca cuando vuelve el mismo contenido.": "Missing favorites stay visible and recover their mark when the same content returns.",
-  "El buscador incluye órdenes con parámetros y ejemplos; elegir una prepara la línea sin ejecutarla.": "Search includes commands with parameters and examples; selecting one prepares the line without running it."
+  "El buscador incluye órdenes con parámetros y ejemplos; elegir una prepara la línea sin ejecutarla.": "Search includes commands with parameters and examples; selecting one prepares the line without running it.",
+  "El respaldo de este parche está incompleto. Conservá las anotaciones y volvé a cargar el original antes de crear otro parche.": "This patch backup is incomplete. Keep the annotations and reload the original before creating another patch.",
+  "El parche sale del espacio de direcciones. No se cambió la partida.": "The patch extends beyond the address space. The game state was left unchanged.",
+  "El parche se superpone con otro guardado. Deshacé el anterior antes de modificar ese rango.": "The patch overlaps a saved patch. Undo the earlier patch before editing that range.",
+  "Hay un parche guardado inválido. Conservá las anotaciones y revisá sus bytes antes de continuar.": "A saved patch is invalid. Keep the annotations and check its bytes before continuing.",
+  "No se aplicó el parche: una dirección no admite escritura. Se restauró la partida anterior; revisá el rango.": "The patch was not applied: an address is not writable. The previous game state was restored; check the range.",
+  "Parches aplicados: {0} de {1}. Revisá los rangos que no admiten escritura.": "Patches applied: {0} of {1}. Check the ranges that are not writable.",
+  "No se pudo deshacer el parche. La partida y el respaldo se conservaron; volvé a cargar el original.": "The patch could not be undone. The game state and backup were preserved; reload the original.",
+  "Parche deshecho; se restauraron los bytes originales.": "Patch undone; the original bytes were restored."
 }

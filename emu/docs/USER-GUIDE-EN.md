@@ -99,6 +99,12 @@ Code, analysis and debugging operate on the same running machine. Read hypothese
 permissions before applying changes. Saved states for originals do not save a complete fusion
 script plus all its machines.
 
+Rejected code patches restore the previous state, including editable program ROM.
+Extending a patch backs up the extra original bytes; shortening restores its old tail.
+Saved patches cannot overlap: undo the earlier patch first. An old incomplete backup
+cannot reconstruct bytes that were never saved; keep the annotations and reload the
+original. Applying several saved patches reports how many succeeded, separately.
+
 The included English assembly, design and fusion API guides follow the selected language.
 They describe capabilities and limits without requiring a specific AI provider.
 

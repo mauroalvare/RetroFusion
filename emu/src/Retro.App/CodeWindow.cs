@@ -590,14 +590,41 @@ public sealed partial class CodeWindow : IDisposable
         if (bytes.Length == 0)
             return;
         string key = CodeAnnotations.Key(a);
-        string original = _notes.Patches.TryGetValue(key, out var old) ? old.Split('|')[0]
-            : string.Join(" ", Enumerable.Range(0, bytes.Length).Select(i => m.Memory.Peek((uint)(a + i)).ToString("X2")));
-        if (!Write(m, a, bytes))
+        byte[]? previous = null;
+        int length = bytes.Length;
+        try
         {
-            _status = UiText.Format($"${a:X4} es ROM del sistema: no se puede cambiar.");
+            if (_notes.Patches.TryGetValue(key, out var old))
+            {
+                var parts = old.Split('|');
+                if (parts.Length != 2 || (previous = Hex(parts[0])).Length != Hex(parts[1]).Length)
+                { _status = "El respaldo de este parche está incompleto. Conservá las anotaciones y volvé a cargar el original antes de crear otro parche."; return; }
+                length = Math.Max(length, previous.Length);
+            }
+            if ((ulong)a + (uint)length > 1UL << m.Memory.AddressBits)
+            { _status = "El parche sale del espacio de direcciones. No se cambió la partida."; return; }
+            foreach (var other in _notes.Patches.Where(other => other.Key != key))
+            {
+                uint start = uint.Parse(other.Key, NumberStyles.HexNumber);
+                var parts = other.Value.Split('|');
+                if (parts.Length != 2) throw new FormatException();
+                int count = Math.Max(Hex(parts[0]).Length, Hex(parts[1]).Length);
+                if ((ulong)a < (ulong)start + (uint)count && (ulong)start < (ulong)a + (uint)length)
+                { _status = "El parche se superpone con otro guardado. Deshacé el anterior antes de modificar ese rango."; return; }
+            }
+        }
+        catch (Exception error) when (error is FormatException or OverflowException)
+        { _status = "Hay un parche guardado inválido. Conservá las anotaciones y revisá sus bytes antes de continuar."; return; }
+        byte[] original = Enumerable.Range(0, length).Select(i => m.Memory.Peek(a + (uint)i)).ToArray();
+        previous?.CopyTo(original, 0);
+        // A shorter edit restores the old tail; an extension preserves every newly covered original byte.
+        byte[] replacement = (byte[])original.Clone(); bytes.CopyTo(replacement, 0);
+        if (!Write(m, a, replacement))
+        {
+            _status = "No se aplicó el parche: una dirección no admite escritura. Se restauró la partida anterior; revisá el rango.";
             return;
         }
-        _notes.Patches[key] = original + "|" + string.Join(" ", bytes.Select(b => b.ToString("X2")));
+        _notes.Patches[key] = string.Join(" ", original.Select(b => b.ToString("X2"))) + "|" + string.Join(" ", replacement.Select(b => b.ToString("X2")));
         _notes.Save(_gameId);
         _status = UiText.Format($"Cambiado ${a:X4}. El juego ya corre con el cambio (el archivo original no se toca).");
         Analyze(m);
@@ -605,17 +632,34 @@ public sealed partial class CodeWindow : IDisposable
 
     private static bool Write(IMachine m, uint a, byte[] bytes)
     {
-        for (int i = 0; i < bytes.Length; i++)
+        if (bytes.Length == 0 || m.Memory.AddressBits is < 1 or > 32 || (ulong)a + (uint)bytes.Length > 1UL << m.Memory.AddressBits) return false;
+        byte[] original = Enumerable.Range(0, bytes.Length).Select(i => m.Memory.Peek(a + (uint)i)).ToArray();
+        byte[] state = m.SaveState();
+        int[] picture = (int[])m.Video.Pixels.Clone();
+        bool committed = false;
+        try
         {
-            uint ad = (uint)((a + i) & ((1u << m.Memory.AddressBits) - 1));
-            if (m is ICodePatch p)
-                p.PatchCode(ad, bytes[i]);
-            else
-                m.Memory.Poke(ad, bytes[i]);
-            if (m.Memory.Peek(ad) != bytes[i])
-                return false;
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                uint ad = a + (uint)i;
+                if (m is ICodePatch p) p.PatchCode(ad, bytes[i]);
+                else m.Memory.Poke(ad, bytes[i]);
+                if (m.Memory.Peek(ad) != bytes[i]) return false;
+            }
+            committed = true;
+            return true;
         }
-        return true;
+        finally
+        {
+            if (!committed)
+            {
+                // Save states need not include editable program ROM; restore that copy explicitly as well.
+                if (m is ICodePatch patch)
+                    for (int i = 0; i < original.Length; i++) patch.PatchCode(a + (uint)i, original[i]);
+                m.LoadState(state);
+                picture.CopyTo(m.Video.Pixels, 0);
+            }
+        }
     }
 
     private static byte[] Hex(string s) =>
@@ -631,9 +675,10 @@ public sealed partial class CodeWindow : IDisposable
         }
         if (ImGui.Button(UiText.Label("Aplicar todos de nuevo")))
         {
+            int applied = 0;
             foreach (var (key, value) in _notes.Patches)
-                Write(m, uint.Parse(key, NumberStyles.HexNumber), Hex(value.Split('|')[1]));
-            _status = "Cambios aplicados.";
+                if (Write(m, uint.Parse(key, NumberStyles.HexNumber), Hex(value.Split('|')[1]))) applied++;
+            _status = UiText.Format($"Parches aplicados: {applied} de {_notes.Patches.Count}. Revisá los rangos que no admiten escritura.");
         }
         ImGui.Separator();
         foreach (var (key, value) in _notes.Patches.OrderBy(p => p.Key).ToList())
@@ -651,9 +696,9 @@ public sealed partial class CodeWindow : IDisposable
             ImGui.SameLine();
             if (ImGui.SmallButton(UiText.Label(UiText.Get("Deshacer##") + key)))
             {
-                Write(m, a, Hex(parts[0]));
-                _notes.Patches.Remove(key);
-                _notes.Save(_gameId);
+                if (Write(m, a, Hex(parts[0])))
+                { _notes.Patches.Remove(key); _notes.Save(_gameId); _status = "Parche deshecho; se restauraron los bytes originales."; Analyze(m); }
+                else _status = "No se pudo deshacer el parche. La partida y el respaldo se conservaron; volvé a cargar el original.";
             }
         }
     }
