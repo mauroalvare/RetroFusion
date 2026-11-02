@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using ImGuiNET;
 using Raylib_cs;
 using rlImGui_cs;
@@ -19,6 +20,16 @@ internal sealed class NativeHarness : IDisposable
     private readonly string? _previousProfiles = Environment.GetEnvironmentVariable("RETROEMU_PROFILES");
     // Creating the window and the audio device again inside one process can block the native backends.
     private static bool s_windowReady;
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nint ClipboardReader(nint context);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate void ClipboardWriter(nint context, nint text);
+    private static nint s_clipboard;
+    private static readonly ClipboardReader ReadClipboard = _ => s_clipboard;
+    private static readonly ClipboardWriter WriteClipboard = (_, text) =>
+    {
+        string value = text == 0 ? "" : Marshal.PtrToStringUTF8(text) ?? "";
+        Marshal.FreeCoTaskMem(s_clipboard); s_clipboard = Marshal.StringToCoTaskMemUTF8(value);
+    };
+    public string Clipboard => Marshal.PtrToStringUTF8(s_clipboard) ?? "";
     public string Folder { get; }
     public string Games { get; }
     public RetroApp App { get; private set; } = null!;
@@ -44,6 +55,11 @@ internal sealed class NativeHarness : IDisposable
 
         }
         else Raylib.SetWindowSize(width, height);
+        // All UI copy/paste paths, including workshop buttons, stay inside this test process.
+        var platform = ImGui.GetPlatformIO();
+        platform.Platform_GetClipboardTextFn = Marshal.GetFunctionPointerForDelegate(ReadClipboard);
+        platform.Platform_SetClipboardTextFn = Marshal.GetFunctionPointerForDelegate(WriteClipboard);
+        WriteClipboard(0, 0);
         string[] all = ["--autotest", "100000", Path.Combine(Folder, "unused.png"), "--hidden", "--mute", "--no-update", "--no-organize",
             "--interface", style, "--text-size", textPercent.ToString(), "--games-folder", Games, .. arguments];
         App = new RetroApp(all);
@@ -129,6 +145,7 @@ internal sealed class NativeHarness : IDisposable
     public void Dispose()
     {
         App?.Shutdown();
+        WriteClipboard(0, 0);
         Environment.CurrentDirectory = _previousDirectory; StudioLibrary.UserFolder = _previousFusion; Retro.Ai.CreatedGames.UserFolder = _previousCreated;
         Environment.SetEnvironmentVariable("RETROEMU_PROFILES", _previousProfiles);
         try { Directory.Delete(Folder, true); }

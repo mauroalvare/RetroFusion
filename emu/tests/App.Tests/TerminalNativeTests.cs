@@ -116,6 +116,7 @@ public sealed class TerminalNativeTests
         string selected = input.Selection.Text;
         ui.Key(ImGuiKey.C, ctrl: true);
         Assert.That(input.Selection.Active, Is.False); Assert.That(selected.Length, Is.GreaterThan(0));
+        Assert.That(ui.Clipboard, Is.EqualTo(selected), "Copy must use the owned clipboard, never the Windows clipboard.");
         Assert.That(input.Notice, Does.Contain("Copiado"));
     }
 
