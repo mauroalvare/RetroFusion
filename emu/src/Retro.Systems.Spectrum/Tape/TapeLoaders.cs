@@ -85,7 +85,7 @@ public static class TzxLoader
                     int zero = U16(data, pos + 6), one = U16(data, pos + 8), pilotCount = U16(data, pos + 10);
                     int used = data[pos + 12], pause = U16(data, pos + 13), len = U24(data, pos + 15);
                     var block = Slice(data, pos + 18, len);
-                    tape.BeginBlock($"Turbo ({len} bytes)", len);
+                    tape.BeginBlock(Retro.Core.UiText.Format($"Turbo ({len} bytes)"), len);
                     tape.PulseRepeat(pilot, pilotCount);
                     tape.Pulse(sync1);
                     tape.Pulse(sync2);
@@ -102,7 +102,7 @@ public static class TzxLoader
                 case 0x13: // pulse sequence
                 {
                     int n = data[pos];
-                    tape.BeginBlock($"Secuencia de {n} pulsos", 0);
+                    tape.BeginBlock(Retro.Core.UiText.Format($"Secuencia de {n} pulsos"), 0);
                     for (int i = 0; i < n; i++)
                         tape.Pulse(U16(data, pos + 1 + 2 * i));
                     pos += 1 + 2 * n;
@@ -112,7 +112,7 @@ public static class TzxLoader
                 {
                     int zero = U16(data, pos), one = U16(data, pos + 2), used = data[pos + 4];
                     int pause = U16(data, pos + 5), len = U24(data, pos + 7);
-                    tape.BeginBlock($"Datos puros ({len} bytes)", len);
+                    tape.BeginBlock(Retro.Core.UiText.Format($"Datos puros ({len} bytes)"), len);
                     tape.Data(Slice(data, pos + 10, len), zero, one, used == 0 ? 8 : used);
                     tape.Pause(pause);
                     pos += 10 + len;
@@ -122,7 +122,7 @@ public static class TzxLoader
                 {
                     int tps = U16(data, pos), pause = U16(data, pos + 2), used = data[pos + 4];
                     int len = U24(data, pos + 5);
-                    tape.BeginBlock($"Grabación directa ({len} bytes)", len);
+                    tape.BeginBlock(Retro.Core.UiText.Format($"Grabación directa ({len} bytes)"), len);
                     tape.Direct(Slice(data, pos + 8, len), tps, used == 0 ? 8 : used);
                     tape.Pause(pause);
                     pos += 8 + len;
@@ -132,15 +132,15 @@ public static class TzxLoader
                 case 0x19: // generalized data
                 {
                     int len = (int)U32(data, pos);
-                    warnings?.Add($"Bloque TZX 0x{id:X2} todavía no soportado: se saltea.");
-                    tape.BeginBlock($"Bloque 0x{id:X2} no soportado", len);
+                    warnings?.Add(Retro.Core.UiText.Format($"Bloque TZX 0x{id:X2} todavía no soportado: se saltea."));
+                    tape.BeginBlock(Retro.Core.UiText.Format($"Bloque 0x{id:X2} no soportado"), len);
                     pos += 4 + len;
                     break;
                 }
                 case 0x20: // pause or "stop the tape"
                 {
                     int ms = U16(data, pos);
-                    tape.BeginBlock(ms == 0 ? "Detener cinta" : $"Pausa {ms} ms", 0);
+                    tape.BeginBlock(ms == 0 ? "Detener cinta" : Retro.Core.UiText.Format($"Pausa {ms} ms"), 0);
                     if (ms == 0)
                         tape.Stop();
                     else
@@ -178,7 +178,7 @@ public static class TzxLoader
                 case 0x35: pos += 20 + (int)U32(data, pos + 16); break; // custom info
                 case 0x5A: pos += 9; break;                          // glue block
                 default:
-                    throw new TapeFormatException($"Bloque TZX desconocido 0x{id:X2} en la posición {pos - 1}.");
+                    throw new TapeFormatException(Retro.Core.UiText.Format($"Bloque TZX desconocido 0x{id:X2} en la posición {pos - 1}."));
             }
         }
         tape.Finish();

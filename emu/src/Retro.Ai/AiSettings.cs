@@ -17,6 +17,8 @@ public sealed class AiSettings
     /// (copy/paste into any chat) or agent (folder for coding agents).
     /// </summary>
     public string Provider { get; set; } = "sub-claude";
+    /// <summary>Session-only offline guard. No provider is constructed and no personal configuration is saved.</summary>
+    [System.Text.Json.Serialization.JsonIgnore] public bool ProvidersDisabled { get; init; }
     public string ClaudeModel { get; set; } = ClaudeProvider.DefaultModel;
     /// <summary>Empty = use ANTHROPIC_API_KEY or the `ant auth login` profile.</summary>
     public string ClaudeApiKey { get; set; } = "";
@@ -81,9 +83,10 @@ public sealed class AiSettings
 
     private bool TrySave()
     {
+        if (ProvidersDisabled) return true;
         if (!Valid()) { Problem = "La configuración de IA contiene valores inválidos."; return false; }
         if (_unreadable) return false;
-        string path = _path ?? FilePath, temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        string path = _path ?? FilePath, temporary = path + "." + Guid.NewGuid().ToString("N") + Retro.Core.UiText.Get(".tmp");
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
@@ -108,7 +111,7 @@ public sealed class AiSettings
     {
         if (!_unreadable) return TrySave();
         if (!Valid()) { Problem = "La configuración de IA contiene valores inválidos."; return false; }
-        string path = _path ?? FilePath, backup = path + ".respaldo-" + Guid.NewGuid().ToString("N");
+        string path = _path ?? FilePath, backup = path + Retro.Core.UiText.Get(".respaldo-") + Guid.NewGuid().ToString("N");
         try { File.Copy(path, backup, overwrite: false); RecoveryPath = backup; }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         { Problem = "No pude conservar el archivo anterior. Los cambios siguen solo en esta sesión."; return false; }
@@ -119,7 +122,7 @@ public sealed class AiSettings
 
     public IAiProvider? CreateProvider() => CreateProvider(null);
 
-    public IAiProvider? CreateProvider(TimeSpan? timeout) => Provider switch
+    public IAiProvider? CreateProvider(TimeSpan? timeout) => ProvidersDisabled ? null : Provider switch
     {
         "claude" => new ClaudeProvider(ClaudeApiKey, ClaudeModel),
         "openai" => new OpenAiProvider(KeyOrEnv(OpenAiApiKey, "OPENAI_API_KEY"), OpenAiModel),

@@ -14,12 +14,12 @@ internal static class PcInterruptDiagnostic
         public byte ReadMemory(uint address) => Memory[address];
         public void WriteMemory(uint address, byte value) => Memory[address] = value;
         public byte In(ushort port) => port switch { 0x20 => Pic.ReadCommand(), 0x21 => Pic.ReadData(),
-            _ => throw new NotSupportedException($"Puerto no conectado: {port:X4}.") };
+            _ => throw new NotSupportedException(Retro.Core.UiText.Format($"Puerto no conectado: {port:X4}.")) };
         public void Out(ushort port, byte value)
         {
             if (port == 0x20) Pic.WriteCommand(value);
             else if (port == 0x21) Pic.WriteData(value);
-            else throw new NotSupportedException($"Puerto no conectado: {port:X4}.");
+            else throw new NotSupportedException(Retro.Core.UiText.Format($"Puerto no conectado: {port:X4}."));
         }
     }
 
@@ -54,15 +54,15 @@ internal static class PcInterruptDiagnostic
             cpu.Step();
         }
         bool complete = injected && cpu.Halted && !cpu.Flag(I8088Cpu.InterruptEnable);
-        Console.WriteLine("Diagnóstico funcional 8088 + 8259A. Sin BIOS ni DOS; no mide tiempos de PC.");
-        Console.WriteLine("Vectores atendidos: " + string.Join(" ", board.Accepted.Select(v => v.ToString("X2"))));
-        Console.WriteLine($"Contadores IRQ0={board.Memory[0x10300]}, IRQ1={board.Memory[0x10301]}, IRQ5={board.Memory[0x10305]}; pendientes={board.Pic.RequestRegister:X2}; en servicio={board.Pic.InServiceRegister:X2}.");
-        Console.WriteLine($"CS:IP={cpu.CS:X4}:{cpu.IP:X4}; SP={cpu.SP:X4}; instrucciones={cpu.Instructions}; pasos={steps}; HLT={cpu.Halted}.");
-        if (!complete) { Console.Error.WriteLine("Se alcanzó el límite de pasos antes de completar el diagnóstico."); return 2; }
+        Console.WriteLine(Retro.Core.UiText.Get("Diagnóstico funcional 8088 + 8259A. Sin BIOS ni DOS; no mide tiempos de PC."));
+        Console.WriteLine(Retro.Core.UiText.Get("Vectores atendidos: ") + string.Join(" ", board.Accepted.Select(v => v.ToString("X2"))));
+        Console.WriteLine(Retro.Core.UiText.Format($"Contadores IRQ0={board.Memory[0x10300]}, IRQ1={board.Memory[0x10301]}, IRQ5={board.Memory[0x10305]}; pendientes={board.Pic.RequestRegister:X2}; en servicio={board.Pic.InServiceRegister:X2}."));
+        Console.WriteLine(Retro.Core.UiText.Format($"CS:IP={cpu.CS:X4}:{cpu.IP:X4}; SP={cpu.SP:X4}; instrucciones={cpu.Instructions}; pasos={steps}; HLT={cpu.Halted}."));
+        if (!complete) { Console.Error.WriteLine(Retro.Core.UiText.Get("Se alcanzó el límite de pasos antes de completar el diagnóstico.")); return 2; }
         bool correct = board.Accepted.SequenceEqual(new byte[] {8,9,13}) && cpu.SP == 0xFFFE &&
             board.Memory[0x10300] == 1 && board.Memory[0x10301] == 1 && board.Memory[0x10305] == 1 &&
             board.Pic.RequestRegister == 0 && board.Pic.InServiceRegister == 0;
-        if (!correct) { Console.Error.WriteLine("El diagnóstico no coincide con el resultado esperado."); return 1; }
+        if (!correct) { Console.Error.WriteLine(Retro.Core.UiText.Get("El diagnóstico no coincide con el resultado esperado.")); return 1; }
         return 0;
     }
 }

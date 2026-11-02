@@ -19,7 +19,7 @@ public sealed record C64Firmware(byte[] Kernal, byte[] Basic, byte[] Chargen, st
             .FirstOrDefault(p => File.Exists(p) && new FileInfo(p).Length == size);
         string? k = Pick(KernalNames, 8192), b = Pick(BasicNames, 8192), c = Pick(CharNames, 4096);
         if (k == null || b == null || c == null)
-            throw new FileNotFoundException($"Faltan las ROMs del C64 en {dir} (kernal, basic y chargen; vienen las Open ROMs libres en el paquete).");
+            throw new FileNotFoundException(Retro.Core.UiText.Format($"Faltan las ROMs del C64 en {dir} (kernal, basic y chargen; vienen las Open ROMs libres en el paquete)."));
         bool open = Path.GetFileName(k).Contains("generic");
         return new C64Firmware(File.ReadAllBytes(k), File.ReadAllBytes(b), File.ReadAllBytes(c),
             open ? "firmware libre Open ROMs" : "ROMs originales de Commodore");
@@ -502,8 +502,8 @@ public sealed class C64 : IMachine, IM6502Bus, IMemoryView, IWriteWatch, IIoWatc
 
     public IReadOnlyList<MachineKey> Keys { get; } = Matrix.SelectMany(c => c).Select(k => new MachineKey(k, k))
         .Concat(new[] { new MachineKey("RESTORE", "RESTORE") })
-        .Concat(JoyNames.Select(j => new MachineKey("JOY2 " + j, "Joystick 2 " + j)))
-        .Concat(JoyNames.Select(j => new MachineKey("JOY1 " + j, "Joystick 1 " + j)))
+        .Concat(JoyNames.Select(j => new MachineKey(Retro.Core.UiText.Get("JOY2 ") + j, Retro.Core.UiText.Get("Joystick 2 ") + j)))
+        .Concat(JoyNames.Select(j => new MachineKey(Retro.Core.UiText.Get("JOY1 ") + j, Retro.Core.UiText.Get("Joystick 1 ") + j)))
         .ToList();
 
     public void SetKey(string name, bool pressed)
@@ -596,11 +596,11 @@ public sealed class C64 : IMachine, IM6502Bus, IMemoryView, IWriteWatch, IIoWatc
 
     public IReadOnlyList<string> GetMachineInfo() => new[]
     {
-        $"Cuadro {FrameCount}, {Vic.Describe()}",
-        $"CIA 1: {Cia1.Describe()}",
-        $"CIA 2: {Cia2.Describe()} | banco VIC {3 - (Cia2.PortAPins & 3)}",
-        $"Puerto 6510: {_portData:X2} (dirección {_portDdr:X2}) -> {(Config & 3) switch { 3 => "BASIC+KERNAL", 2 => "KERNAL", 1 => "solo RAM arriba", _ => "todo RAM" }}{((Config & 4) != 0 ? ", E/S" : ", ROM de caracteres")}",
-        $"Firmware: {FirmwareDescription}",
+        Retro.Core.UiText.Format($"Cuadro {FrameCount}, {Vic.Describe()}"),
+        Retro.Core.UiText.Format($"CIA 1: {Cia1.Describe()}"),
+        Retro.Core.UiText.Format($"CIA 2: {Cia2.Describe()} | banco VIC {3 - (Cia2.PortAPins & 3)}"),
+        Retro.Core.UiText.Format($"Puerto 6510: {_portData:X2} (dirección {_portDdr:X2}) -> {(Config & 3) switch { 3 => "BASIC+KERNAL", 2 => "KERNAL", 1 => "solo RAM arriba", _ => "todo RAM" }}{((Config & 4) != 0 ? Retro.Core.UiText.Get(", E/S") : Retro.Core.UiText.Get(", ROM de caracteres"))}"),
+        Retro.Core.UiText.Format($"Firmware: {FirmwareDescription}"),
     };
 
     // ------------------------------------------------------------------ save states

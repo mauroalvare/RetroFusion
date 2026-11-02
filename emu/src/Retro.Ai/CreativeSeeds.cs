@@ -87,11 +87,11 @@ public static class CreativeSeeds
 
     /// <summary>A seed for a game written from scratch: genre, world, tone and twist.</summary>
     public static string DrawOriginal(Random rng) =>
-        $"género: {Pick(rng, Genres)}; protagonista y mundo: {Pick(rng, Worlds)}; tono: {Pick(rng, Tones)}; regla insólita: {Pick(rng, OriginalTwists)}; decisión a explorar: {Pick(rng, OriginalDecisions)}";
+        Retro.Core.UiText.Format($"género: {Pick(rng, Genres)}; protagonista y mundo: {Pick(rng, Worlds)}; tono: {Pick(rng, Tones)}; regla insólita: {Pick(rng, OriginalTwists)}; decisión a explorar: {Pick(rng, OriginalDecisions)}");
 
     /// <summary>One seed: form, presentation, tone and twist, drawn with <paramref name="rng"/>.</summary>
     public static string Draw(Random rng) =>
-        $"forma de juego: {Pick(rng, Forms)}; presentación: {Pick(rng, Presentations)}; tono: {Pick(rng, Tones)}; regla insólita: {Pick(rng, Twists)}";
+        Retro.Core.UiText.Format($"forma de juego: {Pick(rng, Forms)}; presentación: {Pick(rng, Presentations)}; tono: {Pick(rng, Tones)}; regla insólita: {Pick(rng, Twists)}");
 
     private static string Pick(Random rng, string[] list) => list[rng.Next(list.Length)];
 
@@ -104,31 +104,31 @@ public static class CreativeSeeds
     {
         var sb = new StringBuilder();
         sb.AppendLine(playerAsked
-            ? "Creatividad: el pedido del jugador manda; usá las semillas solo si lo hacen más sorprendente. Llevá los juegos más lejos que nunca: " +
-              "cambiá su género, su perspectiva o el papel del héroe; que no parezca una fusión que ya viste."
-            : "Creatividad: el jugador no pidió nada, así que tiene que sorprenderlo. Cada idea parte de su propia semilla (sorteada esta vez, " +
-              "distinta cada vez que se pide). Si una parte de la semilla no encaja con estos juegos, cambiala por otra igual de inesperada, nunca por lo obvio.");
+            ? Retro.Core.UiText.Get("Creatividad: el pedido del jugador manda; usá las semillas solo si lo hacen más sorprendente. Llevá los juegos más lejos que nunca: ") +
+              Retro.Core.UiText.Get("cambiá su género, su perspectiva o el papel del héroe; que no parezca una fusión que ya viste.")
+            : Retro.Core.UiText.Get("Creatividad: el jugador no pidió nada, así que tiene que sorprenderlo. Cada idea parte de su propia semilla (sorteada esta vez, ") +
+              Retro.Core.UiText.Get("distinta cada vez que se pide). Si una parte de la semilla no encaja con estos juegos, cambiala por otra igual de inesperada, nunca por lo obvio."));
         for (int i = 0; i < ideas; i++)
-            sb.AppendLine($"- Semilla {i + 1}: {Draw(rng)}.");
+            sb.AppendLine(Retro.Core.UiText.Format($"- Semilla {i + 1}: {Draw(rng)}."));
         var list = existing.Where(e => !string.IsNullOrWhiteSpace(e)).Distinct().ToList();
         if (list.Count > 0)
-            sb.AppendLine("Ya existen estas fusiones con estos juegos: no las repitas ni copies su presentación (título, HUD, menús): " +
+            sb.AppendLine(Retro.Core.UiText.Get("Ya existen estas fusiones con estos juegos: no las repitas ni copies su presentación (título, HUD, menús): ") +
                           string.Join("; ", list) + ".");
-        sb.AppendLine("Las semillas son posibilidades, no una receta: la unión mecánica de los originales manda. Cada idea debe cambiar decisiones centrales, " +
-                      "no solo el estilo. Aplicá la prueba de quitar un original y describí la regla única. No hay menú ni progresión universal: " +
-                      "diseñá presentación, avisos y ritmo para esta idea. Dibujá una escena propia con sprites y tiles, sin copiar la del ejemplo.");
+        sb.AppendLine(Retro.Core.UiText.Get("Las semillas son posibilidades, no una receta: la unión mecánica de los originales manda. Cada idea debe cambiar decisiones centrales, ") +
+                      Retro.Core.UiText.Get("no solo el estilo. Aplicá la prueba de quitar un original y describí la regla única. No hay menú ni progresión universal: ") +
+                      Retro.Core.UiText.Get("diseñá presentación, avisos y ritmo para esta idea. Dibujá una escena propia con sprites y tiles, sin copiar la del ejemplo."));
         return sb.ToString();
     }
 
     public static string BaseBrief(IEnumerable<string> existing)
     {
-        var sb = new StringBuilder("La creatividad está en cómo incorporás las reglas de los aportantes dentro del juego base. " +
-            "Proponé tres transferencias o interacciones diferentes conservando sus mapas, paleta, escala, interfaz y ritmo. " +
-            "No sorteés otro género, estética, menú ni sistema de progresión. No hace falta inventar un tercer juego.\n");
+        var sb = new StringBuilder(Retro.Core.UiText.Get("La creatividad está en cómo incorporás las reglas de los aportantes dentro del juego base. ") +
+            Retro.Core.UiText.Get("Proponé tres transferencias o interacciones diferentes conservando sus mapas, paleta, escala, interfaz y ritmo. ") +
+            Retro.Core.UiText.Get("No sorteés otro género, estética, menú ni sistema de progresión. No hace falta inventar un tercer juego.\n"));
         var previous = existing.Where(e => !string.IsNullOrWhiteSpace(e)).Distinct().ToList();
-        if (previous.Count > 0) sb.AppendLine("Variantes anteriores para comparar las interacciones: " + string.Join("; ", previous) + ".");
-        sb.AppendLine("Compartir el aspecto y los mapas del mismo original base es correcto. Evitá repetir un injerto anterior sin nuevas posibilidades de juego. " +
-            "El aporte debe tener comportamiento y consecuencias; cambiar solo colores o nombres no alcanza.");
+        if (previous.Count > 0) sb.AppendLine(Retro.Core.UiText.Get("Variantes anteriores para comparar las interacciones: ") + string.Join("; ", previous) + ".");
+        sb.AppendLine(Retro.Core.UiText.Get("Compartir el aspecto y los mapas del mismo original base es correcto. Evitá repetir un injerto anterior sin nuevas posibilidades de juego. ") +
+            Retro.Core.UiText.Get("El aporte debe tener comportamiento y consecuencias; cambiar solo colores o nombres no alcanza."));
         return sb.ToString();
     }
 }

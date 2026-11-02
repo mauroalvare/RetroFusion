@@ -54,7 +54,7 @@ public static class StudioValidator
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {
-            return new ValidationReport(false, "No se pudieron arrancar los juegos: " + e.Message, Array.Empty<string>(), 0, "", null);
+            return new ValidationReport(false, Retro.Core.UiText.Get("No se pudieron arrancar los juegos: ") + e.Message, Array.Empty<string>(), 0, "", null);
         }
         return Run(session, secondsPerRobot, ct);
     }
@@ -68,7 +68,7 @@ public static class StudioValidator
         {
             var report = RunRobots(s, secondsPerRobot, ct);
             if (s.Game.Playtests.Count == 0) return report with { Summary = report.Summary +
-                "\nSin recorridos dirigidos de memoria: las reglas particulares y los finales siguen sin comprobarse." };
+                Retro.Core.UiText.Get("\nSin recorridos dirigidos de memoria: las reglas particulares y los finales siguen sin comprobarse.") };
             var directed = StudioPlaytests.Run(s, ct);
             var problems = report.Problems.ToList();
             bool directedOk = directed.All(r => r.Ok);
@@ -80,7 +80,7 @@ public static class StudioValidator
             foreach (var result in directed)
             {
                 ticks += result.Ticks;
-                string heading = $"Recorrido dirigido «{result.Name}»: {(result.Ok ? "cambios observados" : "falló")}.";
+                string heading = Retro.Core.UiText.Format($"Recorrido dirigido «{Retro.Core.UiText.Raw(result.Name)}»: {(result.Ok ? Retro.Core.UiText.Get("cambios observados") : Retro.Core.UiText.Get("falló"))}.");
                 summary.AppendLine("\n" + heading);
                 if (!result.Ok) problems.Add(heading + (result.Error != null ? " " + result.Error : " Revisá los cambios de memoria esperados."));
                 if (result.Error != null) summary.AppendLine(result.Error);
@@ -88,17 +88,17 @@ public static class StudioValidator
                 {
                     string measurement = observation.Measure switch
                     {
-                        "minDelta" => $"cambio mínimo {observation.Measured}, observado en tick {observation.MeasuredAtTick}",
-                        "maxDelta" => $"cambio máximo {observation.Measured}, observado en tick {observation.MeasuredAtTick}",
-                        "changes" => $"cambios entre ticks {observation.Measured}",
-                        _ => $"cambio {observation.Delta}",
+                        "minDelta" => Retro.Core.UiText.Format($"cambio mínimo {observation.Measured}, observado en tick {observation.MeasuredAtTick}"),
+                        "maxDelta" => Retro.Core.UiText.Format($"cambio máximo {observation.Measured}, observado en tick {observation.MeasuredAtTick}"),
+                        "changes" => Retro.Core.UiText.Format($"cambios entre ticks {observation.Measured}"),
+                        _ => Retro.Core.UiText.Format($"cambio {observation.Delta}"),
                     };
-                    summary.AppendLine($"games.{observation.Slot}.{observation.Variable}, ticks {observation.FromTick}→{observation.AtTick}: " +
-                        $"{observation.Before}→{observation.After}, {measurement}, esperado [{observation.Min}, {observation.Max}]; " +
-                        $"{(observation.Ok ? "coincide" : "NO coincide")}. {observation.Purpose}");
+                    summary.AppendLine(Retro.Core.UiText.Format($"games.{observation.Slot}.{observation.Variable}, ticks {observation.FromTick}→{observation.AtTick}: ") +
+                        Retro.Core.UiText.Format($"{observation.Before}→{observation.After}, {measurement}, esperado [{observation.Min}, {observation.Max}]; ") +
+                        Retro.Core.UiText.Format($"{(observation.Ok ? Retro.Core.UiText.Get("coincide") : Retro.Core.UiText.Get("NO coincide"))}. {observation.Purpose}"));
                 }
             }
-            summary.AppendLine("Estos recorridos prueban esos cambios de memoria y esas entradas. No certifican por sí solos propósito, todos los niveles, equilibrio ni diversión.");
+            summary.AppendLine(Retro.Core.UiText.Get("Estos recorridos prueban esos cambios de memoria y esas entradas. No certifican por sí solos propósito, todos los niveles, equilibrio ni diversión."));
             return report with { Ok = report.Ok && directedOk, Problems = problems, Ticks = ticks,
                 Summary = summary.ToString(), Playtests = directed };
         }
@@ -191,7 +191,7 @@ public static class StudioValidator
                 if (!s.ReportsState)
                     problems.Add("El guion no informa en qué parte está: llamá a game.state('title') en la pantalla de título, game.state('playing') al jugar y game.state('gameover') al terminar.");
                 else if (s.State != "title" && !(s.Game.BaseSlot != null && s.State == "playing"))
-                    problems.Add($"Al arrancar no hay pantalla de título (estado \"{s.State}\"): el juego tiene que empezar mostrando el título, el objetivo y los controles, con los juegos en pausa, hasta que el jugador apriete start, Espacio o disparo.");
+                    problems.Add(Retro.Core.UiText.Format($"Al arrancar no hay pantalla de título (estado \"{s.State}\"): el juego tiene que empezar mostrando el título, el objetivo y los controles, con los juegos en pausa, hasta que el jugador apriete start, Espacio o disparo."));
                 shots.Add(("titulo", Clone(s.Video)));
             }
 
@@ -208,7 +208,7 @@ public static class StudioValidator
             }
             if (s.Error != null) { error = s.Error; break; }
             if (s.ReportsState && s.State != "playing" && startProblem == null)
-                startProblem = $"Después de apretar start el juego no empezó (estado \"{s.State}\", se esperaba \"playing\").";
+                startProblem = Retro.Core.UiText.Format($"Después de apretar start el juego no empezó (estado \"{s.State}\", se esperaba \"playing\").");
 
             // 3. play
             int deaths0 = s.Deaths.Count;
@@ -261,13 +261,13 @@ public static class StudioValidator
                     }
                 }
                 if (strategy == Strategy.Shooter && (playTicks == Tps * 8 || playTicks == Tps * 20))
-                    shots.Add(($"jugando_{playTicks / Tps}s", Clone(s.Video)));
+                    shots.Add((Retro.Core.UiText.Format($"jugando_{playTicks / Tps}s"), Clone(s.Video)));
                 if (s.ReportsState && s.State == "gameover")
                 {
                     gameOver = true;
                     finishedDeaths = s.Deaths.Skip(deaths0).ToArray();
                     finishedScore = s.Score - score0;
-                    shots.Add(($"fin_{name}", Clone(s.Video)));
+                    shots.Add((Retro.Core.UiText.Format($"fin_{name}"), Clone(s.Video)));
                     Inputs();
                     if (!Step(Tps)) break;
                     Inputs(fire: true, jump: true, start: true);
@@ -309,7 +309,7 @@ public static class StudioValidator
             if (s.Game.BaseSlot != null)
             {
                 foreach (var donor in s.Game.Games.Where(g => g.Slot != s.Game.BaseSlot && !s.ReferencedSlots.Contains(g.Slot)))
-                    problems.Add($"El guion no usa datos, recursos ni controles de games.{donor.Slot}: falta integrar ese original en las reglas del juego base.");
+                    problems.Add(Retro.Core.UiText.Format($"El guion no usa datos, recursos ni controles de games.{donor.Slot}: falta integrar ese original en las reglas del juego base."));
             }
             if (active.Count > 0 && active.All(r => r.FirstDeathSeconds.HasValue))
             {
@@ -317,20 +317,20 @@ public static class StudioValidator
                 if (avg < 6)
                 {
                     if (s.Game.BaseSlot != null)
-                        notes.Add($"Revisar dificultad: los robots activos pierden la primera vida a los {avg:F1} segundos en promedio. Contrastá controles, causa y recorrido del original; estos patrones fijos pueden fallar también sin el injerto. Esto no certifica equilibrio ni diversión.");
-                    else problems.Add($"Demasiado difícil: los robots activos pierden la primera vida a los {avg:F1} segundos en promedio. Empezá con menos enemigos, más lentos, más huecos o cobertura, y medio segundo de invulnerabilidad al aparecer.");
+                        notes.Add(Retro.Core.UiText.Format($"Revisar dificultad: los robots activos pierden la primera vida a los {avg:F1} segundos en promedio. Contrastá controles, causa y recorrido del original; estos patrones fijos pueden fallar también sin el injerto. Esto no certifica equilibrio ni diversión."));
+                    else problems.Add(Retro.Core.UiText.Format($"Demasiado difícil: los robots activos pierden la primera vida a los {avg:F1} segundos en promedio. Empezá con menos enemigos, más lentos, más huecos o cobertura, y medio segundo de invulnerabilidad al aparecer."));
                 }
                 else if (avg < 10)
-                    notes.Add($"Algo difícil al principio: primera vida perdida a los {avg:F1} segundos en promedio.");
+                    notes.Add(Retro.Core.UiText.Format($"Algo difícil al principio: primera vida perdida a los {avg:F1} segundos en promedio."));
             }
             foreach (var r in robots.Where(r => r.ReachedGameOver && r.RestartWorked == false))
-                problems.Add($"El robot {r.Name} llegó al fin del juego, apretó start y no volvió a empezar: después de game.state('gameover'), start tiene que reiniciar todo.");
+                problems.Add(Retro.Core.UiText.Format($"El robot {Retro.Core.UiText.Raw(r.Name)} llegó al fin del juego, apretó start y no volvió a empezar: después de game.state('gameover'), start tiene que reiniciar todo."));
             var allCauses = robots.SelectMany(r => r.Causes).GroupBy(c => c.Key).ToDictionary(g => g.Key, g => g.Sum(c => c.Value));
             int deaths = allCauses.Values.Sum();
             if (deaths >= 4 && allCauses.Max(c => c.Value) >= deaths * 0.8)
-                notes.Add($"Casi todas las muertes son por \"{allCauses.MaxBy(c => c.Value).Key}\": quizás hay demasiado de eso.");
+                notes.Add(Retro.Core.UiText.Format($"Casi todas las muertes son por \"{allCauses.MaxBy(c => c.Value).Key}\": quizás hay demasiado de eso."));
             if (deaths == 0)
-                notes.Add($"No se informaron vidas perdidas durante {robots.Sum(r => r.PlayedSeconds):F1} segundos observados. Si el diseño incluye peligros, comprobá sus consecuencias y game.death(causa) con una prueba dirigida; hay géneros sin muertes.");
+                notes.Add(Retro.Core.UiText.Format($"No se informaron vidas perdidas durante {robots.Sum(r => r.PlayedSeconds):F1} segundos observados. Si el diseño incluye peligros, comprobá sus consecuencias y game.death(causa) con una prueba dirigida; hay géneros sin muertes."));
         }
 
         notes.Add("La prueba técnica usa patrones de entrada fijos y estados informados por el guion; no certifica objetivos completos, una interacción mecánica real, fidelidad visual, equilibrio ni diversión. Contrastá lo observado con el diseño y las capturas y comprobá lo pendiente con experimentos dirigidos.");
@@ -363,27 +363,27 @@ public static class StudioValidator
     private static string Summarize(StudioSession s, string? error, List<string> problems, List<string> notes, List<RobotResult> robots)
     {
         var sb = new StringBuilder();
-        sb.AppendLine(error != null ? "Falló: " + error
+        sb.AppendLine(error != null ? Retro.Core.UiText.Get("Falló: ") + error
             : problems.Count == 0 ? "Pasó la prueba técnica automática."
             : "No pasó la prueba técnica automática.");
         foreach (var p in problems)
-            sb.AppendLine("Problema: " + p);
+            sb.AppendLine(Retro.Core.UiText.Get("Problema: ") + p);
         foreach (var n in notes)
-            sb.AppendLine("Nota: " + n);
+            sb.AppendLine(Retro.Core.UiText.Get("Nota: ") + n);
         foreach (var r in robots)
         {
-            string death = r.FirstDeathSeconds is double d ? $"primera vida perdida a los {d:F1} s" : "no perdió vidas";
-            string causes = r.Causes.Count > 0 ? " (" + string.Join(", ", r.Causes.Select(c => $"{c.Key} {c.Value}")) + ")" : "";
+            string death = r.FirstDeathSeconds is double d ? Retro.Core.UiText.Format($"primera vida perdida a los {d:F1} s") : "no perdió vidas";
+            string causes = r.Causes.Count > 0 ? " (" + string.Join(", ", r.Causes.Select(c => Retro.Core.UiText.Format($"{c.Key} {c.Value}"))) + ")" : "";
             string end = r.ReachedGameOver ? (r.RestartWorked == true ? "; llegó al fin y la revancha funcionó" : "; llegó al fin y la revancha NO funcionó") : "";
-            sb.AppendLine($"Robot {r.Name}: jugó {r.PlayedSeconds:F0} s, {death}, {r.Deaths} vidas perdidas{causes}, {r.Score} puntos, nivel máximo {r.MaxLevel}{end}.");
+            sb.AppendLine(Retro.Core.UiText.Format($"Robot {Retro.Core.UiText.Raw(r.Name)}: jugó {r.PlayedSeconds:F0} s, {death}, {r.Deaths} vidas perdidas{causes}, {r.Score} puntos, nivel máximo {r.MaxLevel}{end}."));
         }
-        sb.AppendLine($"Pantalla del juego: {s.Video.Width}x{s.Video.Height}.");
+        sb.AppendLine(Retro.Core.UiText.Format($"Pantalla del juego: {s.Video.Width}x{s.Video.Height}."));
         if (s.Hud.Length > 0)
-            sb.AppendLine("Último HUD: " + s.Hud);
+            sb.AppendLine(Retro.Core.UiText.Get("Último HUD: ") + s.Hud);
         if (s.Events.Count > 0)
-            sb.AppendLine("Mensajes mostrados: " + string.Join(" | ", s.Events.Select(e => e.Text).Distinct().Take(8)));
+            sb.AppendLine(Retro.Core.UiText.Get("Mensajes mostrados: ") + string.Join(" | ", s.Events.Select(e => e.Text).Distinct().Take(8)));
         if (s.Log.Count > 0)
-            sb.AppendLine("Últimas líneas de log(): " + string.Join(" | ", s.Log.TakeLast(10)));
+            sb.AppendLine(Retro.Core.UiText.Get("Últimas líneas de log(): ") + string.Join(" | ", s.Log.TakeLast(10)));
         return sb.ToString();
     }
 }

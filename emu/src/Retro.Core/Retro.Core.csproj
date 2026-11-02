@@ -6,4 +6,6 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup><EmbeddedResource Include="Localization/en.json" LogicalName="Retro.Core.Localization.en.json" /></ItemGroup>
+
 </Project>

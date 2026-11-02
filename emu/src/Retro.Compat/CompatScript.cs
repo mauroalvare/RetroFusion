@@ -84,7 +84,7 @@ public sealed class CompatScript
     public static CompatScript Load(string path)
     {
         var s = JsonSerializer.Deserialize<CompatScript>(System.IO.File.ReadAllText(path), Json)
-                ?? throw new InvalidDataException($"{path}: guion vacío");
+                ?? throw new InvalidDataException(Retro.Core.UiText.Format($"{path}: guion vacío"));
         if (string.IsNullOrEmpty(s.Id))
             s.Id = Path.GetFileNameWithoutExtension(path);
         return s;

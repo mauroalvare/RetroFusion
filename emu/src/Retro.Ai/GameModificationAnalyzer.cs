@@ -24,22 +24,22 @@ public sealed record GameAnalysisSnapshot(string Game, string Machine, long Fram
     public long FramesObserved => Math.Max(0, Frame - (ObservationStartFrame ?? Frame));
     public string Prompt(string wish, string previous = "")
     {
-        var text = new StringBuilder($"Partida: {Game}. Sistema: {Machine}. Cuadro capturado: {Frame}.\n");
-        text.AppendLine($"Intervalo observado: cuadros {ObservationStartFrame ?? Frame}..{Frame} ({FramesObserved} cuadros emulados). No se registran las acciones del jugador.");
-        text.AppendLine("Rangos e historial describen escrituras de CPU; el valor actual puede diferir si hay un congelado. Un byte que no cambió también puede controlar una regla.");
-        text.AppendLine("Direcciones disponibles; valores y escrituras observados, no significado confirmado:");
+        var text = new StringBuilder(Retro.Core.UiText.Format($"Partida: {Game}. Sistema: {Machine}. Cuadro capturado: {Frame}.\n"));
+        text.AppendLine(Retro.Core.UiText.Format($"Intervalo observado: cuadros {ObservationStartFrame ?? Frame}..{Frame} ({FramesObserved} cuadros emulados). No se registran las acciones del jugador."));
+        text.AppendLine(Retro.Core.UiText.Get("Rangos e historial describen escrituras de CPU; el valor actual puede diferir si hay un congelado. Un byte que no cambió también puede controlar una regla."));
+        text.AppendLine(Retro.Core.UiText.Get("Direcciones disponibles; valores y escrituras observados, no significado confirmado:"));
         foreach (var item in Candidates)
-            text.AppendLine($"0x{item.Address:X4}: ahora={item.Value}, al abrir={item.Initial}, escrituras={item.Writes}" +
-                (item.Writer is uint pc ? $", última instrucción que escribió=0x{pc:X4}" : "") +
-                (item.WriteMinimum is byte min ? $", rango escrito={min}..{item.WriteMaximum}, cambios de valor={item.ValueChanges}, últimas escrituras distintas=[{string.Join(",", item.RecentValues)}]" : "") +
-                (item.Reference.Length > 0 ? $". {item.Reference}" : ""));
-        text.AppendLine("Variables conocidas (conservar nombre, rango y solo lectura):");
+            text.AppendLine(Retro.Core.UiText.Format($"0x{item.Address:X4}: ahora={item.Value}, al abrir={item.Initial}, escrituras={item.Writes}") +
+                (item.Writer is uint pc ? Retro.Core.UiText.Format($", última instrucción que escribió=0x{pc:X4}") : "") +
+                (item.WriteMinimum is byte min ? Retro.Core.UiText.Format($", rango escrito={min}..{item.WriteMaximum}, cambios de valor={item.ValueChanges}, últimas escrituras distintas=[{string.Join(",", item.RecentValues)}]") : "") +
+                (item.Reference.Length > 0 ? Retro.Core.UiText.Format($". {item.Reference}") : ""));
+        text.AppendLine(Retro.Core.UiText.Get("Variables conocidas (conservar nombre, rango y solo lectura):"));
         foreach (var (name, variable) in Profile.Variables)
-            text.AppendLine($"{name}: 0x{variable.Address}, {variable.Encoding}, rango={variable.Min}..{variable.Max}, " +
-                $"{(variable.ReadOnly ? "solo lectura" : "escribible")}. {variable.Description} {variable.PurposeSummary}");
-        text.AppendLine("Código capturado (un recorte, no todo el programa):\n" + Listing);
-        if (previous.Length > 0) text.AppendLine("Informe anterior, como contexto y no evidencia adicional:\n" + previous[..Math.Min(previous.Length, 3000)]);
-        text.AppendLine("Pregunta o pedido del jugador:\n" + (string.IsNullOrWhiteSpace(wish)
+            text.AppendLine(Retro.Core.UiText.Format($"{name}: 0x{variable.Address}, {variable.Encoding}, rango={variable.Min}..{variable.Max}, ") +
+                Retro.Core.UiText.Format($"{(variable.ReadOnly ? Retro.Core.UiText.Get("solo lectura") : Retro.Core.UiText.Get("escribible"))}. {variable.Description} {variable.PurposeSummary}"));
+        text.AppendLine(Retro.Core.UiText.Get("Código capturado (un recorte, no todo el programa):\n") + Listing);
+        if (previous.Length > 0) text.AppendLine(Retro.Core.UiText.Get("Informe anterior, como contexto y no evidencia adicional:\n") + previous[..Math.Min(previous.Length, 3000)]);
+        text.AppendLine(Retro.Core.UiText.Get("Pregunta o pedido del jugador:\n") + (string.IsNullOrWhiteSpace(wish)
             ? "Encontrá modificaciones y reglas que valga la pena investigar con estos datos." : wish));
         return text.ToString();
     }
@@ -173,7 +173,7 @@ public static class GameModificationAnalyzer
             return new(analysis, result, ideas);
         }
         catch (Exception error) when (error is JsonException or InvalidOperationException or KeyNotFoundException or FormatException or OverflowException or ArgumentException)
-        { throw new AiException("El análisis no se puede usar: " + error.Message, error); }
+        { throw new AiException(Retro.Core.UiText.Get("El análisis no se puede usar: ") + error.Message, error); }
     }
 
     public static bool OverlapsKnownMemory(GameProfile profile, uint address, int bytes)
@@ -188,7 +188,7 @@ public static class GameModificationAnalyzer
     {
         Address = variable.Address.ToString("X4"), Encoding = variable.Bytes == 2 ? "uint16" : "uint8",
         Bytes = variable.Bytes, Min = 0, Max = variable.Bytes == 2 ? 65535 : 255,
-        Description = "Hipótesis del análisis: " + variable.Reason, PurposeStatus = "hypothesis"
+        Description = Retro.Core.UiText.Get("Hipótesis del análisis: ") + variable.Reason, PurposeStatus = "hypothesis"
     };
 
     private static void Fields(JsonElement element, params string[] names)
@@ -196,7 +196,7 @@ public static class GameModificationAnalyzer
         if (element.ValueKind != JsonValueKind.Object) throw new JsonException("Se esperaba un objeto.");
         var seen = new HashSet<string>();
         foreach (var property in element.EnumerateObject())
-            if (!names.Contains(property.Name) || !seen.Add(property.Name)) throw new JsonException("Campo no permitido o repetido: " + property.Name);
+            if (!names.Contains(property.Name) || !seen.Add(property.Name)) throw new JsonException(Retro.Core.UiText.Get("Campo no permitido o repetido: ") + property.Name);
         if (seen.Count != names.Length) throw new JsonException("Faltan campos en el análisis.");
     }
 
@@ -204,7 +204,7 @@ public static class GameModificationAnalyzer
     {
         var value = parent.GetProperty(name);
         if (value.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(value.GetString()) || value.GetString()!.Length > limit)
-            throw new JsonException("Texto inválido: " + name);
+            throw new JsonException(Retro.Core.UiText.Get("Texto inválido: ") + name);
         return value.GetString()!;
     }
 }

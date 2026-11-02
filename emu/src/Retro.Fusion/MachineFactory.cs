@@ -54,7 +54,7 @@ public static class MachineFactory
         }
         catch (InvalidDataException e)
         {
-            throw new InvalidDataException($"{source.Profile.Name}: {e.Message}", e);
+            throw new InvalidDataException(Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(source.Profile.Name)}: {e.Message}"), e);
         }
     }
 
@@ -88,7 +88,7 @@ public static class MachineFactory
                         Retro.Machines.MachineLauncher.LoadTape(zx, ct: ct);
                     break;
             }
-            log?.Invoke($"{profile.Name}: {step}");
+            log?.Invoke(Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(profile.Name)}: {step}"));
         }
         m.DrainAudio(new short[8192]);
     }

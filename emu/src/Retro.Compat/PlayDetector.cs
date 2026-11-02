@@ -118,11 +118,11 @@ public static class PlayDetector
                     var moved = score.Where(kv => kv.Value >= 3).OrderByDescending(kv => kv.Value).Select(kv => kv.Key).ToList();
                     if (moved.Count > 0 && picturesDiffer)
                         return new PlayCheck(true, set,
-                            $"con {set.Name}, {minus} y {plus} llevan {string.Join(", ", moved.Take(4).Select(i => $"${start + i:X4}"))} en sentidos opuestos " +
-                            "(más lejos cuanto más tiempo se mantienen) y cambian la pantalla");
+                            Retro.Core.UiText.Format($"con {Retro.Core.UiText.Raw(set.Name)}, {minus} y {plus} llevan {string.Join(", ", moved.Take(4).Select(i => Retro.Core.UiText.Format($"${start + i:X4}")))} en sentidos opuestos ") +
+                            Retro.Core.UiText.Get("(más lejos cuanto más tiempo se mantienen) y cambian la pantalla"));
                 }
-            return new PlayCheck(false, null, "No se comprobó movimiento sostenido con los controles probados. Puede ser un título, menú, demo o carga, " +
-                "o una partida que usa otras teclas o reglas de movimiento; revisá la captura y los controles antes de concluir que no empezó.");
+            return new PlayCheck(false, null, Retro.Core.UiText.Get("No se comprobó movimiento sostenido con los controles probados. Puede ser un título, menú, demo o carga, ") +
+                Retro.Core.UiText.Get("o una partida que usa otras teclas o reglas de movimiento; revisá la captura y los controles antes de concluir que no empezó."));
         }
         finally
         {

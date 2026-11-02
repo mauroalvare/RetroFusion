@@ -22,9 +22,9 @@ public static class DecimalCountdowns
                 if (!valid || changes.Count < 5) continue;
                 double cadence = (changes[^1] - changes[0]) / (double)(changes.Count - 1);
                 if (cadence < sampleEvery || changes.Zip(changes.Skip(1), (a, b) => b - a).Any(d => Math.Abs(d - cadence) > sampleEvery)) continue;
-                found.Add(new() { Kind = "timer", Address = $"{start + offset:X4}", Encoding = "digits", Bytes = width, Confidence = 0.72,
-                    Hypothesis = $"Cuenta atrás decimal de {width} dígitos; la unidad y el propósito de juego requieren contraste.",
-                    Evidence = [$"El campo completo baja de {values[0]} a {values[^1]} en {changes.Count} pasos unitarios. Intervalo observado aproximado: {cadence:F2} cuadros por unidad; muestreo cada {sampleEvery} cuadros."],
+                found.Add(new() { Kind = "timer", Address = Retro.Core.UiText.Format($"{start + offset:X4}"), Encoding = "digits", Bytes = width, Confidence = 0.72,
+                    Hypothesis = Retro.Core.UiText.Format($"Cuenta atrás decimal de {width} dígitos; la unidad y el propósito de juego requieren contraste."),
+                    Evidence = [Retro.Core.UiText.Format($"El campo completo baja de {values[0]} a {values[^1]} en {changes.Count} pasos unitarios. Intervalo observado aproximado: {cadence:F2} cuadros por unidad; muestreo cada {sampleEvery} cuadros.")],
                     ExpectedEffect = "Escribir el número completo desplaza la cuenta sin corromper los dígitos; comprobar límites, acarreo/préstamo y uso por el juego.",
                     HowToVerify = "Comparar la cuenta completa frente a un control y comprobar cambios de cifra, cadencia y vencimiento. No inferir segundos reales a partir del número mostrado." });
             }

@@ -117,7 +117,7 @@ public static class LabExperiments
     {
         var (played, idle) = Run(m, machine, e, sampleEvery, ct);
         int start = MemoryLab.RangeFor(machine).start;
-        string what = string.IsNullOrWhiteSpace(e.Description) ? "con las entradas del experimento" : $"\"{e.Description}\"";
+        string what = string.IsNullOrWhiteSpace(e.Description) ? "con las entradas del experimento" : Retro.Core.UiText.Format($"\"{e.Description}\"");
         var found = e.Kind switch
         {
             "score" => Scores(played, idle, start, what),
@@ -209,16 +209,16 @@ public static class LabExperiments
             if (steps.Count == 1) confidence -= 0.1;
             var f = new LabFinding
             {
-                Kind = "score", Address = $"{start + addr:X4}", Encoding = encoding, Bytes = bytes,
-                Hypothesis = $"Puntaje: número que sube al jugar y no cambia sin tocar nada ({EncodingName(encoding, bytes)}).",
+                Kind = "score", Address = Retro.Core.UiText.Format($"{start + addr:X4}"), Encoding = encoding, Bytes = bytes,
+                Hypothesis = Retro.Core.UiText.Format($"Puntaje: número que sube al jugar y no cambia sin tocar nada ({EncodingName(encoding, bytes)})."),
                 Evidence =
                 {
-                    $"en la corrida {what} pasa de {values[0]} a {values[^1]} en {steps.Count} subida(s) " +
-                    $"({string.Join(", ", steps.Take(12).Select(d => "+" + d))}{(steps.Count > 12 ? "..." : "")}); sin tocar nada no cambia",
+                    Retro.Core.UiText.Format($"en la corrida {what} pasa de {values[0]} a {values[^1]} en {steps.Count} subida(s) ") +
+                    Retro.Core.UiText.Format($"({string.Join(", ", steps.Take(12).Select(d => "+" + d))}{(steps.Count > 12 ? "..." : "")}); sin tocar nada no cambia"),
                 },
                 Confidence = Math.Min(0.85, confidence),
                 ExpectedEffect = "Sumarle da puntos; el juego muestra y sigue sumando sobre el valor escrito.",
-                HowToVerify = $"Escribir otro puntaje en ${start + addr:X4} ({EncodingName(encoding, bytes)}) y ver que la pantalla lo muestre y que siga sumando desde ahí.",
+                HowToVerify = Retro.Core.UiText.Format($"Escribir otro puntaje en ${start + addr:X4} ({EncodingName(encoding, bytes)}) y ver que la pantalla lo muestre y que siga sumando desde ahí."),
             };
             if (note.Length > 0)
                 f.Evidence.Add(note);
@@ -226,7 +226,7 @@ public static class LabExperiments
             if (!round && steps.Count < 3 && steps.All(d => d == 1))
             {
                 f.Kind = "counter";
-                f.Hypothesis = $"Contador que sube al jugar: objetos, enemigos o puntos ({EncodingName(encoding, bytes)}).";
+                f.Hypothesis = Retro.Core.UiText.Format($"Contador que sube al jugar: objetos, enemigos o puntos ({EncodingName(encoding, bytes)}).");
             }
             return f;
         }
@@ -249,7 +249,7 @@ public static class LabExperiments
             int addr = b - width + 1;
             if (Series(played, addr, width, "ascii", true) is { } v && NonDecreasing(v))
                 found.Add(Make(addr, width, "ascii", v, 0.6,
-                    b - a + 1 > width ? $"los dígitos siguen de ${start + a:X4} a ${start + b:X4} ({b - a + 1}); se toman los {width} últimos (el ancho se confirma leyendo la pantalla)" : ""));
+                    b - a + 1 > width ? Retro.Core.UiText.Format($"los dígitos siguen de ${start + a:X4} a ${start + b:X4} ({b - a + 1}); se toman los {width} últimos (el ancho se confirma leyendo la pantalla)") : ""));
         }
 
         // packed BCD and one digit per byte: clusters of consecutive bytes that changed only when playing
@@ -286,7 +286,7 @@ public static class LabExperiments
                     if (enc == "digits" && !big)
                         break;   // the profiles only read digits most significant first
                     found.Add(Make(addr, bytes, enc, v, enc == "bcd" ? 0.6 : 0.5,
-                        enc == "bcd" && bytes > n ? $"se cuenta también ${start + (addr == a ? a + 1 : addr):X4} (en cero) para los dígitos altos" : ""));
+                        enc == "bcd" && bytes > n ? Retro.Core.UiText.Format($"se cuenta también ${start + (addr == a ? a + 1 : addr):X4} (en cero) para los dígitos altos") : ""));
                     break;
                 }
             }
@@ -314,9 +314,9 @@ public static class LabExperiments
 
     public static string EncodingName(string encoding, int bytes) => encoding switch
     {
-        "ascii" => $"{bytes} dígitos ASCII",
-        "digits" => $"{bytes} dígitos, uno por byte",
-        "bcd" => $"BCD de {bytes} byte(s), {bytes * 2} dígitos",
+        "ascii" => Retro.Core.UiText.Format($"{bytes} dígitos ASCII"),
+        "digits" => Retro.Core.UiText.Format($"{bytes} dígitos, uno por byte"),
+        "bcd" => Retro.Core.UiText.Format($"BCD de {bytes} byte(s), {bytes * 2} dígitos"),
         "uint16" => "binario de 16 bits",
         _ => "un byte",
     };
@@ -360,11 +360,11 @@ public static class LabExperiments
             }
             found.Add(new LabFinding
             {
-                Kind = kind == "change" ? "change" : kind, Address = $"{start + i:X4}", Hypothesis = hypothesis,
-                Evidence = { $"en la corrida {what} pasa de {v[0]} a {v[^1]} ({string.Join(", ", steps.Take(10).Select(d => d > 0 ? "+" + d : d.ToString()))}); sin tocar nada no cambia" },
+                Kind = kind == "change" ? "change" : kind, Address = Retro.Core.UiText.Format($"{start + i:X4}"), Hypothesis = hypothesis,
+                Evidence = { Retro.Core.UiText.Format($"en la corrida {what} pasa de {v[0]} a {v[^1]} ({string.Join(", ", steps.Take(10).Select(d => d > 0 ? "+" + d : d.ToString()))}); sin tocar nada no cambia") },
                 Confidence = confidence,
                 ExpectedEffect = kind switch { "level" => "Cambiarlo lleva a otro nivel (al empezar el próximo).", "ammo" => "Subirlo da más munición.", _ => "" },
-                HowToVerify = $"Escribir otro valor en ${start + i:X4} y comparar la pantalla con la corrida sin tocar.",
+                HowToVerify = Retro.Core.UiText.Format($"Escribir otro valor en ${start + i:X4} y comparar la pantalla con la corrida sin tocar."),
             });
         }
         return found.OrderByDescending(f => f.Confidence).Take(kind == "change" ? 20 : 8).ToList();

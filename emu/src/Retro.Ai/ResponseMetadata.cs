@@ -27,16 +27,16 @@ public static class ResponseMetadata
         { problem = "La ficha JSON está incompleta. Enviá el objeto completo y el programa."; return false; }
         try { document = JsonDocument.Parse(text[open..(close + 1)]); return true; }
         catch (JsonException error)
-        { problem = "La ficha JSON no es válida: " + error.Message; return false; }
+        { problem = Retro.Core.UiText.Get("La ficha JSON no es válida: ") + error.Message; return false; }
     }
 
     public static string? TextProblem(JsonElement root, string name, int maximum, bool allowNull = false)
     {
         if (root.ValueKind != JsonValueKind.Object) return "La ficha debe ser un objeto JSON.";
         if (!root.TryGetProperty(name, out var field)) return null;
-        if (root.EnumerateObject().Count(p => p.NameEquals(name)) > 1) return $"La ficha repite el campo {name}. Enviá un solo valor.";
+        if (root.EnumerateObject().Count(p => p.NameEquals(name)) > 1) return Retro.Core.UiText.Format($"La ficha repite el campo {name}. Enviá un solo valor.");
         if (allowNull && field.ValueKind == JsonValueKind.Null) return null;
-        if (field.ValueKind != JsonValueKind.String) return $"El campo {name} debe ser texto.";
-        return field.GetString()!.Length > maximum ? $"El campo {name} supera el límite de {maximum} caracteres." : null;
+        if (field.ValueKind != JsonValueKind.String) return Retro.Core.UiText.Format($"El campo {name} debe ser texto.");
+        return field.GetString()!.Length > maximum ? Retro.Core.UiText.Format($"El campo {name} supera el límite de {maximum} caracteres.") : null;
     }
 }

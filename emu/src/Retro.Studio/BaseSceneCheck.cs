@@ -21,8 +21,8 @@ internal static class BaseSceneCheck
         if (own.NearlyExact || own.SameGeometry) return null;
         foreach (var donor in session.Slots.Where(s => s.Id != id))
             if (Compare(session.Video, donor.Machine)?.NearlyExact == true)
-                return $"Se está mostrando casi toda la pantalla de {donor.Profile.Name} en lugar del original base. " +
-                    $"Conservá games.{id} y transferí elementos y comportamientos del aportante; no pegues otra pantalla completa.";
+                return Retro.Core.UiText.Format($"Se está mostrando casi toda la pantalla de {Retro.Core.UiText.Raw(donor.Profile.Name)} en lugar del original base. ") +
+                    Retro.Core.UiText.Format($"Conservá games.{id} y transferí elementos y comportamientos del aportante; no pegues otra pantalla completa.");
         return own.Erased
             ? "La escena tapa casi toda la imagen reconocible del original base. Conservá sus mapas, gráficos e interfaz y dibujá solo los aportes; una escena nueva corresponde a creación libre."
             : null;

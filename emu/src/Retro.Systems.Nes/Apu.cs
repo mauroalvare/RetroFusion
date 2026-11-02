@@ -263,8 +263,8 @@ public sealed class Apu
         PulseMix[_pulse1.Output + _pulse2.Output] + TndMix[3 * _triangle.Output + 2 * _noise.Output + _dmc.Output];
 
     public string Describe() =>
-        $"pulsos {(_pulse1.Length > 0 ? "1" : "-")}{(_pulse2.Length > 0 ? "2" : "-")}, triángulo {(_triangle.Length > 0 ? "sí" : "-")}, " +
-        $"ruido {(_noise.Length > 0 ? "sí" : "-")}, DMC {(_dmc.BytesLeft > 0 ? "sí" : "-")} | contador de cuadros de {(_fiveStep ? 5 : 4)} pasos" +
+        Retro.Core.UiText.Format($"pulsos {(_pulse1.Length > 0 ? "1" : "-")}{(_pulse2.Length > 0 ? "2" : "-")}, triángulo {(_triangle.Length > 0 ? Retro.Core.UiText.Get("sí") : "-")}, ") +
+        Retro.Core.UiText.Format($"ruido {(_noise.Length > 0 ? Retro.Core.UiText.Get("sí") : "-")}, DMC {(_dmc.BytesLeft > 0 ? Retro.Core.UiText.Get("sí") : "-")} | contador de cuadros de {(_fiveStep ? 5 : 4)} pasos") +
         (_frameIrq ? ", IRQ pedida" : "");
 
     // ---------------------------------------------------------------- save states

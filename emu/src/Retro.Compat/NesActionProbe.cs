@@ -55,7 +55,7 @@ internal static class NesActionProbe
                 if (address < 0) continue;
                 controlledSprites.Add(sprite);
                 string location = address.ToString("X4");
-                string evidence = $"Su movimiento con LEFT/RIGHT coincide con la X del registro OAM {sprite} en tres muestras de cada corrida y frente a la corrida sin entradas, con retardo constante de cero o un cuadro.";
+                string evidence = Retro.Core.UiText.Format($"Su movimiento con LEFT/RIGHT coincide con la X del registro OAM {sprite} en tres muestras de cada corrida y frente a la corrida sin entradas, con retardo constante de cero o un cuadro.");
                 var existing = findings.FirstOrDefault(f => f.Kind == "position-x" && f.Address == location);
                 if (existing != null)
                 {
@@ -92,7 +92,7 @@ internal static class NesActionProbe
                     if (rises && returns && !report.CheckedControls.ContainsKey("jump"))
                     {
                         report.CheckedControls["jump"] = key;
-                        report.Notes.Add($"{key} produjo una excursión vertical y regreso de una entidad OAM controlada horizontalmente (registro {sprite}); se conserva como salto observado.");
+                        report.Notes.Add(Retro.Core.UiText.Format($"{key} produjo una excursión vertical y regreso de una entidad OAM controlada horizontalmente (registro {sprite}); se conserva como salto observado."));
                     }
                     int added = 0;
                     for (int address = 0; address < 0x800 && added < 4; address++)
@@ -107,7 +107,7 @@ internal static class NesActionProbe
                         {
                             Kind = "position-y", Address = address.ToString("X4"), Confidence = 0.85,
                             Hypothesis = "Coordenada vertical de una entidad controlada; falta confirmar su significado en el juego.",
-                            Evidence = { $"{key}: su diferencia con la corrida sin entradas coincide con la Y del registro OAM {sprite} en {idle.Count} muestras, con retardo constante de cero o un cuadro; LEFT/RIGHT ya mueven esa entidad." },
+                            Evidence = { Retro.Core.UiText.Format($"{key}: su diferencia con la corrida sin entradas coincide con la Y del registro OAM {sprite} en {idle.Count} muestras, con retardo constante de cero o un cuadro; LEFT/RIGHT ya mueven esa entidad.") },
                             ExpectedEffect = "Modificarla puede desplazar la entidad si no es una copia recalculada.",
                             HowToVerify = "Repetir desde el mismo estado con otro valor y comparar imagen y escrituras.",
                         });

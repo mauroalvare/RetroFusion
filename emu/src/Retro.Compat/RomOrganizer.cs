@@ -80,7 +80,7 @@ public static class RomOrganizer
             return new(moved, unknown, deferred);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
-        { return new(moved, unknown, deferred, "No se pudo ordenar la carpeta: " + e.Message); }
+        { return new(moved, unknown, deferred, Retro.Core.UiText.Get("No se pudo ordenar la carpeta: ") + e.Message); }
     }
 
     public static string FolderName(string machine) => machine switch
@@ -91,7 +91,7 @@ public static class RomOrganizer
         "msx" => "MSX", "cpc" => "Amstrad CPC", "pc88" => "NEC PC-8801",
         "atari800" => "Atari 8 bits", "apple2" => "Apple II", "vic20" => "Commodore VIC-20",
         "plus4" => "Commodore Plus-4", "atarist" => "Atari ST", "amiga500" => "Amiga 500",
-        _ => throw new ArgumentException("Sistema sin carpeta de ROMs: " + machine),
+        _ => throw new ArgumentException(Retro.Core.UiText.Get("Sistema sin carpeta de ROMs: ") + machine),
     };
 
     private static string? Identify(IReadOnlyList<MediaFile> files)
@@ -175,7 +175,7 @@ public static class RomOrganizer
         var used = Directory.EnumerateFileSystemEntries(folder).Select(Path.GetFileName).ToHashSet(StringComparer.OrdinalIgnoreCase);
         string candidate = name;
         for (int i = 2; used.Contains(candidate) || Pictures(source).Any(p => used.Contains(Path.ChangeExtension(candidate, Path.GetExtension(p)))); i++)
-            candidate = Path.GetFileNameWithoutExtension(name) + $" ({i})" + Path.GetExtension(name);
+            candidate = Path.GetFileNameWithoutExtension(name) + Retro.Core.UiText.Format($" ({i})") + Path.GetExtension(name);
         return Path.Combine(folder, candidate);
     }
 

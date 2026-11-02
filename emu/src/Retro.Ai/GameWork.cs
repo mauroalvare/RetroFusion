@@ -33,7 +33,7 @@ public static class GameWorkStore
     private static string PathFor(string id)
     {
         if (id.Length != 32 || id.Any(c => !char.IsAsciiHexDigit(c))) throw new ArgumentException("Identificador de trabajo inválido.");
-        return Path.Combine(Folder, id + ".json");
+        return Path.Combine(Folder, id + Retro.Core.UiText.Get(".json"));
     }
     public static void Save(GameWork work)
     {
@@ -43,7 +43,7 @@ public static class GameWorkStore
         work.Updated = DateTime.UtcNow;
         byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(work, GameProfile.Json);
         if (bytes.Length > MaxBytes) throw new IOException("El trabajo supera el tamaño permitido para recuperarlo.");
-        string temp = Path.Combine(Folder, Guid.NewGuid().ToString("N") + ".tmp");
+        string temp = Path.Combine(Folder, Guid.NewGuid().ToString("N") + Retro.Core.UiText.Get(".tmp"));
         try
         {
             using (var stream = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
@@ -62,7 +62,7 @@ public static class GameWorkStore
             {
                 if (file.Length > MaxBytes || file.Attributes.HasFlag(FileAttributes.ReparsePoint)) continue;
                 var work = JsonSerializer.Deserialize<GameWork>(File.ReadAllText(file.FullName), GameProfile.Json);
-                if (work == null || work.Format != 1 || work.Id + ".json" != file.Name || work.State == null ||
+                if (work == null || work.Format != 1 || work.Id + Retro.Core.UiText.Get(".json") != file.Name || work.State == null ||
                     string.IsNullOrWhiteSpace(work.State.Machine) || Templates.For(work.State.Machine) == null || work.State.Wish == null || string.IsNullOrWhiteSpace(work.State.Brief) ||
                     work.State.Author == null || work.State.TriedSources == null || work.State.Draft is { Source: null or "" }) continue;
                 if (work.State.Draft != null)

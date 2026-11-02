@@ -51,7 +51,7 @@ public static class Asm6502
                 int target = c.EvalOrZero(operand, c.Pc);
                 int offset = target - (c.Pc + 2);
                 if (c.Final && (offset < -128 || offset > 127))
-                    throw new FormatException($"el salto de {mnem} a ${target:X4} está fuera de alcance ({offset})");
+                    throw new FormatException(Retro.Core.UiText.Format($"el salto de {mnem} a ${target:X4} está fuera de alcance ({offset})"));
                 c.Emit(Encode[(mnem, M6502Mode.Rel)]);
                 c.Emit((byte)offset);
                 return;
@@ -89,7 +89,7 @@ public static class Asm6502
         }
 
         private static byte Op(string mnem, M6502Mode mode) =>
-            Encode.TryGetValue((mnem, mode), out byte op) ? op : throw new FormatException($"{mnem} no tiene el modo {mode}");
+            Encode.TryGetValue((mnem, mode), out byte op) ? op : throw new FormatException(Retro.Core.UiText.Format($"{mnem} no tiene el modo {mode}"));
 
         private static (M6502Mode mode, string? expr) Parse(string mnem, string operand)
         {

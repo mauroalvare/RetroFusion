@@ -100,7 +100,7 @@ public sealed class CliAgentProvider : IAiProvider
         _effort = string.IsNullOrWhiteSpace(effort) ? null : effort.Trim();
     }
 
-    public string Name => _model != null ? $"{_tool.Name} ({_model}, suscripción)" : $"{_tool.Name} (suscripción)";
+    public string Name => _model != null ? Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(_tool.Name)} ({_model}, suscripción)") : Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(_tool.Name)} (suscripción)");
 
     /// <summary>The arguments that choose the model, for each tool.</summary>
     public static IEnumerable<string> ModelArgs(string toolId, string? model) =>
@@ -113,7 +113,7 @@ public sealed class CliAgentProvider : IAiProvider
         if (string.IsNullOrWhiteSpace(effort)) return Array.Empty<string>();
         if (!System.Text.RegularExpressions.Regex.IsMatch(effort, "^[a-z][a-z0-9_-]{0,39}$"))
             throw new AiException("El esfuerzo guardado no es válido. Volvé a elegirlo en la lista.");
-        return toolId == "sub-codex" ? new[] { "-c", $"model_reasoning_effort='{effort}'" }
+        return toolId == "sub-codex" ? new[] { "-c", Retro.Core.UiText.Format($"model_reasoning_effort='{effort}'") }
             : new[] { "--effort", effort };
     }
 
@@ -121,24 +121,24 @@ public sealed class CliAgentProvider : IAiProvider
     public static string Flatten(AiRequest request)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("# Instrucciones");
+        sb.AppendLine(Retro.Core.UiText.Get("# Instrucciones"));
         sb.AppendLine(request.System);
         sb.AppendLine();
-        sb.AppendLine("# Conversación");
+        sb.AppendLine(Retro.Core.UiText.Get("# Conversación"));
         foreach (var t in request.Turns)
         {
             sb.AppendLine(t.FromUser ? "## Usuario" : "## Vos (respuesta anterior)");
             sb.AppendLine(t.Text);
             sb.AppendLine();
         }
-        sb.AppendLine("# Tu tarea");
+        sb.AppendLine(Retro.Core.UiText.Get("# Tu tarea"));
         if (request.Images is { Count: > 0 } images)
-            sb.AppendLine("Respondé al último mensaje del usuario. Mirá estas capturas de pantalla (podés leerlas con tu herramienta de leer archivos): " +
-                          string.Join(", ", images) + ". No uses otras herramientas ni escribas archivos: respondé solo con texto.");
+            sb.AppendLine(Retro.Core.UiText.Get("Respondé al último mensaje del usuario. Mirá estas capturas de pantalla (podés leerlas con tu herramienta de leer archivos): ") +
+                          string.Join(", ", images) + Retro.Core.UiText.Get(". No uses otras herramientas ni escribas archivos: respondé solo con texto."));
         else
-            sb.AppendLine("Respondé al último mensaje del usuario. No uses herramientas, no leas ni escribas archivos: respondé solo con texto.");
+            sb.AppendLine(Retro.Core.UiText.Get("Respondé al último mensaje del usuario. No uses herramientas, no leas ni escribas archivos: respondé solo con texto."));
         if (request.Schema is JsonElement schema)
-            sb.AppendLine("Tu respuesta tiene que ser SOLO un objeto JSON válido (sin texto antes ni después, sin bloques de código) que cumpla este esquema JSON:\n" +
+            sb.AppendLine(Retro.Core.UiText.Get("Tu respuesta tiene que ser SOLO un objeto JSON válido (sin texto antes ni después, sin bloques de código) que cumpla este esquema JSON:\n") +
                           schema.GetRawText());
         return sb.ToString();
     }
@@ -148,10 +148,10 @@ public sealed class CliAgentProvider : IAiProvider
         LastUsage = null;
         ct.ThrowIfCancellationRequested();
         string exe = CliTools.Find(_tool, _override)
-                     ?? throw new AiException($"No encontré {_tool.Name}. {_tool.InstallHint}");
+                     ?? throw new AiException(Retro.Core.UiText.Format($"No encontré {Retro.Core.UiText.Raw(_tool.Name)}. {_tool.InstallHint}"));
         string work = Path.Combine(Path.GetTempPath(), "RetroEmu-ia");
         Directory.CreateDirectory(work);
-        string lastMessage = Path.Combine(work, $"respuesta-{Guid.NewGuid():N}.txt");
+        string lastMessage = Path.Combine(work, Retro.Core.UiText.Format($"respuesta-{Guid.NewGuid():N}.txt"));
         string? promptFile = null;
         string? schemaFile = null;
         try
@@ -178,7 +178,7 @@ public sealed class CliAgentProvider : IAiProvider
             args.InsertRange(_tool.Id == "sub-codex" ? 1 : 0, EffortArgs(_tool.Id, _effort));
             if (_tool.Id == "sub-codex" && request.Schema is JsonElement schema)
             {
-                schemaFile = Path.Combine(work, $"esquema-{Guid.NewGuid():N}.json");
+                schemaFile = Path.Combine(work, Retro.Core.UiText.Format($"esquema-{Guid.NewGuid():N}.json"));
                 File.WriteAllText(schemaFile, schema.GetRawText(), new UTF8Encoding(false));
                 args.InsertRange(args.Count - 1, ["--output-schema", schemaFile]);
             }
@@ -197,7 +197,7 @@ public sealed class CliAgentProvider : IAiProvider
                 _ => agy ? AgyResult(stdout) : GeminiResult(stdout),
             };
             if (string.IsNullOrWhiteSpace(answer))
-                throw new AiException($"{_tool.Name} no devolvió ninguna respuesta. {Tail(stderr)}");
+                throw new AiException(Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(_tool.Name)} no devolvió ninguna respuesta. {Tail(stderr)}"));
             return answer;
         }
         finally
@@ -222,10 +222,10 @@ public sealed class CliAgentProvider : IAiProvider
         var dirs = (request.Images ?? Array.Empty<string>()).Select(i => Path.GetDirectoryName(i)!).ToList();
         if (prompt.Length > 24000)
         {
-            promptFile = Path.Combine(work, $"consigna-{Guid.NewGuid():N}.md");
+            promptFile = Path.Combine(work, Retro.Core.UiText.Format($"consigna-{Guid.NewGuid():N}.md"));
             File.WriteAllText(promptFile, prompt, new UTF8Encoding(false));
             dirs.Add(work);
-            prompt = $"La consigna completa está en el archivo {promptFile}: leelo entero y hacé exactamente lo que pide (respondé solo con lo que pide).";
+            prompt = Retro.Core.UiText.Format($"La consigna completa está en el archivo {promptFile}: leelo entero y hacé exactamente lo que pide (respondé solo con lo que pide).");
         }
         var args = new List<string> { "-p", prompt, "--output-format", "json" };
         if (request.Schema is JsonElement schema)
@@ -294,7 +294,7 @@ public sealed class CliAgentProvider : IAiProvider
             using var doc = JsonDocument.Parse(stdout[s..]);
             var root = doc.RootElement;
             if (root.TryGetProperty("error", out var err) && err.ValueKind == JsonValueKind.Object)
-                throw new AiException("Error de la IA: " + err.GetRawText());
+                throw new AiException(Retro.Core.UiText.Get("Error de la IA: ") + err.GetRawText());
             return root.TryGetProperty("response", out var r) && r.ValueKind == JsonValueKind.String ? r.GetString() ?? "" : stdout;
         }
         catch (JsonException)
@@ -309,10 +309,10 @@ public sealed class CliAgentProvider : IAiProvider
         string text = Tail(output);
         string lower = text.ToLowerInvariant();
         if (lower.Contains("login") || lower.Contains("log in") || lower.Contains("sign in") || lower.Contains("auth") || lower.Contains("credential"))
-            return $"{_tool.Name} no tiene una sesión iniciada. Abrí una terminal, ejecutalo y entrá con tu cuenta de {_tool.Subscription}. Detalle: {text}";
+            return Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(_tool.Name)} no tiene una sesión iniciada. Abrí una terminal, ejecutalo y entrá con tu cuenta de {_tool.Subscription}. Detalle: {text}");
         if (lower.Contains("limit") || lower.Contains("quota") || lower.Contains("rate"))
-            return $"Llegaste al límite de uso de tu plan en {_tool.Name}; probá más tarde. Detalle: {text}";
-        return $"{_tool.Name} falló: {text}";
+            return Retro.Core.UiText.Format($"Llegaste al límite de uso de tu plan en {Retro.Core.UiText.Raw(_tool.Name)}; probá más tarde. Detalle: {text}");
+        return Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(_tool.Name)} falló: {text}");
     }
 
     private static string Tail(string s)
@@ -332,7 +332,7 @@ public sealed class CliAgentProvider : IAiProvider
         }
         catch (Exception e)
         {
-            throw new AiException($"No se pudo ejecutar {exe}: {e.Message}");
+            throw new AiException(Retro.Core.UiText.Format($"No se pudo ejecutar {exe}: {e.Message}"));
         }
         long started = Stopwatch.GetTimestamp(), lastOutput = started, characters = 0;
         var output = new StringBuilder();
@@ -399,11 +399,11 @@ public sealed class CliAgentProvider : IAiProvider
             try { await Task.WhenAll(outTask, errTask); } catch (OperationCanceledException) { }
             status = ct.IsCancellationRequested ? "CLI cancelado" : "CLI detenido por tiempo máximo";
             if (ct.IsCancellationRequested) throw;
-            string limit = timeout.TotalMinutes >= 1 ? $"{timeout.TotalMinutes:0.#} minutos" : $"{Math.Max(1, timeout.TotalSeconds):0.#} segundos";
+            string limit = timeout.TotalMinutes >= 1 ? Retro.Core.UiText.Format($"{timeout.TotalMinutes:0.#} minutos") : Retro.Core.UiText.Format($"{Math.Max(1, timeout.TotalSeconds):0.#} segundos");
             string phase = stdin.Length == 0 ? "" : inputDelivered
                 ? " El pedido llegó al CLI, pero no se confirmó una respuesta dentro del plazo. Revisá Modelo y conexión → Conexión avanzada."
                 : " No terminó de enviar el pedido al CLI. Revisá la ruta de la herramienta en Modelo y conexión → Conexión avanzada.";
-            throw new AiException($"{Path.GetFileName(exe)} tardó más de {limit} y lo detuve." + phase);
+            throw new AiException(Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(Path.GetFileName(exe))} tardó más de {limit} y lo detuve.") + phase);
         }
         finally { Report(false); }
     }
@@ -429,7 +429,7 @@ public sealed class CliAgentProvider : IAiProvider
         {
             // npm installs these tools as .cmd shims, which only cmd.exe can run
             psi.FileName = "cmd.exe";
-            psi.Arguments = "/d /s /c \"" + Quote(exe) + " " + string.Join(" ", args.Select(Quote)) + "\"";
+            psi.Arguments = Retro.Core.UiText.Get("/d /s /c \"") + Quote(exe) + " " + string.Join(" ", args.Select(Quote)) + "\"";
         }
         else
         {

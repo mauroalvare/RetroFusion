@@ -66,9 +66,9 @@ public sealed class SpaceInvadersSound
         var files = new List<MediaFile>();
         for (int i = 0; i < 10; i++)
         {
-            string path = Path.Combine(folderOrZip, $"{i}.wav");
+            string path = Path.Combine(folderOrZip, Retro.Core.UiText.Format($"{i}.wav"));
             if (File.Exists(path))
-                files.Add(new MediaFile($"{i}.wav", File.ReadAllBytes(path), path));
+                files.Add(new MediaFile(Retro.Core.UiText.Format($"{i}.wav"), File.ReadAllBytes(path), path));
         }
         return LoadSamples(files);
     }
@@ -90,7 +90,7 @@ public sealed class SpaceInvadersSound
 
     /// <summary>True for MAME's samples/invaders.zip (recordings, not the game program).</summary>
     public static bool IsSampleSet(IReadOnlyList<MediaFile> files) =>
-        Enumerable.Range(1, 9).All(i => files.Any(f => f.Name.Equals($"{i}.wav", StringComparison.OrdinalIgnoreCase)));
+        Enumerable.Range(1, 9).All(i => files.Any(f => f.Name.Equals(Retro.Core.UiText.Format($"{i}.wav"), StringComparison.OrdinalIgnoreCase)));
 
     /// <summary>
     /// Looks for the sample set next to the game: samples/invaders(.zip) beside the ROM,

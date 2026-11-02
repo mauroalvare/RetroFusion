@@ -110,7 +110,7 @@ public static class ScreenReader
             var lines = flat.Split('\n');
             string last = lines.Length >= 2 ? lines[^2].Trim() : "";
             if (System.Text.RegularExpressions.Regex.IsMatch(last, @"^[0-9A-R] [A-Za-z].*, \d+:\d+$"))
-                return $"el BASIC muestra un mensaje de error: \"{last}\"";
+                return Retro.Core.UiText.Format($"el BASIC muestra un mensaje de error: \"{last}\"");
         }
         return null;
     }

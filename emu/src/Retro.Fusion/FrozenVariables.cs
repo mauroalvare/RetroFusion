@@ -29,7 +29,7 @@ public sealed class FrozenVariables(IMachine machine, GameProfile profile) : IDi
             foreach (var change in changes) profile.Variables[change.Variable].Write(machine.Memory, change.Value);
             foreach (var change in changes)
                 if (profile.Variables[change.Variable].Read(machine.Memory) != change.Value)
-                    throw new InvalidOperationException($"El juego no permite escribir {change.Variable} en esa memoria. No se aplicó la prueba.");
+                    throw new InvalidOperationException(Retro.Core.UiText.Format($"El juego no permite escribir {change.Variable} en esa memoria. No se aplicó la prueba."));
         }
         catch
         {

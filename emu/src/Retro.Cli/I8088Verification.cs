@@ -8,14 +8,14 @@ internal static class I8088Verification
     public static int Run(string folder, string? report, I8088Model model = I8088Model.Intel8088)
     {
         string cpuName = model switch { I8088Model.Intel8088 => "8088", I8088Model.Intel8086 => "8086", _ => "" };
-        if (cpuName.Length == 0) { Console.Error.WriteLine("Modelo de CPU no válido para el contraste."); return 1; }
-        if (string.IsNullOrWhiteSpace(folder)) { Console.Error.WriteLine($"Indicá --suite con una carpeta de SingleStepTests/{cpuName} de formato 2."); return 1; }
+        if (cpuName.Length == 0) { Console.Error.WriteLine(Retro.Core.UiText.Get("Modelo de CPU no válido para el contraste.")); return 1; }
+        if (string.IsNullOrWhiteSpace(folder)) { Console.Error.WriteLine(Retro.Core.UiText.Format($"Indicá --suite con una carpeta de SingleStepTests/{cpuName} de formato 2.")); return 1; }
         try
         {
             var root = Path.GetFullPath(folder);
             using var metadata = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "metadata.json")));
             if (metadata.RootElement.GetProperty("syntax_version").GetInt32() != 2 || metadata.RootElement.GetProperty("cpu").GetString() != cpuName)
-                throw new InvalidDataException($"Se requiere SingleStepTests/{cpuName} formato 2.");
+                throw new InvalidDataException(Retro.Core.UiText.Format($"Se requiere SingleStepTests/{cpuName} formato 2."));
             var files = Directory.GetFiles(root, "*.json.gz").Order().ToArray();
             if (files.Length == 0) throw new InvalidDataException("La carpeta no contiene pruebas .json.gz.");
             var props = typeof(I8088Cpu).GetProperties().Where(p => p.CanWrite && p.PropertyType == typeof(ushort)).ToDictionary(p => p.Name.ToLowerInvariant());
@@ -53,7 +53,7 @@ internal static class I8088Verification
                         int mask = detail.TryGetProperty("flags-mask", out var m) ? m.GetInt32() : 65535;
                         // OF is architecturally undefined for counts greater than one, regardless of metadata.
                         if (bytes[actualOpcode] is 0xD2 or 0xD3 && (initial.GetProperty("regs").GetProperty("cx").GetInt32() & 255) > 1) mask &= ~I8088Cpu.Overflow;
-                        foreach (var (name, value) in expected) { int actual = (ushort)props[name].GetValue(cpu)!; int compare = name == "flags" ? mask : 65535; if ((actual & compare) != (value & compare)) { problem = $"{name} esperado {value:X4}, actual {actual:X4}, máscara {compare:X4}"; break; } }
+                        foreach (var (name, value) in expected) { int actual = (ushort)props[name].GetValue(cpu)!; int compare = name == "flags" ? mask : 65535; if ((actual & compare) != (value & compare)) { problem = Retro.Core.UiText.Format($"{name} esperado {value:X4}, actual {actual:X4}, máscara {compare:X4}"); break; } }
                         bool canFault = bytes[actualOpcode] == 0xD4 && actualOpcode + 1 < bytes.Length && bytes[actualOpcode + 1] == 0 ||
                             bytes[actualOpcode] is 0xF6 or 0xF7 && actualOpcode + 1 < bytes.Length && ((bytes[actualOpcode + 1] >> 3) & 7) >= 6;
                         // Identify the expected type-0 frame, independently of the CPU's observed result.
@@ -66,14 +66,14 @@ internal static class I8088Verification
                             int a = cell[0].GetInt32(), expectedByte = cell[1].GetByte(), byteMask = 255;
                             if (arithmeticFault && a == flagsLow) byteMask = mask & 255;
                             if (arithmeticFault && a == flagsHigh) byteMask = (mask >> 8) & 255;
-                            if ((bus.Ram[a] & byteMask) != (expectedByte & byteMask)) { problem = $"RAM {cell[0]} esperada {cell[1]}, actual {bus.Ram[cell[0].GetInt32()]}"; break; }
+                            if ((bus.Ram[a] & byteMask) != (expectedByte & byteMask)) { problem = Retro.Core.UiText.Format($"RAM {cell[0]} esperada {cell[1]}, actual {bus.Ram[cell[0].GetInt32()]}"); break; }
                         }
                     }
                     catch (Exception error) { problem = error.Message; }
                     if (problem == null) passed++; else { failed++; if (errors.Count < 5) errors.Add(new { Test = test.GetProperty("name").GetString(), Index = test.TryGetProperty("idx", out var idx) ? idx.GetInt32() : testPosition, Problem = problem, Initial = initial.ToString(), Bytes = bytes }); }
                 }
                 totalPassed += passed; totalFailed += failed; totalSkipped += skipped;
-                results.Add(new { File = Path.GetFileName(file), Opcode = opcode, Passed = passed, Failed = failed, Skipped = skipped, Errors = errors }); Console.WriteLine($"{opcode}: {passed} PASS, {failed} FAIL, {skipped} no documentadas");
+                results.Add(new { File = Path.GetFileName(file), Opcode = opcode, Passed = passed, Failed = failed, Skipped = skipped, Errors = errors }); Console.WriteLine(Retro.Core.UiText.Format($"{opcode}: {passed} PASS, {failed} FAIL, {skipped} no documentadas"));
             }
             if (totalPassed + totalFailed == 0) throw new InvalidDataException("La selección no contiene casos documentados para contrastar.");
             if (report != null)
@@ -84,12 +84,12 @@ internal static class I8088Verification
                 if (model == I8088Model.Intel8086) summary = new { Cpu = cpuName, Passed = totalPassed, Failed = totalFailed, Excluded = totalSkipped, Scope = scope, Files = results };
                 File.WriteAllText(path, JsonSerializer.Serialize(summary, new JsonSerializerOptions { WriteIndented = true }));
             }
-            Console.WriteLine($"Aprobados: {totalPassed}; fallidos: {totalFailed}; excluidos por metadatos: {totalSkipped}.");
-            Console.WriteLine("Se contrastaron registros y memoria. Esta prueba no valida ciclos ni la cola de prelectura.");
+            Console.WriteLine(Retro.Core.UiText.Format($"Aprobados: {totalPassed}; fallidos: {totalFailed}; excluidos por metadatos: {totalSkipped}."));
+            Console.WriteLine(Retro.Core.UiText.Get("Se contrastaron registros y memoria. Esta prueba no valida ciclos ni la cola de prelectura."));
             return totalFailed == 0 ? 0 : 2;
         }
         catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or JsonException or ArgumentException or KeyNotFoundException or InvalidOperationException or FormatException or OverflowException)
-        { Console.Error.WriteLine("No se pudo leer la suite: " + error.Message); return 1; }
+        { Console.Error.WriteLine(Retro.Core.UiText.Get("No se pudo leer la suite: ") + error.Message); return 1; }
     }
     private sealed class Bus : I8088Bus
     {

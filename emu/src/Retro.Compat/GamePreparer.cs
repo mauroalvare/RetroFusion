@@ -38,33 +38,33 @@ public sealed class PlayObservation
     public string Describe()
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"Juego: {Game} (archivo {File}), máquina {MachineName} a {FramesPerSecond:F0} cuadros por segundo.");
-        if (!string.IsNullOrWhiteSpace(Goal)) sb.AppendLine("Objetivo de preparación: " + Goal);
-        sb.AppendLine($"Ronda {Round}; van {FramesSoFar} cuadros desde que arrancó el juego.");
-        sb.AppendLine("Teclas que existen: " + string.Join(", ", Keys));
-        sb.AppendLine("Controles de juego posibles: " + string.Join("; ", ControlSets.Select(c => $"{c.Name}: {c.Left}/{c.Right}/{c.Up}/{c.Down}, disparo {c.Fire}")));
+        sb.AppendLine(Retro.Core.UiText.Format($"Juego: {Game} (archivo {File}), máquina {MachineName} a {FramesPerSecond:F0} cuadros por segundo."));
+        if (!string.IsNullOrWhiteSpace(Goal)) sb.AppendLine(Retro.Core.UiText.Get("Objetivo de preparación: ") + Goal);
+        sb.AppendLine(Retro.Core.UiText.Format($"Ronda {Round}; van {FramesSoFar} cuadros desde que arrancó el juego."));
+        sb.AppendLine(Retro.Core.UiText.Get("Teclas que existen: ") + string.Join(", ", Keys));
+        sb.AppendLine(Retro.Core.UiText.Get("Controles de juego posibles: ") + string.Join("; ", ControlSets.Select(c => Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(c.Name)}: {c.Left}/{c.Right}/{c.Up}/{c.Down}, disparo {c.Fire}"))));
         sb.AppendLine();
-        sb.AppendLine("Lo que dicen los controles ahora: " + PlayCheck);
+        sb.AppendLine(Retro.Core.UiText.Get("Lo que dicen los controles ahora: ") + PlayCheck);
         sb.AppendLine(PictureMoves ? "La pantalla se mueve sola (animación, demo o carga)." : "La pantalla está quieta.");
         if (!string.IsNullOrWhiteSpace(ScreenText))
         {
-            sb.AppendLine("Texto que se lee en la pantalla:");
+            sb.AppendLine(Retro.Core.UiText.Get("Texto que se lee en la pantalla:"));
             sb.AppendLine("```");
             sb.AppendLine(ScreenText.TrimEnd());
             sb.AppendLine("```");
         }
         else
-            sb.AppendLine("(Esta máquina no tiene un texto legible: guiate por el dibujo.)");
-        sb.AppendLine("Dibujo aproximado de la pantalla (cada carácter es una celda; espacio = fondo, # = lleno):");
+            sb.AppendLine(Retro.Core.UiText.Get("(Esta máquina no tiene un texto legible: guiate por el dibujo.)"));
+        sb.AppendLine(Retro.Core.UiText.Get("Dibujo aproximado de la pantalla (cada carácter es una celda; espacio = fondo, # = lleno):"));
         sb.AppendLine("```");
         sb.AppendLine(Sketch.TrimEnd());
         sb.AppendLine("```");
         if (KeyEffects.Count > 0)
-            sb.AppendLine("Qué pasa si se aprieta cada tecla ahora (6 cuadros y 3 segundos de espera): " +
-                          string.Join("; ", KeyEffects.Select(e => $"{e.Key}: {e.Text}")));
+            sb.AppendLine(Retro.Core.UiText.Get("Qué pasa si se aprieta cada tecla ahora (6 cuadros y 3 segundos de espera): ") +
+                          string.Join("; ", KeyEffects.Select(e => Retro.Core.UiText.Format($"{e.Key}: {e.Text}"))));
         if (History.Count > 0)
         {
-            sb.AppendLine("Lo que ya se hizo:");
+            sb.AppendLine(Retro.Core.UiText.Get("Lo que ya se hizo:"));
             foreach (var h in History)
                 sb.AppendLine("- " + h);
         }
@@ -100,13 +100,13 @@ public sealed class VariableQuestion
     public string Describe()
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"Juego: {Game} ({MachineName}), ya en la partida.");
-        if (!string.IsNullOrWhiteSpace(Goal)) sb.AppendLine("Objetivo de preparación: " + Goal);
-        sb.AppendLine("El laboratorio reunió estas direcciones y su evidencia. Algunas admiten una prueba de escritura; " +
-                      "otras solo se observaron y son de solo lectura. Su nombre provisorio sale de cómo cambian y puede estar mal:");
+        sb.AppendLine(Retro.Core.UiText.Format($"Juego: {Game} ({MachineName}), ya en la partida."));
+        if (!string.IsNullOrWhiteSpace(Goal)) sb.AppendLine(Retro.Core.UiText.Get("Objetivo de preparación: ") + Goal);
+        sb.AppendLine(Retro.Core.UiText.Get("El laboratorio reunió estas direcciones y su evidencia. Algunas admiten una prueba de escritura; ") +
+                      Retro.Core.UiText.Get("otras solo se observaron y son de solo lectura. Su nombre provisorio sale de cómo cambian y puede estar mal:"));
         foreach (var c in Candidates)
-            sb.AppendLine($"- ${c.Address} ({c.Encoding}{(c.Bytes > 1 ? $", {c.Bytes} bytes" : "")}{(c.ReadOnly ? ", solo lectura" : "")}): " +
-                          $"provisorio \"{c.Guess}\", vale {c.Value} ahora. {c.Evidence}");
+            sb.AppendLine(Retro.Core.UiText.Format($"- ${c.Address} ({c.Encoding}{(c.Bytes > 1 ? Retro.Core.UiText.Format($", {c.Bytes} bytes") : "")}{(c.ReadOnly ? Retro.Core.UiText.Get(", solo lectura") : "")}): ") +
+                          Retro.Core.UiText.Format($"provisorio \"{c.Guess}\", vale {c.Value} ahora. {c.Evidence}"));
         return sb.ToString();
     }
 }
@@ -134,7 +134,7 @@ public sealed class KeyTrialAdvisor : IPlayAdvisor
     private string? _last;
     private int _streak;
 
-    public string Name => "prueba de teclas";
+    public string Name => Retro.Core.UiText.Get("prueba de teclas");
 
     public Task<PlayAdvice> AdviseAsync(PlayObservation o, CancellationToken ct)
     {
@@ -145,8 +145,8 @@ public sealed class KeyTrialAdvisor : IPlayAdvisor
         _streak = pick != null && pick.Key == _last ? _streak + 1 : 1;
         _last = pick?.Key;
         var advice = pick != null
-            ? new PlayAdvice { Reason = $"{pick.Key} {pick.Text}", Actions = { new PlayAction(pick.Key, 6, 150) } }
-            : new PlayAdvice { Reason = "ninguna tecla cambia nada: espero", Actions = { new PlayAction("", 0, 300) } };
+            ? new PlayAdvice { Reason = Retro.Core.UiText.Format($"{pick.Key} {pick.Text}"), Actions = { new PlayAction(pick.Key, 6, 150) } }
+            : new PlayAdvice { Reason = Retro.Core.UiText.Get("ninguna tecla cambia nada: espero"), Actions = { new PlayAction("", 0, 300) } };
         return Task.FromResult(advice);
     }
 }
@@ -281,7 +281,7 @@ public static class GamePreparer
             !requested.Sha256.Equals(r.Sha256, StringComparison.OrdinalIgnoreCase)))
             throw new InvalidDataException("La continuación de investigación corresponde a otra edición.");
         string profileFolder = o.ProfilesFolder ?? ProfileLibrary.UserFolder;
-        string expectedProfilePath = Path.Combine(profileFolder, (previous?.Id ?? $"{Slug(r.Game)}-{r.Sha256[..8]}") + ".json");
+        string expectedProfilePath = Path.Combine(profileFolder, (previous?.Id ?? Retro.Core.UiText.Format($"{Slug(r.Game)}-{r.Sha256[..8]}")) + Retro.Core.UiText.Get(".json"));
         string? ProfileStamp() => File.Exists(expectedProfilePath)
             ? Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(expectedProfilePath))) : null;
         string? originalProfileStamp = o.Save ? ProfileStamp() : null;
@@ -296,7 +296,7 @@ public static class GamePreparer
         bool replayedBoot = false;
         int frames = 0;
         string machineName = MachineCatalog.Get(machine).Name;
-        Say($"{r.Game}: {machineName}, {launch.Media.Name} ({launch.Description}).");
+        Say(Retro.Core.UiText.Format($"{r.Game}: {machineName}, {Retro.Core.UiText.Raw(launch.Media.Name)} ({launch.Description})."));
         if (o.Resume == null && bootProposal != null && PreparationBoot.IsBounded(bootProposal, m))
         {
             Say("Probando el arranque del perfil en una máquina privada antes de buscar otras teclas...");
@@ -316,7 +316,7 @@ public static class GamePreparer
                 else Say("El arranque propuesto no confirmó controles de partida. Se conserva el original y se probarán otras entradas.");
             }
             catch (Exception error) when (error is not OperationCanceledException and not OutOfMemoryException)
-            { Say("El arranque propuesto no se pudo reproducir: " + error.Message + ". Se probarán otras entradas."); }
+            { Say(Retro.Core.UiText.Get("El arranque propuesto no se pudo reproducir: ") + error.Message + Retro.Core.UiText.Get(". Se probarán otras entradas.")); }
         }
         if (o.Resume == null && !replayedBoot && launch.IsTape && m is Spectrum48 zx)
         {
@@ -336,9 +336,9 @@ public static class GamePreparer
             frames += n;
             if (!recordingBoot) return;
             if (r.Boot.Count > 0 && r.Boot[^1].StartsWith("wait "))
-                r.Boot[^1] = $"wait {int.Parse(r.Boot[^1][5..]) + n}";
+                r.Boot[^1] = Retro.Core.UiText.Format($"wait {int.Parse(r.Boot[^1][5..]) + n}");
             else
-                r.Boot.Add($"wait {n}");
+                r.Boot.Add(Retro.Core.UiText.Format($"wait {n}"));
         }
         void Press(string keys, int hold)
         {
@@ -352,7 +352,7 @@ public static class GamePreparer
             }
             foreach (var k in list) m.SetKey(k, false);
             frames += hold;
-            if (recordingBoot) r.Boot.Add($"press {string.Join('+', list)} {hold}");
+            if (recordingBoot) r.Boot.Add(Retro.Core.UiText.Format($"press {string.Join('+', list)} {hold}"));
         }
         PlayCheck CheckTwin()
         {
@@ -368,7 +368,7 @@ public static class GamePreparer
         {
             m.LoadState(resume.State); m.ReleaseAllKeys();
             r.Boot = resume.Boot.ToList(); frames = resume.Frames;
-            Say($"Retomando la partida observada para la investigación {o.InvestigationPass}.");
+            Say(Retro.Core.UiText.Format($"Retomando la partida observada para la investigación {o.InvestigationPass}."));
         }
         else if (!replayedBoot) Wait(100);
         seen.Add(Signature(m));
@@ -392,9 +392,9 @@ public static class GamePreparer
                 r.Advisors.Add(advisor.Name);
             var observation = Observe(m, twin, machine, machineName, r.Game, launch.Media.Name, round, frames, seen, history,
                 check.Playing
-                    ? check with { Evidence = check.Evidence + ". Si esto ya es la partida, respondé playing=true y ninguna acción; si es un menú, una tienda o una demo, seguí." }
+                    ? check with { Evidence = check.Evidence + Retro.Core.UiText.Get(". Si esto ya es la partida, respondé playing=true y ninguna acción; si es un menú, una tienda o una demo, seguí.") }
                     : check, r.Goal, ct);
-            Say($"Ronda {round}: {advisor.Name} mira la pantalla...");
+            Say(Retro.Core.UiText.Format($"Ronda {round}: {Retro.Core.UiText.Raw(advisor.Name)} mira la pantalla..."));
             PlayAdvice advice;
             try
             {
@@ -402,8 +402,8 @@ public static class GamePreparer
             }
             catch (Exception e) when (e is not OperationCanceledException && advisor != trial)
             {
-                Say($"La IA falló ({e.Message}); sigo con la prueba de teclas.");
-                history.Add($"Ronda {round}: la IA no respondió ({e.Message}).");
+                Say(Retro.Core.UiText.Format($"La IA falló ({e.Message}); sigo con la prueba de teclas."));
+                history.Add(Retro.Core.UiText.Format($"Ronda {round}: la IA no respondió ({e.Message})."));
                 r.Problem = null;
                 o.Advisor = null;
                 advisor = trial;
@@ -412,7 +412,7 @@ public static class GamePreparer
             lastAdvice = advice;
             if (check.Playing && advice.Playing)
             {
-                history.Add($"Ronda {round} ({advisor.Name}): confirma que es la partida. Motivo: {advice.Reason}.");
+                history.Add(Retro.Core.UiText.Format($"Ronda {round} ({Retro.Core.UiText.Raw(advisor.Name)}): confirma que es la partida. Motivo: {advice.Reason}."));
                 Say(history[^1]);
                 accepted = true;
                 break;
@@ -424,18 +424,18 @@ public static class GamePreparer
                 var wrong = keys.Where(k => !validKeys.Contains(k)).ToList();
                 if (wrong.Count > 0)
                 {
-                    done.Add($"(tecla inexistente: {string.Join(", ", wrong)})");
+                    done.Add(Retro.Core.UiText.Format($"(tecla inexistente: {string.Join(", ", wrong)})"));
                     continue;
                 }
                 if (keys.Length > 0)
                 {
                     Press(string.Join('+', keys), Math.Clamp(a.Hold, 1, 120));
-                    done.Add($"{string.Join('+', keys)} {Math.Clamp(a.Hold, 1, 120)} cuadros");
+                    done.Add(Retro.Core.UiText.Format($"{string.Join('+', keys)} {Math.Clamp(a.Hold, 1, 120)} cuadros"));
                 }
                 if (a.Wait > 0)
                 {
                     Wait(Math.Clamp(a.Wait, 1, 3000));
-                    done.Add($"esperar {Math.Clamp(a.Wait, 1, 3000)}");
+                    done.Add(Retro.Core.UiText.Format($"esperar {Math.Clamp(a.Wait, 1, 3000)}"));
                 }
             }
             if (done.Count == 0)
@@ -445,8 +445,8 @@ public static class GamePreparer
             }
             seen.Add(Signature(m));
             check = CheckTwin();
-            string after = check.Playing ? "los controles mueven algo: " + check.Evidence : "no se comprobó movimiento con estos controles";
-            history.Add($"Ronda {round} ({advisor.Name}): {string.Join(", ", done)}. Motivo: {advice.Reason}. Resultado: {after}." +
+            string after = check.Playing ? Retro.Core.UiText.Get("los controles mueven algo: ") + check.Evidence : "no se comprobó movimiento con estos controles";
+            history.Add(Retro.Core.UiText.Format($"Ronda {round} ({Retro.Core.UiText.Raw(advisor.Name)}): {string.Join(", ", done)}. Motivo: {advice.Reason}. Resultado: {after}.") +
                         (advice.Playing && !check.Playing ? " (Se dijo que era la partida, pero los controles no mueven nada.)" : ""));
             Say(history[^1]);
         }
@@ -454,7 +454,7 @@ public static class GamePreparer
             accepted = true;
         if (!accepted)
         {
-            r.Problem = $"No se comprobaron los controles de una partida en {o.MaxRounds} rondas. " + (o.Advisor == null && r.Advisors.Count == 1
+            r.Problem = Retro.Core.UiText.Format($"No se comprobaron los controles de una partida en {o.MaxRounds} rondas. ") + (o.Advisor == null && r.Advisors.Count == 1
                 ? "Con una IA configurada (Claude, ChatGPT o Gemini por suscripción) se puede intentar de nuevo."
                 : "No se pudo confirmar el arranque con esta preparación. Revisá la actividad o intentá otra estrategia.");
             return r;
@@ -479,7 +479,7 @@ public static class GamePreparer
             }
         }
         r.Controls = check.Controls;
-        Say($"En la partida después de {frames} cuadros: {check.Evidence}.");
+        Say(Retro.Core.UiText.Format($"En la partida después de {frames} cuadros: {check.Evidence}."));
 
         // ---------------------------------------------------------------- the lab
         Say("Laboratorio: observando la partida y buscando vidas, tiempo, posiciones y entidades...");
@@ -496,13 +496,13 @@ public static class GamePreparer
         Say("Laboratorio: jugando al azar (siempre el mismo azar) para encontrar el puntaje...");
         var (played, idle) = LabExperiments.Run(m, machine, play, ct: ct);
         int start = MemoryLab.RangeFor(machine).start;
-        var scores = LabExperiments.Scores(played, idle, start, $"\"{play.Description}\"");
+        var scores = LabExperiments.Scores(played, idle, start, Retro.Core.UiText.Format($"\"{play.Description}\""));
         lab.Findings.AddRange(scores);
         // somebody playing dies more often than nobody touching: lives seen only then count too
         var livesInPlay = MemoryLab.LivesIn(played, start, 5, "jugando al azar")
             .Where(l => lab.Findings.All(f => f.Kind != "lives" || f.Address != l.Address)).ToList();
         lab.Findings.AddRange(livesInPlay);
-        lab.Method += $" Experimento de puntaje: {play.Description}, {play.Frames} cuadros contra los mismos sin tocar nada.";
+        lab.Method += Retro.Core.UiText.Format($" Experimento de puntaje: {play.Description}, {play.Frames} cuadros contra los mismos sin tocar nada.");
         Say("Laboratorio: verificando cada hipótesis con un experimento...");
         LabVerifier.VerifyBest(m, lab, scores.Concat(livesInPlay).ToDictionary(f => f, _ => play), ct: ct);
         o.EvidenceUpdated?.Invoke(lab);
@@ -529,15 +529,15 @@ public static class GamePreparer
                     Picture = Copy(m.Video), Controls = c, Keys = validKeys.ToList(), Candidates = Candidates(lab, m),
                     Pass = o.InvestigationPass, PreviousExperiments = o.PreviousExperiments.TakeLast(18).ToArray(),
                     KnownVariables = previous?.Variables.Keys.ToArray() ?? [],
-                    KnownData = previous?.Variables.Take(24).Select(p=>$"{p.Key}: ${p.Value.Address}, {p.Value.Encoding}/{p.Value.Bytes}, {(p.Value.ReadOnly ? "solo lectura" : "escribible según el perfil")}; {p.Value.Description} {p.Value.PurposeSummary}").ToArray() ?? [],
+                    KnownData = previous?.Variables.Take(24).Select(p=>Retro.Core.UiText.Format($"{p.Key}: ${p.Value.Address}, {p.Value.Encoding}/{p.Value.Bytes}, {(p.Value.ReadOnly ? Retro.Core.UiText.Get("solo lectura") : Retro.Core.UiText.Get("escribible según el perfil"))}; {p.Value.Description} {p.Value.PurposeSummary}")).ToArray() ?? [],
                 }, ct);
                 foreach (var experiment in (experiments ?? new()).Take(PreparationExperiments.MaxExperiments))
                 {
                     ct.ThrowIfCancellationRequested();
                     if (!PreparationExperiments.TryValidate(experiment, validKeys, out string problem))
                     {
-                        Say("Experimento descartado: " + problem); r.UnresolvedData.Add(problem);
-                        r.Experiments.Add(new("invalid", experiment.Description ?? "", "Descartado: " + problem, true)); continue;
+                        Say(Retro.Core.UiText.Get("Experimento descartado: ") + problem); r.UnresolvedData.Add(problem);
+                        r.Experiments.Add(new("invalid", experiment.Description ?? "", Retro.Core.UiText.Get("Descartado: ") + problem, true)); continue;
                     }
                     string signature = PreparationResearch.Signature(experiment, m.SaveState());
                     if (o.PreviousExperiments.Concat(r.Experiments).Any(e => e.Signature == signature))
@@ -545,7 +545,7 @@ public static class GamePreparer
                         r.Experiments.Add(new(signature, experiment.Description ?? "", "Ya se probó esta secuencia desde este mismo estado.", true));
                         continue;
                     }
-                    Say("Probando: " + experiment.Description);
+                    Say(Retro.Core.UiText.Get("Probando: ") + experiment.Description);
                     var proposed = LabExperiments.Analyze(m, machine, experiment, ct: ct).Where(f =>
                     {
                         uint address = Convert.ToUInt32(f.Address, 16);
@@ -560,18 +560,18 @@ public static class GamePreparer
                         lab.Findings.Add(finding);
                     }
                     ct.ThrowIfCancellationRequested();
-                    string outcome = $"Experimento repetido: {experiment.Description}; {proposed.Count(f => f.Status == "verified")} candidatos con efecto observado. " +
-                        string.Join(" ", proposed.Select(f => $"0x{f.Address}: {f.Status}; {string.Join("; ", f.Verification?.Observations.Take(2) ?? [])}"));
+                    string outcome = Retro.Core.UiText.Format($"Experimento repetido: {experiment.Description}; {proposed.Count(f => f.Status == "verified")} candidatos con efecto observado. ") +
+                        string.Join(" ", proposed.Select(f => Retro.Core.UiText.Format($"0x{f.Address}: {f.Status}; {string.Join("; ", f.Verification?.Observations.Take(2) ?? [])}")));
                     r.CheckedData.Add(outcome);
                     r.Experiments.Add(new(signature, experiment.Description ?? "", outcome));
                     o.EvidenceUpdated?.Invoke(lab);
                     advance = experiment;
                 }
-                r.Advisors.Add(planner is IPlayAdvisor playingPlanner ? playingPlanner.Name + " (experimentos)" : "experimentos dirigidos");
+                r.Advisors.Add(planner is IPlayAdvisor playingPlanner ? playingPlanner.Name + Retro.Core.UiText.Get(" (experimentos)") : "experimentos dirigidos");
             }
             catch (Exception error) when (error is not OperationCanceledException)
             {
-                string problem = "No se completaron los experimentos dirigidos: " + error.Message;
+                string problem = Retro.Core.UiText.Get("No se completaron los experimentos dirigidos: ") + error.Message;
                 Say(problem); r.UnresolvedData.Add(problem);
             }
         }
@@ -582,18 +582,18 @@ public static class GamePreparer
         IReadOnlyList<VariableName>? names = null;
         if (o.Advisor is IVariableNamer namer && candidates.Count > 0)
         {
-            Say($"{o.Advisor.Name} mira la partida y nombra los {candidates.Count} datos observados...");
+            Say(Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(o.Advisor.Name)} mira la partida y nombra los {candidates.Count} datos observados..."));
             try
             {
                 names = await namer.NameVariablesAsync(new VariableQuestion
                 {
                     Goal = r.Goal, Game = r.Game, MachineName = machineName, Picture = Copy(m.Video), Candidates = candidates,
                 }, ct);
-                r.Advisors.Add($"{o.Advisor.Name} (nombres)");
+                r.Advisors.Add(Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(o.Advisor.Name)} (nombres)"));
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {
-                Say($"No pudo nombrarlas ({e.Message}); quedan los nombres del laboratorio.");
+                Say(Retro.Core.UiText.Format($"No pudo nombrarlas ({e.Message}); quedan los nombres del laboratorio."));
             }
         }
 
@@ -611,15 +611,15 @@ public static class GamePreparer
             Say(r.Problem);
             return r;
         }
-        profile.Verified += " Comprobado: una máquina nueva con este arranque llega a la partida (" + again.Evidence + ").";
+        profile.Verified += Retro.Core.UiText.Get(" Comprobado: una máquina nueva con este arranque llega a la partida (") + again.Evidence + ").";
         r.CheckedData.Add("El arranque guardado se reprodujo en una máquina nueva y respondió a los controles.");
         foreach (var control in lab.CheckedControls)
-            r.CheckedData.Add($"Control observado: {control.Key} usa {control.Value}.");
-        r.CheckedData.Add($"{profile.Variables.Count(v => !v.Value.ReadOnly)} variables disponibles con evidencia experimental o perfil previo; {profile.Variables.Count(v => v.Value.ReadOnly)} de solo lectura.");
+            r.CheckedData.Add(Retro.Core.UiText.Format($"Control observado: {control.Key} usa {control.Value}."));
+        r.CheckedData.Add(Retro.Core.UiText.Format($"{profile.Variables.Count(v => !v.Value.ReadOnly)} variables disponibles con evidencia experimental o perfil previo; {profile.Variables.Count(v => v.Value.ReadOnly)} de solo lectura."));
         if (profile.Variables.Count == 0)
             r.UnresolvedData.Add("El arranque quedó preparado, pero no se identificaron variables reutilizables.");
         if (r.Goal.Length > 0)
-            r.UnresolvedData.Add("Revisar qué requisitos del objetivo quedaron cubiertos por los datos observados: " + r.Goal);
+            r.UnresolvedData.Add(Retro.Core.UiText.Get("Revisar qué requisitos del objetivo quedaron cubiertos por los datos observados: ") + r.Goal);
         r.UnresolvedData.Add("La preparación no acredita por sí sola hitboxes, solidez, cámara, daño ni progreso; requieren evidencia específica.");
         lab.Notes.AddRange(r.CheckedData);
         lab.Notes.AddRange(r.UnresolvedData);
@@ -636,14 +636,14 @@ public static class GamePreparer
         r.Continuation = new(machine, r.Sha256, m.SaveState(), r.Boot.ToArray(), frames);
         if (o.Save)
         {
-            if (!Path.GetFullPath(Path.Combine(profileFolder, profile.Id + ".json")).Equals(Path.GetFullPath(expectedProfilePath),
+            if (!Path.GetFullPath(Path.Combine(profileFolder, profile.Id + Retro.Core.UiText.Get(".json"))).Equals(Path.GetFullPath(expectedProfilePath),
                     OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal) ||
                 ProfileStamp() != originalProfileStamp)
                 throw new InvalidDataException("El perfil cambió durante la investigación. No se sobrescribieron los cambios.");
             string dir = profileFolder;
             r.ProfilePath = ProfileLibrary.SaveTo(profile, dir);
-            lab.Save(Path.Combine(dir, "lab", profile.Id + ".json"));
-            Say($"Perfil guardado en {r.ProfilePath}.");
+            lab.Save(Path.Combine(dir, "lab", profile.Id + Retro.Core.UiText.Get(".json")));
+            Say(Retro.Core.UiText.Format($"Perfil guardado en {r.ProfilePath}."));
         }
         r.Ok = true;
         return r;
@@ -662,7 +662,7 @@ public static class GamePreparer
                 if (sameField && item.Value.ReadOnly && !fresh.ReadOnly) continue;
                 // Keep conflicting observations accessible without silently redirecting an existing helper's variable.
                 if (!sameField && !fresh.ReadOnly)
-                    profile.Variables.TryAdd(item.Key + "Observed" + fresh.Address + fresh.Encoding + fresh.Bytes, fresh);
+                    profile.Variables.TryAdd(item.Key + Retro.Core.UiText.Get("Observed") + fresh.Address + fresh.Encoding + fresh.Bytes, fresh);
             }
             profile.Variables[item.Key] = item.Value;
         }
@@ -670,7 +670,8 @@ public static class GamePreparer
         profile.Sprites = new(previous.Sprites);
         profile.Helpers = previous.Helpers.ToList();
         profile.HelpersDoc = previous.HelpersDoc.ToList();
-        profile.Description = previous.Description.Split("\nPreparación adicional:", 2)[0] + "\nPreparación adicional: " + profile.Description;
+        string description = previous.Description.Split("\nPreparación adicional:", 2)[0].Split("\nAdditional preparation:", 2)[0];
+        profile.Description = description + Retro.Core.UiText.Get("\nPreparación adicional: ") + profile.Description;
         profile.Verified = (previous.Verified.Length > 4000 ? previous.Verified[..4000] : previous.Verified) + "\n" + profile.Verified;
     }
 
@@ -744,7 +745,7 @@ public static class GamePreparer
     /// <summary>Always the same "random" play: directions and fire, to make the score go up.</summary>
     public static LabExperiment PlayExperiment(ControlSet c, string machine)
     {
-        var e = new LabExperiment { Kind = "score", Description = $"jugar al azar con {c.Name} y disparar seguido", Frames = 2400 };
+        var e = new LabExperiment { Kind = "score", Description = Retro.Core.UiText.Format($"jugar al azar con {Retro.Core.UiText.Raw(c.Name)} y disparar seguido"), Frames = 2400 };
         var rng = new Random(1983);
         string[] moves = { c.Left, c.Right, c.Up, c.Down };
         for (int f = 0; f < e.Frames; f += 20)
@@ -767,7 +768,7 @@ public static class GamePreparer
             .OrderByDescending(f => f!.Confidence).Take(12).ToList();
         return picked.Select(f => new VariableCandidate(f!.Address, f.Kind, f.Encoding, f.Bytes,
             new GameVariable { Address = f.Address, Encoding = f.Encoding, Bytes = f.Bytes, Max = int.MaxValue }.Read(m.Memory),
-            f.Status != "verified", string.Join(" ", f.Evidence.Take(2)) + (f.Verification != null ? " Verificación: " + string.Join("; ", f.Verification.Observations.Take(2)) + "." : "")))
+            f.Status != "verified", string.Join(" ", f.Evidence.Take(2)) + (f.Verification != null ? Retro.Core.UiText.Get(" Verificación: ") + string.Join("; ", f.Verification.Observations.Take(2)) + "." : "")))
             .ToList();
     }
 
@@ -787,15 +788,15 @@ public static class GamePreparer
     {
         var p = new GameProfile
         {
-            Id = $"{Slug(r.Game)}-{r.Sha256[..8]}",
-            Name = $"{r.Game} ({machineName})",
+            Id = Retro.Core.UiText.Format($"{Slug(r.Game)}-{r.Sha256[..8]}"),
+            Name = Retro.Core.UiText.Format($"{r.Game} ({machineName})"),
             Machine = r.Machine,
             Match = new ProfileMatch { Sha256 = { r.Sha256 }, Member = r.Member },
             Boot = r.Boot.ToList(),
         };
         LabFinding? Best(string kind) => lab.Findings.Where(f => f.Kind == kind && f.Status == "verified")
             .OrderByDescending(f => kind == "timer" && f.Encoding == "digits" && f.Bytes > 1).ThenByDescending(f => f.Confidence).FirstOrDefault();
-        string Why(LabFinding f) => f.Verification == null ? "" : " Verificada: " + string.Join("; ", f.Verification.Observations.Take(3)) + ".";
+        string Why(LabFinding f) => f.Verification == null ? "" : Retro.Core.UiText.Get(" Verificada: ") + string.Join("; ", f.Verification.Observations.Take(3)) + ".";
         int MaxFor(LabFinding f) => f.Encoding switch
         {
             "bcd" => (int)Math.Min(int.MaxValue, Math.Pow(10, f.Bytes * 2) - 1),
@@ -811,7 +812,7 @@ public static class GamePreparer
             {
                 Address = f.Address, Encoding = f.Encoding, Bytes = f.Bytes, Min = 0, Max = max ?? MaxFor(f),
                 PurposeStatus = "hypothesis",
-                Description = "Hipótesis por variación: " + what + Why(f),
+                Description = Retro.Core.UiText.Get("Hipótesis por variación: ") + what + Why(f),
             };
         }
         var named = names?.Where(n => n.Keep && CleanName(n.Name).Length > 0).ToList();
@@ -829,7 +830,7 @@ public static class GamePreparer
                 {
                     Address = f.Address, Encoding = f.Encoding, Bytes = f.Bytes, Min = 0, Max = MaxFor(f), ReadOnly = readOnly,
                     PurposeStatus = "hypothesis",
-                    Description = "Nombre propuesto por la IA: " + n.Description + (readOnly ? " (Solo lectura: falta un efecto de escritura comprobado.)" : Why(f)),
+                    Description = Retro.Core.UiText.Get("Nombre propuesto por la IA: ") + n.Description + (readOnly ? " (Solo lectura: falta un efecto de escritura comprobado.)" : Why(f)),
                 };
             }
         }
@@ -858,7 +859,7 @@ public static class GamePreparer
                 {
                     Address = read.Address, Min = 0, Max = 255, ReadOnly = true,
                     PurposeStatus = "hypothesis",
-                    Description = "Hipótesis por variación: " + what + " (solo lectura: falta un efecto de escritura comprobado en la secuencia probada). " + read.Evidence.FirstOrDefault(),
+                    Description = Retro.Core.UiText.Get("Hipótesis por variación: ") + what + Retro.Core.UiText.Get(" (solo lectura: falta un efecto de escritura comprobado en la secuencia probada). ") + read.Evidence.FirstOrDefault(),
                 };
         }
         }
@@ -869,12 +870,12 @@ public static class GamePreparer
         if (!string.IsNullOrWhiteSpace(c.Fire)) p.Controls["fire"] = c.Fire;
         foreach (var control in lab.CheckedControls) p.Controls[control.Key] = control.Value;
         var tables = lab.Findings.Where(f => f.Kind == "entity-table" && f.Status == "verified").ToList();
-        p.Description = $"{r.Game} para {machineName} (copia {r.File}{(r.Member != null ? " > " + r.Member : "")}, SHA-256 {r.Sha256}). " +
-                        $"Perfil preparado automáticamente por RetroEmu: se juega con {c.Name}." +
-                        (tables.Count > 0 ? " Entidades en memoria: " + string.Join("; ", tables.Select(t => $"${t.Address}, {t.Count} registros de {t.Stride} bytes")) + "." : "");
-        p.Verified = $"Preparado el {DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC. Arranque descubierto por {string.Join(" y ", r.Advisors.DefaultIfEmpty("el arranque solo"))} " +
-                     $"en {r.Rounds} ronda(s), comprobado con los controles. Variables halladas por el laboratorio y verificadas escribiendo valores " +
-                     $"y comparando con la misma corrida sin tocar ({p.Variables.Count(v => !v.Value.ReadOnly)} verificadas, {p.Variables.Count(v => v.Value.ReadOnly)} de solo lectura)" +
+        p.Description = Retro.Core.UiText.Format($"{r.Game} para {machineName} (copia {r.File}{(r.Member != null ? " > " + r.Member : "")}, SHA-256 {r.Sha256}). ") +
+                        Retro.Core.UiText.Format($"Perfil preparado automáticamente por RetroEmu: se juega con {Retro.Core.UiText.Raw(c.Name)}.") +
+                        (tables.Count > 0 ? Retro.Core.UiText.Get(" Entidades en memoria: ") + string.Join("; ", tables.Select(t => Retro.Core.UiText.Format($"${t.Address}, {t.Count} registros de {t.Stride} bytes"))) + "." : "");
+        p.Verified = Retro.Core.UiText.Format($"Preparado el {DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC. Arranque descubierto por {string.Join(" y ", r.Advisors.DefaultIfEmpty("el arranque solo"))} ") +
+                     Retro.Core.UiText.Format($"en {r.Rounds} ronda(s), comprobado con los controles. Variables halladas por el laboratorio y verificadas escribiendo valores ") +
+                     Retro.Core.UiText.Format($"y comparando con la misma corrida sin tocar ({p.Variables.Count(v => !v.Value.ReadOnly)} verificadas, {p.Variables.Count(v => v.Value.ReadOnly)} de solo lectura)") +
                      (named is { Count: > 0 } ? "; los nombres los puso la IA mirando la partida." : "; los nombres salen de cómo cambian (pueden no ser exactos).");
         if (sourcePath != null) RomIdentities.ApplyForFile(sourcePath, p);
         return p;

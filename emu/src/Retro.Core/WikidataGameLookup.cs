@@ -28,7 +28,7 @@ public sealed partial class WikidataGameLookup(HttpClient client)
         if (!Platforms.TryGetValue(machine, out var platforms)) return null;
         string title = GameIdentification.TitleFromName(name);
         if (title.Length < 2) return null;
-        using var search = await Fetch("action=wbsearchentities&language=en&uselang=es&type=item&limit=8&search=" + Uri.EscapeDataString(title), cancellation);
+        using var search = await Fetch(Retro.Core.UiText.Get("action=wbsearchentities&language=en&uselang=es&type=item&limit=8&search=") + Uri.EscapeDataString(title), cancellation);
         if (!search.RootElement.TryGetProperty("search", out var hits) || hits.ValueKind != JsonValueKind.Array) return null;
         string[] ids = hits.EnumerateArray().Select(hit => hit.TryGetProperty("id", out var id) ? id.GetString() : null)
             .OfType<string>().Where(id => EntityId().IsMatch(id)).Distinct().Take(8).ToArray();
@@ -47,7 +47,7 @@ public sealed partial class WikidataGameLookup(HttpClient client)
         if (!Platforms.TryGetValue(machine, out var platforms)) return [];
         string title = GameIdentification.TitleFromName(name);
         if (title.Length < 2) return [];
-        using var search = await Fetch("action=wbsearchentities&language=en&uselang=es&type=item&limit=8&search=" + Uri.EscapeDataString(title), cancellation);
+        using var search = await Fetch(Retro.Core.UiText.Get("action=wbsearchentities&language=en&uselang=es&type=item&limit=8&search=") + Uri.EscapeDataString(title), cancellation);
         if (!search.RootElement.TryGetProperty("search", out var hits) || hits.ValueKind != JsonValueKind.Array) return [];
         string[] ids = hits.EnumerateArray().Select(hit => hit.TryGetProperty("id", out var id) ? id.GetString() : null)
             .OfType<string>().Where(id => EntityId().IsMatch(id)).Distinct().Take(8).ToArray();
@@ -92,11 +92,11 @@ public sealed partial class WikidataGameLookup(HttpClient client)
         if (!EntityId().IsMatch(idText)) return null;
         return new(Label(game) ?? title, GameIdentification.NormalizeGenres(genres.Select(id => labels.GetValueOrDefault(id)).OfType<string>()),
             release, publishers.Select(id => labels.GetValueOrDefault(id)).OfType<string>().FirstOrDefault(),
-            "https://www.wikidata.org/wiki/" + idText, method, first);
+            Retro.Core.UiText.Get("https://www.wikidata.org/wiki/") + idText, method, first);
     }
 
     private Task<JsonDocument> Entities(string[] ids, string properties, CancellationToken cancellation) =>
-        Fetch("action=wbgetentities&ids=" + string.Join('|', ids) + "&props=" + properties + "&languages=es|en", cancellation);
+        Fetch(Retro.Core.UiText.Get("action=wbgetentities&ids=") + string.Join('|', ids) + Retro.Core.UiText.Get("&props=") + properties + Retro.Core.UiText.Get("&languages=es|en"), cancellation);
 
     private async Task<JsonDocument> Fetch(string query, CancellationToken cancellation)
     {

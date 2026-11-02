@@ -34,15 +34,15 @@ public sealed class TrialReport
         {
             var sb = new StringBuilder();
             foreach (var c in Checks)
-                sb.AppendLine($"[{(c.Ok ? "bien" : c.Required ? "FALLA" : "aviso")}] {c.Name}: {c.Detail}");
+                sb.AppendLine(Retro.Core.UiText.Format($"[{(c.Ok ? Retro.Core.UiText.Get("bien") : c.Required ? Retro.Core.UiText.Get("FALLA") : Retro.Core.UiText.Get("aviso"))}] {Retro.Core.UiText.Raw(c.Name)}: {c.Detail}"));
             if (Assembly.Ok && ScreenText.Trim().Length > 0)
             {
-                sb.AppendLine("Texto en pantalla al final:");
+                sb.AppendLine(Retro.Core.UiText.Get("Texto en pantalla al final:"));
                 sb.AppendLine(string.Join("\n", ScreenText.Split('\n').Select(l => l.TrimEnd()).Where(l => l.Length > 0)));
             }
             if (Sketch.Length > 0)
             {
-                sb.AppendLine("Dibujo aproximado de la pantalla al final (cada carácter es un pedazo; \" .:+#\" de vacío a lleno):");
+                sb.AppendLine(Retro.Core.UiText.Get("Dibujo aproximado de la pantalla al final (cada carácter es un pedazo; \" .:+#\" de vacío a lleno):"));
                 sb.AppendLine(Sketch.TrimEnd());
             }
             return sb.ToString();
@@ -67,7 +67,7 @@ public static class HomebrewTrial
         ct.ThrowIfCancellationRequested();
         progress?.Invoke(new("Ensamblado", 0));
         ct.ThrowIfCancellationRequested();
-        var template = Templates.For(machine) ?? throw new ArgumentException($"no hay plantilla para {machine}");
+        var template = Templates.For(machine) ?? throw new ArgumentException(Retro.Core.UiText.Format($"no hay plantilla para {machine}"));
         var (asm, file) = Templates.Build(source, template.Machine);
         var report = new TrialReport { Machine = template.Machine, Assembly = asm, File = file };
         if (file == null)
@@ -75,7 +75,7 @@ public static class HomebrewTrial
             report.Checks.Add(new TrialCheck("ensambla", false, ErrorsText(asm, source)));
             return report;
         }
-        report.Checks.Add(new TrialCheck("ensambla", true, $"{asm.Bytes.Length} bytes desde ${asm.Origin:X4}"));
+        report.Checks.Add(new TrialCheck("ensambla", true, Retro.Core.UiText.Format($"{asm.Bytes.Length} bytes desde ${asm.Origin:X4}")));
 
         IMachine m;
         IMachine? active = null;
@@ -113,11 +113,11 @@ public static class HomebrewTrial
             bool readyLeft = failure != null && failure.Contains("READY.") && inside >= 50;
             if (inside == 0)
                 report.Checks.Add(new TrialCheck("arranca", false,
-                    $"en 100 cuadros la CPU nunca estuvo en tu código (${start:X4}-${end - 1:X4}); está en ${lastPc:X4}" + (failure != null ? $" y {failure}" : "")));
+                    Retro.Core.UiText.Format($"en 100 cuadros la CPU nunca estuvo en tu código (${start:X4}-${end - 1:X4}); está en ${lastPc:X4}") + (failure != null ? Retro.Core.UiText.Format($" y {failure}") : "")));
             else if (failure != null && !readyLeft)
                 report.Checks.Add(new TrialCheck("arranca", false, failure));
             else
-                report.Checks.Add(new TrialCheck("arranca", true, $"la CPU está en tu código en {inside} de 100 cuadros"));
+                report.Checks.Add(new TrialCheck("arranca", true, Retro.Core.UiText.Format($"la CPU está en tu código en {inside} de 100 cuadros")));
             if (readyLeft)
                 report.Checks.Add(new TrialCheck("pantalla limpia", false, "todavía se ve READY. del BASIC: borrá la pantalla al empezar", Required: false));
             if (!report.Checks[^1].Ok && report.Checks[^1].Required)
@@ -128,8 +128,8 @@ public static class HomebrewTrial
             ct.ThrowIfCancellationRequested();
             var (distinct, drawn) = Picture(m);
             report.Checks.Add(distinct >= 2 && drawn >= 16
-                ? new TrialCheck("dibuja", true, $"{distinct} colores en la imagen; {drawn} puntos no son fondo")
-                : new TrialCheck("dibuja", false, distinct < 2 ? "la imagen es de un solo color: no se dibujó nada" : $"solo {drawn} puntos no son fondo: lo dibujado casi no se ve"));
+                ? new TrialCheck("dibuja", true, Retro.Core.UiText.Format($"{distinct} colores en la imagen; {drawn} puntos no son fondo"))
+                : new TrialCheck("dibuja", false, distinct < 2 ? "la imagen es de un solo color: no se dibujó nada" : Retro.Core.UiText.Format($"solo {drawn} puntos no son fondo: lo dibujado casi no se ve")));
 
             // the controls, from where the game is now or after a start key
             progress?.Invoke(new("Controles", 0));
@@ -157,10 +157,10 @@ public static class HomebrewTrial
             }
             report.Controls = play.Controls;
             report.Checks.Add(play.Playing
-                ? new TrialCheck("controles", true, (report.StartKey != null ? $"después de apretar {report.StartKey}, " : "") + play.Evidence)
+                ? new TrialCheck("controles", true, (report.StartKey != null ? Retro.Core.UiText.Format($"después de apretar {report.StartKey}, ") : "") + play.Evidence)
                 : new TrialCheck("controles", false,
-                    "ningún control mueve algo de forma sostenida (probé " + string.Join(", ", PlayDetector.SetsFor(report.Machine).Select(s => s.Name)) +
-                    ", también después de apretar " + string.Join(" o ", StartKeys(report.Machine)) + "): el jugador tiene que moverse con alguno"));
+                    Retro.Core.UiText.Get("ningún control mueve algo de forma sostenida (probé ") + string.Join(", ", PlayDetector.SetsFor(report.Machine).Select(s => s.Name)) +
+                    Retro.Core.UiText.Get(", también después de apretar ") + string.Join(" o ", StartKeys(report.Machine)) + Retro.Core.UiText.Get("): el jugador tiene que moverse con alguno")));
 
             if (play.Playing && play.Controls != null)
                 report.Checks.Add(Robot(m, play.Controls, robotFrames, seed, start, end, s => heard |= s, ct, progress));
@@ -220,7 +220,7 @@ public static class HomebrewTrial
                 if (failure != null)
                 {
                     m.ReleaseAllKeys();
-                    return new TrialCheck("jugador robot", false, $"jugando al azar, en el cuadro {f + 1} {failure}");
+                    return new TrialCheck("jugador robot", false, Retro.Core.UiText.Format($"jugando al azar, en el cuadro {f + 1} {failure}"));
                 }
             }
         }
@@ -228,10 +228,10 @@ public static class HomebrewTrial
         m.ReleaseAllKeys();
         double seconds = frames / m.FramesPerSecond;
         if (changed == 0)
-            return new TrialCheck("jugador robot", false, $"jugó {seconds:F0} s al azar y la pantalla no cambió nunca: el juego se colgó o no dibuja lo que pasa");
+            return new TrialCheck("jugador robot", false, Retro.Core.UiText.Format($"jugó {seconds:F0} s al azar y la pantalla no cambió nunca: el juego se colgó o no dibuja lo que pasa"));
         if (inside == 0)
-            return new TrialCheck("jugador robot", false, $"jugó {seconds:F0} s y la CPU dejó tu código (está en ${m.Cpu.ProgramCounter:X4})");
-        return new TrialCheck("jugador robot", true, $"jugó {seconds:F0} s al azar sin que se trabe; la pantalla cambió en {changed} de {samples} miradas");
+            return new TrialCheck("jugador robot", false, Retro.Core.UiText.Format($"jugó {seconds:F0} s y la CPU dejó tu código (está en ${m.Cpu.ProgramCounter:X4})"));
+        return new TrialCheck("jugador robot", true, Retro.Core.UiText.Format($"jugó {seconds:F0} s al azar sin que se trabe; la pantalla cambió en {changed} de {samples} miradas"));
     }
 
     private static TrialReport Finish(TrialReport report, IMachine m)
@@ -294,15 +294,15 @@ public static class HomebrewTrial
     public static string ErrorsText(AsmResult r, string source)
     {
         var lines = source.Replace("\r\n", "\n").Split('\n');
-        var sb = new StringBuilder($"{r.Errors.Count} error{(r.Errors.Count == 1 ? "" : "es")} del ensamblador:");
+        var sb = new StringBuilder(Retro.Core.UiText.Format($"{r.Errors.Count} error{(r.Errors.Count == 1 ? "" : Retro.Core.UiText.Get("es"))} del ensamblador:"));
         foreach (var e in r.Errors.Take(15))
         {
-            sb.Append($"\n  línea {e.Line}: {e.Message}");
+            sb.Append(Retro.Core.UiText.Format($"\n  línea {e.Line}: {e.Message}"));
             if (e.Line >= 1 && e.Line <= lines.Length)
-                sb.Append($"\n      {lines[e.Line - 1].Trim()}");
+                sb.Append(Retro.Core.UiText.Format($"\n      {lines[e.Line - 1].Trim()}"));
         }
         if (r.Errors.Count > 15)
-            sb.Append($"\n  y {r.Errors.Count - 15} más");
+            sb.Append(Retro.Core.UiText.Format($"\n  y {r.Errors.Count - 15} más"));
         return sb.ToString();
     }
 }

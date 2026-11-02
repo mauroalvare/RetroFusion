@@ -6,7 +6,13 @@ namespace Retro.Machines;
 public enum MachineStatus { Available, Planned }
 
 /// <param name="Needs">What the user has to provide to run software on it (shown in the Machine menu).</param>
-public sealed record MachineInfo(string Id, string Name, string Cpu, MachineStatus Status, string[] RomFiles, string[] Extensions, string Needs = "");
+public sealed record MachineInfo(string Id, string Name, string Cpu, MachineStatus Status, string[] RomFiles, string[] Extensions, string Needs = "")
+{
+    private readonly string _name = Name, _cpu = Cpu, _needs = Needs;
+    public string Name { get => UiText.Get(_name); init => _name = value; }
+    public string Cpu { get => UiText.Get(_cpu); init => _cpu = value; }
+    public string Needs { get => UiText.Get(_needs); init => _needs = value; }
+}
 
 /// <summary>
 /// Every system the emulator knows about, implemented or planned, with the file
@@ -42,7 +48,11 @@ public static class MachineCatalog
 
     public static MachineInfo Get(string id) => All.First(m => m.Id == id);
 
-    public sealed record Candidate(MachineInfo Machine, MediaFile File, int Confidence, string Reason);
+    public sealed record Candidate(MachineInfo Machine, MediaFile File, int Confidence, string Reason)
+    {
+        private readonly string _reason = Reason;
+        public string Reason { get => UiText.Get(_reason); init => _reason = value; }
+    }
 
     /// <summary>
     /// Arcade boards come as a set of ROM chips inside one zip: identify the whole set.
@@ -82,13 +92,13 @@ public static class MachineCatalog
         if (ext == ".d64" && (d.Length == 174848 || d.Length == 175531))
             Add("c64", 90, "disco de 1541 (.d64)");
         if (ext == ".crt" && !Starts("C64 CARTRIDGE") && d.Length >= 2 && d[0] == 0 && d[1] is 0xA0 or 0x20 or 0x40 or 0x60)
-            Add("vic20", 85, $"cartucho de VIC-20 (se carga en ${d[1]:X2}00)");
+            Add("vic20", 85, Retro.Core.UiText.Format($"cartucho de VIC-20 (se carga en ${d[1]:X2}00)"));
         if (ext == ".prg" && d.Length > 2)
         {
             int load = d[0] | (d[1] << 8);
             if (load == 0x0801) Add("c64", 80, "programa de C64 (empieza en $0801)");
-            else if (load is 0x1001 or 0x1201) Add("vic20", 75, $"programa de VIC-20 (empieza en ${load:X4})");
-            else Add("c64", 50, $"programa de Commodore (empieza en ${load:X4})");
+            else if (load is 0x1001 or 0x1201) Add("vic20", 75, Retro.Core.UiText.Format($"programa de VIC-20 (empieza en ${load:X4})"));
+            else Add("c64", 50, Retro.Core.UiText.Format($"programa de Commodore (empieza en ${load:X4})"));
         }
 
         // Atari 8 bits
@@ -101,7 +111,7 @@ public static class MachineCatalog
 
         // NES
         if (Bytes(0x4E, 0x45, 0x53, 0x1A))
-            Add("nes", 95, NesMapperProblem(d) is { } problem ? $"cartucho de NES (iNES; {problem})" : "cartucho de NES (iNES)");
+            Add("nes", 95, NesMapperProblem(d) is { } problem ? Retro.Core.UiText.Format($"cartucho de NES (iNES; {problem})") : "cartucho de NES (iNES)");
 
         // Amstrad CPC
         if (Starts("MV - CPC") || Starts("EXTENDED CPC DSK"))
@@ -138,7 +148,7 @@ public static class MachineCatalog
 
         foreach (var m in All)
             if (m.Extensions.Contains(ext) && list.All(c => c.Machine.Id != m.Id) && m.Id is not ("zx48" or "invaders"))
-                list.Add(new Candidate(m, f, 20, "por la extensión " + ext));
+                list.Add(new Candidate(m, f, 20, Retro.Core.UiText.Get("por la extensión ") + ext));
         return list.OrderByDescending(c => c.Machine.Status == MachineStatus.Available && c.Confidence >= 50)
             .ThenByDescending(c => c.Confidence).ToList();
     }

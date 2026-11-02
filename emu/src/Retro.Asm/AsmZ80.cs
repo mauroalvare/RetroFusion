@@ -101,36 +101,36 @@ public static class AsmZ80
             var parts = new Part[len];
             if (dispAt >= 0)
             {
-                if (len != 4 || !text.Contains($"+${M1:X2})"))
+                if (len != 4 || !text.Contains(Retro.Core.UiText.Format($"+${M1:X2})")))
                     return null;
                 parts[0] = new Part(Slot.Fixed, buf[0]);
                 parts[1] = new Part(Slot.Fixed, buf[1]);
                 parts[2] = new Part(Slot.D);
                 parts[3] = new Part(Slot.Fixed, buf[3]);
-                text = text.Replace($"+${M1:X2})", "+d)");
+                text = text.Replace(Retro.Core.UiText.Format($"+${M1:X2})"), "+d)");
             }
             else
             {
                 for (int i = 0; i < nFixed; i++)
                     parts[i] = new Part(Slot.Fixed, buf[i]);
                 int operands = len - nFixed;
-                string nn = $"${M2:X2}{M1:X2}", rel = $"${At + nFixed + 1 + (sbyte)M1:X4}";
+                string nn = Retro.Core.UiText.Format($"${M2:X2}{M1:X2}"), rel = Retro.Core.UiText.Format($"${At + nFixed + 1 + (sbyte)M1:X4}");
                 if (operands == 2 && text.Contains(nn))
                 {
                     text = text.Replace(nn, "nn");
                     parts[nFixed] = new Part(Slot.NnLo);
                     parts[nFixed + 1] = new Part(Slot.NnHi);
                 }
-                else if (operands == 2 && text.Contains($"+${M1:X2})") && text.Contains($"${M2:X2}"))
+                else if (operands == 2 && text.Contains(Retro.Core.UiText.Format($"+${M1:X2})")) && text.Contains(Retro.Core.UiText.Format($"${M2:X2}")))
                 {
                     // LD (IX+d),n
-                    text = text.Replace($"+${M1:X2})", "+d)").Replace($"${M2:X2}", "n");
+                    text = text.Replace(Retro.Core.UiText.Format($"+${M1:X2})"), "+d)").Replace(Retro.Core.UiText.Format($"${M2:X2}"), "n");
                     parts[nFixed] = new Part(Slot.D);
                     parts[nFixed + 1] = new Part(Slot.N);
                 }
-                else if (operands == 1 && text.Contains($"+${M1:X2})"))
+                else if (operands == 1 && text.Contains(Retro.Core.UiText.Format($"+${M1:X2})")))
                 {
-                    text = text.Replace($"+${M1:X2})", "+d)");
+                    text = text.Replace(Retro.Core.UiText.Format($"+${M1:X2})"), "+d)");
                     parts[nFixed] = new Part(Slot.D);
                 }
                 else if (operands == 1 && (text.StartsWith("JR") || text.StartsWith("DJNZ")) && text.Contains(rel))
@@ -138,9 +138,9 @@ public static class AsmZ80
                     text = text.Replace(rel, "e");
                     parts[nFixed] = new Part(Slot.E);
                 }
-                else if (operands == 1 && text.Contains($"${M1:X2}"))
+                else if (operands == 1 && text.Contains(Retro.Core.UiText.Format($"${M1:X2}")))
                 {
-                    text = text.Replace($"${M1:X2}", "n");
+                    text = text.Replace(Retro.Core.UiText.Format($"${M1:X2}"), "n");
                     parts[nFixed] = new Part(Slot.N);
                 }
                 else if (operands != 0)
@@ -172,8 +172,8 @@ public static class AsmZ80
                 return;
             }
             string? clash = given.FirstOrDefault(g => Reserved.Contains(g) && (c.Symbols.ContainsKey(g) || c.Known?.ContainsKey(g) == true));
-            throw new FormatException($"{mnem} {operand} no es una forma válida del Z80" +
-                (clash != null ? $" ({clash} es un registro o una condición del Z80, no puede ser el nombre de una etiqueta: cambiale el nombre)" : ""));
+            throw new FormatException(Retro.Core.UiText.Format($"{mnem} {operand} no es una forma válida del Z80") +
+                (clash != null ? Retro.Core.UiText.Format($" ({clash} es un registro o una condición del Z80, no puede ser el nombre de una etiqueta: cambiale el nombre)") : ""));
         }
 
         private static bool Wrapped(string s)
@@ -265,7 +265,7 @@ public static class AsmZ80
                     {
                         int v = c.EvalOrZero(values[Slot.N]);
                         if (c.Final && (v < -128 || v > 255))
-                            throw new FormatException($"{v} no entra en un byte");
+                            throw new FormatException(Retro.Core.UiText.Format($"{v} no entra en un byte"));
                         c.Emit((byte)v);
                         break;
                     }
@@ -279,7 +279,7 @@ public static class AsmZ80
                     {
                         int v = c.EvalOrZero(values[Slot.D]);
                         if (c.Final && (v < -128 || v > 127))
-                            throw new FormatException($"el desplazamiento {v} está fuera de -128..127");
+                            throw new FormatException(Retro.Core.UiText.Format($"el desplazamiento {v} está fuera de -128..127"));
                         c.Emit((byte)v);
                         break;
                     }
@@ -288,7 +288,7 @@ public static class AsmZ80
                         int target = c.EvalOrZero(values[Slot.E], start + t.Length);
                         int offset = target - (start + t.Length);
                         if (c.Final && (offset < -128 || offset > 127))
-                            throw new FormatException($"el salto relativo a ${target:X4} está fuera de alcance ({offset})");
+                            throw new FormatException(Retro.Core.UiText.Format($"el salto relativo a ${target:X4} está fuera de alcance ({offset})"));
                         c.Emit((byte)offset);
                         break;
                     }

@@ -6,7 +6,7 @@ namespace Retro.Asm;
 /// <summary>A mistake in the source, with the line where it is.</summary>
 public sealed record AsmError(int Line, string Message)
 {
-    public override string ToString() => $"línea {Line}: {Message}";
+    public override string ToString() => Retro.Core.UiText.Format($"línea {Line}: {Message}");
 }
 
 /// <summary>What assembling gives: the bytes from <see cref="Origin"/>, the symbols, the errors and a listing.</summary>
@@ -72,7 +72,7 @@ internal sealed class AsmContext
             }
             catch (Unresolved u) when (final)
             {
-                Errors.Add(new AsmError(Line, $"símbolo sin definir: {u.Message}"));
+                Errors.Add(new AsmError(Line, Retro.Core.UiText.Format($"símbolo sin definir: {u.Message}")));
             }
             catch (FormatException e)
             {
@@ -109,7 +109,7 @@ internal sealed class AsmContext
         if (label && !name.StartsWith('@'))
             _scope = name;
         if (!Final && Symbols.ContainsKey(full))
-            throw new FormatException($"\"{full}\" ya está definido");
+            throw new FormatException(Retro.Core.UiText.Format($"\"{full}\" ya está definido"));
         Symbols[full] = value;
     }
 
@@ -152,9 +152,9 @@ internal sealed class AsmContext
         else if (set.Knows(word))
             set.Assemble(this, word.ToUpperInvariant(), rest);
         else
-            throw new FormatException($"instrucción desconocida: {word.ToUpperInvariant()}");
+            throw new FormatException(Retro.Core.UiText.Format($"instrucción desconocida: {word.ToUpperInvariant()}"));
         if (Final && Output.Count > outBefore)
-            Listing.Add($"{before:X4}  {string.Join(" ", Output.Skip(outBefore).Take(8).Select(b => b.ToString("X2"))),-24}{raw.TrimEnd()}");
+            Listing.Add(Retro.Core.UiText.Format($"{before:X4}  {string.Join(" ", Output.Skip(outBefore).Take(8).Select(b => b.ToString("X2"))),-24}{raw.TrimEnd()}"));
     }
 
     /// <summary>Directives also written without the dot (Z80 assemblers: ORG, DB, DEFB, DW, DEFS...).</summary>
@@ -170,7 +170,7 @@ internal sealed class AsmContext
                 int target = Eval(args);
                 _lineStart = target;
                 if (_started && target < Pc)
-                    throw new FormatException($".org ${target:X4} va para atrás (ya se llegó a ${Pc:X4})");
+                    throw new FormatException(Retro.Core.UiText.Format($".org ${target:X4} va para atrás (ya se llegó a ${Pc:X4})"));
                 if (_started)
                     while (Pc < target) Emit(0);
                 else
@@ -212,7 +212,7 @@ internal sealed class AsmContext
                 break;
             }
             default:
-                throw new FormatException($"directiva desconocida: .{dir}");
+                throw new FormatException(Retro.Core.UiText.Format($"directiva desconocida: .{dir}"));
         }
     }
 
@@ -226,7 +226,7 @@ internal sealed class AsmContext
         return whenUnknown;
     }
 
-    public int Eval(string expr) => TryEval(expr, out int v) ? v : throw new FormatException($"no se puede calcular \"{expr.Trim()}\" en este lugar");
+    public int Eval(string expr) => TryEval(expr, out int v) ? v : throw new FormatException(Retro.Core.UiText.Format($"no se puede calcular \"{expr.Trim()}\" en este lugar"));
 
     public bool TryEval(string expr, out int value)
     {
@@ -298,7 +298,7 @@ internal sealed class ExprParser
         int v = Or();
         Skip();
         if (_i < _s.Length)
-            throw new FormatException($"sobra \"{_s[_i..]}\" en la expresión \"{_s}\"");
+            throw new FormatException(Retro.Core.UiText.Format($"sobra \"{_s[_i..]}\" en la expresión \"{_s}\""));
         return v;
     }
 
@@ -367,13 +367,13 @@ internal sealed class ExprParser
     {
         Skip();
         if (_i >= _s.Length)
-            throw new FormatException($"falta un valor en \"{_s}\"");
+            throw new FormatException(Retro.Core.UiText.Format($"falta un valor en \"{_s}\""));
         char c = _s[_i];
         if (Eat("("))
         {
             int v = Or();
             if (!Eat(")"))
-                throw new FormatException($"falta cerrar un paréntesis en \"{_s}\"");
+                throw new FormatException(Retro.Core.UiText.Format($"falta cerrar un paréntesis en \"{_s}\""));
             return v;
         }
         if (c == '$' && (_i + 1 >= _s.Length || !Uri.IsHexDigit(_s[_i + 1])))
@@ -417,7 +417,7 @@ internal sealed class ExprParser
             while (_i < _s.Length && (char.IsLetterOrDigit(_s[_i]) || _s[_i] == '_')) _i++;
             return _c.Lookup(_s[start.._i]);
         }
-        throw new FormatException($"no entiendo \"{_s[_i..]}\" en la expresión");
+        throw new FormatException(Retro.Core.UiText.Format($"no entiendo \"{_s[_i..]}\" en la expresión"));
     }
 
     private int Number(int radix, int prefix)
@@ -427,7 +427,7 @@ internal sealed class ExprParser
         while (_i < _s.Length && Uri.IsHexDigit(_s[_i]) && (radix == 16 || char.IsDigit(_s[_i]))) _i++;
         string digits = _s[start.._i];
         if (digits.Length == 0)
-            throw new FormatException($"número mal escrito en \"{_s}\"");
+            throw new FormatException(Retro.Core.UiText.Format($"número mal escrito en \"{_s}\""));
         return radix switch
         {
             16 => int.Parse(digits, NumberStyles.HexNumber, CultureInfo.InvariantCulture),

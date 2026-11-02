@@ -92,7 +92,7 @@ public sealed class AiPlayAdvisor : IPlayAdvisor, IVariableNamer, IPreparationEx
         // and results), so resending old turns would only make each request bigger and costlier
         var turns = new[] { new AiTurn(true, observation.Describe()) };
         // the screen as it is: the text reader and the sketch miss custom fonts and graphics
-        string? picture = observation.Picture != null ? SavePicture(observation.Picture, $"ronda-{observation.Round:00}") : null;
+        string? picture = observation.Picture != null ? SavePicture(observation.Picture, Retro.Core.UiText.Format($"ronda-{observation.Round:00}")) : null;
         string answer;
         try
         {
@@ -264,7 +264,7 @@ public sealed class AiPlayAdvisor : IPlayAdvisor, IVariableNamer, IPreparationEx
     /// <summary>Accepts only bounded input plans. Memory and code never come from this response.</summary>
     public static List<LabExperiment> ParseExperiments(string answer, IReadOnlyList<string> allowedKeys)
     {
-        static AiException Invalid(string detail) => new("La IA devolvió una prueba de controles inválida: " + detail);
+        static AiException Invalid(string detail) => new(Retro.Core.UiText.Get("La IA devolvió una prueba de controles inválida: ") + detail);
         static void Fields(JsonElement item, params string[] names)
         {
             if (item.ValueKind != JsonValueKind.Object) throw Invalid("se esperaba un objeto JSON.");
@@ -278,13 +278,13 @@ public sealed class AiPlayAdvisor : IPlayAdvisor, IVariableNamer, IPreparationEx
         {
             var value = item.GetProperty(key);
             if (value.ValueKind != JsonValueKind.Number || !value.TryGetInt32(out int number))
-                throw Invalid(key + " debe ser un número entero.");
+                throw Invalid(key + Retro.Core.UiText.Get(" debe ser un número entero."));
             return number;
         }
         static string Text(JsonElement item, string key)
         {
             var value = item.GetProperty(key);
-            if (value.ValueKind != JsonValueKind.String) throw Invalid(key + " debe ser texto.");
+            if (value.ValueKind != JsonValueKind.String) throw Invalid(key + Retro.Core.UiText.Get(" debe ser texto."));
             return value.GetString()!;
         }
 
@@ -341,7 +341,7 @@ public sealed class AiPlayAdvisor : IPlayAdvisor, IVariableNamer, IPreparationEx
     {
         string dir = Path.Combine(Path.GetTempPath(), "RetroEmu-ia", "pantallas");
         Directory.CreateDirectory(dir);
-        string path = Path.Combine(dir, $"{label}-{Guid.NewGuid():N}.png");
+        string path = Path.Combine(dir, Retro.Core.UiText.Format($"{label}-{Guid.NewGuid():N}.png"));
         Retro.Core.PngWriter.Write(path, frame, 2);
         return path;
     }
@@ -414,28 +414,28 @@ public sealed class FolderPlayAdvisor : IPlayAdvisor, IVariableNamer, IPreparati
         _timeout = timeout ?? TimeSpan.FromMinutes(30);
     }
 
-    public string Name => "un agente (carpeta " + _folder + ")";
+    public string Name => Retro.Core.UiText.Get("un agente (carpeta ") + _folder + ")";
 
     public async Task<PlayAdvice> AdviseAsync(PlayObservation observation, CancellationToken ct)
     {
         Directory.CreateDirectory(_folder);
         string readme = Path.Combine(_folder, "LEEME.md");
         if (!File.Exists(readme))
-            File.WriteAllText(readme, "# Preparar un juego para las fusiones\n\n" + AiPlayAdvisor.Guide +
-                "\n\nCada ronda está en ronda-NN.md. Escribí la respuesta en respuesta-NN.json (mismo número) con este esquema JSON:\n\n```json\n" +
+            File.WriteAllText(readme, Retro.Core.UiText.Get("# Preparar un juego para las fusiones\n\n") + AiPlayAdvisor.Guide +
+                Retro.Core.UiText.Get("\n\nCada ronda está en ronda-NN.md. Escribí la respuesta en respuesta-NN.json (mismo número) con este esquema JSON:\n\n```json\n") +
                 JsonSerializer.Serialize(AiPlayAdvisor.Schema(), new JsonSerializerOptions { WriteIndented = true }) + "\n```\n");
-        string answerPath = Path.Combine(_folder, $"respuesta-{observation.Round:00}.json");
+        string answerPath = Path.Combine(_folder, Retro.Core.UiText.Format($"respuesta-{observation.Round:00}.json"));
         if (File.Exists(answerPath))
             File.Delete(answerPath);
         string text = observation.Describe();
         if (observation.Picture != null)
         {
             // agents that can look at images read the screen better than the sketch
-            string png = Path.Combine(_folder, $"ronda-{observation.Round:00}.png");
+            string png = Path.Combine(_folder, Retro.Core.UiText.Format($"ronda-{observation.Round:00}.png"));
             Retro.Core.PngWriter.Write(png, observation.Picture, 2);
-            text += $"\nCaptura de la pantalla: {Path.GetFileName(png)} (en esta carpeta).\n";
+            text += Retro.Core.UiText.Format($"\nCaptura de la pantalla: {Retro.Core.UiText.Raw(Path.GetFileName(png))} (en esta carpeta).\n");
         }
-        File.WriteAllText(Path.Combine(_folder, $"ronda-{observation.Round:00}.md"), text);
+        File.WriteAllText(Path.Combine(_folder, Retro.Core.UiText.Format($"ronda-{observation.Round:00}.md")), text);
         var until = DateTime.UtcNow + _timeout;
         while (DateTime.UtcNow < until)
         {
@@ -451,7 +451,7 @@ public sealed class FolderPlayAdvisor : IPlayAdvisor, IVariableNamer, IPreparati
                 // still being written
             }
         }
-        throw new AiException($"Nadie respondió {Path.GetFileName(answerPath)} en {_timeout.TotalMinutes:F0} minutos.");
+        throw new AiException(Retro.Core.UiText.Format($"Nadie respondió {Retro.Core.UiText.Raw(Path.GetFileName(answerPath))} en {_timeout.TotalMinutes:F0} minutos."));
     }
 
     /// <summary>The agent supplies the same bounded input plans as a directly connected provider.</summary>
@@ -469,7 +469,7 @@ public sealed class FolderPlayAdvisor : IPlayAdvisor, IVariableNamer, IPreparati
             Retro.Core.PngWriter.Write(Path.Combine(_folder, "experimentos.png"), question.Picture, 2);
             text += "\nCaptura de la partida: experimentos.png (en esta carpeta).\n";
         }
-        text += "\nEscribí experimentos.json con este esquema JSON:\n" +
+        text += Retro.Core.UiText.Get("\nEscribí experimentos.json con este esquema JSON:\n") +
             JsonSerializer.Serialize(AiPlayAdvisor.ExperimentSchema(), new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(Path.Combine(_folder, "experimentos.md"), text);
         var until = DateTime.UtcNow + _timeout;
@@ -486,7 +486,7 @@ public sealed class FolderPlayAdvisor : IPlayAdvisor, IVariableNamer, IPreparati
             catch (AiException error) { File.WriteAllText(errorPath, error.Message); }
             catch (IOException) { /* The answer may still be written. */ }
         }
-        throw new AiException($"Nadie respondió experimentos.json en {_timeout.TotalMinutes:F0} minutos.");
+        throw new AiException(Retro.Core.UiText.Format($"Nadie respondió experimentos.json en {_timeout.TotalMinutes:F0} minutos."));
     }
 
     /// <summary>The same for the names: variables.md (and .png) in the folder, the answer in variables.json.</summary>
@@ -499,7 +499,7 @@ public sealed class FolderPlayAdvisor : IPlayAdvisor, IVariableNamer, IPreparati
         if (question.Picture != null)
             Retro.Core.PngWriter.Write(Path.Combine(_folder, "variables.png"), question.Picture, 2);
         File.WriteAllText(Path.Combine(_folder, "variables.md"), AiPlayAdvisor.NamingGuide + "\n\n" + question.Describe() +
-            "\nCaptura de la partida: variables.png. Respuesta en variables.json con este esquema:\n\n```json\n" +
+            Retro.Core.UiText.Get("\nCaptura de la partida: variables.png. Respuesta en variables.json con este esquema:\n\n```json\n") +
             JsonSerializer.Serialize(AiPlayAdvisor.NamingSchema(), new JsonSerializerOptions { WriteIndented = true }) + "\n```\n");
         var until = DateTime.UtcNow + _timeout;
         while (DateTime.UtcNow < until)
@@ -516,6 +516,6 @@ public sealed class FolderPlayAdvisor : IPlayAdvisor, IVariableNamer, IPreparati
                 // still being written
             }
         }
-        throw new AiException($"Nadie respondió variables.json en {_timeout.TotalMinutes:F0} minutos.");
+        throw new AiException(Retro.Core.UiText.Format($"Nadie respondió variables.json en {_timeout.TotalMinutes:F0} minutos."));
     }
 }

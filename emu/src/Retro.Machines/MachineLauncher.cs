@@ -44,7 +44,7 @@ public static class MachineLauncher
             {
                 string rom = Path.Combine(firmwareDirectory, "48.rom");
                 if (!File.Exists(rom))
-                    throw new FileNotFoundException($"Falta la ROM del Spectrum (48.rom) en {firmwareDirectory}.");
+                    throw new FileNotFoundException(Retro.Core.UiText.Format($"Falta la ROM del Spectrum (48.rom) en {firmwareDirectory}."));
                 var m = new Spectrum48(File.ReadAllBytes(rom));
                 media ??= files
                     .Where(f => SpectrumMedia.Probe(f) > 0)
@@ -87,7 +87,7 @@ public static class MachineLauncher
                 return new LaunchResult(m, media, cart.Describe(), Array.Empty<string>(), false);
             }
             default:
-                throw new NotSupportedException($"La máquina \"{machineId}\" todavía no está implementada.");
+                throw new NotSupportedException(Retro.Core.UiText.Format($"La máquina \"{machineId}\" todavía no está implementada."));
         }
     }
 
@@ -130,7 +130,7 @@ public static class MachineLauncher
         C64 c => c.FirmwareDescription,
         Spectrum48 => "ROM 48K de Sinclair (48.rom)",
         SpaceInvaders => "ROM del juego (4 chips de la placa)",
-        PcXt p => $"BIOS PC ({p.Board.Memory.BiosIdentity[..12]})",
+        PcXt p => Retro.Core.UiText.Format($"BIOS PC ({p.Board.Memory.BiosIdentity[..12]})"),
         Nes => "sin firmware (el programa está en el cartucho)",
         _ => "?",
     };
@@ -141,8 +141,8 @@ public static class MachineLauncher
         C64 => "Commodore 64 PAL, 64 KB",
         Spectrum48 => "ZX Spectrum 48K (PAL)",
         SpaceInvaders => "Placa Taito/Midway 8080, 8 KB ROM + 8 KB RAM",
-        PcXt p => $"PC/XT 8088, {p.Board.Memory.RamKilobytes} KB, CGA",
-        Nes n => $"Nintendo NES NTSC, 2 KB RAM; mapper {n.Cartridge.Mapper}",
+        PcXt p => Retro.Core.UiText.Format($"PC/XT 8088, {p.Board.Memory.RamKilobytes} KB, CGA"),
+        Nes n => Retro.Core.UiText.Format($"Nintendo NES NTSC, 2 KB RAM; mapper {n.Cartridge.Mapper}"),
         _ => m.DisplayName,
     };
 }

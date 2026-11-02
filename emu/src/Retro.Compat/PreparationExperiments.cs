@@ -22,20 +22,20 @@ public sealed class PreparationExperimentQuestion
     public string Describe()
     {
         var text = new StringBuilder();
-        text.AppendLine($"Juego: {Game}; máquina: {MachineName}.");
-        text.AppendLine("Objetivo de esta preparación: " + Goal);
-        text.AppendLine($"Ronda de investigación: {Pass}. Variables ya disponibles: {string.Join(", ", KnownVariables)}.");
-        foreach (string fact in KnownData.Take(24)) text.AppendLine("Dato del perfil (no demuestra otras reglas): " + fact[..Math.Min(320,fact.Length)]);
+        text.AppendLine(Retro.Core.UiText.Format($"Juego: {Game}; máquina: {MachineName}."));
+        text.AppendLine(Retro.Core.UiText.Get("Objetivo de esta preparación: ") + Goal);
+        text.AppendLine(Retro.Core.UiText.Format($"Ronda de investigación: {Pass}. Variables ya disponibles: {string.Join(", ", KnownVariables)}."));
+        foreach (string fact in KnownData.Take(24)) text.AppendLine(Retro.Core.UiText.Get("Dato del perfil (no demuestra otras reglas): ") + fact[..Math.Min(320,fact.Length)]);
         foreach (var previous in PreviousExperiments.TakeLast(18))
-            text.AppendLine($"Prueba anterior: {previous.Description}. Resultado: {previous.Outcome}");
-        text.AppendLine("La captura es el estado ACTUAL, que puede estar avanzado respecto al arranque. Proponé una estrategia distinta si las anteriores no descubrieron el dato.");
-        text.AppendLine("Teclas disponibles: " + string.Join(", ", Keys));
-        if (Controls != null) text.AppendLine($"Controles comprobados: {Controls.Name}; {string.Join(", ", Controls.Keys)}.");
+            text.AppendLine(Retro.Core.UiText.Format($"Prueba anterior: {previous.Description}. Resultado: {previous.Outcome}"));
+        text.AppendLine(Retro.Core.UiText.Get("La captura es el estado ACTUAL, que puede estar avanzado respecto al arranque. Proponé una estrategia distinta si las anteriores no descubrieron el dato."));
+        text.AppendLine(Retro.Core.UiText.Get("Teclas disponibles: ") + string.Join(", ", Keys));
+        if (Controls != null) text.AppendLine(Retro.Core.UiText.Format($"Controles comprobados: {Retro.Core.UiText.Raw(Controls.Name)}; {string.Join(", ", Controls.Keys)}."));
         foreach (var candidate in Candidates)
-            text.AppendLine("Dato observado $" + candidate.Address + $": {candidate.Guess}, {candidate.Encoding}, {candidate.Bytes} byte(s). {candidate.Evidence}");
-        text.AppendLine("Proponé entradas para provocar los cambios que faltan. El laboratorio buscará candidatos y repetirá cada prueba; una diferencia no demuestra su significado.");
-        text.AppendLine("Límites: 3 experimentos; 30–900 cuadros por experimento; 24 pasos; hold 1–180; frames dentro del experimento.");
-        text.AppendLine("Kind: score, level, ammo, item o change. No se aceptan direcciones, escrituras, archivos, comandos ni código.");
+            text.AppendLine(Retro.Core.UiText.Get("Dato observado $") + candidate.Address + Retro.Core.UiText.Format($": {candidate.Guess}, {candidate.Encoding}, {candidate.Bytes} byte(s). {candidate.Evidence}"));
+        text.AppendLine(Retro.Core.UiText.Get("Proponé entradas para provocar los cambios que faltan. El laboratorio buscará candidatos y repetirá cada prueba; una diferencia no demuestra su significado."));
+        text.AppendLine(Retro.Core.UiText.Get("Límites: 3 experimentos; 30–900 cuadros por experimento; 24 pasos; hold 1–180; frames dentro del experimento."));
+        text.AppendLine(Retro.Core.UiText.Get("Kind: score, level, ammo, item o change. No se aceptan direcciones, escrituras, archivos, comandos ni código."));
         return text.ToString();
     }
 }

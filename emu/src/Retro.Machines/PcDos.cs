@@ -41,7 +41,7 @@ public static class PcDos
         {
             var file = entry.File;
             string path = entry.Path.Replace('\\', '/');
-            if (!originals.Add(path)) throw new InvalidDataException("Dos archivos del juego tienen el mismo nombre DOS: " + path);
+            if (!originals.Add(path)) throw new InvalidDataException(Retro.Core.UiText.Get("Dos archivos del juego tienen el mismo nombre DOS: ") + path);
             bool isProgram = path.Equals(selected, StringComparison.OrdinalIgnoreCase);
             string[] parts = path.Replace('\\', '/').Split('/');
             if (parts.Any(p => p is "" or "." or ".." || p.Contains(':')))
@@ -61,16 +61,16 @@ public static class PcDos
             {
                 if (isProgram) name = Alias("RUN", program.Extension.ToUpperInvariant());
                 else if (Path.GetExtension(name).ToLowerInvariant() is ".txt" or ".md" or ".nfo" or ".diz" or ".jpg" or ".png" or ".pdf") continue;
-                else throw new InvalidDataException("Un archivo del juego no usa nombres DOS de 8.3 caracteres: " + parts[^1]);
+                else throw new InvalidDataException(Retro.Core.UiText.Get("Un archivo del juego no usa nombres DOS de 8.3 caracteres: ") + parts[^1]);
             }
             string destination = folder.FullPath + "\\" + name;
-            if (!paths.Add(destination)) throw new InvalidDataException("Dos archivos del juego tienen el mismo nombre DOS: " + name);
+            if (!paths.Add(destination)) throw new InvalidDataException(Retro.Core.UiText.Get("Dos archivos del juego tienen el mismo nombre DOS: ") + name);
             folder.Add(name, file.Data);
             if (isProgram) executable = destination;
         }
         if (executable == null) throw new InvalidDataException("No se encontró el programa elegido dentro de sus archivos.");
         int last = executable.LastIndexOf('\\');
-        string commands = "@ECHO OFF\r\nRETRO.COM\r\nCD " + executable[..last] + "\r\n" + executable[(last + 1)..] + "\r\n";
+        string commands = Retro.Core.UiText.Get("@ECHO OFF\r\nRETRO.COM\r\nCD ") + executable[..last] + "\r\n" + executable[(last + 1)..] + "\r\n";
         root.Add("AUTOEXEC.BAT", Encoding.ASCII.GetBytes(commands));
         return Build(root, kernel.Length);
     }
@@ -152,7 +152,7 @@ public static class PcDos
         public Node Add(string name, byte[]? bytes, string? original = null)
         {
             if (Children.Any(n => n.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
-                throw new InvalidDataException("Hay archivos o carpetas con nombres DOS duplicados: " + name);
+                throw new InvalidDataException(Retro.Core.UiText.Get("Hay archivos o carpetas con nombres DOS duplicados: ") + name);
             var child = new Node(name, bytes, this, original); Children.Add(child); return child;
         }
         public IEnumerable<Node> Descendants()

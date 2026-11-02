@@ -220,7 +220,7 @@ public sealed class CodeAnnotations
         if (string.IsNullOrWhiteSpace(gameId) || gameId is "." or ".." || gameId.Length > 180 ||
             gameId.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || gameId.Contains('/') || gameId.Contains('\\'))
             throw new ArgumentException("La identidad de las anotaciones no es válida.");
-        return Path.Combine(folder, gameId + ".json");
+        return Path.Combine(folder, gameId + Retro.Core.UiText.Get(".json"));
     }
 
     public static CodeAnnotations Load(string gameId) => Load(gameId, Folder);
@@ -257,7 +257,7 @@ public sealed class CodeAnnotations
         try
         {
             string path = PathFor(gameId, folder);
-            Directory.CreateDirectory(folder); temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            Directory.CreateDirectory(folder); temporary = path + "." + Guid.NewGuid().ToString("N") + Retro.Core.UiText.Get(".tmp");
             using (var file = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
             {
                 JsonSerializer.Serialize(file, this, new JsonSerializerOptions { WriteIndented = true }); file.Flush(flushToDisk: true);
@@ -283,7 +283,7 @@ public sealed class CodeAnnotations
         string backup;
         try
         {
-            string path = PathFor(gameId, folder); backup = path + ".respaldo-" + Guid.NewGuid().ToString("N");
+            string path = PathFor(gameId, folder); backup = path + Retro.Core.UiText.Get(".respaldo-") + Guid.NewGuid().ToString("N");
             File.Copy(path, backup, overwrite: false);
             RecoveryPath = backup;
         }

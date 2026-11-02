@@ -77,7 +77,7 @@ public static class C64Media
             if (files.Count == 0)
                 throw new InvalidDataException("La cinta .T64 no tiene ningún programa.");
             if (files.Count > 1)
-                warnings.Add($"la cinta tiene {files.Count} programas; se cargó el primero");
+                warnings.Add(Retro.Core.UiText.Format($"la cinta tiene {files.Count} programas; se cargó el primero"));
             program = files[0];
             kind = "cinta T64";
         }
@@ -87,12 +87,12 @@ public static class C64Media
             kind = "programa PRG";
         }
         else
-            throw new NotSupportedException($"Por ahora el C64 carga .t64 y .prg; los discos .d64, los cartuchos .crt y las cintas .tap llegan en la próxima etapa.");
+            throw new NotSupportedException(Retro.Core.UiText.Format($"Por ahora el C64 carga .t64 y .prg; los discos .d64, los cartuchos .crt y las cintas .tap llegan en la próxima etapa."));
 
         m.Reset(true);
         BootToReady(m);
         string how = Start(m, program);
-        return new C64LoadResult($"{kind} \"{program.Name}\": {program.Data.Length} bytes en ${program.Start:X4}, {how} ({m.FirmwareDescription})", warnings);
+        return new C64LoadResult(Retro.Core.UiText.Format($"{kind} \"{Retro.Core.UiText.Raw(program.Name)}\": {program.Data.Length} bytes en ${program.Start:X4}, {how} ({m.FirmwareDescription})"), warnings);
     }
 
     /// <summary>Runs the machine until BASIC shows READY. (or 5 seconds).</summary>
@@ -146,13 +146,13 @@ public static class C64Media
             if (SysAddress(ram) is int sys)
             {
                 JumpTo(m, (ushort)sys);
-                return $"arranca con SYS {sys}";
+                return Retro.Core.UiText.Format($"arranca con SYS {sys}");
             }
             TypeRun(m);
             return "arranca con RUN";
         }
         JumpTo(m, p.Start);
-        return $"arranca en ${p.Start:X4}";
+        return Retro.Core.UiText.Format($"arranca en ${p.Start:X4}");
     }
 
     /// <summary>The address of a "SYS nnnn" in the first BASIC line, if there is one.</summary>

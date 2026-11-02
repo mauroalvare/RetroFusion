@@ -219,6 +219,6 @@ public sealed class Cia
     }
 
     public string Describe() =>
-        $"timer A {_timerA:X4}/{_latchA:X4} {((_cra & 1) != 0 ? "en marcha" : "parado")}, timer B {_timerB:X4}/{_latchB:X4} {((_crb & 1) != 0 ? "en marcha" : "parado")}, " +
-        $"interrupciones {_icrFlags:X2} máscara {_icrMask:X2}";
+        Retro.Core.UiText.Format($"timer A {_timerA:X4}/{_latchA:X4} {((_cra & 1) != 0 ? Retro.Core.UiText.Get("en marcha") : Retro.Core.UiText.Get("parado"))}, timer B {_timerB:X4}/{_latchB:X4} {((_crb & 1) != 0 ? Retro.Core.UiText.Get("en marcha") : Retro.Core.UiText.Get("parado"))}, ") +
+        Retro.Core.UiText.Format($"interrupciones {_icrFlags:X2} máscara {_icrMask:X2}");
 }

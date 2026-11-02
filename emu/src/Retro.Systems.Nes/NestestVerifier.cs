@@ -14,7 +14,7 @@ public static partial class NestestVerifier
 {
     private sealed record State(ushort Pc, byte A, byte X, byte Y, byte P, byte Sp, long Cycles)
     {
-        public override string ToString() => $"PC:{Pc:X4} A:{A:X2} X:{X:X2} Y:{Y:X2} P:{P:X2} SP:{Sp:X2} CYC:{Cycles}";
+        public override string ToString() => Retro.Core.UiText.Format($"PC:{Pc:X4} A:{A:X2} X:{X:X2} Y:{Y:X2} P:{P:X2} SP:{Sp:X2} CYC:{Cycles}");
     }
 
     [GeneratedRegex(@"^([0-9A-F]{4})\s+.*?A:([0-9A-F]{2})\s+X:([0-9A-F]{2})\s+Y:([0-9A-F]{2})\s+P:([0-9A-F]{2})\s+SP:([0-9A-F]{2})\s+.*?CYC:(\d+)\s*$", RegexOptions.CultureInvariant)]
@@ -22,10 +22,10 @@ public static partial class NestestVerifier
 
     private static State Parse(string line, int index)
     {
-        if (line.Length > 512) throw new InvalidDataException($"Línea {index}: registro nestest demasiado largo.");
+        if (line.Length > 512) throw new InvalidDataException(Retro.Core.UiText.Format($"Línea {index}: registro nestest demasiado largo."));
         var match = TraceLine().Match(line);
         if (!match.Success || !long.TryParse(match.Groups[7].Value, NumberStyles.None, CultureInfo.InvariantCulture, out long cycles))
-            throw new InvalidDataException($"Línea {index}: se esperaba el formato nestest con PC, A, X, Y, P, SP y CYC.");
+            throw new InvalidDataException(Retro.Core.UiText.Format($"Línea {index}: se esperaba el formato nestest con PC, A, X, Y, P, SP y CYC."));
         ushort Hex(int group) => ushort.Parse(match.Groups[group].Value, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
         return new(Hex(1), (byte)Hex(2), (byte)Hex(3), (byte)Hex(4), (byte)Hex(5), (byte)Hex(6), cycles);
     }
@@ -42,7 +42,7 @@ public static partial class NestestVerifier
         }
         if (expected.Count == 0) throw new InvalidDataException("El registro nestest está vacío.");
         var initial = new State(0xC000, 0, 0, 0, 0x24, 0xFD, 7);
-        if (expected[0] != initial) throw new InvalidDataException("El registro no empieza en el estado canónico de nestest: " + initial);
+        if (expected[0] != initial) throw new InvalidDataException(Retro.Core.UiText.Get("El registro no empieza en el estado canónico de nestest: ") + initial);
         var machine = new Nes(NesCartridge.Load(rom));
         var cpu = machine.Cpu2A03;
         // Explicit diagnostic starting state, independent of the cartridge's interactive reset vector.

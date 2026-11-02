@@ -35,13 +35,13 @@ public static class SpectrumMedia
             {
                 var tape = TapLoader.Load(f.Data, f.Name);
                 machine.InsertTape(tape);
-                return new SpectrumLoadResult(SpectrumMediaKind.Tape, $"Cinta TAP con {tape.Blocks.Count} bloques", warnings);
+                return new SpectrumLoadResult(SpectrumMediaKind.Tape, Retro.Core.UiText.Format($"Cinta TAP con {tape.Blocks.Count} bloques"), warnings);
             }
             case ".tzx":
             {
                 var tape = TzxLoader.Load(f.Data, f.Name, warnings);
                 machine.InsertTape(tape);
-                return new SpectrumLoadResult(SpectrumMediaKind.Tape, $"Cinta TZX con {tape.Blocks.Count} bloques", warnings);
+                return new SpectrumLoadResult(SpectrumMediaKind.Tape, Retro.Core.UiText.Format($"Cinta TZX con {tape.Blocks.Count} bloques"), warnings);
             }
             case ".z80":
                 Z80Snapshot.Load(machine, f.Data);
@@ -52,7 +52,7 @@ public static class SpectrumMedia
             default:
                 if (TzxLoader.Probe(f.Data))
                     goto case ".tzx";
-                throw new InvalidDataException($"Formato no reconocido para ZX Spectrum: {f.Name}");
+                throw new InvalidDataException(Retro.Core.UiText.Format($"Formato no reconocido para ZX Spectrum: {Retro.Core.UiText.Raw(f.Name)}"));
         }
     }
 }

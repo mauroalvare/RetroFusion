@@ -129,9 +129,9 @@ public static class MemoryLab
                 Run(o.SampleEvery);
                 samples.Add(Snapshot());
             }
-            report.Method = $"Serie de {samples.Count} muestras cada {o.SampleEvery} cuadros sin tocar nada ({o.IdleFrames} cuadros); " +
-                            $"corridas desde el mismo estado con cada dirección apretada {o.HoldShort} y {o.HoldLong} cuadros, comparadas con la corrida sin entradas; " +
-                            $"rango ${start:X4}-${end:X4}.";
+            report.Method = Retro.Core.UiText.Format($"Serie de {samples.Count} muestras cada {o.SampleEvery} cuadros sin tocar nada ({o.IdleFrames} cuadros); ") +
+                            Retro.Core.UiText.Format($"corridas desde el mismo estado con cada dirección apretada {o.HoldShort} y {o.HoldLong} cuadros, comparadas con la corrida sin entradas; ") +
+                            Retro.Core.UiText.Format($"rango ${start:X4}-${end:X4}.");
 
             var findings = new List<LabFinding>();
             var deathSamples = new List<int>();
@@ -154,12 +154,12 @@ public static class MemoryLab
                 {
                     findings.Add(new LabFinding
                     {
-                        Kind = "lives", Address = $"{addr:X4}",
+                        Kind = "lives", Address = Retro.Core.UiText.Format($"{addr:X4}"),
                         Hypothesis = "Vidas (o intentos): valor chico que solo baja de a uno.",
-                        Evidence = { $"empieza en {first} y baja de a 1 {downs} vez/veces en {o.IdleFrames} cuadros sin tocar nada (muestras {string.Join(", ", downAt.Select(k => k * o.SampleEvery))})" },
+                        Evidence = { Retro.Core.UiText.Format($"empieza en {first} y baja de a 1 {downs} vez/veces en {o.IdleFrames} cuadros sin tocar nada (muestras {string.Join(", ", downAt.Select(k => k * o.SampleEvery))})") },
                         Confidence = 0.5,
                         ExpectedEffect = "Subirlo da vidas extra; congelarlo da vidas infinitas.",
-                        HowToVerify = $"Escribir {first + 2} en ${addr:X4} y ver si el contador de vidas en pantalla cambia; perder una vida y ver que baja.",
+                        HowToVerify = Retro.Core.UiText.Format($"Escribir {first + 2} en ${addr:X4} y ver si el contador de vidas en pantalla cambia; perder una vida y ver que baja."),
                         EventFrame = downAt[0] * o.SampleEvery,
                     });
                     deathSamples.AddRange(downAt);
@@ -170,12 +170,12 @@ public static class MemoryLab
                 {
                     findings.Add(new LabFinding
                     {
-                        Kind = "timer", Address = $"{addr:X4}",
+                        Kind = "timer", Address = Retro.Core.UiText.Format($"{addr:X4}"),
                         Hypothesis = ups == 0 ? "Tiempo, aire o energía que se consume solo." : "Tiempo, aire o energía que se consume solo y se recarga al (re)empezar.",
-                        Evidence = { $"baja de a 1 {downsBy1} veces y sube {ups} en {o.IdleFrames} cuadros sin tocar nada (de {first} a {samples[^1][i]})" },
+                        Evidence = { Retro.Core.UiText.Format($"baja de a 1 {downsBy1} veces y sube {ups} en {o.IdleFrames} cuadros sin tocar nada (de {first} a {samples[^1][i]})") },
                         Confidence = ups == 0 ? 0.55 : 0.5,
                         ExpectedEffect = "Congelarlo detiene el tiempo o da energía infinita.",
-                        HowToVerify = $"Congelar ${addr:X4} en {first} y ver si la barra o el número de tiempo deja de bajar.",
+                        HowToVerify = Retro.Core.UiText.Format($"Congelar ${addr:X4} en {first} y ver si la barra o el número de tiempo deja de bajar."),
                     });
                 }
             }
@@ -191,7 +191,7 @@ public static class MemoryLab
                 if (coinciding > 0)
                 {
                     f.Confidence = Math.Min(0.85, f.Confidence + 0.15 + 0.05 * Math.Min(coinciding, 3));
-                    f.Evidence.Add($"cuando baja, {coinciding} candidato(s) de tiempo se recargan cerca (reinicio de nivel o vida)");
+                    f.Evidence.Add(Retro.Core.UiText.Format($"cuando baja, {coinciding} candidato(s) de tiempo se recargan cerca (reinicio de nivel o vida)"));
                 }
             }
             foreach (var t in findings.Where(f => f.Kind == "timer"))
@@ -245,7 +245,7 @@ public static class MemoryLab
                             sense[i] = Math.Sign(diff);
                             score[i] = score.GetValueOrDefault(i) + (opposite ? 2 : 1);
                             detail[i] = (detail.GetValueOrDefault(i) ?? "") +
-                                        $"{hold} cuadros: {minus} {idle[i]}→{a[i]}, {plus} {idle[i]}→{b[i]}; ";
+                                        Retro.Core.UiText.Format($"{hold} cuadros: {minus} {idle[i]}→{a[i]}, {plus} {idle[i]}→{b[i]}; ");
                         }
                     }
                     foreach (var (i, v) in score.Where(kv => kv.Value > 0).OrderByDescending(kv => kv.Value).Take(8))
@@ -253,12 +253,12 @@ public static class MemoryLab
                         uint addr = (uint)(start + i);
                         findings.Add(new LabFinding
                         {
-                            Kind = kind, Address = $"{addr:X4}",
+                            Kind = kind, Address = Retro.Core.UiText.Format($"{addr:X4}"),
                             Hypothesis = kind == "position-x" ? "Posición horizontal del jugador (o algo que se mueve con él)." : "Posición vertical del jugador (o algo que se mueve con él).",
-                            Evidence = { $"comparado con la misma corrida sin entradas, {minus} y {plus} lo llevan a valores distintos, en el mismo sentido en cada prueba: {detail[i].TrimEnd(' ', ';')}" },
+                            Evidence = { Retro.Core.UiText.Format($"comparado con la misma corrida sin entradas, {minus} y {plus} lo llevan a valores distintos, en el mismo sentido en cada prueba: {detail[i].TrimEnd(' ', ';')}") },
                             Confidence = v switch { >= 4 => 0.8, 3 => 0.65, 2 => 0.5, _ => 0.35 },
                             ExpectedEffect = "Escribirlo mueve al personaje (si el juego no lo recalcula desde otra variable).",
-                            HowToVerify = $"Escribir otro valor en ${addr:X4} y ver si el personaje aparece en otro lugar.",
+                            HowToVerify = Retro.Core.UiText.Format($"Escribir otro valor en ${addr:X4} y ver si el personaje aparece en otro lugar."),
                             Nature = "stored-value",
                         });
                     }
@@ -279,7 +279,7 @@ public static class MemoryLab
                     continue;
                 findings.Remove(timer);
                 p.Confidence = Math.Min(0.85, p.Confidence + 0.15);
-                p.Evidence.Add($"sin tocar nada también cambia sola ({timer.Evidence[0]}): el personaje sigue moviéndose solo");
+                p.Evidence.Add(Retro.Core.UiText.Format($"sin tocar nada también cambia sola ({timer.Evidence[0]}): el personaje sigue moviéndose solo"));
             }
 
             // a position inside a table is one entity among several; outside one, a loose variable
@@ -292,7 +292,7 @@ public static class MemoryLab
                 else
                 {
                     int offset = a - Convert.ToInt32(t.Address, 16);
-                    p.Evidence.Add($"está dentro de la tabla de entidades ${t.Address} (registro {offset / t.Stride!.Value}, campo +{offset % t.Stride.Value})");
+                    p.Evidence.Add(Retro.Core.UiText.Format($"está dentro de la tabla de entidades ${t.Address} (registro {offset / t.Stride!.Value}, campo +{offset % t.Stride.Value})"));
                 }
             }
 
@@ -325,21 +325,21 @@ public static class MemoryLab
                 {
                     if (!writers.TryGetValue(Convert.ToUInt16(f.Address, 16), out var byPc))
                         continue;
-                    f.Writers = byPc.OrderByDescending(kv => kv.Value).Take(5).Select(kv => $"${kv.Key:X4} ×{kv.Value}").ToList();
+                    f.Writers = byPc.OrderByDescending(kv => kv.Value).Take(5).Select(kv => Retro.Core.UiText.Format($"${kv.Key:X4} ×{kv.Value}")).ToList();
                     int total = byPc.Values.Sum();
                     // written from many places: the stack or a work buffer
                     if (byPc.Count >= 5 && total > observed && f.Kind != "entity-table")
                     {
                         f.Nature = "derived";
                         f.Confidence = Math.Max(0.05, f.Confidence - 0.3);
-                        f.Evidence.Add($"lo escriben {byPc.Count} rutinas distintas {total} veces: parece la pila o un buffer de trabajo");
+                        f.Evidence.Add(Retro.Core.UiText.Format($"lo escriben {byPc.Count} rutinas distintas {total} veces: parece la pila o un buffer de trabajo"));
                     }
                     // rewritten every frame or so: a screen buffer or a value recomputed from another variable
                     else if (total > observed / 8 && f.Kind.StartsWith("position"))
                     {
                         f.Nature = "derived";
                         f.Confidence = Math.Max(0.1, f.Confidence - 0.25);
-                        f.Evidence.Add($"se reescribe {total} veces en {observed} cuadros: puede ser un buffer o un valor actualizado con frecuencia; la frecuencia no distingue el estado original de una copia");
+                        f.Evidence.Add(Retro.Core.UiText.Format($"se reescribe {total} veces en {observed} cuadros: puede ser un buffer o un valor actualizado con frecuencia; la frecuencia no distingue el estado original de una copia"));
                     }
                 }
             }
@@ -376,12 +376,12 @@ public static class MemoryLab
                 continue;
             found.Add(new LabFinding
             {
-                Kind = "lives", Address = $"{start + i:X4}",
+                Kind = "lives", Address = Retro.Core.UiText.Format($"{start + i:X4}"),
                 Hypothesis = "Vidas (o intentos): valor chico que solo baja de a uno.",
-                Evidence = { $"empieza en {first} y baja de a 1 {downs} vez/veces {what} (cuadros {string.Join(", ", downAt.Select(k => k * sampleEvery))})" },
+                Evidence = { Retro.Core.UiText.Format($"empieza en {first} y baja de a 1 {downs} vez/veces {what} (cuadros {string.Join(", ", downAt.Select(k => k * sampleEvery))})") },
                 Confidence = 0.5,
                 ExpectedEffect = "Subirlo da vidas extra; congelarlo da vidas infinitas.",
-                HowToVerify = $"Escribir {first + 2} en ${start + i:X4} y ver si el contador de vidas en pantalla cambia; perder una vida y ver que baja.",
+                HowToVerify = Retro.Core.UiText.Format($"Escribir {first + 2} en ${start + i:X4} y ver si el contador de vidas en pantalla cambia; perder una vida y ver que baja."),
                 EventFrame = downAt[0] * sampleEvery,
             });
         }
@@ -496,23 +496,23 @@ public static class MemoryLab
                 {
                     var column = Enumerable.Range(0, f.count).Select(r => f.first + r * stride).ToList();
                     bool back = column.Count(a => reverses[a]) * 2 >= column.Count;
-                    lines.Add($"+{f.first - seed.first}: cambia sola en pasos de {column.Average(a => meanStep[a]):F1} de media en {f.count} registros" +
+                    lines.Add(Retro.Core.UiText.Format($"+{f.first - seed.first}: cambia sola en pasos de {column.Average(a => meanStep[a]):F1} de media en {f.count} registros") +
                               (back ? ", va y vuelve (posición o dirección)" : ""));
                 }
                 var records = Enumerable.Range(0, seed.count).Select(r => seed.first + r * stride).ToList();
                 tables.Add(new LabFinding
                 {
-                    Kind = "entity-table", Address = $"{start + seed.first:X4}", Nature = "entity-table",
+                    Kind = "entity-table", Address = Retro.Core.UiText.Format($"{start + seed.first:X4}"), Nature = "entity-table",
                     Stride = stride, Count = count, Fields = lines,
-                    Hypothesis = $"Tabla de {count} entidades de {stride} bytes (enemigos, disparos u objetos que se mueven solos).",
+                    Hypothesis = Retro.Core.UiText.Format($"Tabla de {count} entidades de {stride} bytes (enemigos, disparos u objetos que se mueven solos)."),
                     Evidence =
                     {
-                        $"sin tocar nada, {string.Join(", ", records.Select(a => $"${start + a:X4}"))} cambian cada uno a su ritmo " +
-                        $"({string.Join(" / ", records.Select(a => changes[a]))} cambios en {n} muestras)",
+                        Retro.Core.UiText.Format($"sin tocar nada, {string.Join(", ", records.Select(a => Retro.Core.UiText.Format($"${start + a:X4}")))} cambian cada uno a su ritmo ") +
+                        Retro.Core.UiText.Format($"({string.Join(" / ", records.Select(a => changes[a]))} cambios en {n} muestras)"),
                     },
                     Confidence = Math.Min(0.8, 0.4 + 0.1 * Math.Min(count, 4)),
                     ExpectedEffect = "Leerla da las posiciones de los enemigos; escribir un campo mueve o desactiva una sola entidad.",
-                    HowToVerify = $"Escribir otro valor en el campo +0 de un registro (${start + seed.first:X4}) y ver si se mueve una sola entidad en pantalla.",
+                    HowToVerify = Retro.Core.UiText.Format($"Escribir otro valor en el campo +0 de un registro (${start + seed.first:X4}) y ver si se mueve una sola entidad en pantalla."),
                 });
             }
         }

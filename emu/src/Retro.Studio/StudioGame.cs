@@ -122,7 +122,7 @@ public static class StudioLibrary
                     var game = StudioGame.Parse(ReadResource(asm, n)!);
                     // the script can live next to the JSON, as a .js file that is easier to edit
                     if (game.Script.Length == 0)
-                        game.Script = ReadResource(asm, n[..^5] + ".js") ?? "";
+                        game.Script = ReadResource(asm, n[..^5] + Retro.Core.UiText.Get(".js")) ?? "";
                     return game;
                 })
                 .ToList();
@@ -206,20 +206,20 @@ public static class StudioLibrary
             foreach (var g in BuiltIn)
             {
                 string dir = Path.Combine(UserFolder, g.Id);
-                if (File.Exists(Path.Combine(dir, $"v{g.Version}.json")) || File.Exists(Path.Combine(dir, $"v{g.Version}.js")))
+                if (File.Exists(Path.Combine(dir, Retro.Core.UiText.Format($"v{g.Version}.json"))) || File.Exists(Path.Combine(dir, Retro.Core.UiText.Format($"v{g.Version}.js"))))
                     continue;
                 Write(g, dir);
             }
             string readme = Path.Combine(UserFolder, "LEEME.txt");
             if (!File.Exists(readme))
                 File.WriteAllText(readme,
-                    "Juegos fusionados de RetroEmu\r\n" +
+                    Retro.Core.UiText.Get("Juegos fusionados de RetroEmu\r\n") +
                     "=============================\r\n\r\n" +
-                    "Cada carpeta es un juego; cada versión son dos archivos:\r\n" +
-                    "  vN.json  la idea, el diseño, cómo se juega y qué juegos usa\r\n" +
-                    "  vN.js    el guion que los fusiona\r\n\r\n" +
-                    "Para compartir un juego, pasá su carpeta: quien la reciba la copia acá y necesita\r\n" +
-                    "sus propias ROMs de los juegos que usa. Las ROMs nunca van en estos archivos.\r\n");
+                    Retro.Core.UiText.Get("Cada carpeta es un juego; cada versión son dos archivos:\r\n") +
+                    Retro.Core.UiText.Get("  vN.json  la idea, el diseño, cómo se juega y qué juegos usa\r\n") +
+                    Retro.Core.UiText.Get("  vN.js    el guion que los fusiona\r\n\r\n") +
+                    Retro.Core.UiText.Get("Para compartir un juego, pasá su carpeta: quien la reciba la copia acá y necesita\r\n") +
+                    Retro.Core.UiText.Get("sus propias ROMs de los juegos que usa. Las ROMs nunca van en estos archivos.\r\n"));
         }
         catch (IOException) { }
         catch (UnauthorizedAccessException) { }
@@ -230,7 +230,7 @@ public static class StudioLibrary
         Directory.CreateDirectory(dir);
         var meta = game.Copy();
         meta.Script = "";
-        string path = Path.Combine(dir, $"v{game.Version}.json");
+        string path = Path.Combine(dir, Retro.Core.UiText.Format($"v{game.Version}.json"));
         byte[] metadata = Encoding.UTF8.GetBytes(meta.ToJson());
         // The card is the commit marker: never list a version before its source exists.
         WriteNewFile(Path.ChangeExtension(path, ".js"), Encoding.UTF8.GetBytes(game.Script));
@@ -240,7 +240,7 @@ public static class StudioLibrary
 
     private static void WriteNewFile(string path, byte[] bytes)
     {
-        string temp = Path.Combine(Path.GetDirectoryName(path)!, Guid.NewGuid().ToString("N") + ".tmp");
+        string temp = Path.Combine(Path.GetDirectoryName(path)!, Guid.NewGuid().ToString("N") + Retro.Core.UiText.Get(".tmp"));
         try
         {
             using (var stream = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
@@ -305,7 +305,7 @@ public static class StudioLibrary
         if (game.Version <= highest)
             game.Version = NextVersion(highest);
         string dir = Path.Combine(FolderFor(game), game.Id);
-        while (File.Exists(Path.Combine(dir, $"v{game.Version}.json")) || File.Exists(Path.Combine(dir, $"v{game.Version}.js")))
+        while (File.Exists(Path.Combine(dir, Retro.Core.UiText.Format($"v{game.Version}.json"))) || File.Exists(Path.Combine(dir, Retro.Core.UiText.Format($"v{game.Version}.js"))))
             game.Version = NextVersion(game.Version);
         string path = Write(game, dir);
         if (picture != null)
@@ -320,10 +320,10 @@ public static class StudioLibrary
             game.Id.Contains('\\') || game.Id.Contains('/') || game.Id.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) return null;
         foreach (string folder in new[] { FolderFor(game), UserFolder, LegacyFolder })
         {
-            string path = Path.Combine(folder, game.Id, $"v{game.Version}.png");
+            string path = Path.Combine(folder, game.Id, Retro.Core.UiText.Format($"v{game.Version}.png"));
             if (File.Exists(path)) return path;
         }
-        string included = Path.Combine(AppContext.BaseDirectory, "docs", "img", "fusiones", game.Id + ".png");
+        string included = Path.Combine(AppContext.BaseDirectory, "docs", "img", "fusiones", game.Id + Retro.Core.UiText.Get(".png"));
         return File.Exists(included) ? included : null;
     }
 
@@ -338,8 +338,8 @@ public static class StudioLibrary
         if (!used.Contains(id))
             return id;
         for (int i = 2; ; i++)
-            if (!used.Contains($"{id}-{i}"))
-                return $"{id}-{i}";
+            if (!used.Contains(Retro.Core.UiText.Format($"{id}-{i}")))
+                return Retro.Core.UiText.Format($"{id}-{i}");
     }
 
     public static string Slug(string text)
@@ -347,6 +347,6 @@ public static class StudioLibrary
         string s = text.ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD);
         s = new string(s.Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark).ToArray());
         s = Regex.Replace(s, "[^a-z0-9]+", "-").Trim('-');
-        return s.Length == 0 ? "juego-" + DateTime.Now.ToString("yyyyMMddHHmmss") : s;
+        return s.Length == 0 ? Retro.Core.UiText.Get("juego-") + DateTime.Now.ToString("yyyyMMddHHmmss") : s;
     }
 }

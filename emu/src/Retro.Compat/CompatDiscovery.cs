@@ -64,10 +64,10 @@ public static class CompatDiscovery
                 continue;
             string id = script.Id;
             for (int n = 2; ids.Contains(id); n++)
-                id = $"{script.Id}-{n}";
+                id = Retro.Core.UiText.Format($"{script.Id}-{n}");
             script.Id = id;
             ids.Add(id);
-            script.Save(Path.Combine(scriptsFolder, id + ".json"));
+            script.Save(Path.Combine(scriptsFolder, id + Retro.Core.UiText.Get(".json")));
             created.Add(script);
         }
         return created;
@@ -83,7 +83,7 @@ public static class CompatDiscovery
         {
             return new CompatScript
             {
-                Id = Slug($"{board.Machine.Id}-{name}"), Game = "Space Invaders", Machine = board.Machine.Id, File = rel,
+                Id = Slug(Retro.Core.UiText.Format($"{board.Machine.Id}-{name}")), Game = "Space Invaders", Machine = board.Machine.Id, File = rel,
                 Edition = board.Reason, Controls = "5 o C moneda, 1 empezar, flechas y espacio",
                 Frames = 1200, Steps = { new CompatStep { Frame = 300, Keys = "COIN" }, new CompatStep { Frame = 420, Keys = "P1 START" } },
             };
@@ -103,9 +103,9 @@ public static class CompatDiscovery
             machine = "zx128";
         var s = new CompatScript
         {
-            Id = Slug($"{machine}-{name}"), Game = game, Machine = machine, File = rel,
+            Id = Slug(Retro.Core.UiText.Format($"{machine}-{name}")), Game = game, Machine = machine, File = rel,
             Member = files.Count > 1 ? best.File.Name : null,
-            Edition = best.Reason + (files.Count > 1 ? $"; el paquete trae {files.Count} archivos, se eligió el volcado más limpio" : ""),
+            Edition = best.Reason + (files.Count > 1 ? Retro.Core.UiText.Format($"; el paquete trae {files.Count} archivos, se eligió el volcado más limpio") : ""),
             Frames = machine switch { "c64" => 2500, _ => 1500 },
             Notes = needs128 ? "Está en la carpeta de 128K: necesita el Spectrum 128K (T-030)." : "",
         };

@@ -263,7 +263,7 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
     }
 
     public IReadOnlyList<MachineKey> Keys { get; } = new[] { "P1", "P2" }
-        .SelectMany(p => Buttons.Select(b => new MachineKey($"{p} {b}", $"Mando {p[1]} {b}")))
+        .SelectMany(p => Buttons.Select(b => new MachineKey(Retro.Core.UiText.Format($"{p} {b}"), Retro.Core.UiText.Format($"Mando {p[1]} {b}"))))
         .ToList();
 
     public void SetKey(string name, bool pressed)
@@ -362,11 +362,11 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
 
     public IReadOnlyList<string> GetMachineInfo() => new[]
     {
-        $"Cuadro {FrameCount}, línea {Ppu.Line}, punto {Ppu.Dot}{(Ppu.Line >= Ppu.VblankLine && Ppu.Line < Ppu.PreRenderLine ? " (vblank)" : "")}",
-        $"PPU: v={Ppu.ScrollV:X4} t={Ppu.ScrollT:X4} x={Ppu.FineX} | imagen {(Ppu.RenderingEnabled ? "activa" : "apagada")} | NMI {(Ppu.Nmi ? "pedida" : "-")}",
-        $"Mandos: 1={_pads[0]:X2} 2={_pads[1]:X2}",
+        Retro.Core.UiText.Format($"Cuadro {FrameCount}, línea {Ppu.Line}, punto {Ppu.Dot}{(Ppu.Line >= Ppu.VblankLine && Ppu.Line < Ppu.PreRenderLine ? Retro.Core.UiText.Get(" (vblank)") : "")}"),
+        Retro.Core.UiText.Format($"PPU: v={Ppu.ScrollV:X4} t={Ppu.ScrollT:X4} x={Ppu.FineX} | imagen {(Ppu.RenderingEnabled ? Retro.Core.UiText.Get("activa") : Retro.Core.UiText.Get("apagada"))} | NMI {(Ppu.Nmi ? Retro.Core.UiText.Get("pedida") : "-")}"),
+        Retro.Core.UiText.Format($"Mandos: 1={_pads[0]:X2} 2={_pads[1]:X2}"),
         Cartridge.Describe(),
-        $"APU: {Apu.Describe()}",
+        Retro.Core.UiText.Format($"APU: {Apu.Describe()}"),
     };
 
     // ------------------------------------------------------------------ save states

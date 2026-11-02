@@ -68,13 +68,13 @@ public static class GameCatalog
         string machineName = MachineCatalog.Get(machine).Name;
         var p = new GameProfile
         {
-            Id = $"{GamePreparer.Slug(name)}-{sha[..8]}",
-            Name = $"{name} ({machineName})",
+            Id = Retro.Core.UiText.Format($"{GamePreparer.Slug(name)}-{sha[..8]}"),
+            Name = Retro.Core.UiText.Format($"{name} ({machineName})"),
             Machine = machine,
             Match = new ProfileMatch { Sha256 = { sha }, Member = files.Count > 1 ? media.Name : null },
-            Description = $"{name} para {machineName} (copia {System.IO.Path.GetFileName(path)}). Sin preparar: todavía no tiene variables verificadas. " +
-                          "Podés jugar el original. Para integrarlo en una fusión hay que comprobar los datos y recursos que requiere la mecánica; " +
-                          "Preparar puede encontrar variables, pero no verifica automáticamente mapas, gráficos ni todas sus reglas.",
+            Description = Retro.Core.UiText.Format($"{name} para {machineName} (copia {System.IO.Path.GetFileName(path)}). Sin preparar: todavía no tiene variables verificadas. ") +
+                          Retro.Core.UiText.Get("Podés jugar el original. Para integrarlo en una fusión hay que comprobar los datos y recursos que requiere la mecánica; ") +
+                          Retro.Core.UiText.Get("Preparar puede encontrar variables, pero no verifica automáticamente mapas, gráficos ni todas sus reglas."),
         };
         if (machine == "zx48" && media.Extension is ".tap" or ".tzx")
             p.Boot.Add("load-tape");

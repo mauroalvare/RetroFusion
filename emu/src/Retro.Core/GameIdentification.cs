@@ -26,7 +26,7 @@ public static partial class GameIdentification
         var year = YearTag().Match(name);
         if (year.Success && year.Index > 1) title = DumpTags().Replace(name[..year.Index].Replace('_', ' '), " ");
         title = Spaces().Replace(title, " ").Trim(' ', '-', '.');
-        if (title.EndsWith(", The", StringComparison.OrdinalIgnoreCase)) title = "The " + title[..^5];
+        if (title.EndsWith(", The", StringComparison.OrdinalIgnoreCase)) title = Retro.Core.UiText.Get("The ") + title[..^5];
         return title.Length is > 0 and <= 160 ? title : name[..Math.Min(name.Length, 160)];
     }
 

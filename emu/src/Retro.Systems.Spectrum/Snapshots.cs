@@ -60,7 +60,7 @@ public static class Z80Snapshot
             int hw = d[34];
             is48 = version == 2 ? hw is 0 or 1 : hw is 0 or 1 or 3;
             if (!is48)
-                throw new SnapshotException($"Snapshot Z80 para hardware {hw} (128K u otro): requiere una próxima etapa del emulador.");
+                throw new SnapshotException(Retro.Core.UiText.Format($"Snapshot Z80 para hardware {hw} (128K u otro): requiere una próxima etapa del emulador."));
         }
         byte flags1 = d[12] == 0xFF ? (byte)1 : d[12];
         var ram = new byte[49152];

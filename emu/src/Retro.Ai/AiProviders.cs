@@ -13,7 +13,11 @@ namespace Retro.Ai;
 public sealed record AiTurn(bool FromUser, string Text);
 
 /// <summary>A request: instructions, the conversation so far, the JSON schema of the answer and pictures (PNG files) to look at.</summary>
-public sealed record AiRequest(string System, IReadOnlyList<AiTurn> Turns, JsonElement? Schema, IReadOnlyList<string>? Images = null);
+public sealed record AiRequest(string System, IReadOnlyList<AiTurn> Turns, JsonElement? Schema, IReadOnlyList<string>? Images = null)
+{
+    private string _system = System;
+    public string System { get => Retro.Core.UiText.Get(_system); init => _system = value; }
+}
 
 public sealed class AiException : Exception
 {
@@ -48,7 +52,7 @@ public sealed class ClaudeProvider : IAiProvider
         _model = string.IsNullOrWhiteSpace(model) ? DefaultModel : model;
     }
 
-    public string Name => $"Claude ({_model})";
+    public string Name => Retro.Core.UiText.Format($"Claude ({_model})");
 
     public async Task<string> CompleteAsync(AiRequest request, CancellationToken ct)
     {
@@ -94,7 +98,7 @@ public sealed class ClaudeProvider : IAiProvider
         }
         catch (AnthropicApiException e)
         {
-            throw new AiException("Claude rechazó el pedido: " + e.Message, e);
+            throw new AiException(Retro.Core.UiText.Get("Claude rechazó el pedido: ") + e.Message, e);
         }
         if (response.StopReason == "refusal")
             throw new AiException("Claude se negó a responder este pedido.");
@@ -123,7 +127,7 @@ public sealed class OllamaProvider : IAiProvider
         _model = string.IsNullOrWhiteSpace(model) ? "llama3.1" : model;
     }
 
-    public string Name => $"Ollama ({_model})";
+    public string Name => Retro.Core.UiText.Format($"Ollama ({_model})");
 
     public async Task<string> CompleteAsync(AiRequest request, CancellationToken ct)
     {
@@ -141,15 +145,15 @@ public sealed class OllamaProvider : IAiProvider
         HttpResponseMessage resp;
         try
         {
-            resp = await Http.PostAsJsonAsync(_url + "/api/chat", body, ct);
+            resp = await Http.PostAsJsonAsync(_url + Retro.Core.UiText.Get("/api/chat"), body, ct);
         }
         catch (HttpRequestException e)
         {
-            throw new AiException($"No pude conectar con Ollama en {_url}. ¿Está abierto? (ollama serve)", e);
+            throw new AiException(Retro.Core.UiText.Format($"No pude conectar con Ollama en {_url}. ¿Está abierto? (ollama serve)"), e);
         }
         string json = await resp.Content.ReadAsStringAsync(ct);
         if (!resp.IsSuccessStatusCode)
-            throw new AiException($"Ollama respondió {(int)resp.StatusCode}: {json}");
+            throw new AiException(Retro.Core.UiText.Format($"Ollama respondió {(int)resp.StatusCode}: {json}"));
         using var doc = JsonDocument.Parse(json);
         LastUsage = AiUsage.Ollama(doc.RootElement);
         return doc.RootElement.GetProperty("message").GetProperty("content").GetString() ?? "";
@@ -177,7 +181,7 @@ public sealed class OpenAiProvider : IAiProvider
         _http = http ?? JsonApi.Http;
     }
 
-    public string Name => $"ChatGPT ({_model})";
+    public string Name => Retro.Core.UiText.Format($"ChatGPT ({_model})");
 
     public async Task<string> CompleteAsync(AiRequest request, CancellationToken ct)
     {
@@ -217,7 +221,7 @@ public sealed class OpenAiProvider : IAiProvider
         switch (JsonApi.Str(root, "status"))
         {
             case "failed":
-                throw new AiException("OpenAI no pudo completar el pedido: " +
+                throw new AiException(Retro.Core.UiText.Get("OpenAI no pudo completar el pedido: ") +
                                       (JsonApi.Has(root, "error", out var err) ? JsonApi.Str(err, "message") : "sin detalle"));
             case "incomplete":
                 string reason = JsonApi.Has(root, "incomplete_details", out var d) ? JsonApi.Str(d, "reason") : "";
@@ -237,7 +241,7 @@ public sealed class OpenAiProvider : IAiProvider
                 foreach (var part in content.EnumerateArray())
                 {
                     if (JsonApi.Str(part, "type") == "refusal")
-                        throw new AiException("ChatGPT se negó a responder este pedido: " + JsonApi.Str(part, "refusal"));
+                        throw new AiException(Retro.Core.UiText.Get("ChatGPT se negó a responder este pedido: ") + JsonApi.Str(part, "refusal"));
                     if (JsonApi.Str(part, "type") == "output_text")
                         text.Append(JsonApi.Str(part, "text"));
                 }
@@ -258,7 +262,7 @@ public sealed class OpenAiProvider : IAiProvider
             429 when billing => new AiException("Tu cuenta de OpenAI se quedó sin crédito o llegó a su límite de gasto. Revisalo en platform.openai.com (la API se paga aparte de ChatGPT Plus)."),
             429 => new AiException("OpenAI está limitando los pedidos (demasiados seguidos). Probá en un minuto."),
             >= 500 => new AiException("El servicio de OpenAI tuvo un error temporal. Probá de nuevo."),
-            _ => new AiException($"OpenAI rechazó el pedido ({(int)status}): {message}"),
+            _ => new AiException(Retro.Core.UiText.Format($"OpenAI rechazó el pedido ({(int)status}): {message}")),
         };
     }
 
@@ -383,7 +387,7 @@ public sealed class GeminiProvider : IAiProvider
         _http = http ?? JsonApi.Http;
     }
 
-    public string Name => $"Gemini ({_model})";
+    public string Name => Retro.Core.UiText.Format($"Gemini ({_model})");
 
     public async Task<string> CompleteAsync(AiRequest request, CancellationToken ct)
     {
@@ -406,7 +410,7 @@ public sealed class GeminiProvider : IAiProvider
             ["generationConfig"] = config,
         };
         // the key goes in a header, not in the address, so it never shows up in logs
-        using var msg = new HttpRequestMessage(HttpMethod.Post, BaseUrl + Uri.EscapeDataString(_model) + ":generateContent")
+        using var msg = new HttpRequestMessage(HttpMethod.Post, BaseUrl + Uri.EscapeDataString(_model) + Retro.Core.UiText.Get(":generateContent"))
         {
             Content = JsonApi.Content(body),
         };
@@ -419,7 +423,7 @@ public sealed class GeminiProvider : IAiProvider
         var root = doc.RootElement;
         LastUsage = AiUsage.Gemini(root);
         if (JsonApi.Has(root, "promptFeedback", out var feedback) && JsonApi.Str(feedback, "blockReason") is { Length: > 0 } block)
-            throw new AiException($"Gemini bloqueó el pedido (motivo: {block}).");
+            throw new AiException(Retro.Core.UiText.Format($"Gemini bloqueó el pedido (motivo: {block})."));
         if (!JsonApi.Has(root, "candidates", out var candidates) || candidates.ValueKind != JsonValueKind.Array || candidates.GetArrayLength() == 0)
             throw new AiException("Gemini devolvió una respuesta vacía.");
         var candidate = candidates[0];
@@ -427,7 +431,7 @@ public sealed class GeminiProvider : IAiProvider
         if (finish is "MAX_TOKENS" or "CONTINUATION")
             throw new AiException("La respuesta de Gemini se cortó por longitud.");
         if (finish is not ("" or "STOP" or "FINISH_REASON_UNSPECIFIED"))
-            throw new AiException($"Gemini se negó a responder este pedido (motivo: {finish}).");
+            throw new AiException(Retro.Core.UiText.Format($"Gemini se negó a responder este pedido (motivo: {finish})."));
         var text = new StringBuilder();
         if (JsonApi.Has(candidate, "content", out var content) && JsonApi.Has(content, "parts", out var parts) && parts.ValueKind == JsonValueKind.Array)
         {
@@ -448,10 +452,10 @@ public sealed class GeminiProvider : IAiProvider
         return (int)status switch
         {
             402 => new AiException("Tu cuenta de Gemini se quedó sin crédito prepago. Cargá saldo en Google AI Studio."),
-            403 => new AiException("Tu clave de Gemini no tiene permiso para este pedido: " + message),
+            403 => new AiException(Retro.Core.UiText.Get("Tu clave de Gemini no tiene permiso para este pedido: ") + message),
             429 => new AiException("Gemini está limitando los pedidos o se agotó tu cuota (la capa gratuita tiene límites por minuto y por día). Probá en un rato."),
             >= 500 => new AiException("El servicio de Gemini tuvo un error temporal. Probá de nuevo."),
-            _ => new AiException($"Gemini rechazó el pedido ({(int)status}): {message}"),
+            _ => new AiException(Retro.Core.UiText.Format($"Gemini rechazó el pedido ({(int)status}): {message}")),
         };
     }
 
@@ -528,11 +532,11 @@ internal static class JsonApi
         }
         catch (HttpRequestException e)
         {
-            throw new AiException($"No pude conectar con {who}. Revisá tu conexión a internet.", e);
+            throw new AiException(Retro.Core.UiText.Format($"No pude conectar con {who}. Revisá tu conexión a internet."), e);
         }
         catch (TaskCanceledException e) when (!ct.IsCancellationRequested)
         {
-            throw new AiException($"{who} tardó demasiado en responder. Probá de nuevo.", e);
+            throw new AiException(Retro.Core.UiText.Format($"{who} tardó demasiado en responder. Probá de nuevo."), e);
         }
     }
 
@@ -544,7 +548,7 @@ internal static class JsonApi
         }
         catch (JsonException e)
         {
-            throw new AiException($"{who} devolvió algo que no es JSON.", e);
+            throw new AiException(Retro.Core.UiText.Format($"{who} devolvió algo que no es JSON."), e);
         }
     }
 

@@ -114,7 +114,7 @@ public sealed class LibraryActivity
     private void Save()
     {
         if (!_persist || _unreadable) return; // Preserve damaged or future-format metadata for recovery.
-        string temp = _path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        string temp = _path + "." + Guid.NewGuid().ToString("N") + Retro.Core.UiText.Get(".tmp");
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(_path))!);

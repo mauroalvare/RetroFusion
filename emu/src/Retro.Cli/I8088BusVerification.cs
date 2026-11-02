@@ -70,9 +70,9 @@ internal static class I8088BusVerification
     public static int Run(string folder, string? report, string? opcodes, string? cases, I8088Model model = I8088Model.Intel8088)
     {
         string cpuName = model switch { I8088Model.Intel8088 => "8088", I8088Model.Intel8086 => "8086", _ => "" };
-        if (cpuName.Length == 0) { Console.Error.WriteLine("Modelo de CPU no válido para el contraste."); return 1; }
+        if (cpuName.Length == 0) { Console.Error.WriteLine(Retro.Core.UiText.Get("Modelo de CPU no válido para el contraste.")); return 1; }
         if (!int.TryParse(cases ?? "1000", out int limit) || limit is < 1 or > 10000)
-        { Console.Error.WriteLine("--casos debe estar entre 1 y 10000 por archivo."); return 1; }
+        { Console.Error.WriteLine(Retro.Core.UiText.Get("--casos debe estar entre 1 y 10000 por archivo.")); return 1; }
         try
         {
             string[] selected = (opcodes ?? "88,89,8A,8B,A0,A1,A2,A3,E4,E5,E6,E7,EC,ED,EE,EF")
@@ -81,24 +81,24 @@ internal static class I8088BusVerification
             if (selected.Length == 0 || selected.Any(v => v.Length is not (2 or 4) || v.Length == 4 && (v[2] != '.' || v[3] is < '0' or > '7') ||
                     !byte.TryParse(v.AsSpan(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _)))
                 throw new InvalidDataException("--opcodes requiere bytes hexadecimales o grupos XX.R separados por coma.");
-            if (string.IsNullOrWhiteSpace(folder)) throw new InvalidDataException($"Indicá --suite con una carpeta de SingleStepTests/{cpuName} de formato 2.");
+            if (string.IsNullOrWhiteSpace(folder)) throw new InvalidDataException(Retro.Core.UiText.Format($"Indicá --suite con una carpeta de SingleStepTests/{cpuName} de formato 2."));
             string root = Path.GetFullPath(folder);
             using var metadata = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "metadata.json")));
             if (metadata.RootElement.GetProperty("syntax_version").GetInt32() != 2 || metadata.RootElement.GetProperty("cpu").GetString() != cpuName)
-                throw new InvalidDataException($"Se requiere SingleStepTests/{cpuName} formato 2.");
+                throw new InvalidDataException(Retro.Core.UiText.Format($"Se requiere SingleStepTests/{cpuName} formato 2."));
             var properties = typeof(I8088Cpu).GetProperties().Where(p => p.CanWrite && p.PropertyType == typeof(ushort)).ToDictionary(p => p.Name.ToLowerInvariant());
             var bus = new Bus(); var files = new List<object>();
             int checkedCases = 0, sequenceFailures = 0, valueFailures = 0, timingFailures = 0, timingCompared = 0, pairs = 0, excluded = 0, noPairs = 0;
             foreach (string opcode in selected)
             {
-                using var input = File.OpenRead(Path.Combine(root, opcode + ".json.gz"));
+                using var input = File.OpenRead(Path.Combine(root, opcode + Retro.Core.UiText.Get(".json.gz")));
                 using var gzip = new GZipStream(input, CompressionMode.Decompress);
                 using var document = JsonDocument.Parse(gzip);
                 var tests = document.RootElement; int take = Math.Min(limit, tests.GetArrayLength());
                 if (take == 0) throw new InvalidDataException("El archivo no contiene casos.");
                 var info = metadata.RootElement.GetProperty("opcodes").GetProperty(opcode[..2]);
                 if (opcode.Length == 4 && !info.TryGetProperty("reg", out _))
-                    throw new InvalidDataException($"{opcode[..2]} no es un opcode de grupo.");
+                    throw new InvalidDataException(Retro.Core.UiText.Format($"{opcode[..2]} no es un opcode de grupo."));
                 int fileChecked = 0, fileSequenceFailures = 0, fileValueFailures = 0, fileTimingFailures = 0;
                 var differences = new List<object>();
                 for (int n = 0; n < take; n++)
@@ -156,7 +156,7 @@ internal static class I8088BusVerification
                 }
                 files.Add(new { Opcode = opcode, Checked = fileChecked, SequenceFailures = fileSequenceFailures, ValueOnlyFailures = fileValueFailures,
                     RelativeTimingFailures = fileTimingFailures, Differences = differences });
-                Console.WriteLine($"{opcode}: {fileChecked} casos; diferencias de accesos={fileSequenceFailures} (solo valores={fileValueFailures}), de intervalos={fileTimingFailures}.");
+                Console.WriteLine(Retro.Core.UiText.Format($"{opcode}: {fileChecked} casos; diferencias de accesos={fileSequenceFailures} (solo valores={fileValueFailures}), de intervalos={fileTimingFailures}."));
             }
             if (checkedCases == 0) throw new InvalidDataException("No se comparó ningún caso documentado.");
             var result = new { Checked = checkedCases, SequenceFailures = sequenceFailures, ValueOnlyFailures = valueFailures, RelativeTimingFailures = timingFailures,
@@ -172,11 +172,11 @@ internal static class I8088BusVerification
                     result.NoTimingPairs, result.Excluded, result.Scope, result.Files };
                 File.WriteAllText(path, JsonSerializer.Serialize(summary, options));
             }
-            Console.WriteLine($"Casos: {checkedCases}; diferencias de accesos: {sequenceFailures} (solo valores: {valueFailures}); de intervalos: {timingFailures}; pares contrastados: {pairs}.");
-            Console.WriteLine(result.Scope);
+            Console.WriteLine(Retro.Core.UiText.Format($"Casos: {checkedCases}; diferencias de accesos: {sequenceFailures} (solo valores: {valueFailures}); de intervalos: {timingFailures}; pares contrastados: {pairs}."));
+            Console.WriteLine(Retro.Core.UiText.Get(result.Scope));
             return sequenceFailures == 0 && timingFailures == 0 ? 0 : 2;
         }
         catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException or JsonException or ArgumentException or KeyNotFoundException or InvalidOperationException or FormatException or OverflowException or IndexOutOfRangeException)
-        { Console.Error.WriteLine("No se pudo contrastar el bus: " + e.Message); return 1; }
+        { Console.Error.WriteLine(Retro.Core.UiText.Get("No se pudo contrastar el bus: ") + e.Message); return 1; }
     }
 }

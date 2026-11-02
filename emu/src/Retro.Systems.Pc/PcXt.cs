@@ -94,10 +94,10 @@ public sealed class PcXt : IMachine, IMemoryView
     { >= 0x400 and < 0x500 => "Datos del BIOS", >= 0xB8000 and < 0xC0000 => "Memoria CGA", _ => null };
     public IReadOnlyList<string> GetMachineInfo() =>
     [
-        $"{(_pc5150 ? "PC 5150" : "XT 5160")} · 8088 · {Board.Memory.RamKilobytes} KB · CGA",
-        $"Reloj {Cpu8088.Cycles:N0} T · cuadro {FrameCount} · vídeo {Board.Cga.FrameCount}",
-        $"PIC solicitudes {Board.Pic.RequestRegister:X2} · servicio {Board.Pic.InServiceRegister:X2} · máscara {Board.Pic.Mask:X2}",
-        $"Disquete: {(Board.Fdc.Disk == null ? "sin medio" : $"{Board.Fdc.Disk.Cylinders} cilindros, {Board.Fdc.Disk.Heads} caras")}",
+        Retro.Core.UiText.Format($"{(_pc5150 ? Retro.Core.UiText.Get("PC 5150") : Retro.Core.UiText.Get("XT 5160"))} · 8088 · {Board.Memory.RamKilobytes} KB · CGA"),
+        Retro.Core.UiText.Format($"Reloj {Cpu8088.Cycles:N0} T · cuadro {FrameCount} · vídeo {Board.Cga.FrameCount}"),
+        Retro.Core.UiText.Format($"PIC solicitudes {Board.Pic.RequestRegister:X2} · servicio {Board.Pic.InServiceRegister:X2} · máscara {Board.Pic.Mask:X2}"),
+        Retro.Core.UiText.Format($"Disquete: {(Board.Fdc.Disk == null ? Retro.Core.UiText.Get("sin medio") : Retro.Core.UiText.Format($"{Board.Fdc.Disk.Cylinders} cilindros, {Board.Fdc.Disk.Heads} caras"))}"),
         "Escrituras de disquete en capa privada; el archivo original permanece intacto."
     ];
 

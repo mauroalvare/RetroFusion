@@ -90,7 +90,7 @@ public static class StudioPlaytests
                 {
                     var slot = session.Slots.FirstOrDefault(s => s.Id == check.Slot);
                     if (slot == null || !slot.Profile.Variables.TryGetValue(check.Variable, out var variable))
-                    { error = $"No existe games.{check.Slot}.{check.Variable} en los perfiles actuales."; break; }
+                    { error = Retro.Core.UiText.Format($"No existe games.{check.Slot}.{check.Variable} en los perfiles actuales."); break; }
                     probes.Add((slot, variable));
                 }
                 if (error != null) { results.Add(new(plan.Name, false, 0, error, [])); continue; }
@@ -112,8 +112,8 @@ public static class StudioPlaytests
                         try { after = probe.Variable.Read(probe.Slot.Machine.Memory); }
                         catch (Exception e) when (e is FormatException or OverflowException or ArgumentException or InvalidDataException)
                         {
-                            error = $"No se pudo leer games.{check.Slot}.{check.Variable} en el tick {tick}: {e.Message} " +
-                                "Revisá la dirección y codificación de esa variable en el analizador.";
+                            error = Retro.Core.UiText.Format($"No se pudo leer games.{check.Slot}.{check.Variable} en el tick {tick}: {e.Message} ") +
+                                Retro.Core.UiText.Get("Revisá la dirección y codificación de esa variable en el analizador.");
                             return;
                         }
                         if (check.FromTick == tick)

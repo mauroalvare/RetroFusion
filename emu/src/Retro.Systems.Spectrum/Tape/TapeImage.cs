@@ -163,9 +163,9 @@ public static class RomTiming
             int length = block[12] | (block[13] << 8);
             int p1 = block[14] | (block[15] << 8);
             return type == "Bytes"
-                ? $"{type}: \"{new string(name).TrimEnd()}\" {length} bytes en {p1}"
-                : $"{type}: \"{new string(name).TrimEnd()}\" ({length} bytes)";
+                ? Retro.Core.UiText.Format($"{type}: \"{new string(name).TrimEnd()}\" {length} bytes en {p1}")
+                : Retro.Core.UiText.Format($"{type}: \"{new string(name).TrimEnd()}\" ({length} bytes)");
         }
-        return block.Length > 0 && block[0] == 0xFF ? $"Datos ({block.Length - 2} bytes)" : $"Bloque ({block.Length} bytes)";
+        return block.Length > 0 && block[0] == 0xFF ? Retro.Core.UiText.Format($"Datos ({block.Length - 2} bytes)") : Retro.Core.UiText.Format($"Bloque ({block.Length} bytes)");
     }
 }

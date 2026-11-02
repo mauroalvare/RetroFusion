@@ -28,13 +28,13 @@ public sealed class GameModifications(IMachine machine, GameProfile profile) : I
             if (string.IsNullOrWhiteSpace(change.Variable) || !seen.Add(change.Variable))
                 throw new InvalidOperationException("Una variable no puede repetirse en la misma prueba.");
             if (!profile.Variables.TryGetValue(change.Variable, out var variable))
-                throw new InvalidOperationException($"La variable {change.Variable} no está en el perfil de este juego.");
-            if (variable.ReadOnly) throw new InvalidOperationException($"{change.Variable} es de solo lectura.");
+                throw new InvalidOperationException(Retro.Core.UiText.Format($"La variable {change.Variable} no está en el perfil de este juego."));
+            if (variable.ReadOnly) throw new InvalidOperationException(Retro.Core.UiText.Format($"{change.Variable} es de solo lectura."));
             int size = variable.Encoding switch
             {
                 "uint8" or "uint9" => 1, "uint16" => 2,
                 "bcd" or "digits" or "ascii" when variable.Bytes is >= 1 and <= 9 => variable.Bytes,
-                _ => throw new InvalidOperationException($"El formato de {change.Variable} no es válido para modificarlo.")
+                _ => throw new InvalidOperationException(Retro.Core.UiText.Format($"El formato de {change.Variable} no es válido para modificarlo."))
             };
             long capacity = variable.Encoding switch
             {
@@ -46,7 +46,7 @@ public sealed class GameModifications(IMachine machine, GameProfile profile) : I
             if (variable.Min < 0 || variable.Max < variable.Min || variable.Mask is < 0 or > 255 || variable.Mask != 0 && variable.Encoding != "uint8" ||
                 change.Value < variable.Min || change.Value > variable.Max || change.Value > capacity ||
                 variable.Encoding == "uint8" && variable.Mask != 0 && (change.Value & ~variable.Mask) != 0)
-                throw new InvalidOperationException($"{change.Variable}: usá un valor representable entre {variable.Min} y {Math.Min(variable.Max, capacity)}.");
+                throw new InvalidOperationException(Retro.Core.UiText.Format($"{change.Variable}: usá un valor representable entre {variable.Min} y {Math.Min(variable.Max, capacity)}."));
             _ = VariableMemory.Cells(variable, addressBits);
         }
         VariableMemory.ValidateOverlap(profile, changes.Select(c => c.Variable));

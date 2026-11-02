@@ -5,7 +5,7 @@ namespace Retro.Systems.Pc;
 internal static class PcDeviceState
 {
     internal static void Check(bool valid, string device)
-    { if (!valid) throw new InvalidDataException($"El estado de {device} no es válido."); }
+    { if (!valid) throw new InvalidDataException(Retro.Core.UiText.Format($"El estado de {device} no es válido.")); }
     internal static int Count(BinaryReader reader, int max)
     { int n = reader.ReadInt32(); Check(n >= 0 && n <= max, "cantidad de datos"); return n; }
 }

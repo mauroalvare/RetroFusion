@@ -389,6 +389,6 @@ public sealed class Vic
             (false, true, true) => "bitmap multicolor",
             _ => "modo inválido (negro)",
         };
-        return $"línea {Raster}, ciclo {Cycle}{(_badline ? " (bad line)" : "")}, modo {mode}, sprites {_r[0x15]:X2}, IRQ {_irqFlags:X}/{_irqMask:X}";
+        return Retro.Core.UiText.Format($"línea {Raster}, ciclo {Cycle}{(_badline ? Retro.Core.UiText.Get(" (bad line)") : "")}, modo {mode}, sprites {_r[0x15]:X2}, IRQ {_irqFlags:X}/{_irqMask:X}");
     }
 }

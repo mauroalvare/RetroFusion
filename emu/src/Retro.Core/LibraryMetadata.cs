@@ -97,7 +97,7 @@ public sealed class LibraryMetadata
     {
         if (!_persist) { Problem = null; return true; }
         if (_unreadable) return false;
-        string temporary = _path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        string temporary = _path + "." + Guid.NewGuid().ToString("N") + Retro.Core.UiText.Get(".tmp");
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(_path))!);
@@ -118,7 +118,7 @@ public sealed class LibraryMetadata
     public bool Recover()
     {
         if (!CanRecover) return Save();
-        string backup = _path + ".respaldo-" + Guid.NewGuid().ToString("N");
+        string backup = _path + Retro.Core.UiText.Get(".respaldo-") + Guid.NewGuid().ToString("N");
         try { File.Copy(_path, backup, overwrite: false); RecoveryPath = backup; }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         { Problem = "No pude conservar las fichas anteriores. Los cambios siguen solo en esta sesión."; return false; }

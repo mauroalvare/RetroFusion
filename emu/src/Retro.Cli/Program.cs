@@ -4,19 +4,22 @@ using Retro.Cpu.I8088;
 using Retro.Systems.Arcade;
 using Retro.Systems.Spectrum;
 
+args = Retro.Cli.CliLanguage.Normalize(args);
+
 // Headless runner: loads real software into an emulated machine, runs it for a number
 // of frames (as fast as possible), presses keys on given frames and saves screenshots
 // and audio. Used by automated tests and to check compatibility without a window.
 
 static string NesInfo(byte[] data)
 {
-    try { return "NES: " + Retro.Systems.Nes.NesCartridge.Load(data).Describe(); }
-    catch (InvalidDataException e) { return "NES, no se puede cargar: " + e.Message; }
+    try { return Retro.Core.UiText.Get("NES: ") + Retro.Systems.Nes.NesCartridge.Load(data).Describe(); }
+    catch (InvalidDataException e) { return Retro.Core.UiText.Get("NES, no se puede cargar: ") + e.Message; }
 }
 
 static int Usage()
 {
-    Console.WriteLine("""
+    if (UiText.English) { Console.WriteLine(Retro.Core.UiText.Get(Retro.Cli.CliLanguage.EnglishUsage)); return 1; }
+    Console.WriteLine(Retro.Core.UiText.Get("""
         RetroEmu CLI
 
           retro-cli info <archivo>
@@ -74,7 +77,7 @@ static int Usage()
           --text                   (C64) al final, muestra el texto de la pantalla
           --rutinas <informe.json>  observa rutinas en la máquina de diagnóstico (direcciones de 16 bits)
           --pasos-rutinas <n>       muestra acotada de 1 a 50000 pasos (por defecto, 12000)
-        """);
+        """));
     return 1;
 }
 
@@ -115,11 +118,11 @@ if (command == "nes" && mediaPath == "verificar")
                 romSha256 = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(image)),
                 traceSha256 = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(traceBytes)) },
                 new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
-        Console.WriteLine($"NES: {result.States} estados coincidentes; último ciclo {result.LastCycle}. " + (result.Ok ? "Sin diferencias de CPU." : result.Difference));
+        Console.WriteLine(Retro.Core.UiText.Format($"NES: {result.States} estados coincidentes; último ciclo {result.LastCycle}. ") + (result.Ok ? "Sin diferencias de CPU." : result.Difference));
         return result.Ok ? 0 : 1;
     }
     catch (Exception error) when (error is IOException or ArgumentException or NotSupportedException)
-    { Console.Error.WriteLine("No se pudo verificar NES: " + error.Message); return 2; }
+    { Console.Error.WriteLine(Retro.Core.UiText.Get("No se pudo verificar NES: ") + error.Message); return 2; }
 }
 
 if (command is "cpu8088" or "cpu8086" && mediaPath == "verificar-bus")
@@ -168,7 +171,7 @@ if (command == "preparar")
 
 if (command == "fuse")
 {
-    Console.Error.WriteLine("La fusión clásica se retiró. Usá retro-cli studio para probar juegos nuevos con escena propia.");
+    Console.Error.WriteLine(Retro.Core.UiText.Get("La fusión clásica se retiró. Usá retro-cli studio para probar juegos nuevos con escena propia."));
     return 2;
 }
 
@@ -177,27 +180,27 @@ bool isInvaders = SpaceInvadersRom.Probe(files) >= 80;
 
 if (SpaceInvadersSound.IsSampleSet(files))
 {
-    Console.WriteLine($"{Path.GetFileName(mediaPath)}: sonidos grabados de Space Invaders (samples/ de MAME, {files.Count} archivos WAV).");
-    Console.WriteLine("No contiene el programa del juego: hace falta el invaders.zip de roms/ (invaders.e, .f, .g, .h).");
-    Console.WriteLine("Para usar estos sonidos: retro-cli run <roms/invaders.zip> --samples " + mediaPath);
+    Console.WriteLine(Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(Path.GetFileName(mediaPath))}: sonidos grabados de Space Invaders (samples/ de MAME, {files.Count} archivos WAV)."));
+    Console.WriteLine(Retro.Core.UiText.Get("No contiene el programa del juego: hace falta el invaders.zip de roms/ (invaders.e, .f, .g, .h)."));
+    Console.WriteLine(Retro.Core.UiText.Get("Para usar estos sonidos: retro-cli run <roms/invaders.zip> --samples ") + mediaPath);
     return command == "info" ? 0 : 2;
 }
 
 if (command == "info")
 {
     if (isInvaders)
-        Console.WriteLine($"Placa arcade Space Invaders: {SpaceInvadersRom.Build(files).description}");
+        Console.WriteLine(Retro.Core.UiText.Format($"Placa arcade Space Invaders: {SpaceInvadersRom.Build(files).description}"));
     foreach (var c in files.Select((f, i) => (f, i)))
     {
         int score = SpectrumMedia.Probe(c.f);
         int c64Score = Retro.Systems.C64.C64Media.Probe(c.f);
-        string what = score > 0 ? $"ZX Spectrum (confianza {score})"
-            : c64Score > 0 ? $"Commodore 64 (confianza {c64Score})"
+        string what = score > 0 ? Retro.Core.UiText.Format($"ZX Spectrum (confianza {score})")
+            : c64Score > 0 ? Retro.Core.UiText.Format($"Commodore 64 (confianza {c64Score})")
             : Retro.Systems.Nes.NesCartridge.IsINes(c.f.Data) ? NesInfo(c.f.Data)
             : isInvaders ? "chip de Space Invaders" : Retro.Machines.MachineCatalog.Identify(c.f).FirstOrDefault() is { } candidate
                 ? candidate.Machine.Name + ": " + candidate.Reason + (Retro.Machines.MachineCatalog.NotLoadableYet(candidate) is { } why ? "; " + why : "")
                 : "no reconocido por las máquinas disponibles";
-        Console.WriteLine($"[{c.i}] {Retro.Machines.PcDos.DisplayPath(c.f)} ({c.f.Data.Length} bytes) -> {what}");
+        Console.WriteLine(Retro.Core.UiText.Format($"[{c.i}] {Retro.Machines.PcDos.DisplayPath(c.f)} ({c.f.Data.Length} bytes) -> {what}"));
     }
     return 0;
 }
@@ -209,7 +212,7 @@ if (Opt("pick") is { } requestedPick)
 {
     if (!int.TryParse(requestedPick, out int index) || index < 0 || index >= files.Count)
     {
-        Console.Error.WriteLine("Índice --pick inválido. Usá info para ver los archivos disponibles.");
+        Console.Error.WriteLine(Retro.Core.UiText.Get("Índice --pick inválido. Usá info para ver los archivos disponibles."));
         return 2;
     }
     selectedFiles = new[] { files[index] };
@@ -228,13 +231,13 @@ if (nesMedia != null && !isInvaders)
     try { cart = Retro.Systems.Nes.NesCartridge.Load(nesMedia.Data); }
     catch (InvalidDataException e)
     {
-        Console.Error.WriteLine("No se pudo cargar: " + e.Message);
+        Console.Error.WriteLine(Retro.Core.UiText.Get("No se pudo cargar: ") + e.Message);
         return 3;
     }
     machine = new Retro.Systems.Nes.Nes(cart);
-    Console.WriteLine($"Máquina: {machine.DisplayName}");
-    Console.WriteLine($"Archivo: {nesMedia.Name}");
-    Console.WriteLine(cart.Describe());
+    Console.WriteLine(Retro.Core.UiText.Format($"Máquina: {machine.DisplayName}"));
+    Console.WriteLine(Retro.Core.UiText.Format($"Archivo: {Retro.Core.UiText.Raw(nesMedia.Name)}"));
+    Console.WriteLine(Retro.Core.UiText.Get(cart.Describe()));
 }
 else if (pcMedia != null && !isInvaders)
 {
@@ -245,33 +248,33 @@ else if (pcMedia != null && !isInvaders)
         bool program = pcMedia.File.Extension is ".exe" or ".com";
         byte[] disk = program ? Retro.Machines.PcDos.Prepare(files, pcMedia.File) : pcMedia.File.Data;
         machine = new Retro.Systems.Pc.PcXt(File.ReadAllBytes(bios), disk);
-        Console.WriteLine($"Máquina: {machine.DisplayName}; CGA, teclado y altavoz");
-        Console.WriteLine($"{(program ? "Programa con FreeDOS integrado" : "Disquete")}: {Retro.Machines.PcDos.DisplayPath(pcMedia.File)}; BIOS: {bios}");
+        Console.WriteLine(Retro.Core.UiText.Format($"Máquina: {machine.DisplayName}; CGA, teclado y altavoz"));
+        Console.WriteLine(Retro.Core.UiText.Format($"{(program ? Retro.Core.UiText.Get("Programa con FreeDOS integrado") : Retro.Core.UiText.Get("Disquete"))}: {Retro.Machines.PcDos.DisplayPath(pcMedia.File)}; BIOS: {bios}"));
     }
     catch (Exception e) when (e is IOException or ArgumentException or NotSupportedException)
-    { Console.Error.WriteLine("No se pudo cargar PC/XT: " + e.Message); return 3; }
+    { Console.Error.WriteLine(Retro.Core.UiText.Get("No se pudo cargar PC/XT: ") + e.Message); return 3; }
 }
 else if (c64Media != null && !isInvaders)
 {
     var c64 = new Retro.Systems.C64.C64(Retro.Systems.C64.C64Firmware.Find(Path.GetDirectoryName(FindRom("48.rom"))!));
     machine = c64;
-    Console.WriteLine($"Máquina: {c64.DisplayName} ({c64.FirmwareDescription})");
-    Console.WriteLine($"Archivo: {c64Media.Name}");
+    Console.WriteLine(Retro.Core.UiText.Format($"Máquina: {c64.DisplayName} ({c64.FirmwareDescription})"));
+    Console.WriteLine(Retro.Core.UiText.Format($"Archivo: {Retro.Core.UiText.Raw(c64Media.Name)}"));
     var result = Retro.Systems.C64.C64Media.Load(c64, c64Media);
-    Console.WriteLine(result.Description);
+    Console.WriteLine(Retro.Core.UiText.Get(result.Description));
     foreach (var w in result.Warnings)
-        Console.WriteLine("  aviso: " + w);
+        Console.WriteLine(Retro.Core.UiText.Get("  aviso: ") + w);
 }
 else if (isInvaders)
 {
     var (rom, description) = SpaceInvadersRom.Build(files);
     var invaders = new SpaceInvaders(rom);
     machine = invaders;
-    Console.WriteLine($"Máquina: {machine.DisplayName}");
-    Console.WriteLine(description);
+    Console.WriteLine(Retro.Core.UiText.Format($"Máquina: {machine.DisplayName}"));
+    Console.WriteLine(Retro.Core.UiText.Get(description));
     string? samples = Opt("samples") ?? SpaceInvadersSound.FindSamples(Path.GetDirectoryName(Path.GetFullPath(mediaPath)), null);
     int loadedSamples = samples != null ? invaders.Sound.LoadSamples(samples) : 0;
-    Console.WriteLine(loadedSamples > 0 ? $"Sonidos: {loadedSamples} grabaciones de {samples}" : "Sonidos: sintetizados");
+    Console.WriteLine(loadedSamples > 0 ? Retro.Core.UiText.Format($"Sonidos: {loadedSamples} grabaciones de {samples}") : "Sonidos: sintetizados");
 }
 else
 {
@@ -282,28 +285,28 @@ else
         media = candidates[0].f;
     else
     {
-        Console.Error.WriteLine("Ningún archivo reconocido por las máquinas disponibles.");
+        Console.Error.WriteLine(Retro.Core.UiText.Get("Ningún archivo reconocido por las máquinas disponibles."));
         return 2;
     }
     string romPath = Opt("rom") ?? FindRom("48.rom");
     zx = new Spectrum48(File.ReadAllBytes(romPath));
     machine = zx;
-    Console.WriteLine($"Máquina: {zx.DisplayName}  ROM: {romPath}");
-    Console.WriteLine($"Archivo: {media.Name}  ({media.Source})");
+    Console.WriteLine(Retro.Core.UiText.Format($"Máquina: {zx.DisplayName}  ROM: {romPath}"));
+    Console.WriteLine(Retro.Core.UiText.Format($"Archivo: {Retro.Core.UiText.Raw(media.Name)}  ({media.Source})"));
     try
     {
         var result = SpectrumMedia.Load(zx, media);
         isTape = result.Kind == SpectrumMediaKind.Tape;
-        Console.WriteLine(result.Description);
+        Console.WriteLine(Retro.Core.UiText.Get(result.Description));
         foreach (var w in result.Warnings)
-            Console.WriteLine("  aviso: " + w);
+            Console.WriteLine(Retro.Core.UiText.Get("  aviso: ") + w);
         if (isTape && zx.Tape.Tape != null)
             foreach (var b in zx.Tape.Tape.Blocks)
-                Console.WriteLine($"  bloque {b.Index}: {b.Description}");
+                Console.WriteLine(Retro.Core.UiText.Format($"  bloque {b.Index}: {b.Description}"));
     }
     catch (Exception e)
     {
-        Console.Error.WriteLine("No se pudo cargar: " + e.Message);
+        Console.Error.WriteLine(Retro.Core.UiText.Get("No se pudo cargar: ") + e.Message);
         return 3;
     }
     if (isTape && Opt("autoload") != null)
@@ -332,8 +335,8 @@ if (Opt("trace") is { } traceCount)
     for (int i = 0; i < n; i++)
     {
         var ins = machine.Disassembler.Disassemble(a => machine.Memory.Peek(a), cpu.ProgramCounter);
-        string regs = string.Join(" ", cpu.GetRegisters().Take(6).Select(r => $"{r.Name}={r.Value:X4}"));
-        Console.WriteLine($"{cpu.ProgramCounter:X4}  {string.Join(" ", ins.Bytes.Select(b => b.ToString("X2"))),-12} {ins.Text,-22} {regs} ciclos={cpu.Cycles}");
+        string regs = string.Join(" ", cpu.GetRegisters().Take(6).Select(r => Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(r.Name)}={r.Value:X4}")));
+        Console.WriteLine(Retro.Core.UiText.Format($"{cpu.ProgramCounter:X4}  {string.Join(" ", ins.Bytes.Select(b => b.ToString("X2"))),-12} {ins.Text,-22} {regs} ciclos={cpu.Cycles}"));
         machine.StepInstruction();
     }
 }
@@ -369,10 +372,10 @@ while (true)
     if (zx != null && zx.Tape.IsPlaying && zx.Tape.CurrentBlock != lastBlock)
     {
         lastBlock = zx.Tape.CurrentBlock;
-        Console.WriteLine($"  cuadro {zx.FrameCount}: cinta en bloque {lastBlock}");
+        Console.WriteLine(Retro.Core.UiText.Format($"  cuadro {zx.FrameCount}: cinta en bloque {lastBlock}"));
     }
     if (shotEvery > 0 && frame % shotEvery == 0)
-        PngWriter.Write($"{shotPrefix}_{frame:D6}.png", machine.Video, 2);
+        PngWriter.Write(Retro.Core.UiText.Format($"{shotPrefix}_{frame:D6}.png"), machine.Video, 2);
     if (untilTapeEnd)
     {
         if (zx!.Tape.AtEnd || (!zx.Tape.IsPlaying && frame > 200 && lastBlock >= 0))
@@ -388,12 +391,12 @@ while (true)
 }
 sw.Stop();
 double emulated = machine.FrameCount / machine.FramesPerSecond;
-Console.WriteLine($"Emulados {machine.FrameCount} cuadros = {emulated:F1} s en {sw.Elapsed.TotalSeconds:F2} s reales ({emulated / Math.Max(sw.Elapsed.TotalSeconds, 0.001):F0}x)");
-Console.WriteLine($"PC={machine.Cpu.ProgramCounter:X4} SP={machine.Cpu.StackPointer:X4}" +
-                  (zx != null ? $" cinta: {(zx.Tape.IsPlaying ? "reproduciendo" : zx.Tape.AtEnd ? "terminada" : "detenida")}" : ""));
+Console.WriteLine(Retro.Core.UiText.Format($"Emulados {machine.FrameCount} cuadros = {emulated:F1} s en {sw.Elapsed.TotalSeconds:F2} s reales ({emulated / Math.Max(sw.Elapsed.TotalSeconds, 0.001):F0}x)"));
+Console.WriteLine(Retro.Core.UiText.Format($"PC={machine.Cpu.ProgramCounter:X4} SP={machine.Cpu.StackPointer:X4}") +
+                  (zx != null ? Retro.Core.UiText.Format($" cinta: {(zx.Tape.IsPlaying ? Retro.Core.UiText.Get("reproduciendo") : zx.Tape.AtEnd ? Retro.Core.UiText.Get("terminada") : Retro.Core.UiText.Get("detenida"))}") : ""));
 
 if (machine is Retro.Systems.C64.C64 c64m && c64m.KernalInternalCalls.Count > 0)
-    Console.WriteLine("Saltos del programa a rutinas internas del KERNAL: " + string.Join(", ", c64m.KernalInternalCalls.Select(a => $"${a:X4}")));
+    Console.WriteLine(Retro.Core.UiText.Get("Saltos del programa a rutinas internas del KERNAL: ") + string.Join(", ", c64m.KernalInternalCalls.Select(a => Retro.Core.UiText.Format($"${a:X4}"))));
 if (Opt("text") != null && machine is Retro.Systems.C64.C64 c64t)
     Console.Write(c64t.ScreenText());
 if (opts.TryGetValue("disasm", out var disasmList))
@@ -406,7 +409,7 @@ if (opts.TryGetValue("disasm", out var disasmList))
         for (int i = 0; i < count; i++)
         {
             var ins = machine.Disassembler.Disassemble(a => machine.Memory.Peek(a), at);
-            Console.WriteLine($"{at:X4}  {string.Join(" ", ins.Bytes.Select(b => b.ToString("X2"))),-9} {ins.Text}");
+            Console.WriteLine(Retro.Core.UiText.Format($"{at:X4}  {string.Join(" ", ins.Bytes.Select(b => b.ToString("X2"))),-9} {ins.Text}"));
             at += (uint)Math.Max(1, ins.Bytes.Length);
         }
     }
@@ -418,28 +421,28 @@ if (opts.TryGetValue("dump", out var dumpList))
         uint at = Convert.ToUInt32(parts[0].TrimStart('$'), 16);
         int count = parts.Length > 1 ? int.Parse(parts[1]) : 64;
         for (int i = 0; i < count; i += 16)
-            Console.WriteLine($"{at + i:X4}  " + string.Join(" ", Enumerable.Range(i, Math.Min(16, count - i)).Select(k => machine.Memory.Peek((uint)(at + k)).ToString("X2"))));
+            Console.WriteLine(Retro.Core.UiText.Format($"{at + i:X4}  ") + string.Join(" ", Enumerable.Range(i, Math.Min(16, count - i)).Select(k => machine.Memory.Peek((uint)(at + k)).ToString("X2"))));
     }
 if (Opt("screenshot") is { } shot)
 {
     PngWriter.Write(shot, machine.Video, 2);
-    Console.WriteLine("Captura: " + shot);
+    Console.WriteLine(Retro.Core.UiText.Get("Captura: ") + shot);
 }
 if (wavPath != null)
 {
     WriteWav(wavPath, wav, 44100);
-    Console.WriteLine($"Audio: {wavPath} ({wav.Count / 44100.0:F1} s)");
+    Console.WriteLine(Retro.Core.UiText.Format($"Audio: {wavPath} ({wav.Count / 44100.0:F1} s)"));
 }
 if (Opt("rutinas") is { } routineReport)
 {
     if (machine.Memory.AddressBits != 16 || !int.TryParse(Opt("pasos-rutinas") ?? "12000", out int steps) || steps is < 1 or > 50000)
-    { Console.Error.WriteLine("Rutinas: se necesitan direcciones de 16 bits y de 1 a 50000 pasos."); return 2; }
+    { Console.Error.WriteLine(Retro.Core.UiText.Get("Rutinas: se necesitan direcciones de 16 bits y de 1 a 50000 pasos.")); return 2; }
     var survey = RoutineFinder.Sample(machine, steps);
     var report = new { format = 1, machine = machine.Id, editions = selectedFiles.Select(file => new { file.Name,
         sha256 = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(file.Data)) }),
         scope = "Muestra en una máquina de diagnóstico; agrupaciones candidatas, sin bytes del programa. No certifica el propósito ni la jugabilidad.", survey };
     File.WriteAllText(routineReport, System.Text.Json.JsonSerializer.Serialize(report, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
-    Console.WriteLine($"Rutinas candidatas: {survey.Routines.Count}; {survey.Steps} pasos. Informe: {routineReport}");
+    Console.WriteLine(Retro.Core.UiText.Format($"Rutinas candidatas: {survey.Routines.Count}; {survey.Steps} pasos. Informe: {routineReport}"));
 }
 return 0;
 
@@ -451,15 +454,15 @@ static int RunCompat(string scriptsPath, string gamesDir, string? jsonOut, strin
     string firmware = Path.GetDirectoryName(FindRom("48.rom"))!;
     if (!Directory.Exists(gamesDir))
     {
-        Console.Error.WriteLine($"No existe la carpeta de juegos {gamesDir} (--juegos).");
+        Console.Error.WriteLine(Retro.Core.UiText.Format($"No existe la carpeta de juegos {gamesDir} (--juegos)."));
         return 2;
     }
     if (discover)
     {
         var created = Retro.Compat.CompatDiscovery.Discover(gamesDir, scriptsPath);
-        Console.WriteLine($"Guiones nuevos: {created.Count}");
+        Console.WriteLine(Retro.Core.UiText.Format($"Guiones nuevos: {created.Count}"));
         foreach (var s in created)
-            Console.WriteLine($"  {s.Id}: {s.Machine} {s.File}");
+            Console.WriteLine(Retro.Core.UiText.Format($"  {s.Id}: {s.Machine} {s.File}"));
     }
     var scripts = Retro.Compat.CompatScript.LoadAll(scriptsPath);
     if (only != null)
@@ -467,7 +470,7 @@ static int RunCompat(string scriptsPath, string gamesDir, string? jsonOut, strin
         var wanted = only.Split(',', StringSplitOptions.RemoveEmptyEntries);
         scripts = scripts.Where(s => wanted.Any(w => s.Id.StartsWith(w, StringComparison.OrdinalIgnoreCase))).ToList();
     }
-    Console.WriteLine($"Probando {scripts.Count} guiones con {gamesDir} (firmware de {firmware})...");
+    Console.WriteLine(Retro.Core.UiText.Format($"Probando {scripts.Count} guiones con {gamesDir} (firmware de {firmware})..."));
     var results = new System.Collections.Concurrent.ConcurrentBag<Retro.Compat.CompatResult>();
     var sw = Stopwatch.StartNew();
     Parallel.ForEach(scripts, new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, parallel) }, s =>
@@ -478,12 +481,12 @@ static int RunCompat(string scriptsPath, string gamesDir, string? jsonOut, strin
         {
             var again = new Retro.Compat.CompatRunner(gamesDir, firmware, null).Run(s);
             if (again.ScreenHash != r.ScreenHash)
-                r.Warnings.Add($"no determinista: la segunda corrida dio otra imagen final ({again.ScreenHash} contra {r.ScreenHash})");
+                r.Warnings.Add(Retro.Core.UiText.Format($"no determinista: la segunda corrida dio otra imagen final ({again.ScreenHash} contra {r.ScreenHash})"));
             else
                 r.Warnings.Add("determinista: dos corridas dieron la misma imagen final");
         }
         results.Add(r);
-        Console.WriteLine($"  {r.Id,-48} {(r.Highest == "" ? "ninguno" : Retro.Compat.CompatLevels.Spanish(r.Highest))}");
+        Console.WriteLine(Retro.Core.UiText.Format($"  {r.Id,-48} {(r.Highest == "" ? Retro.Core.UiText.Get("ninguno") : Retro.Compat.CompatLevels.Spanish(r.Highest))}"));
     });
     var report = jsonOut != null && File.Exists(jsonOut) && only != null ? Retro.Compat.CompatReport.LoadJson(jsonOut) : new Retro.Compat.CompatReport();
     report.Merge(results);
@@ -493,17 +496,17 @@ static int RunCompat(string scriptsPath, string gamesDir, string? jsonOut, strin
     if (jsonOut != null)
     {
         report.SaveJson(jsonOut);
-        Console.WriteLine("Resultados: " + jsonOut);
+        Console.WriteLine(Retro.Core.UiText.Get("Resultados: ") + jsonOut);
     }
     if (mdOut != null)
     {
         File.WriteAllText(mdOut, report.ToMarkdown());
-        Console.WriteLine("Tabla: " + mdOut);
+        Console.WriteLine(Retro.Core.UiText.Get("Tabla: ") + mdOut);
     }
-    Console.WriteLine($"Listo en {sw.Elapsed.TotalSeconds:F0} s.");
+    Console.WriteLine(Retro.Core.UiText.Format($"Listo en {sw.Elapsed.TotalSeconds:F0} s."));
     foreach (var g in results.GroupBy(r => r.Machine).OrderBy(g => g.Key))
-        Console.WriteLine($"  {g.Key}: {g.Count()} archivos; " + string.Join(", ",
-            Retro.Compat.CompatLevels.All.Select(l => $"{Retro.Compat.CompatLevels.Spanish(l)} {g.Count(r => r.Levels[l].Status == "ok")}")));
+        Console.WriteLine(Retro.Core.UiText.Format($"  {g.Key}: {g.Count()} archivos; ") + string.Join(", ",
+            Retro.Compat.CompatLevels.All.Select(l => Retro.Core.UiText.Format($"{Retro.Compat.CompatLevels.Spanish(l)} {g.Count(r => r.Levels[l].Status == "ok")}"))));
     return 0;
 }
 
@@ -518,16 +521,16 @@ static int RunLab(string scriptPath, string gamesDir, string? jsonOut, int idleF
     var (m, sha, problem) = runner.Start(script);
     if (m == null)
     {
-        Console.Error.WriteLine($"No se pudo llegar al juego: {problem}");
+        Console.Error.WriteLine(Retro.Core.UiText.Format($"No se pudo llegar al juego: {problem}"));
         return 3;
     }
-    Console.WriteLine($"{script.Game} ({script.Machine}), estado al final del guion {script.Id}; observando {idleFrames} cuadros...");
+    Console.WriteLine(Retro.Core.UiText.Format($"{script.Game} ({script.Machine}), estado al final del guion {script.Id}; observando {idleFrames} cuadros..."));
     var sw = Stopwatch.StartNew();
     var report = Retro.Compat.MemoryLab.Analyze(m, script.Machine, new Retro.Compat.MemoryLab.Options(IdleFrames: idleFrames));
     report.Game = script.Game;
     report.Script = script.Id;
     report.Sha256 = sha;
-    Console.WriteLine($"Observación lista en {sw.Elapsed.TotalSeconds:F1} s. {report.Method}");
+    Console.WriteLine(Retro.Core.UiText.Format($"Observación lista en {sw.Elapsed.TotalSeconds:F1} s. {report.Method}"));
     var replays = new Dictionary<Retro.Compat.LabFinding, Retro.Compat.LabExperiment>();
     foreach (var e in script.Experiments ?? new())
     {
@@ -535,8 +538,8 @@ static int RunLab(string scriptPath, string gamesDir, string? jsonOut, int idleF
         foreach (var f in found)
             replays[f] = e;
         report.Findings.AddRange(found);
-        report.Method += $" Experimento {e.Kind} \"{e.Description}\": {e.Frames} cuadros con sus entradas contra los mismos sin tocar nada.";
-        Console.WriteLine($"Experimento {e.Kind} \"{e.Description}\": {found.Count} candidato(s).");
+        report.Method += Retro.Core.UiText.Format($" Experimento {e.Kind} \"{e.Description}\": {e.Frames} cuadros con sus entradas contra los mismos sin tocar nada.");
+        Console.WriteLine(Retro.Core.UiText.Format($"Experimento {e.Kind} \"{e.Description}\": {found.Count} candidato(s)."));
     }
     var given = new List<Retro.Compat.LabFinding>();
     foreach (var h in givenHypotheses)
@@ -547,7 +550,7 @@ static int RunLab(string scriptPath, string gamesDir, string? jsonOut, int idleF
         {
             Kind = p[0], Address = p[1].TrimStart('$').ToUpperInvariant(), Encoding = p.Length > 2 ? p[2] : "uint8",
             Bytes = p.Length > 3 ? int.Parse(p[3]) : 1, Confidence = 0.5,
-            Hypothesis = $"Hipótesis dada: {p[0]} en ${p[1].TrimStart('$')}.",
+            Hypothesis = Retro.Core.UiText.Format($"Hipótesis dada: {p[0]} en ${p[1].TrimStart('$')}."),
         };
         var experiment = script.Experiments?.FirstOrDefault(e => e.Kind == f.Kind);
         if (experiment != null)
@@ -561,31 +564,31 @@ static int RunLab(string scriptPath, string gamesDir, string? jsonOut, int idleF
         foreach (var f in given)
             Retro.Compat.LabVerifier.Verify(m, f, replays.GetValueOrDefault(f));
         Retro.Compat.LabVerifier.VerifyBest(m, report, replays);
-        Console.WriteLine($"Verificación lista en {sw.Elapsed.TotalSeconds:F1} s.");
+        Console.WriteLine(Retro.Core.UiText.Format($"Verificación lista en {sw.Elapsed.TotalSeconds:F1} s."));
     }
     foreach (var f in report.Findings.Take(30))
     {
-        string where = f.Kind == "entity-table" ? $"${f.Address} x{f.Count} de {f.Stride} bytes" : f.Bytes > 1 ? $"${f.Address} {f.Encoding} {f.Bytes}" : $"${f.Address}";
-        Console.WriteLine($"  {where} {f.Kind,-12} {Retro.Compat.LabReportText.Status(f.Status),-12} confianza {f.ConfidenceLabel} ({f.Confidence:F2}) {f.Hypothesis}");
+        string where = f.Kind == "entity-table" ? Retro.Core.UiText.Format($"${f.Address} x{f.Count} de {f.Stride} bytes") : f.Bytes > 1 ? Retro.Core.UiText.Format($"${f.Address} {f.Encoding} {f.Bytes}") : Retro.Core.UiText.Format($"${f.Address}");
+        Console.WriteLine(Retro.Core.UiText.Format($"  {where} {f.Kind,-12} {Retro.Compat.LabReportText.Status(f.Status),-12} confianza {f.ConfidenceLabel} ({f.Confidence:F2}) {f.Hypothesis}"));
         foreach (var e in f.Evidence)
-            Console.WriteLine($"      evidencia: {e}");
+            Console.WriteLine(Retro.Core.UiText.Format($"      evidencia: {e}"));
         foreach (var field in f.Fields ?? new())
-            Console.WriteLine($"      campo {field}");
+            Console.WriteLine(Retro.Core.UiText.Format($"      campo {field}"));
         if (f.Writers.Count > 0)
-            Console.WriteLine($"      lo escriben: {string.Join(", ", f.Writers)}");
+            Console.WriteLine(Retro.Core.UiText.Format($"      lo escriben: {string.Join(", ", f.Writers)}"));
         if (f.Verification != null)
         {
-            Console.WriteLine($"      experimento: {f.Verification.Experiment}");
+            Console.WriteLine(Retro.Core.UiText.Format($"      experimento: {f.Verification.Experiment}"));
             foreach (var o in f.Verification.Observations)
-                Console.WriteLine($"        - {o}");
+                Console.WriteLine(Retro.Core.UiText.Format($"        - {o}"));
         }
     }
     foreach (var n in report.Notes)
-        Console.WriteLine("  nota: " + n);
+        Console.WriteLine(Retro.Core.UiText.Get("  nota: ") + n);
     if (jsonOut != null)
     {
         report.Save(jsonOut);
-        Console.WriteLine("Hallazgos: " + jsonOut);
+        Console.WriteLine(Retro.Core.UiText.Get("Hallazgos: ") + jsonOut);
     }
     return 0;
 }
@@ -601,7 +604,7 @@ static async Task<int> RunIdeas(string profileList, string? ia, string wish, str
     var provider = settings.CreateProvider();
     if (provider == null)
     {
-        Console.Error.WriteLine("Esa IA no se puede llamar desde acá (copiar y pegar o carpeta de agentes).");
+        Console.Error.WriteLine(Retro.Core.UiText.Get("Esa IA no se puede llamar desde acá (copiar y pegar o carpeta de agentes)."));
         return 2;
     }
     var slots = profileList.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -609,24 +612,24 @@ static async Task<int> RunIdeas(string profileList, string? ia, string wish, str
     var missing = slots.Where(s => Retro.Fusion.ProfileLibrary.Find(s.Profile) == null).Select(s => s.Profile).ToList();
     if (missing.Count > 0)
     {
-        Console.Error.WriteLine("No conozco estos perfiles: " + string.Join(", ", missing) + " (retro-cli juegos <carpeta> los lista; --juegos <carpeta> suma los no preparados).");
+        Console.Error.WriteLine(Retro.Core.UiText.Get("No conozco estos perfiles: ") + string.Join(", ", missing) + Retro.Core.UiText.Get(" (retro-cli juegos <carpeta> los lista; --juegos <carpeta> suma los no preparados)."));
         return 2;
     }
-    Console.WriteLine($"Pidiendo 3 ideas a {provider.Name} para {string.Join(" + ", slots.Select(s => s.Profile))}" + (wish.Length > 0 ? $", con el pedido \"{wish}\"" : ", sin pedido") + "...");
+    Console.WriteLine(Retro.Core.UiText.Format($"Pidiendo 3 ideas a {Retro.Core.UiText.Raw(provider.Name)} para {string.Join(" + ", slots.Select(s => s.Profile))}") + (wish.Length > 0 ? Retro.Core.UiText.Format($", con el pedido \"{wish}\"") : ", sin pedido") + "...");
     var operation = settings.Operation(provider, 1);
     ShowEstimate(new(Retro.Studio.StudioDesigner.ConceptGuide,
         [new(true, Retro.Studio.StudioDesigner.ConceptPrompt(slots, Retro.Fusion.ProfileLibrary.Find, wish))], null));
     var sw = Stopwatch.StartNew();
     var ideas = await new Retro.Studio.StudioDesigner().ConceptsAsync(operation, slots, Retro.Fusion.ProfileLibrary.Find, wish, CancellationToken.None);
     ShowUsage(operation);
-    Console.WriteLine($"({sw.Elapsed.TotalSeconds:F0} s)");
+    Console.WriteLine(Retro.Core.UiText.Format($"({sw.Elapsed.TotalSeconds:F0} s)"));
     foreach (var idea in ideas)
     {
         Console.WriteLine();
-        Console.WriteLine($"## {idea.Title} — {idea.Approach}");
-        Console.WriteLine(idea.Pitch);
-        Console.WriteLine("Cómo se juega: " + idea.HowToPlay);
-        Console.WriteLine(idea.Design);
+        Console.WriteLine(Retro.Core.UiText.Format($"## {Retro.Core.UiText.Raw(idea.Title)} — {idea.Approach}"));
+        Console.WriteLine(Retro.Core.UiText.Get(idea.Pitch));
+        Console.WriteLine(Retro.Core.UiText.Get("Cómo se juega: ") + idea.HowToPlay);
+        Console.WriteLine(Retro.Core.UiText.Get(idea.Design));
     }
     return 0;
 }
@@ -636,7 +639,7 @@ static int Assemble(string sourcePath, string? output, bool listing, string cpu)
 {
     if (!File.Exists(sourcePath))
     {
-        Console.Error.WriteLine($"No existe {sourcePath}.");
+        Console.Error.WriteLine(Retro.Core.UiText.Format($"No existe {sourcePath}."));
         return 2;
     }
     var r = cpu.ToLowerInvariant() switch
@@ -645,12 +648,12 @@ static int Assemble(string sourcePath, string? output, bool listing, string cpu)
         _ => Retro.Asm.Asm6502.Assemble(File.ReadAllText(sourcePath)),
     };
     foreach (var e in r.Errors)
-        Console.Error.WriteLine($"{Path.GetFileName(sourcePath)}: {e}");
+        Console.Error.WriteLine(Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(Path.GetFileName(sourcePath))}: {e}"));
     if (!r.Ok)
         return 3;
     if (listing)
         foreach (var l in r.Listing)
-            Console.WriteLine(l);
+            Console.WriteLine(Retro.Core.UiText.Get(l));
     output ??= Path.ChangeExtension(sourcePath, cpu.Equals("z80", StringComparison.OrdinalIgnoreCase) ? ".bin" : ".prg");
     var bytes = Path.GetExtension(output).ToLowerInvariant() switch
     {
@@ -660,7 +663,7 @@ static int Assemble(string sourcePath, string? output, bool listing, string cpu)
         _ => r.Bytes,
     };
     File.WriteAllBytes(output, bytes);
-    Console.WriteLine($"{r.Bytes.Length} bytes desde ${r.Origin:X4} ({r.Symbols.Count} símbolos) -> {output}");
+    Console.WriteLine(Retro.Core.UiText.Format($"{r.Bytes.Length} bytes desde ${r.Origin:X4} ({r.Symbols.Count} símbolos) -> {output}"));
     return 0;
 }
 
@@ -670,41 +673,41 @@ static int CreateGame(string machine, string? sourcePath)
     var t = Retro.Asm.Templates.For(machine);
     if (t == null)
     {
-        Console.Error.WriteLine($"No hay plantilla para {machine}. Máquinas: {string.Join(", ", Retro.Asm.Templates.All.Select(x => x.Machine))}.");
+        Console.Error.WriteLine(Retro.Core.UiText.Format($"No hay plantilla para {machine}. Máquinas: {string.Join(", ", Retro.Asm.Templates.All.Select(x => x.Machine))}."));
         return 2;
     }
     sourcePath ??= "juego.s";
     if (File.Exists(sourcePath))
     {
-        Console.Error.WriteLine($"{sourcePath} ya existe: elegí otro nombre para no pisarlo.");
+        Console.Error.WriteLine(Retro.Core.UiText.Format($"{sourcePath} ya existe: elegí otro nombre para no pisarlo."));
         return 2;
     }
     File.WriteAllText(sourcePath, t.Source);
     var (r, file) = Retro.Asm.Templates.Build(t.Source, t.Machine);
     foreach (var e in r.Errors)
-        Console.Error.WriteLine($"{Path.GetFileName(sourcePath)}: {e}");
+        Console.Error.WriteLine(Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(Path.GetFileName(sourcePath))}: {e}"));
     if (file == null)
         return 3;
     string output = Path.ChangeExtension(sourcePath, t.Output);
     File.WriteAllBytes(output, file);
-    Console.WriteLine($"{t.Name}: {sourcePath} ({r.Bytes.Length} bytes desde ${r.Origin:X4}) -> {output}");
-    Console.WriteLine($"Probalo:  retro-cli run {output} --frames 300 --screenshot juego.png{(t.Machine == "zx48" ? " --autoload --until-tape-end" : "")}");
-    Console.WriteLine($"Después de editarlo:  retro-cli asm {sourcePath} --cpu {t.Cpu} --salida {output}");
+    Console.WriteLine(Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(t.Name)}: {sourcePath} ({r.Bytes.Length} bytes desde ${r.Origin:X4}) -> {output}"));
+    Console.WriteLine(Retro.Core.UiText.Format($"Probalo:  retro-cli run {output} --frames 300 --screenshot juego.png{(t.Machine == "zx48" ? Retro.Core.UiText.Get(" --autoload --until-tape-end") : "")}"));
+    Console.WriteLine(Retro.Core.UiText.Format($"Después de editarlo:  retro-cli asm {sourcePath} --cpu {t.Cpu} --salida {output}"));
     return 0;
 }
 
 static void ShowEstimate(Retro.Ai.AiRequest request)
 {
     var estimate = Retro.Ai.AiEstimate.For(request);
-    Console.WriteLine($"Entrada orientativa: {estimate.Characters:N0} caracteres, {estimate.LowTokens:N0} a {estimate.HighTokens:N0} tokens de texto. No incluye imágenes, salida ni contexto propio del CLI.");
+    Console.WriteLine(Retro.Core.UiText.Format($"Entrada orientativa: {estimate.Characters:N0} caracteres, {estimate.LowTokens:N0} a {estimate.HighTokens:N0} tokens de texto. No incluye imágenes, salida ni contexto propio del CLI."));
 }
 
 static void ShowUsage(Retro.Ai.AiOperation operation)
 {
     var stats = operation.Stats;
-    Console.WriteLine($"Pedidos: {stats.Calls}; texto enviado: {stats.TextCharacters:N0} caracteres.");
+    Console.WriteLine(Retro.Core.UiText.Format($"Pedidos: {stats.Calls}; texto enviado: {stats.TextCharacters:N0} caracteres."));
     Console.WriteLine(stats.CallsWithUsage > 0
-        ? $"Tokens informados{(stats.CallsWithUsage < stats.Calls ? " (parcial)" : "")}: {stats.InputTokens:N0} entrada, {stats.OutputTokens:N0} salida."
+        ? Retro.Core.UiText.Format($"Tokens informados{(stats.CallsWithUsage < stats.Calls ? Retro.Core.UiText.Get(" (parcial)") : "")}: {stats.InputTokens:N0} entrada, {stats.OutputTokens:N0} salida.")
         : "La herramienta no informó consumo de tokens.");
 }
 
@@ -714,23 +717,23 @@ static async Task<int> WriteGame(string machine, string? sourcePath, string ia, 
     var t = Retro.Asm.Templates.For(machine);
     if (t == null)
     {
-        Console.Error.WriteLine($"No hay plantilla para {machine}. Máquinas: {string.Join(", ", Retro.Asm.Templates.All.Select(x => x.Machine))}.");
+        Console.Error.WriteLine(Retro.Core.UiText.Format($"No hay plantilla para {machine}. Máquinas: {string.Join(", ", Retro.Asm.Templates.All.Select(x => x.Machine))}."));
         return 2;
     }
     if (ia == "agent")
     {
         // a folder for a coding agent: the task, the guide and juego.s; it tries the game with "probar"
         string cli = Environment.ProcessPath ?? "retro-cli";
-        string dir = Retro.Ai.GameWorkspace.Create(t.Machine, wish, Random.Shared, $"\"{cli}\" probar {Retro.Ai.GameWorkspace.SourceFile}",
+        string dir = Retro.Ai.GameWorkspace.Create(t.Machine, wish, Random.Shared, Retro.Core.UiText.Format($"\"{cli}\" probar {Retro.Ai.GameWorkspace.SourceFile}"),
             sourcePath != null ? Path.GetFullPath(sourcePath) : null);
-        Console.WriteLine($"Carpeta para el agente: {dir}");
-        Console.WriteLine($"Decile a tu agente: \"Trabajá en la carpeta {dir}: leé TAREA.md y seguí sus instrucciones.\"");
+        Console.WriteLine(Retro.Core.UiText.Format($"Carpeta para el agente: {dir}"));
+        Console.WriteLine(Retro.Core.UiText.Format($"Decile a tu agente: \"Trabajá en la carpeta {dir}: leé TAREA.md y seguí sus instrucciones.\""));
         return 0;
     }
     sourcePath ??= "juego.s";
     if (File.Exists(sourcePath))
     {
-        Console.Error.WriteLine($"{sourcePath} ya existe: elegí otro nombre para no pisarlo.");
+        Console.Error.WriteLine(Retro.Core.UiText.Format($"{sourcePath} ya existe: elegí otro nombre para no pisarlo."));
         return 2;
     }
     var settings = Retro.Ai.AiSettings.Load();
@@ -738,38 +741,38 @@ static async Task<int> WriteGame(string machine, string? sourcePath, string ia, 
     var provider = settings.CreateProvider();
     if (provider == null)
     {
-        Console.Error.WriteLine("Esa IA no se puede llamar desde acá (copiar y pegar o carpeta de agentes).");
+        Console.Error.WriteLine(Retro.Core.UiText.Get("Esa IA no se puede llamar desde acá (copiar y pegar o carpeta de agentes)."));
         return 2;
     }
-    Console.WriteLine($"{provider.Name} escribe un juego para {t.Name}" + (wish.Length > 0 ? $" con el pedido \"{wish}\"" : " sin pedido") + "...");
+    Console.WriteLine(Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(provider.Name)} escribe un juego para {Retro.Core.UiText.Raw(t.Name)}") + (wish.Length > 0 ? Retro.Core.UiText.Format($" con el pedido \"{wish}\"") : " sin pedido") + "...");
     attempts = attempts > 0 ? attempts : settings.DesignAttempts;
     var operation = settings.Operation(provider, attempts);
     ShowEstimate(new(Retro.Ai.GameWriter.Guide(t), [new(true, Retro.Ai.GameWriter.FirstPrompt(t, wish, new Random(0)))], null));
     var sw = Stopwatch.StartNew();
     var outcome = await new Retro.Ai.GameWriter { MaxAttempts = attempts }.WriteAsync(operation, t.Machine, wish,
-        Path.GetDirectoryName(FindRom("48.rom"))!, CancellationToken.None, line => Console.WriteLine("  " + line));
+        Path.GetDirectoryName(FindRom("48.rom"))!, CancellationToken.None, line => Console.WriteLine(Retro.Core.UiText.Get("  " + line)));
     ShowUsage(operation);
-    Console.WriteLine($"({sw.Elapsed.TotalSeconds:F0} s, {outcome.Attempts} intento{(outcome.Attempts == 1 ? "" : "s")})");
+    Console.WriteLine(Retro.Core.UiText.Format($"({sw.Elapsed.TotalSeconds:F0} s, {outcome.Attempts} intento{(outcome.Attempts == 1 ? "" : Retro.Core.UiText.Get("s"))})"));
     if (outcome.Game == null)
     {
-        Console.Error.WriteLine("No hubo juego: " + outcome.Problem);
+        Console.Error.WriteLine(Retro.Core.UiText.Get("No hubo juego: ") + outcome.Problem);
         return 6;
     }
     var g = outcome.Game;
     File.WriteAllText(sourcePath, g.Source);
     Console.WriteLine();
-    Console.WriteLine($"## {g.Title}");
-    Console.WriteLine(g.Pitch);
-    Console.WriteLine("Cómo se juega: " + g.HowToPlay);
+    Console.WriteLine(Retro.Core.UiText.Format($"## {Retro.Core.UiText.Raw(g.Title)}"));
+    Console.WriteLine(Retro.Core.UiText.Get(g.Pitch));
+    Console.WriteLine(Retro.Core.UiText.Get("Cómo se juega: ") + g.HowToPlay);
     if (outcome.Report != null)
     {
         Console.WriteLine();
-        Console.WriteLine(outcome.Report.Summary.TrimEnd());
+        Console.WriteLine(Retro.Core.UiText.Get(outcome.Report.Summary.TrimEnd()));
         SaveTrial(outcome.Report, sourcePath, t.Output);
     }
     if (!outcome.Ok)
     {
-        Console.Error.WriteLine($"No pasó la prueba en {outcome.Attempts} intentos ({outcome.Problem}). El último intento quedó en {sourcePath}.");
+        Console.Error.WriteLine(Retro.Core.UiText.Format($"No pasó la prueba en {outcome.Attempts} intentos ({outcome.Problem}). El último intento quedó en {sourcePath}."));
         return 6;
     }
     return 0;
@@ -780,7 +783,7 @@ static int TryGame(string sourcePath, string? machine)
 {
     if (!File.Exists(sourcePath))
     {
-        Console.Error.WriteLine($"No existe {sourcePath}.");
+        Console.Error.WriteLine(Retro.Core.UiText.Format($"No existe {sourcePath}."));
         return 2;
     }
     string source = File.ReadAllText(sourcePath);
@@ -788,12 +791,12 @@ static int TryGame(string sourcePath, string? machine)
     var t = Retro.Asm.Templates.For(machine);
     if (t == null)
     {
-        Console.Error.WriteLine($"No hay plantilla para {machine}.");
+        Console.Error.WriteLine(Retro.Core.UiText.Format($"No hay plantilla para {machine}."));
         return 2;
     }
     var r = Retro.Compat.HomebrewTrial.Run(source, t.Machine, Path.GetDirectoryName(FindRom("48.rom"))!);
-    Console.WriteLine($"{t.Name}: {sourcePath}");
-    Console.WriteLine(r.Summary.TrimEnd());
+    Console.WriteLine(Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(t.Name)}: {sourcePath}"));
+    Console.WriteLine(Retro.Core.UiText.Get(r.Summary.TrimEnd()));
     SaveTrial(r, sourcePath, t.Output);
     return r.Ok ? 0 : 6;
 }
@@ -804,13 +807,13 @@ static void SaveTrial(Retro.Compat.TrialReport r, string sourcePath, string exte
     {
         string output = Path.ChangeExtension(sourcePath, extension);
         File.WriteAllBytes(output, r.File);
-        Console.WriteLine("Programa: " + output);
+        Console.WriteLine(Retro.Core.UiText.Get("Programa: ") + output);
     }
     if (r.LastPicture != null)
     {
         string png = Path.ChangeExtension(sourcePath, ".png");
         PngWriter.Write(png, r.LastPicture, 2);
-        Console.WriteLine("Captura: " + png);
+        Console.WriteLine(Retro.Core.UiText.Get("Captura: ") + png);
     }
 }
 
@@ -820,14 +823,14 @@ static int ListGames(string folder)
     var games = Retro.Compat.GameCatalog.Scan(folder);
     if (games.Count == 0)
     {
-        Console.Error.WriteLine($"No hay juegos que este emulador pueda correr en {folder}.");
+        Console.Error.WriteLine(Retro.Core.UiText.Format($"No hay juegos que este emulador pueda correr en {folder}."));
         return 2;
     }
-    Console.WriteLine($"{games.Count} juegos en {folder} (el id es el que va en \"profile\" de una receta):");
+    Console.WriteLine(Retro.Core.UiText.Format($"{games.Count} juegos en {folder} (el id es el que va en \"profile\" de una receta):"));
     foreach (var g in games.OrderBy(g => g.Profile.Machine).ThenBy(g => g.Profile.Name))
-        Console.WriteLine($"  {g.Profile.Id,-34} {g.Profile.Machine,-9} {(g.Prepared ? "preparado" : "sin preparar"),-12} " +
-                          $"{(g.Profile.Variables.Count > 0 ? string.Join(", ", g.Profile.Variables.Keys) : "sin variables")}  ({Path.GetRelativePath(folder, g.Path)})");
-    Console.WriteLine("El estudio usa las piezas de estos juegos para una escena propia; para verificar sus variables: retro-cli preparar <juego>.");
+        Console.WriteLine(Retro.Core.UiText.Format($"  {g.Profile.Id,-34} {g.Profile.Machine,-9} {(g.Prepared ? Retro.Core.UiText.Get("preparado") : Retro.Core.UiText.Get("sin preparar")),-12} ") +
+                          Retro.Core.UiText.Format($"{(g.Profile.Variables.Count > 0 ? string.Join(", ", g.Profile.Variables.Keys) : Retro.Core.UiText.Get("sin variables"))}  ({Path.GetRelativePath(folder, g.Path)})"));
+    Console.WriteLine(Retro.Core.UiText.Get("El estudio usa las piezas de estos juegos para una escena propia; para verificar sus variables: retro-cli preparar <juego>."));
     return 0;
 }
 
@@ -836,7 +839,7 @@ static int ListGames(string folder)
 // the SHA-256 of the copy.
 static async Task<int> RunPrepare(string gamePath, string? ia, string? profilesFolder, int rounds, bool save, string? agentFolder)
 {
-    var settings = Retro.Ai.AiSettings.Load();
+    var settings = ia == "ninguna" ? new Retro.Ai.AiSettings { Provider = "manual", ProvidersDisabled = true } : Retro.Ai.AiSettings.Load();
     if (ia != null && ia != "ninguna")
         settings.Provider = ia;
     var provider = ia == "ninguna" ? null : settings.CreateProvider();
@@ -852,30 +855,30 @@ static async Task<int> RunPrepare(string gamePath, string? ia, string? profilesF
         ProfilesFolder = profilesFolder,
         Save = save,
     };
-    Console.WriteLine($"Preparando {Path.GetFileName(gamePath)} para las fusiones" +
-                      (advisor != null ? $" (prueba de teclas y después {advisor.Name})." : " (solo prueba de teclas, sin IA)."));
+    Console.WriteLine(Retro.Core.UiText.Format($"Preparando {Retro.Core.UiText.Raw(Path.GetFileName(gamePath))} para las fusiones") +
+                      (advisor != null ? Retro.Core.UiText.Format($" (prueba de teclas y después {Retro.Core.UiText.Raw(advisor.Name)}).") : " (solo prueba de teclas, sin IA)."));
     var sw = Stopwatch.StartNew();
-    var r = await Retro.Compat.GamePreparer.PrepareAsync(gamePath, options, line => Console.WriteLine("  " + line), CancellationToken.None);
-    Console.WriteLine($"({sw.Elapsed.TotalSeconds:F0} s)");
+    var r = await Retro.Compat.GamePreparer.PrepareAsync(gamePath, options, line => Console.WriteLine(Retro.Core.UiText.Get("  " + line)), CancellationToken.None);
+    Console.WriteLine(Retro.Core.UiText.Format($"({sw.Elapsed.TotalSeconds:F0} s)"));
     if (r.Lab != null)
         foreach (var f in r.Lab.Findings.Where(f => f.Status == "verified" || f.Confidence >= 0.45).Take(14))
         {
-            string where = f.Kind == "entity-table" ? $"${f.Address} x{f.Count} de {f.Stride} bytes" : f.Bytes > 1 ? $"${f.Address} {f.Encoding} {f.Bytes}" : $"${f.Address}";
-            Console.WriteLine($"  {where,-22} {f.Kind,-12} {Retro.Compat.LabReportText.Status(f.Status),-11} {f.Hypothesis}");
+            string where = f.Kind == "entity-table" ? Retro.Core.UiText.Format($"${f.Address} x{f.Count} de {f.Stride} bytes") : f.Bytes > 1 ? Retro.Core.UiText.Format($"${f.Address} {f.Encoding} {f.Bytes}") : Retro.Core.UiText.Format($"${f.Address}");
+            Console.WriteLine(Retro.Core.UiText.Format($"  {where,-22} {f.Kind,-12} {Retro.Compat.LabReportText.Status(f.Status),-11} {f.Hypothesis}"));
         }
     if (r.Profile != null)
     {
-        Console.WriteLine($"Perfil {r.Profile.Id}: arranque {string.Join(", ", r.Profile.Boot)}");
+        Console.WriteLine(Retro.Core.UiText.Format($"Perfil {r.Profile.Id}: arranque {string.Join(", ", r.Profile.Boot)}"));
         foreach (var (name, v) in r.Profile.Variables)
-            Console.WriteLine($"  {name} = ${v.Address} {v.Encoding}{(v.Bytes > 1 ? " " + v.Bytes : "")}{(v.ReadOnly ? " (solo lectura)" : "")}");
-        Console.WriteLine("  controles: " + string.Join(", ", r.Profile.Controls.Select(c => $"{c.Key} = {c.Value}")));
+            Console.WriteLine(Retro.Core.UiText.Format($"  {name} = ${v.Address} {v.Encoding}{(v.Bytes > 1 ? " " + v.Bytes : "")}{(v.ReadOnly ? Retro.Core.UiText.Get(" (solo lectura)") : "")}"));
+        Console.WriteLine(Retro.Core.UiText.Get("  controles: ") + string.Join(", ", r.Profile.Controls.Select(c => Retro.Core.UiText.Format($"{c.Key} = {c.Value}"))));
     }
     if (!r.Ok)
     {
-        Console.Error.WriteLine("No se pudo preparar: " + r.Problem);
+        Console.Error.WriteLine(Retro.Core.UiText.Get("No se pudo preparar: ") + r.Problem);
         return 6;
     }
-    Console.WriteLine(r.ProfilePath != null ? "Listo: " + r.ProfilePath : "Listo (sin guardar).");
+    Console.WriteLine(r.ProfilePath != null ? Retro.Core.UiText.Get("Listo: ") + r.ProfilePath : "Listo (sin guardar).");
     return 0;
 }
 
@@ -913,7 +916,7 @@ static int RunStudio(string gameArg, string gamesDir, string? secondsOpt, string
         string meta = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(gameArg))!, Retro.Studio.StudioWorkspace.GameFile);
         if (!File.Exists(meta))
         {
-            Console.Error.WriteLine($"Falta {Retro.Studio.StudioWorkspace.GameFile} junto a {gameArg} (dice qué juegos usa).");
+            Console.Error.WriteLine(Retro.Core.UiText.Format($"Falta {Retro.Studio.StudioWorkspace.GameFile} junto a {gameArg} (dice qué juegos usa)."));
             return 2;
         }
         game = Retro.Studio.StudioGame.Parse(File.ReadAllText(meta));
@@ -925,32 +928,32 @@ static int RunStudio(string gameArg, string gamesDir, string? secondsOpt, string
         game = Retro.Studio.StudioLibrary.AllVersions().Where(g => g.Id == gameArg).OrderByDescending(g => g.Version).FirstOrDefault();
     if (game == null)
     {
-        Console.Error.WriteLine("Juego no encontrado. Disponibles: " + string.Join(", ", Retro.Studio.StudioLibrary.AllVersions().Select(g => g.Id).Distinct()));
+        Console.Error.WriteLine(Retro.Core.UiText.Get("Juego no encontrado. Disponibles: ") + string.Join(", ", Retro.Studio.StudioLibrary.AllVersions().Select(g => g.Id).Distinct()));
         return 2;
     }
     var sources = FindGameSources(gamesDir);
     var missing = game.Games.Where(g => !sources.ContainsKey(g.Profile)).Select(g => g.Profile).ToList();
     if (missing.Count > 0)
     {
-        Console.Error.WriteLine($"Faltan juegos en {gamesDir}: {string.Join(", ", missing)}");
+        Console.Error.WriteLine(Retro.Core.UiText.Format($"Faltan juegos en {gamesDir}: {string.Join(", ", missing)}"));
         return 4;
     }
-    Console.WriteLine($"Juego fusionado: {game.Title} (versión {game.Version})");
+    Console.WriteLine(Retro.Core.UiText.Format($"Juego fusionado: {Retro.Core.UiText.Raw(game.Title)} (versión {game.Version})"));
     var sw = Stopwatch.StartNew();
     var session = Retro.Studio.StudioSession.Start(game, sources, Path.GetDirectoryName(FindRom("48.rom"))!);
-    Console.WriteLine($"Juegos listos en {sw.Elapsed.TotalSeconds:F1} s. Probando con tres jugadores robot...");
+    Console.WriteLine(Retro.Core.UiText.Format($"Juegos listos en {sw.Elapsed.TotalSeconds:F1} s. Probando con tres jugadores robot..."));
     sw.Restart();
     var report = Retro.Studio.StudioValidator.Run(session, int.Parse(secondsOpt ?? Retro.Studio.StudioValidator.DefaultSecondsPerRobot.ToString()));
-    Console.WriteLine($"(prueba en {sw.Elapsed.TotalSeconds:F1} s)");
-    Console.WriteLine(report.Summary);
+    Console.WriteLine(Retro.Core.UiText.Format($"(prueba en {sw.Elapsed.TotalSeconds:F1} s)"));
+    Console.WriteLine(Retro.Core.UiText.Get(report.Summary));
     if (shotsPrefix != null && report.Shots != null)
         foreach (var (label, frame) in report.Shots)
         {
-            string file = $"{shotsPrefix}_{label}.png";
+            string file = Retro.Core.UiText.Format($"{shotsPrefix}_{label}.png");
             PngWriter.Write(file, frame, 2);
-            Console.WriteLine("Captura: " + file);
+            Console.WriteLine(Retro.Core.UiText.Get("Captura: ") + file);
         }
-    Console.WriteLine(report.Ok ? "Resultado: LISTO" : "Resultado: HAY QUE CORREGIR");
+    Console.WriteLine(Retro.Core.UiText.Get(report.Ok ? "Resultado: LISTO" : "Resultado: HAY QUE CORREGIR"));
     return report.Ok ? 0 : 5;
 }
 
@@ -993,5 +996,5 @@ static string FindRom(string name)
         }
         dir = dir.Parent;
     }
-    throw new FileNotFoundException($"No encuentro roms/{name}. Pasá --rom <ruta>.");
+    throw new FileNotFoundException(Retro.Core.UiText.Format($"No encuentro roms/{name}. Pasá --rom <ruta>."));
 }

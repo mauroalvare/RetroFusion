@@ -41,7 +41,7 @@ public static class PreparationNeighborhoods
         return samples.Where(pair=>pair.Value.Distinct().Count()>1).Select(pair=>new LabFinding {
             Address=pair.Key.ToString("X4"),Kind="counter",Encoding="uint8",Bytes=1,Confidence=0.7,
             Hypothesis="Byte cambiante junto a un dato conocido; función aún sin identificar.",
-            Evidence=[$"Vecino de {addresses[pair.Key]}, observado durante {frames} cuadros; {pair.Value.Distinct().Count()} valores distintos, mínimo {pair.Value.Min()}, máximo {pair.Value.Max()}."],
+            Evidence=[Retro.Core.UiText.Format($"Vecino de {addresses[pair.Key]}, observado durante {frames} cuadros; {pair.Value.Distinct().Count()} valores distintos, mínimo {pair.Value.Min()}, máximo {pair.Value.Max()}.")],
             ExpectedEffect="Una escritura puede distinguir almacenamiento de una copia recalculada; no prueba su significado.",
             HowToVerify="Comparar con el original desde el mismo estado, comprobar la escritura y observar cruces de cifras o transiciones antes de asignarle una función."
         }).Take(6).ToList();

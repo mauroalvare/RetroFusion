@@ -97,9 +97,9 @@ public static class LabVerifier
         {
             Frames = n, Date = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm 'UTC'"),
             BeforeValue=before,TestValue=target,BeforeHex=Convert.ToHexString(beforeBytes),TestHex=Convert.ToHexString(testBytes),
-            Experiment = $"Escribí {target} en ${f.Address} ({LabExperiments.EncodingName(v.Encoding, bytes)}; antes {before}) y corrí {n} cuadros " +
-                         (replay != null ? $"repitiendo las entradas de \"{replay.Description}\" " : "sin tocar nada ") +
-                         "contra la misma corrida sin escribir.",
+            Experiment = Retro.Core.UiText.Format($"Escribí {target} en ${f.Address} ({LabExperiments.EncodingName(v.Encoding, bytes)}; antes {before}) y corrí {n} cuadros ") +
+                         (replay != null ? Retro.Core.UiText.Format($"repitiendo las entradas de \"{replay.Description}\" ") : "sin tocar nada ") +
+                         Retro.Core.UiText.Get("contra la misma corrida sin escribir."),
         };
         var obs = result.Observations;
         if (f.Kind == "timer")
@@ -110,13 +110,13 @@ public static class LabVerifier
             if (intervals.Length >= 2)
             {
                 result.CadenceMinFrames = intervals.Min(); result.CadenceMaxFrames = intervals.Max();
-                obs.Add($"La cuenta sin modificar descendió {down.Length} veces; intervalos entre descensos unitarios: {intervals.Min()}–{intervals.Max()} cuadros. Esto no identifica por sí solo la unidad como segundos reales.");
+                obs.Add(Retro.Core.UiText.Format($"La cuenta sin modificar descendió {down.Length} veces; intervalos entre descensos unitarios: {intervals.Min()}–{intervals.Max()} cuadros. Esto no identifica por sí solo la unidad como segundos reales."));
             }
         }
         for(int i=0;i<br.Length;i++)
             if(br[i]!=pr[i])
-            {result.ChangedRamBytes++;if(result.ChangedRamSample.Count<8)result.ChangedRamSample.Add($"${range.start+i:X4}: {br[i]:X2} -> {pr[i]:X2}");}
-        obs.Add($"Al final difieren {result.ChangedRamBytes} bytes del área de RAM observada frente al control; incluye el dato probado y consecuencias, no demuestra por sí solo su significado.");
+            {result.ChangedRamBytes++;if(result.ChangedRamSample.Count<8)result.ChangedRamSample.Add(Retro.Core.UiText.Format($"${range.start+i:X4}: {br[i]:X2} -> {pr[i]:X2}"));}
+        obs.Add(Retro.Core.UiText.Format($"Al final difieren {result.ChangedRamBytes} bytes del área de RAM observada frente al control; incluye el dato probado y consecuencias, no demuestra por sí solo su significado."));
         // when does the written value fall back to the untouched run for good?
         int backAt = n + 1;
         for (int k = n; k >= 0 && pv[k] == bv[k]; k--)
@@ -132,13 +132,13 @@ public static class LabVerifier
         // a buffer the game redraws from its real variables gets back within a few frames
         bool overwritten = backAt <= Math.Min(10, n) && !keptOperating;
         if (overwritten)
-            obs.Add($"el juego lo vuelve a su valor ({bv[backAt]}) en {backAt} cuadro(s): lo recalcula desde otra variable o es una copia");
+            obs.Add(Retro.Core.UiText.Format($"el juego lo vuelve a su valor ({bv[backAt]}) en {backAt} cuadro(s): lo recalcula desde otra variable o es una copia"));
         else if (backAt <= n)
-            obs.Add($"conserva el valor escrito {backAt} cuadros y después coincide con la corrida sin tocar (el juego lo reinició)");
+            obs.Add(Retro.Core.UiText.Format($"conserva el valor escrito {backAt} cuadros y después coincide con la corrida sin tocar (el juego lo reinició)"));
         else
-            obs.Add($"conserva el valor escrito: termina en {pv[n]} (sin tocar, {bv[n]})");
+            obs.Add(Retro.Core.UiText.Format($"conserva el valor escrito: termina en {pv[n]} (sin tocar, {bv[n]})"));
         if (keptOperating)
-            obs.Add($"el juego siguió cambiándolo desde el valor escrito igual que sin tocar ({changes} cambio(s) en {Math.Min(untilDiverge, n + 1) - 1} cuadros)");
+            obs.Add(Retro.Core.UiText.Format($"el juego siguió cambiándolo desde el valor escrito igual que sin tocar ({changes} cambio(s) en {Math.Min(untilDiverge, n + 1) - 1} cuadros)"));
 
         // the picture
         int most = 0, at = 0;
@@ -166,9 +166,9 @@ public static class LabVerifier
         }
         result.PixelsChanged = most;
         if (most > 0)
-            obs.Add($"la pantalla cambia: {most} píxeles distintos en el cuadro {at}, en la zona x {box.x0}-{box.x1}, y {box.y0}-{box.y1}");
+            obs.Add(Retro.Core.UiText.Format($"la pantalla cambia: {most} píxeles distintos en el cuadro {at}, en la zona x {box.x0}-{box.x1}, y {box.y0}-{box.y1}"));
         else
-            obs.Add($"la pantalla queda igual que sin tocar en los cuadros {string.Join(", ", checkpoints)}");
+            obs.Add(Retro.Core.UiText.Format($"la pantalla queda igual que sin tocar en los cuadros {string.Join(", ", checkpoints)}"));
 
         // the screen text (numbers only: a written score should appear where the old one was)
         bool textShows = false;
@@ -182,13 +182,13 @@ public static class LabVerifier
                 if (pt.Contains(tail) && !bt.Contains(tail) && Significant(tail))
                 {
                     textShows = true;
-                    obs.Add($"el texto de la pantalla muestra {tail} donde sin tocar muestra {untouched[(digits - k)..]}");
+                    obs.Add(Retro.Core.UiText.Format($"el texto de la pantalla muestra {tail} donde sin tocar muestra {untouched[(digits - k)..]}"));
                     if (f.Kind == "score" && v.Encoding is "ascii" or "digits" && k != bytes)
                     {
                         // the screen shows k digits: the variable is the last k bytes of the run
                         uint newAddress = address + (uint)(bytes - k);
-                        obs.Add($"en pantalla se ven {k} dígitos: el puntaje queda en ${newAddress:X4}, {k} bytes (antes ${f.Address}, {bytes})");
-                        f.Address = $"{newAddress:X4}";
+                        obs.Add(Retro.Core.UiText.Format($"en pantalla se ven {k} dígitos: el puntaje queda en ${newAddress:X4}, {k} bytes (antes ${f.Address}, {bytes})"));
+                        f.Address = Retro.Core.UiText.Format($"{newAddress:X4}");
                         f.Bytes = k;
                     }
                 }
@@ -239,9 +239,9 @@ public static class LabVerifier
             var match = System.Text.RegularExpressions.Regex.Match(field, @"^\+(\d+)");
             if (!match.Success)
                 continue;
-            var probe = new LabFinding { Kind = "entity-table", Address = $"{baseAddress + int.Parse(match.Groups[1].Value):X4}" };
+            var probe = new LabFinding { Kind = "entity-table", Address = Retro.Core.UiText.Format($"{baseAddress + int.Parse(match.Groups[1].Value):X4}") };
             last = Verify(m, probe, null, DefaultFrames, ct);
-            last.Experiment = $"Campo +{match.Groups[1].Value} del primer registro: " + last.Experiment;
+            last.Experiment = Retro.Core.UiText.Format($"Campo +{match.Groups[1].Value} del primer registro: ") + last.Experiment;
             if (last.Result != "refuted")
                 break;
         }

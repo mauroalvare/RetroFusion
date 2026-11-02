@@ -43,7 +43,7 @@ public sealed class ScriptHost
 
     private static GameVariable Variable(StudioSession.SlotState s, string name) =>
         s.Slot.Profile.Variables.TryGetValue(name, out var v) ? v
-            : throw new ArgumentException($"{s.Slot.Profile.Name} no tiene la variable \"{name}\". Tiene: {string.Join(", ", s.Slot.Profile.Variables.Keys)}.");
+            : throw new ArgumentException(Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(s.Slot.Profile.Name)} no tiene la variable \"{name}\". Tiene: {string.Join(", ", s.Slot.Profile.Variables.Keys)}."));
 
     public int Get(string id, string name)
     {
@@ -85,8 +85,8 @@ public sealed class ScriptHost
             return key;
         if (s.Slot.Machine.Keys.Any(k => k.Name == name))
             return name;
-        throw new ArgumentException($"{s.Slot.Profile.Name} no tiene el control \"{name}\". Controles: {string.Join(", ", s.Slot.Profile.Controls.Keys)}; " +
-                                    $"teclas: {string.Join(", ", s.Slot.Machine.Keys.Select(k => k.Name).Take(60))}.");
+        throw new ArgumentException(Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(s.Slot.Profile.Name)} no tiene el control \"{name}\". Controles: {string.Join(", ", s.Slot.Profile.Controls.Keys)}; ") +
+                                    Retro.Core.UiText.Format($"teclas: {string.Join(", ", s.Slot.Machine.Keys.Select(k => k.Name).Take(60))}."));
     }
 
     public void Control(string id, string name, bool down)
@@ -135,7 +135,7 @@ public sealed class ScriptHost
         _session.ReferencedSlots.Add(id);
         var s = S(id);
         if (!s.Slot.Profile.Sprites.TryGetValue(name, out var def))
-            throw new ArgumentException($"{s.Slot.Profile.Name} no tiene el sprite \"{name}\". Tiene: {string.Join(", ", s.Slot.Profile.Sprites.Keys)}.");
+            throw new ArgumentException(Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(s.Slot.Profile.Name)} no tiene el sprite \"{name}\". Tiene: {string.Join(", ", s.Slot.Profile.Sprites.Keys)}."));
         return AddSprite(def, s);
     }
 
@@ -162,8 +162,8 @@ public sealed class ScriptHost
             || _capturedPixels.GetValueOrDefault(id) + w * h > 4096)
         {
             _session.SceneViolation = true;
-            _session.SceneProblem = "g.capture admite recursos de hasta 32x32 dentro del área activa y 4096 píxeles por original, " +
-                "sumados durante toda la partida. Extraé personajes o tiles una vez y reutilizalos; no reconstruyas pantallas con recortes.";
+            _session.SceneProblem = Retro.Core.UiText.Get("g.capture admite recursos de hasta 32x32 dentro del área activa y 4096 píxeles por original, ") +
+                Retro.Core.UiText.Get("sumados durante toda la partida. Extraé personajes o tiles una vez y reutilizalos; no reconstruyas pantallas con recortes.");
             throw new InvalidOperationException(_session.SceneProblem);
         }
         if (_sprites.Count >= 512) throw new InvalidOperationException("Demasiados sprites: guardalos y reutilizalos.");
@@ -208,7 +208,7 @@ public sealed class ScriptHost
             var area = StudioSession.PictureArea(S(id).Slot.Machine);
             if (Num(w) != area.w || Num(h) != area.h)
             {
-                RejectScene($"El modo base conserva su resolución ({area.w}x{area.h}). Integrá los aportes dentro de ese mundo; la creación libre permite otra escena.");
+                RejectScene(Retro.Core.UiText.Format($"El modo base conserva su resolución ({area.w}x{area.h}). Integrá los aportes dentro de ese mundo; la creación libre permite otra escena."));
                 return;
             }
         }

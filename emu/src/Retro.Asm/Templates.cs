@@ -7,7 +7,11 @@ namespace Retro.Asm;
 /// A starting game for one machine: source in assembly, its CPU, how it is packed and the
 /// guide to its hardware (what a writer needs: memory, screen, controls, sound, syntax).
 /// </summary>
-public sealed record GameTemplate(string Machine, string Name, string Cpu, string Source, string Output, string Guide);
+public sealed record GameTemplate(string Machine, string Name, string Cpu, string Source, string Output, string Guide)
+{
+    private readonly string _guide = Guide;
+    public string Guide { get => Retro.Core.UiText.English ? Templates.EnglishGuide(Machine) : _guide; init => _guide = value; }
+}
 
 /// <summary>An example game: its machine, what it is, how it is played and its source.</summary>
 public sealed record ExampleGame(string Machine, string Title, string Pitch, string HowToPlay, string Source);
@@ -39,10 +43,13 @@ public static class Templates
 
     public static GameTemplate? For(string machine) => All.FirstOrDefault(t => t.Machine.Equals(machine, StringComparison.OrdinalIgnoreCase));
 
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> EnglishGuides = new();
+    internal static string EnglishGuide(string machine) => EnglishGuides.GetOrAdd(machine, id => Read(id + "-EN.md"));
+
     private static string Read(string name, string folder = "Templates")
     {
         var asm = Assembly.GetExecutingAssembly();
-        using var s = asm.GetManifestResourceStream($"Retro.Asm.{folder}.{name}") ?? throw new InvalidOperationException($"falta {folder}/{name}");
+        using var s = asm.GetManifestResourceStream($"Retro.Asm.{folder}.{name}") ?? throw new InvalidOperationException(Retro.Core.UiText.Format($"falta {folder}/{name}"));
         using var r = new StreamReader(s, Encoding.UTF8);
         return r.ReadToEnd();
     }

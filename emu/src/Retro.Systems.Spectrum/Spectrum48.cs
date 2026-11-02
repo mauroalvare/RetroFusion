@@ -539,11 +539,11 @@ public sealed class Spectrum48 : IMachine, IZ80Bus, IMemoryView, IWriteWatch, II
         long ft = FrameTState;
         return new[]
         {
-            $"T-states total: {_cpu.T:N0}",
-            $"Cuadro {FrameCount}, T en cuadro: {ft} de {FrameTStates}",
-            $"Haz: línea {ft / TStatesPerLine}, ciclo {ft % TStatesPerLine}",
-            ft < InterruptLength ? "Pulso /INT activo (primeros 32 T)" : $"Próxima /INT en {FrameTStates - ft} T",
-            $"Borde: {_border}  EAR={(_earOut ? 1 : 0)} MIC={(_micOut ? 1 : 0)}",
+            Retro.Core.UiText.Format($"T-states total: {_cpu.T:N0}"),
+            Retro.Core.UiText.Format($"Cuadro {FrameCount}, T en cuadro: {ft} de {FrameTStates}"),
+            Retro.Core.UiText.Format($"Haz: línea {ft / TStatesPerLine}, ciclo {ft % TStatesPerLine}"),
+            ft < InterruptLength ? "Pulso /INT activo (primeros 32 T)" : Retro.Core.UiText.Format($"Próxima /INT en {FrameTStates - ft} T"),
+            Retro.Core.UiText.Format($"Borde: {_border}  EAR={(_earOut ? 1 : 0)} MIC={(_micOut ? 1 : 0)}"),
         };
     }
 

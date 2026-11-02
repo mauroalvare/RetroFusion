@@ -64,7 +64,7 @@ public sealed partial class NesCartridge
         int mapper = (f6 >> 4) | (junkTail ? 0 : f7 & 0xF0);
         if (nes2) mapper |= (data[8] & 0x0F) << 8;
         if (!SupportedMappers.Contains(mapper))
-            throw new InvalidDataException($"Mapper {mapper} no soportado todavía (por ahora: 0 NROM, 1 MMC1, 2 UxROM, 3 CNROM, 4 MMC3 y 7 AxROM).");
+            throw new InvalidDataException(Retro.Core.UiText.Format($"Mapper {mapper} no soportado todavía (por ahora: 0 NROM, 1 MMC1, 2 UxROM, 3 CNROM, 4 MMC3 y 7 AxROM)."));
         if (prgUnits == 0) throw new InvalidDataException("La imagen dice que no tiene PRG ROM.");
         if (nes2 && data[9] != 0)
             throw new InvalidDataException("Los tamaños ampliados de NES 2.0 todavía no están implementados.");
@@ -88,7 +88,7 @@ public sealed partial class NesCartridge
         int offset = HeaderSize + ((f6 & 0x04) != 0 ? TrainerSize : 0);
         int prgSize = prgUnits * PrgUnit, chrSize = chrUnits * ChrUnit;
         if (data.Length < offset + prgSize + chrSize)
-            throw new InvalidDataException($"La imagen está cortada: el encabezado pide {prgSize + chrSize} bytes de ROM y hay {data.Length - offset}.");
+            throw new InvalidDataException(Retro.Core.UiText.Format($"La imagen está cortada: el encabezado pide {prgSize + chrSize} bytes de ROM y hay {data.Length - offset}."));
         var mirroring = (f6 & 8) != 0 ? NesMirroring.FourScreen : (f6 & 1) != 0 ? NesMirroring.Vertical : NesMirroring.Horizontal;
         return new(mapper, offset, prgSize, chrSize, mirroring, (f6 & 2) != 0);
     }
@@ -198,8 +198,8 @@ public sealed partial class NesCartridge
     }
 
     public string Describe() =>
-        $"Cartucho NES: mapper {Mapper} ({(Mapper switch { 0 => "NROM", 1 => "MMC1", 2 => "UxROM", 3 => "CNROM", 4 => "MMC3", 7 => "AxROM", _ => "desconocido" })}), PRG {PrgSize / 1024} KB, " +
-        (ChrIsRam ? "CHR RAM 8 KB" : $"CHR ROM {ChrSize / 1024} KB") +
-        $", espejado {(Mirroring switch { NesMirroring.Horizontal => "horizontal", NesMirroring.Vertical => "vertical", NesMirroring.SingleLower => "una pantalla inferior", NesMirroring.SingleUpper => "una pantalla superior", _ => "de 4 pantallas" })}" +
-        (HasBattery ? ", con batería" : "");
+        Retro.Core.UiText.Format($"Cartucho NES: mapper {Mapper} ({(Mapper switch { 0 => "NROM", 1 => "MMC1", 2 => "UxROM", 3 => "CNROM", 4 => "MMC3", 7 => "AxROM", _ => "desconocido" })}), PRG {PrgSize / 1024} KB, ") +
+        (ChrIsRam ? "CHR RAM 8 KB" : Retro.Core.UiText.Format($"CHR ROM {ChrSize / 1024} KB")) +
+        Retro.Core.UiText.Format($", espejado {Retro.Core.UiText.Get(Mirroring switch { NesMirroring.Horizontal => "horizontal", NesMirroring.Vertical => "vertical", NesMirroring.SingleLower => "una pantalla inferior", NesMirroring.SingleUpper => "una pantalla superior", _ => "de 4 pantallas" })}") +
+        (HasBattery ? Retro.Core.UiText.Get(", con batería") : "");
 }

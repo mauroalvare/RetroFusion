@@ -22,8 +22,8 @@ public static class CuratedCapabilities
         foreach (var (name, value) in curated.Variables) resolved.Variables.TryAdd(name, value);
         foreach (var (name, value) in curated.Sprites) resolved.Sprites.TryAdd(name, value);
         resolved.Helpers = curated.Helpers.ToList(); resolved.HelpersDoc = curated.HelpersDoc.ToList();
-        resolved.Verified += "\nFunciones curadas recuperadas para la edición completa SHA-256 " + ArcadeEdition +
-            ". Se conservaron el identificador, arranque, controles y variables del perfil seleccionado.";
+        resolved.Verified += Retro.Core.UiText.Get("\nFunciones curadas recuperadas para la edición completa SHA-256 ") + ArcadeEdition +
+            Retro.Core.UiText.Get(". Se conservaron el identificador, arranque, controles y variables del perfil seleccionado.");
         return resolved;
     }
 }

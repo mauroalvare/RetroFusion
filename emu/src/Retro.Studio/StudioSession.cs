@@ -189,7 +189,7 @@ public sealed class StudioSession : IFusionRun
         {
             ct.ThrowIfCancellationRequested();
             if (!sources.TryGetValue(g.Profile, out var src))
-                throw new InvalidOperationException($"Falta el juego \"{g.Profile}\" en la carpeta de juegos.");
+                throw new InvalidOperationException(Retro.Core.UiText.Format($"Falta el juego \"{g.Profile}\" en la carpeta de juegos."));
             var m = MachineFactory.Create(src, romDirectory);
             string key = SourceKey(src, romDirectory);
             if (CachedBoot(key, out var snapshot))
@@ -217,7 +217,7 @@ public sealed class StudioSession : IFusionRun
     }
 
     internal SlotState SlotFor(string id) =>
-        _slots.FirstOrDefault(s => s.Slot.Id == id) ?? throw new ArgumentException($"No hay un juego en la ranura \"{id}\".");
+        _slots.FirstOrDefault(s => s.Slot.Id == id) ?? throw new ArgumentException(Retro.Core.UiText.Format($"No hay un juego en la ranura \"{id}\"."));
 
     internal IEnumerable<SlotState> SlotStates => _slots;
     internal Canvas Canvas => _canvas;
@@ -249,7 +249,7 @@ public sealed class StudioSession : IFusionRun
             _engine.SetValue("__h", _host);
             _engine.Execute(ScriptHost.Prelude, "api-fusion.js");
             foreach (var s in _slots.Where(s => s.Slot.Profile.Helpers.Count > 0))
-                _engine.Execute($"(function (g) {{\n{string.Join("\n", s.Slot.Profile.Helpers)}\n}})(games['{s.Slot.Id}']);", $"ayudas-{s.Slot.Profile.Id}.js");
+                _engine.Execute(Retro.Core.UiText.Format($"(function (g) {{\n{string.Join("\n", s.Slot.Profile.Helpers)}\n}})(games['{s.Slot.Id}']);"), Retro.Core.UiText.Format($"ayudas-{s.Slot.Profile.Id}.js"));
             _engine.Execute(Game.Script, "juego.js");
             Call("__init");
         }
@@ -281,11 +281,11 @@ public sealed class StudioSession : IFusionRun
             case JavaScriptException js:
             {
                 var loc = js.Location;
-                string where = loc.SourceFile is { Length: > 0 } f ? $" ({f}, línea {loc.Start.Line}, columna {loc.Start.Column + 1})" : "";
-                return $"Error de JavaScript{where}: {js.Message}";
+                string where = loc.SourceFile is { Length: > 0 } f ? Retro.Core.UiText.Format($" ({f}, línea {loc.Start.Line}, columna {loc.Start.Column + 1})") : "";
+                return Retro.Core.UiText.Format($"Error de JavaScript{where}: {js.Message}");
             }
             case Acornima.ParseErrorException pe:
-                return $"Error de sintaxis (juego.js, línea {pe.LineNumber}, columna {pe.Column}): {pe.Description}";
+                return Retro.Core.UiText.Format($"Error de sintaxis (juego.js, línea {pe.LineNumber}, columna {pe.Column}): {pe.Description}");
             case TimeoutException:
                 return "El guion tardó demasiado en un tick (más de medio segundo): probablemente hay un bucle infinito.";
             case StatementsCountOverflowException:

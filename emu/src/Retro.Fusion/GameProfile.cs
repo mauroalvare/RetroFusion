@@ -26,7 +26,7 @@ public sealed class GameVariable
     [JsonIgnore] public bool PurposeIsHypothesis => PurposeStatus == "hypothesis" || PurposeStatus == null &&
         (Description?.StartsWith("Hipótesis", StringComparison.OrdinalIgnoreCase) == true || Description?.StartsWith("Nombre propuesto", StringComparison.OrdinalIgnoreCase) == true);
     [JsonIgnore] public string PurposeSummary => PurposeIsHypothesis ? "Propósito propuesto; falta comprobar su significado en el juego."
-        : PurposeStatus == "observed" && !string.IsNullOrWhiteSpace(PurposeEvidence) ? "Propósito observado: " + PurposeEvidence
+        : PurposeStatus == "observed" && !string.IsNullOrWhiteSpace(PurposeEvidence) ? Retro.Core.UiText.Get("Propósito observado: ") + PurposeEvidence
         : "Propósito declarado por el perfil; revisar su alcance y edición.";
 
     [JsonIgnore]
@@ -329,8 +329,8 @@ public static class ProfileLibrary
     {
         Validate(profile);
         Directory.CreateDirectory(folder);
-        string path = Path.Combine(folder, profile.Id + ".json");
-        string temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        string path = Path.Combine(folder, profile.Id + Retro.Core.UiText.Get(".json"));
+        string temporary = path + "." + Guid.NewGuid().ToString("N") + Retro.Core.UiText.Get(".tmp");
         try
         {
             using (var file = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))

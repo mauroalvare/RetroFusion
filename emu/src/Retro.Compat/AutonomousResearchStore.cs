@@ -17,7 +17,7 @@ public sealed class AutonomousResearchStore(string folder)
     private string PathFor(string id)
     {
         if(id is not {Length:32} || id.Any(c=>!char.IsAsciiHexDigit(c)))throw new InvalidDataException("Identificador de análisis inválido.");
-        return Path.Combine(Folder,id+".json");
+        return Path.Combine(Folder,id+Retro.Core.UiText.Get(".json"));
     }
     private FileStream Lease()
     {
@@ -46,7 +46,7 @@ public sealed class AutonomousResearchStore(string folder)
         byte[] data=JsonSerializer.SerializeToUtf8Bytes(work,GameProfile.Json);
         if(data.Length>MaxBytes)throw new IOException("El análisis supera4MB. El checkpoint anterior se conserva.");
         if(!File.Exists(path) && Directory.EnumerateFiles(Folder,"*.json").Count()>=12)throw new IOException("Hay doce análisis guardados. Descartá uno que ya no necesites.");
-        string temp=path+"."+Guid.NewGuid().ToString("N")+".tmp";
+        string temp=path+"."+Guid.NewGuid().ToString("N")+Retro.Core.UiText.Get(".tmp");
         try
         {
             using(var stream=new FileStream(temp,FileMode.CreateNew,FileAccess.Write,FileShare.None)){stream.Write(data);stream.Flush(true);}
@@ -67,7 +67,7 @@ public sealed class AutonomousResearchStore(string folder)
             Validate(work);if(Path.GetFileName(PathFor(work.Id))!=file.Name)throw new InvalidDataException("El identificador del archivo no coincide.");works.Add(work);
             }
             catch(Exception error) when(error is IOException or InvalidDataException or JsonException or ArgumentException or NullReferenceException)
-            {Problem="No se pudo leer un análisis; se conservó el archivo "+file.Name+". "+error.Message;}
+            {Problem=Retro.Core.UiText.Get("No se pudo leer un análisis; se conservó el archivo ")+file.Name+". "+error.Message;}
         }
         return works;
     }

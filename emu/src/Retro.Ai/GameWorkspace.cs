@@ -24,8 +24,8 @@ public static class GameWorkspace
     /// <summary>Creates a new task folder. <paramref name="cliHint"/> is how the agent can try the game itself, if it can run commands.</summary>
     public static string Create(string machine, string wish, Random rng, string? cliHint, string? folder = null)
     {
-        var t = Templates.For(machine) ?? throw new ArgumentException($"no hay plantilla para {machine}");
-        string dir = folder ?? Path.Combine(Root, $"{t.Machine}-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}");
+        var t = Templates.For(machine) ?? throw new ArgumentException(Retro.Core.UiText.Format($"no hay plantilla para {machine}"));
+        string dir = folder ?? Path.Combine(Root, Retro.Core.UiText.Format($"{t.Machine}-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}"));
         Directory.CreateDirectory(dir);
         File.WriteAllText(Path.Combine(dir, GameDesignGuide.FileName), GameDesignGuide.Text);
         File.WriteAllText(Path.Combine(dir, "CONTRATO.md"), GameDesignGuide.Compact);
@@ -36,12 +36,12 @@ public static class GameWorkspace
             new JsonSerializerOptions { WriteIndented = true }));
         File.Delete(Path.Combine(dir, ReportFile));
         string test = cliHint != null
-            ? $"Probalo vos mismo cuando quieras con:\n\n    {cliHint}\n\n   Imprime el informe y deja {PictureFile.Replace("captura", "juego")} y el programa al lado. Mirá la imagen."
-            : $"RetroEmu lo prueba solo cada vez que guardás `{SourceFile}` y escribe `{ReportFile}` y `{PictureFile}`. Mirá la imagen.";
-        string tarea = $"""
-            # Tarea: escribir un juego original de 8 bits para {t.Name}
+            ? Retro.Core.UiText.Format($"Probalo vos mismo cuando quieras con:\n\n    {cliHint}\n\n   Imprime el informe y deja {PictureFile.Replace("captura", "juego")} y el programa al lado. Mirá la imagen.")
+            : Retro.Core.UiText.Format($"RetroEmu lo prueba solo cada vez que guardás `{SourceFile}` y escribe `{ReportFile}` y `{PictureFile}`. Mirá la imagen.");
+        string tarea = Retro.Core.UiText.Format($"""
+            # Tarea: escribir un juego original de 8 bits para {Retro.Core.UiText.Raw(t.Name)}
 
-            Escribí un juego NUEVO y ORIGINAL en ensamblador {t.Cpu.ToUpperInvariant()} para {t.Name}.
+            Escribí un juego NUEVO y ORIGINAL en ensamblador {t.Cpu.ToUpperInvariant()} para {Retro.Core.UiText.Raw(t.Name)}.
             Las instrucciones son independientes del agente o editor que uses.
 
             ## Qué juego
@@ -52,7 +52,7 @@ public static class GameWorkspace
 
             1. Leé `CONTRATO.md` y `GUIA.md`
                (memoria, pantalla, controles, sonido y sintaxis del ensamblador).
-               `{GameDesignGuide.FileName}` amplía los criterios de diseño si necesitás profundizar.
+               `{Retro.Core.UiText.Raw(GameDesignGuide.FileName)}` amplía los criterios de diseño si necesitás profundizar.
             2. Escribí una ficha breve de diseño en comentarios de `{SourceFile}` y luego el juego completo.
                `plantilla.s` aporta el arranque hasta `start` y demostraciones técnicas: no es el juego a recolorear.
                Implementá estados, reglas y recursos propios. No agregues dependencias.
@@ -70,7 +70,7 @@ public static class GameWorkspace
             Si no recibiste rutinas de ROMs analizadas, no afirmes haberlas estudiado ni copies código de los originales.
 
             Textos para el jugador en castellano.
-            """;
+            """);
         File.WriteAllText(Path.Combine(dir, "TAREA.md"), tarea);
         string pointer = "Leé TAREA.md y seguí sus instrucciones.\n";
         foreach (var name in new[] { "AGENTS.md", "CLAUDE.md", "GEMINI.md" })
@@ -87,7 +87,7 @@ public static class GameWorkspace
         string path = Path.Combine(dir, SourceFile);
         if (!File.Exists(path))
         {
-            problem = $"Esperando {SourceFile}; la carpeta todavía no tiene el programa.";
+            problem = Retro.Core.UiText.Format($"Esperando {SourceFile}; la carpeta todavía no tiene el programa.");
             return null;
         }
         string title = "", pitch = "", how = "", changes = "";
@@ -114,7 +114,7 @@ public static class GameWorkspace
         catch (Exception e) when (e is JsonException or IOException or UnauthorizedAccessException)
         {
             // Never approve an older/default card while the agent is writing its replacement.
-            problem = $"No se puede comprobar {SourceFile}/{InfoFile}: {e.Message} Guardá los dos archivos completos y volvé a probar.";
+            problem = Retro.Core.UiText.Format($"No se puede comprobar {SourceFile}/{InfoFile}: {e.Message} Guardá los dos archivos completos y volvé a probar.");
             return null;
         }
     }
@@ -122,8 +122,8 @@ public static class GameWorkspace
     public static void WriteReport(string dir, TrialReport report)
     {
         string text = report.Ok
-            ? "# Listo\n\nPasó la prueba técnica automática. Falta comprobar manualmente las decisiones, el objetivo, el equilibrio y la calidad visual.\n\n" + report.Summary
-            : "# Hay que corregir\n\n" + report.Summary + $"\nCorregí {SourceFile} y guardalo de nuevo.\n";
+            ? Retro.Core.UiText.Get("# Listo\n\nPasó la prueba técnica automática. Falta comprobar manualmente las decisiones, el objetivo, el equilibrio y la calidad visual.\n\n") + report.Summary
+            : Retro.Core.UiText.Get("# Hay que corregir\n\n") + report.Summary + Retro.Core.UiText.Format($"\nCorregí {SourceFile} y guardalo de nuevo.\n");
         File.WriteAllText(Path.Combine(dir, ReportFile), text);
         if (report.LastPicture != null)
             PngWriter.Write(Path.Combine(dir, PictureFile), report.LastPicture, 2);

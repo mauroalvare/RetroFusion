@@ -100,7 +100,7 @@ public sealed class AutonomousResearch
         {
             if(!string.IsNullOrWhiteSpace(machine) && machine!=profile.Machine ||
                 !string.IsNullOrWhiteSpace(sha) && !sha.Equals(edition,StringComparison.OrdinalIgnoreCase))
-                throw new InvalidDataException(source+" corresponde a otra máquina o edición. No se incorporó al análisis.");
+                throw new InvalidDataException(source+Retro.Core.UiText.Get(" corresponde a otra máquina o edición. No se incorporó al análisis."));
         }
         void CheckLab(LabReport lab)=>CheckMetadata(lab.Machine,lab.Sha256,"El informe del laboratorio");
         try
@@ -148,7 +148,7 @@ public sealed class AutonomousResearch
             work.StopReason=ct.IsCancellationRequested?"Análisis detenido. Se conservan las rondas y la evidencia completadas; la prueba interrumpida puede repetirse.":"Se alcanzó el tiempo configurado. El progreso queda guardado para continuar.";
         }
         catch(Exception error) when(error is not OutOfMemoryException)
-        {work.Status="error";work.StopReason="No se completó el análisis: "+error.Message;}
+        {work.Status="error";work.StopReason=Retro.Core.UiText.Get("No se completó el análisis: ")+error.Message;}
         stage="Guardado";Publish(work.StopReason,true);return work;
     }
 
@@ -189,8 +189,8 @@ public sealed class AutonomousResearch
             if(target.CheckedControls.Count<32 || target.CheckedControls.ContainsKey(control.Key))target.CheckedControls[control.Key]=control.Value;
         foreach(var finding in source.Findings.Take(256))
         {
-            string key=$"{finding.Address}/{finding.Kind}/{finding.Encoding}/{finding.Bytes}";
-            int at=target.Findings.FindIndex(f=>$"{f.Address}/{f.Kind}/{f.Encoding}/{f.Bytes}"==key);
+            string key=Retro.Core.UiText.Format($"{finding.Address}/{finding.Kind}/{finding.Encoding}/{finding.Bytes}");
+            int at=target.Findings.FindIndex(f=>Retro.Core.UiText.Format($"{f.Address}/{f.Kind}/{f.Encoding}/{f.Bytes}")==key);
             LabFinding Clone()=>JsonSerializer.Deserialize<LabFinding>(JsonSerializer.Serialize(finding,GameProfile.Json),GameProfile.Json)!;
             if(at>=0)
             {

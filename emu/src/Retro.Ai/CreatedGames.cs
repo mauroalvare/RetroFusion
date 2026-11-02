@@ -113,7 +113,7 @@ public static class CreatedGames
     /// <summary>A new game from the machine's template, to write by hand (already tried).</summary>
     public static CreatedGame FromTemplate(string machine, string firmwareDirectory)
     {
-        var t = Templates.For(machine) ?? throw new ArgumentException($"no hay plantilla para {machine}");
+        var t = Templates.For(machine) ?? throw new ArgumentException(Retro.Core.UiText.Format($"no hay plantilla para {machine}"));
         var g = new CreatedGame
         {
             Title = "Mi juego",
@@ -140,7 +140,7 @@ public static class CreatedGames
         Directory.CreateDirectory(UserFolder);
         foreach (var e in Templates.Examples)
         {
-            string dir = Path.Combine(UserFolder, $"{Slug(e.Title)}-{e.Machine}");
+            string dir = Path.Combine(UserFolder, Retro.Core.UiText.Format($"{Slug(e.Title)}-{e.Machine}"));
             if (Directory.Exists(dir))
                 continue;
             Directory.CreateDirectory(dir);
@@ -160,15 +160,15 @@ public static class CreatedGames
         string readme = Path.Combine(UserFolder, "LEEME.txt");
         if (!File.Exists(readme))
             File.WriteAllText(readme,
-                "Juegos creados con RetroEmu\r\n" +
+                Retro.Core.UiText.Get("Juegos creados con RetroEmu\r\n") +
                 "===========================\r\n\r\n" +
-                "Cada carpeta es un juego de 8 bits escrito desde cero (por una IA o a mano):\r\n" +
-                "  juego.s            el programa en ensamblador (editable)\r\n" +
-                "  juego.prg o .tap   listo para cargar en el C64 o el Spectrum (también en otros emuladores)\r\n" +
-                "  juego.png          cómo se veía en su última prueba\r\n" +
-                "  juego.json         título, cómo se juega y el informe de la prueba\r\n\r\n" +
-                "Después de editar juego.s, en RetroEmu: Crear > Desde cero > Probar de nuevo.\r\n" +
-                "Los hechos con originales usan versiones vN.json/vN.js/vN.png y necesitan tus propias ROMs.\r\n");
+                Retro.Core.UiText.Get("Cada carpeta es un juego de 8 bits escrito desde cero (por una IA o a mano):\r\n") +
+                Retro.Core.UiText.Get("  juego.s            el programa en ensamblador (editable)\r\n") +
+                Retro.Core.UiText.Get("  juego.prg o .tap   listo para cargar en el C64 o el Spectrum (también en otros emuladores)\r\n") +
+                Retro.Core.UiText.Get("  juego.png          cómo se veía en su última prueba\r\n") +
+                Retro.Core.UiText.Get("  juego.json         título, cómo se juega y el informe de la prueba\r\n\r\n") +
+                Retro.Core.UiText.Get("Después de editar juego.s, en RetroEmu: Crear > Desde cero > Probar de nuevo.\r\n") +
+                Retro.Core.UiText.Get("Los hechos con originales usan versiones vN.json/vN.js/vN.png y necesitan tus propias ROMs.\r\n"));
         return added;
     }
 
@@ -206,7 +206,7 @@ public static class CreatedGames
 
     private static void WriteAtomic(string path, byte[] data)
     {
-        string temp = Path.Combine(Path.GetDirectoryName(path)!, Guid.NewGuid().ToString("N") + ".tmp");
+        string temp = Path.Combine(Path.GetDirectoryName(path)!, Guid.NewGuid().ToString("N") + Retro.Core.UiText.Get(".tmp"));
         try
         {
             using(var stream = new FileStream(temp,FileMode.CreateNew,FileAccess.Write,FileShare.None))
@@ -225,9 +225,9 @@ public static class CreatedGames
 
     private static string NewFolder(string title, string machine)
     {
-        string baseName = $"{Slug(title)}-{machine}", path = Path.Combine(UserFolder, baseName);
+        string baseName = Retro.Core.UiText.Format($"{Slug(title)}-{machine}"), path = Path.Combine(UserFolder, baseName);
         for (int n = 2; Directory.Exists(path); n++)
-            path = Path.Combine(UserFolder, $"{baseName}-{n}");
+            path = Path.Combine(UserFolder, Retro.Core.UiText.Format($"{baseName}-{n}"));
         Directory.CreateDirectory(path);
         return path;
     }

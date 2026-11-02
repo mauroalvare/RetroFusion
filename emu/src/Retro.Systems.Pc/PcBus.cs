@@ -37,8 +37,8 @@ public sealed partial class PcBus : I8088Bus
         Keyboard.IrqChanged += high => Pic.SetLine(1, high);
         Dma.ReadMemory = (channel, address) => Memory.Read(DmaAddress(channel, address));
         Dma.WriteMemory = (channel, address, value) => Memory.Write(DmaAddress(channel, address), value);
-        Dma.ReadDevice = channel => channel == 2 ? Fdc.DmaRead() : throw new NotSupportedException($"PC: falta dispositivo DMA{channel}.");
-        Dma.WriteDevice = (channel, value) => { if (channel == 2) Fdc.DmaWrite(value); else if (channel != 0) throw new NotSupportedException($"PC: falta dispositivo DMA{channel}."); };
+        Dma.ReadDevice = channel => channel == 2 ? Fdc.DmaRead() : throw new NotSupportedException(Retro.Core.UiText.Format($"PC: falta dispositivo DMA{channel}."));
+        Dma.WriteDevice = (channel, value) => { if (channel == 2) Fdc.DmaWrite(value); else if (channel != 0) throw new NotSupportedException(Retro.Core.UiText.Format($"PC: falta dispositivo DMA{channel}.")); };
         Dma.TerminalCount += channel => { if (channel == 2) Fdc.TerminalCount(); };
         Fdc.IrqChanged += high => Pic.SetLine(6, high);
         Fdc.DmaRequestChanged += high => Dma.SetRequest(2, high);

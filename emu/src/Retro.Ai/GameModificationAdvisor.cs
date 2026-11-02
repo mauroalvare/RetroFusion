@@ -30,12 +30,12 @@ public static class GameModificationAdvisor
 
     public static string Prompt(GameProfile profile, IMemoryView memory, string wish)
     {
-        var text = new StringBuilder($"Juego: {profile.Name}. Máquina: {profile.Machine}.\n{profile.Description}\n");
-        text.AppendLine("Variables conocidas en este momento (no es un descubrimiento automático de toda la memoria):");
+        var text = new StringBuilder(Retro.Core.UiText.Format($"Juego: {Retro.Core.UiText.Raw(profile.Name)}. Máquina: {profile.Machine}.\n{profile.Description}\n"));
+        text.AppendLine(Retro.Core.UiText.Get("Variables conocidas en este momento (no es un descubrimiento automático de toda la memoria):"));
         foreach (var (name, variable) in profile.Variables)
-            text.AppendLine($"- {name}: valor={variable.Read(memory)}, rango={variable.Min}..{variable.Max}, " +
-                $"{(variable.ReadOnly ? "SOLO LECTURA" : "escribible")}. {variable.Description} {variable.PurposeSummary}");
-        text.AppendLine("Pedido del jugador: " + wish);
+            text.AppendLine(Retro.Core.UiText.Format($"- {name}: valor={variable.Read(memory)}, rango={variable.Min}..{variable.Max}, ") +
+                Retro.Core.UiText.Format($"{(variable.ReadOnly ? Retro.Core.UiText.Get("SOLO LECTURA") : Retro.Core.UiText.Get("escribible"))}. {variable.Description} {variable.PurposeSummary}"));
+        text.AppendLine(Retro.Core.UiText.Get("Pedido del jugador: ") + wish);
         return text.ToString();
     }
 
@@ -107,7 +107,7 @@ public static class GameModificationAdvisor
             return new ModificationAdvice(analysis, result);
         }
         catch (Exception error) when (error is JsonException or InvalidOperationException or KeyNotFoundException or FormatException or OverflowException)
-        { throw new AiException("La propuesta no se puede usar: " + error.Message, error); }
+        { throw new AiException(Retro.Core.UiText.Get("La propuesta no se puede usar: ") + error.Message, error); }
     }
 
     private static void Fields(JsonElement element, params string[] names)
@@ -115,7 +115,7 @@ public static class GameModificationAdvisor
         if (element.ValueKind != JsonValueKind.Object) throw new JsonException("Se esperaba un objeto.");
         var seen = new HashSet<string>();
         foreach (var property in element.EnumerateObject())
-            if (!names.Contains(property.Name) || !seen.Add(property.Name)) throw new JsonException("Campo no permitido o repetido: " + property.Name);
+            if (!names.Contains(property.Name) || !seen.Add(property.Name)) throw new JsonException(Retro.Core.UiText.Get("Campo no permitido o repetido: ") + property.Name);
         if (seen.Count != names.Length) throw new JsonException("Faltan campos en la propuesta.");
     }
 
@@ -123,7 +123,7 @@ public static class GameModificationAdvisor
     {
         var value = parent.GetProperty(name);
         if (value.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(value.GetString()) || value.GetString()!.Length > limit)
-            throw new JsonException("Texto inválido: " + name);
+            throw new JsonException(Retro.Core.UiText.Get("Texto inválido: ") + name);
         return value.GetString()!;
     }
 }

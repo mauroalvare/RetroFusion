@@ -19,13 +19,13 @@ public static class StudioWorkspace
     /// <summary>Creates the folder for a new game (from a concept or the player's idea) or a new version of one.</summary>
     public static string Create(StudioGame game, string task, Func<string, GameProfile?> find, string? cliHint, string? folder = null, OriginalReferences? references = null)
     {
-        string dir = folder ?? Path.Combine(Root, $"{(string.IsNullOrWhiteSpace(game.Id) ? "juego" : game.Id)}-{Guid.NewGuid():N}");
+        string dir = folder ?? Path.Combine(Root, Retro.Core.UiText.Format($"{(string.IsNullOrWhiteSpace(game.Id) ? "juego" : game.Id)}-{Guid.NewGuid():N}"));
         Directory.CreateDirectory(dir);
         File.WriteAllText(Path.Combine(dir, Retro.Ai.GameDesignGuide.FileName), Retro.Ai.GameDesignGuide.Text);
         File.WriteAllText(Path.Combine(dir, "CONTRATO.md"), StudioDesigner.CoreGuide);
         File.WriteAllText(Path.Combine(dir, "GUIA-FUSION.md"), StudioDesigner.Method);
         File.WriteAllText(Path.Combine(dir, "API.md"), StudioDesigner.ApiDoc);
-        File.WriteAllText(Path.Combine(dir, "JUEGOS.md"), "# Los juegos de esta fusión\n\n" + StudioDesigner.GamesText(game.Games, find));
+        File.WriteAllText(Path.Combine(dir, "JUEGOS.md"), Retro.Core.UiText.Get("# Los juegos de esta fusión\n\n") + StudioDesigner.GamesText(game.Games, find));
         File.WriteAllText(Path.Combine(dir, GameFile), game.ToJson());
         File.WriteAllText(Path.Combine(dir, ScriptFile), game.Script);
         if (references != null)
@@ -35,10 +35,10 @@ public static class StudioWorkspace
         }
         File.Delete(Path.Combine(dir, ReportFile));
         string test = cliHint != null
-            ? $"Probalo vos mismo cuando quieras con:\n\n    {cliHint}\n\n  Imprime el informe de los robots y guarda capturas (prueba_titulo.png, prueba_jugando_8s.png, ...). Miralas."
+            ? Retro.Core.UiText.Format($"Probalo vos mismo cuando quieras con:\n\n    {cliHint}\n\n  Imprime el informe de los robots y guarda capturas (prueba_titulo.png, prueba_jugando_8s.png, ...). Miralas.")
             : "RetroEmu lo prueba solo cada vez que guardás juego.js (ver informe.md).";
-        string tarea = $"""
-            # Tarea: {(game.Script.Length == 0 ? "crear" : "mejorar")} un juego {(game.IsInspired ? "nuevo con originales" : "fusionado")} de RetroEmu
+        string tarea = Retro.Core.UiText.Format($"""
+            # Tarea: {(game.Script.Length == 0 ? Retro.Core.UiText.Get("crear") : Retro.Core.UiText.Get("mejorar"))} un juego {(game.IsInspired ? Retro.Core.UiText.Get("nuevo con originales") : Retro.Core.UiText.Get("fusionado"))} de RetroEmu
 
             RetroEmu corre juegos de 8 bits emulados de verdad y los FUSIONA con un guion de
             JavaScript que conecta sus reglas en una partida compartida. Conservá el mundo
@@ -54,9 +54,9 @@ public static class StudioWorkspace
             ## Cómo trabajar (en este orden)
 
             1. Leé `CONTRATO.md`, `API.md` (capacidades del guion) y `JUEGOS.md` (datos de los originales).
-               `{Retro.Ai.GameDesignGuide.FileName}` y `GUIA-FUSION.md` amplían criterios cuando necesites profundizar;
+               `{Retro.Core.UiText.Raw(Retro.Ai.GameDesignGuide.FileName)}` y `GUIA-FUSION.md` amplían criterios cuando necesites profundizar;
                no hace falta releerlos en cada corrección.
-               {(references != null ? "Revisá ORIGINALES.md y las capturas original-*.png si podés ver imágenes. Compará identidad, mapas e interfaz; no deduzcas direcciones de memoria de una captura." : "")}
+               {(references != null ? Retro.Core.UiText.Get("Revisá ORIGINALES.md y las capturas original-*.png si podés ver imágenes. Compará identidad, mapas e interfaz; no deduzcas direcciones de memoria de una captura.") : "")}
             2. Diseñá una regla inseparable: quitar cualquier original debe cambiar una decisión
                central. Compará las variantes anteriores incluidas en la tarea. No partas de un
                guion de ejemplo para recolorearlo ni inventes datos ausentes de los perfiles.
@@ -80,7 +80,7 @@ public static class StudioWorkspace
             Cada vez que guardes `{ScriptFile}` o `{GameFile}`, RetroEmu también lo prueba con tres jugadores robot y
             escribe `{ReportFile}`. Distinguí qué comprobó el robot y qué falta jugar u observar.
             Textos para el jugador en castellano.
-            """;
+            """);
         File.WriteAllText(Path.Combine(dir, "TAREA.md"), tarea);
         string pointer = "Leé TAREA.md y seguí sus instrucciones.\n";
         File.WriteAllText(Path.Combine(dir, "AGENTS.md"), pointer);
@@ -126,8 +126,8 @@ public static class StudioWorkspace
     public static void WriteReport(string dir, ValidationReport report)
     {
         string text = report.Ok
-            ? "# Prueba técnica aprobada\n\nContrastá las decisiones, el progreso, el equilibrio y la identidad visual con el diseño y experimentos dirigidos. Este resultado no certifica originalidad ni diversión.\n\n" + report.Summary
-            : "# Hay que corregir\n\n" + report.Summary + "\nCorregí juego.js y guardalo de nuevo.\n";
+            ? Retro.Core.UiText.Get("# Prueba técnica aprobada\n\nContrastá las decisiones, el progreso, el equilibrio y la identidad visual con el diseño y experimentos dirigidos. Este resultado no certifica originalidad ni diversión.\n\n") + report.Summary
+            : Retro.Core.UiText.Get("# Hay que corregir\n\n") + report.Summary + Retro.Core.UiText.Get("\nCorregí juego.js y guardalo de nuevo.\n");
         File.WriteAllText(Path.Combine(dir, ReportFile), text);
     }
 }

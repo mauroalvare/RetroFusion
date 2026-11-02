@@ -21,7 +21,7 @@ public static class AiModelCatalog
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
         deadline.CancelAfter(timeout ?? TimeSpan.FromSeconds(30));
-        string work = Path.Combine(Path.GetTempPath(), "RetroEmu-catalogo-" + Guid.NewGuid().ToString("N"));
+        string work = Path.Combine(Path.GetTempPath(), Retro.Core.UiText.Get("RetroEmu-catalogo-") + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(work);
         try
         {
@@ -112,7 +112,7 @@ public static class AiModelCatalog
     {
         try
         {
-            using var response = await (http ?? Http).GetAsync(url.TrimEnd('/') + "/api/tags", ct);
+            using var response = await (http ?? Http).GetAsync(url.TrimEnd('/') + Retro.Core.UiText.Get("/api/tags"), ct);
             response.EnsureSuccessStatusCode();
             using var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
             return Items(doc.RootElement, "models").Select(m => Text(m, "name"))

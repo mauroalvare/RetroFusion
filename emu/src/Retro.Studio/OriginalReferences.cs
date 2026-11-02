@@ -39,31 +39,31 @@ public sealed record OriginalReferences(IReadOnlyList<OriginalReference> Items)
 
     public string Describe(string? baseSlot, bool attached)
     {
-        var text = new StringBuilder("Referencias locales de las copias seleccionadas, después de los pasos de arranque del perfil. " +
-            "No certifican que ese arranque llegue a una partida controlable ni que se conozcan sus mapas o rutinas.\n");
+        var text = new StringBuilder(Retro.Core.UiText.Get("Referencias locales de las copias seleccionadas, después de los pasos de arranque del perfil. ") +
+            Retro.Core.UiText.Get("No certifican que ese arranque llegue a una partida controlable ni que se conozcan sus mapas o rutinas.\n"));
         foreach (var item in Items)
         {
             var palette = item.Picture.Pixels.GroupBy(c => c & 0xFFFFFF).OrderByDescending(g => g.Count()).Take(8)
-                .Select(g => $"#{g.Key:X6}");
-            text.AppendLine($"- games.{item.Slot}: {item.Name}; {(baseSlot == item.Slot ? "BASE" : "aportante")}; " +
-                $"{item.Picture.Width}x{item.Picture.Height}; colores más presentes: {string.Join(", ", palette)}." +
-                (attached ? $" Imagen: original-{item.Slot}.png." : ""));
-            text.AppendLine($"  Huella del conjunto (archivos + perfil + firmware): {item.Fingerprint}.");
+                .Select(g => Retro.Core.UiText.Format($"#{g.Key:X6}"));
+            text.AppendLine(Retro.Core.UiText.Format($"- games.{item.Slot}: {Retro.Core.UiText.Raw(item.Name)}; {(baseSlot == item.Slot ? Retro.Core.UiText.Get("BASE") : Retro.Core.UiText.Get("aportante"))}; ") +
+                Retro.Core.UiText.Format($"{item.Picture.Width}x{item.Picture.Height}; colores más presentes: {string.Join(", ", palette)}.") +
+                (attached ? Retro.Core.UiText.Format($" Imagen: original-{item.Slot}.png.") : ""));
+            text.AppendLine(Retro.Core.UiText.Format($"  Huella del conjunto (archivos + perfil + firmware): {item.Fingerprint}."));
             foreach (var edition in item.Editions ?? [])
-                text.AppendLine($"  Edición: {System.Text.Json.JsonSerializer.Serialize(edition.File)}; {edition.Bytes} bytes; SHA-256 {edition.Sha256}.");
+                text.AppendLine(Retro.Core.UiText.Format($"  Edición: {System.Text.Json.JsonSerializer.Serialize(edition.File)}; {edition.Bytes} bytes; SHA-256 {edition.Sha256}."));
             if (item.Routines is { } survey)
             {
-                text.AppendLine($"  Muestra posterior a la captura: {survey.Steps} pasos en una máquina separada, sin entradas nuevas; " +
+                text.AppendLine(Retro.Core.UiText.Format($"  Muestra posterior a la captura: {survey.Steps} pasos en una máquina separada, sin entradas nuevas; ") +
                     (survey.HasIoWatch ? "observación de escrituras y E/S." : "observación de escrituras; sin monitor de lecturas E/S."));
-                if (survey.ChangingCode) text.AppendLine("  Código o bancos cambiantes: no se agruparon rutinas por dirección.");
-                if (survey.Truncated) text.AppendLine("  Resumen acotado; no enumera todos los sitios ni accesos observados.");
+                if (survey.ChangingCode) text.AppendLine(Retro.Core.UiText.Get("  Código o bancos cambiantes: no se agruparon rutinas por dirección."));
+                if (survey.Truncated) text.AppendLine(Retro.Core.UiText.Get("  Resumen acotado; no enumera todos los sitios ni accesos observados."));
                 foreach (var routine in survey.Routines)
                 {
-                    text.AppendLine($"  Rutina candidata ${routine.Address:X4}: {routine.Instructions} sitios de instrucción; {routine.ObservedSteps} pasos; huella del código observado {routine.CodeSha256}.");
+                    text.AppendLine(Retro.Core.UiText.Format($"  Rutina candidata ${routine.Address:X4}: {routine.Instructions} sitios de instrucción; {routine.ObservedSteps} pasos; huella del código observado {routine.CodeSha256}."));
                     foreach (var access in routine.Accesses)
-                        text.AppendLine($"    Sitio ${access.Instruction:X4}: {(access.Write ? "escritura" : "lectura")} {(access.Io ? "E/S" : "memoria")} ${access.Address:X4}, {access.Count} veces.");
+                        text.AppendLine(Retro.Core.UiText.Format($"    Sitio ${access.Instruction:X4}: {(access.Write ? Retro.Core.UiText.Get("escritura") : Retro.Core.UiText.Get("lectura"))} {(access.Io ? Retro.Core.UiText.Get("E/S") : Retro.Core.UiText.Get("memoria"))} ${access.Address:X4}, {access.Count} veces."));
                 }
-                text.AppendLine("  Las agrupaciones por llamadas son candidatas: interrupciones, saltos indirectos y rutinas compartidas necesitan revisión. Un acceso de hardware no demuestra qué mecánica implementa. No se entregan bytes ni listados para copiar.");
+                text.AppendLine(Retro.Core.UiText.Get("  Las agrupaciones por llamadas son candidatas: interrupciones, saltos indirectos y rutinas compartidas necesitan revisión. Un acceso de hardware no demuestra qué mecánica implementa. No se entregan bytes ni listados para copiar."));
             }
         }
         text.AppendLine(attached
@@ -81,7 +81,7 @@ public sealed record OriginalReferences(IReadOnlyList<OriginalReference> Items)
             // Slot labels are metadata, never paths supplied by a script or profile.
             if (item.Slot.Length == 0 || item.Slot.Any(c => !char.IsAsciiLetterOrDigit(c) && c != '_'))
                 throw new InvalidDataException("La ranura no puede usarse para guardar una referencia.");
-            string path = Path.Combine(folder, $"original-{item.Slot}.png");
+            string path = Path.Combine(folder, Retro.Core.UiText.Format($"original-{item.Slot}.png"));
             PngWriter.Write(path, item.Picture);
             paths.Add(path);
         }

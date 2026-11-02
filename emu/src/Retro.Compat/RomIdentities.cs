@@ -61,7 +61,7 @@ internal sealed class RomIdentities
         _entries[key] = new(original.Match.Sha256.Single(), original.Machine, original.Id, original.Name);
         string folder = Path.Combine(root, MetadataFolder);
         Directory.CreateDirectory(folder);
-        string path = Path.Combine(folder, FileName), temp = Path.Combine(folder, Guid.NewGuid().ToString("N") + ".tmp");
+        string path = Path.Combine(folder, FileName), temp = Path.Combine(folder, Guid.NewGuid().ToString("N") + Retro.Core.UiText.Get(".tmp"));
         try
         {
             using (var file = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None))

@@ -113,7 +113,7 @@ public sealed class CompatRunner
     {
         string path = Path.Combine(_gamesRoot, s.File);
         if (!System.IO.File.Exists(path))
-            return (null, null, $"no está {s.File} en {_gamesRoot}");
+            return (null, null, Retro.Core.UiText.Format($"no está {s.File} en {_gamesRoot}"));
         var files = MediaArchive.Open(path);
         MediaFile? media = s.Machine == "invaders" ? null
             : files.FirstOrDefault(f => s.Member != null && (f.Name.Equals(s.Member, StringComparison.OrdinalIgnoreCase) || Path.GetFileName(f.Name).Equals(s.Member, StringComparison.OrdinalIgnoreCase)));
@@ -148,7 +148,7 @@ public sealed class CompatRunner
         }
         catch (Exception e)
         {
-            r.Problems.Add($"error inesperado del emulador: {e.GetType().Name}: {e.Message}");
+            r.Problems.Add(Retro.Core.UiText.Format($"error inesperado del emulador: {Retro.Core.UiText.Raw(e.GetType().Name)}: {e.Message}"));
         }
         r.Highest = CompatLevels.All.LastOrDefault(l => r.Levels[l].Status == "ok") ?? "";
         return r;
@@ -159,7 +159,7 @@ public sealed class CompatRunner
         string path = Path.Combine(_gamesRoot, s.File);
         if (!System.IO.File.Exists(path))
         {
-            r.Levels[CompatLevels.Format] = LevelResult.Fail($"no está el archivo {s.File} en {_gamesRoot}");
+            r.Levels[CompatLevels.Format] = LevelResult.Fail(Retro.Core.UiText.Format($"no está el archivo {s.File} en {_gamesRoot}"));
             return;
         }
         var files = MediaArchive.Open(path);
@@ -189,8 +189,8 @@ public sealed class CompatRunner
             {
                 r.Levels[CompatLevels.Format] = LevelResult.Fail(
                     s.Member != null && !files.Any(f => f.Name.EndsWith(s.Member, StringComparison.OrdinalIgnoreCase))
-                        ? $"no está {s.Member} dentro de {s.File}"
-                        : $"ningún archivo de {s.File} tiene un formato de {s.Machine}");
+                        ? Retro.Core.UiText.Format($"no está {s.Member} dentro de {s.File}")
+                        : Retro.Core.UiText.Format($"ningún archivo de {s.File} tiene un formato de {s.Machine}"));
                 return;
             }
             media = candidates[0].File;
@@ -201,13 +201,13 @@ public sealed class CompatRunner
         r.Sha256 = Convert.ToHexString(SHA256.HashData(media.Data)).ToLowerInvariant();
         if (s.Sha256 != null && !s.Sha256.Equals(r.Sha256, StringComparison.OrdinalIgnoreCase))
             r.Warnings.Add("el archivo no es la edición para la que se escribió el guion (otro SHA-256): los pasos y comprobaciones pueden no valer");
-        r.Levels[CompatLevels.Format] = LevelResult.Ok($"{formatReason} ({media.Name}, {media.Data.Length} bytes)");
+        r.Levels[CompatLevels.Format] = LevelResult.Ok(Retro.Core.UiText.Format($"{formatReason} ({Retro.Core.UiText.Raw(media.Name)}, {media.Data.Length} bytes)"));
 
         // ---------------------------------------------------------------- load
         if (!MachineLauncher.IsImplemented(s.Machine))
         {
-            r.Levels[CompatLevels.Load] = LevelResult.Untested($"la máquina {s.Machine} todavía no está implementada");
-            r.Problems.Add($"limitación del emulador: falta la máquina {s.Machine}");
+            r.Levels[CompatLevels.Load] = LevelResult.Untested(Retro.Core.UiText.Format($"la máquina {s.Machine} todavía no está implementada"));
+            r.Problems.Add(Retro.Core.UiText.Format($"limitación del emulador: falta la máquina {s.Machine}"));
             return;
         }
         LaunchResult launch;
@@ -218,22 +218,22 @@ public sealed class CompatRunner
         catch (Exception e) when (e is NotSupportedException or InvalidDataException or FileNotFoundException)
         {
             r.Levels[CompatLevels.Load] = LevelResult.Fail(e.Message);
-            r.Problems.Add("limitación del emulador: " + e.Message);
+            r.Problems.Add(Retro.Core.UiText.Get("limitación del emulador: ") + e.Message);
             return;
         }
         var m = launch.Machine;
         r.Firmware = MachineLauncher.FirmwareOf(m);
         r.Model = MachineLauncher.ModelOf(m);
         var procedure = new List<string> { launch.Description };
-        procedure.AddRange(launch.Warnings.Select(w => "aviso: " + w));
+        procedure.AddRange(launch.Warnings.Select(w => Retro.Core.UiText.Get("aviso: ") + w));
         if (launch.IsTape && s.Boot != "none" && m is Spectrum48 zx)
         {
             int frames = MachineLauncher.LoadTape(zx, s.BootFrames);
             if (!zx.Tape.AtEnd && zx.Tape.IsPlaying && s.LoadEndsByTime)
-                procedure.Add($"LOAD \"\" y {frames} cuadros de cinta (multicarga: el guion da por cargada la primera parte en el bloque {zx.Tape.CurrentBlock})");
+                procedure.Add(Retro.Core.UiText.Format($"LOAD \"\" y {frames} cuadros de cinta (multicarga: el guion da por cargada la primera parte en el bloque {zx.Tape.CurrentBlock})"));
             else if (!zx.Tape.AtEnd && zx.Tape.IsPlaying)
             {
-                r.Levels[CompatLevels.Load] = LevelResult.Fail($"la cinta no terminó de cargar en {frames} cuadros (bloque {zx.Tape.CurrentBlock})");
+                r.Levels[CompatLevels.Load] = LevelResult.Fail(Retro.Core.UiText.Format($"la cinta no terminó de cargar en {frames} cuadros (bloque {zx.Tape.CurrentBlock})"));
                 r.Problems.Add("la carga desde cinta no terminó");
                 Capture(m, s, r);
                 Finish(m, s, r, procedure, 0);
@@ -241,14 +241,14 @@ public sealed class CompatRunner
             }
             else
                 procedure.Add(zx.Tape.AtEnd
-                    ? $"LOAD \"\" y cinta completa por la ROM en {frames} cuadros ({frames / m.FramesPerSecond:F0} s)"
-                    : $"LOAD \"\" en {frames} cuadros ({frames / m.FramesPerSecond:F0} s) hasta que la cinta se detuvo sola en el bloque {zx.Tape.CurrentBlock} (multicarga: el resto se carga cuando el juego lo pide)");
+                    ? Retro.Core.UiText.Format($"LOAD \"\" y cinta completa por la ROM en {frames} cuadros ({frames / m.FramesPerSecond:F0} s)")
+                    : Retro.Core.UiText.Format($"LOAD \"\" en {frames} cuadros ({frames / m.FramesPerSecond:F0} s) hasta que la cinta se detuvo sola en el bloque {zx.Tape.CurrentBlock} (multicarga: el resto se carga cuando el juego lo pide)"));
         }
         r.Levels[CompatLevels.Load] = LevelResult.Ok(string.Join("; ", procedure));
 
         // ---------------------------------------------------------------- scripted run
         foreach (var st in s.Steps)
-            procedure.Add($"cuadro {st.Frame}: {st.Keys} durante {st.Hold}");
+            procedure.Add(Retro.Core.UiText.Format($"cuadro {st.Frame}: {st.Keys} durante {st.Hold}"));
         var wantedPictures = s.Checks.Where(c => c.Type == "changed").Select(c => c.Since).ToHashSet();
         var pictures = new Dictionary<int, string>();
         var checkResults = new List<(CompatCheck check, bool ok, string detail)>();
@@ -281,9 +281,9 @@ public sealed class CompatRunner
             r.Problems.Add(failure);
         }
         else if (stats.DistinctColors < 2 || stats.DominantShare > 0.998)
-            r.Levels[CompatLevels.Picture] = LevelResult.Fail($"pantalla casi vacía al final ({stats.DistinctColors} colores, {stats.DominantShare:P0} de un solo color)");
+            r.Levels[CompatLevels.Picture] = LevelResult.Fail(Retro.Core.UiText.Format($"pantalla casi vacía al final ({stats.DistinctColors} colores, {stats.DominantShare:P0} de un solo color)"));
         else
-            r.Levels[CompatLevels.Picture] = LevelResult.Ok($"{stats.DistinctColors} colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)");
+            r.Levels[CompatLevels.Picture] = LevelResult.Ok(Retro.Core.UiText.Format($"{stats.DistinctColors} colores al final; ningún signo de fallo (BASIC, error, pantalla vacía)"));
 
         // ---------------------------------------------------------------- scripted levels
         foreach (string level in new[] { CompatLevels.Title, CompatLevels.Controls, CompatLevels.Playable })
@@ -305,7 +305,7 @@ public sealed class CompatRunner
             if (scripted.Status == "untested")
                 r.Levels[CompatLevels.Controls] = probe;
             else if (scripted.Status == "ok")
-                scripted.Detail += " | sonda: " + probe.Detail;
+                scripted.Detail += Retro.Core.UiText.Get(" | sonda: ") + probe.Detail;
         }
         if (r.Levels[CompatLevels.Playable].Status == "untested")
             r.Levels[CompatLevels.Playable] = LevelResult.Untested("sin comprobaciones de partida en el guion");
@@ -314,7 +314,7 @@ public sealed class CompatRunner
         var profile = Retro.Fusion.ProfileLibrary.ForFiles(files);
         r.Levels[CompatLevels.Fusion] = profile == null
             ? LevelResult.Untested("no hay perfil de fusión para este juego")
-            : LevelResult.Partial($"perfil \"{profile.Id}\" asociado por nombre de archivo; sus direcciones no están verificadas contra este hash (T-053)");
+            : LevelResult.Partial(Retro.Core.UiText.Format($"perfil \"{profile.Id}\" asociado por nombre de archivo; sus direcciones no están verificadas contra este hash (T-053)"));
         Finish(m, s, r, procedure, s.Frames);
     }
 
@@ -325,7 +325,7 @@ public sealed class CompatRunner
         if (_shots != null)
         {
             Directory.CreateDirectory(_shots);
-            string file = Path.Combine(_shots, s.Id + ".png");
+            string file = Path.Combine(_shots, s.Id + Retro.Core.UiText.Get(".png"));
             PngWriter.Write(file, m.Video, 1);
             r.Screenshot = file.Replace('\\', '/');
         }
@@ -335,14 +335,14 @@ public sealed class CompatRunner
     {
         r.Procedure = string.Join("; ", procedure);
         double seconds = frames / m.FramesPerSecond;
-        r.Scope = $"{frames} cuadros ({seconds:F0} s de máquina) después del arranque, con {s.Steps.Count} pulsaciones guionadas y {s.Checks.Count} comprobaciones" +
-                  (r.Levels[CompatLevels.Controls].Status != "untested" ? $"; sonda de controles de {ProbeFrames} cuadros por entrada" : "") +
-                  ". No es una partida completa.";
+        r.Scope = Retro.Core.UiText.Format($"{frames} cuadros ({seconds:F0} s de máquina) después del arranque, con {s.Steps.Count} pulsaciones guionadas y {s.Checks.Count} comprobaciones") +
+                  (r.Levels[CompatLevels.Controls].Status != "untested" ? Retro.Core.UiText.Format($"; sonda de controles de {ProbeFrames} cuadros por entrada") : "") +
+                  Retro.Core.UiText.Get(". No es una partida completa.");
     }
 
     private static (CompatCheck, bool, string) Evaluate(IMachine m, CompatCheck c, Dictionary<int, string> pictures)
     {
-        string label = c.Description ?? $"{c.Type} {c.Value ?? c.Address}";
+        string label = c.Description ?? Retro.Core.UiText.Format($"{c.Type} {c.Value ?? c.Address}");
         switch (c.Type)
         {
             case "text":
@@ -350,10 +350,10 @@ public sealed class CompatRunner
             {
                 string? text = ScreenReader.Text(m)?.Replace('@', ' ');
                 if (text == null)
-                    return (c, false, $"{label}: esta máquina no tiene texto legible");
+                    return (c, false, Retro.Core.UiText.Format($"{label}: esta máquina no tiene texto legible"));
                 bool found = Normalize(text).Contains(Normalize(c.Value ?? ""), StringComparison.OrdinalIgnoreCase);
                 bool ok = c.Type == "text" ? found : !found;
-                return (c, ok, $"{label} (\"{c.Value}\" {(found ? "está" : "no está")} en pantalla en el cuadro {c.Frame})");
+                return (c, ok, Retro.Core.UiText.Format($"{label} (\"{c.Value}\" {(found ? Retro.Core.UiText.Get("está") : Retro.Core.UiText.Get("no está"))} en pantalla en el cuadro {c.Frame})"));
             }
             case "memory":
             {
@@ -365,20 +365,20 @@ public sealed class CompatRunner
                     "ne" => actual != expected, "gt" => actual > expected, "lt" => actual < expected,
                     "ge" => actual >= expected, "le" => actual <= expected, _ => actual == expected,
                 };
-                return (c, ok, $"{label} (${addr:X4} = {actual}, se esperaba {c.Op} {expected})");
+                return (c, ok, Retro.Core.UiText.Format($"{label} (${addr:X4} = {actual}, se esperaba {c.Op} {expected})"));
             }
             case "colors":
             {
                 var st = ScreenReader.Stats(m.Video);
-                return (c, st.DistinctColors >= c.Min, $"{label} ({st.DistinctColors} colores, mínimo {c.Min})");
+                return (c, st.DistinctColors >= c.Min, Retro.Core.UiText.Format($"{label} ({st.DistinctColors} colores, mínimo {c.Min})"));
             }
             case "changed":
             {
                 bool ok = pictures.TryGetValue(c.Since, out var before) && before != ScreenReader.Hash(m.Video);
-                return (c, ok, $"{label} (la imagen {(ok ? "cambió" : "no cambió")} desde el cuadro {c.Since})");
+                return (c, ok, Retro.Core.UiText.Format($"{label} (la imagen {(ok ? Retro.Core.UiText.Get("cambió") : Retro.Core.UiText.Get("no cambió"))} desde el cuadro {c.Since})"));
             }
             default:
-                return (c, false, $"tipo de comprobación desconocido: {c.Type}");
+                return (c, false, Retro.Core.UiText.Format($"tipo de comprobación desconocido: {c.Type}"));
         }
     }
 
@@ -401,7 +401,7 @@ public sealed class CompatRunner
             return LevelResult.Untested("no hay entradas para probar en esta máquina");
         byte[] state;
         try { state = m.SaveState(); }
-        catch (Exception e) { return LevelResult.Untested("no se pudo guardar el estado para la sonda: " + e.Message); }
+        catch (Exception e) { return LevelResult.Untested(Retro.Core.UiText.Get("no se pudo guardar el estado para la sonda: ") + e.Message); }
         var sink = new short[8192];
         // a press of PressFrames and then released (menus often wait for press and release);
         // the picture is compared while pressed and at the end
@@ -431,7 +431,7 @@ public sealed class CompatRunner
         var effective = inputs.Where(i => RunWith(i) != baseline).ToList();
         m.LoadState(state);
         return effective.Count > 0
-            ? LevelResult.Ok($"cambian la imagen: {string.Join(", ", effective)} (de {inputs.Length} probadas)")
-            : LevelResult.Fail($"ninguna de {inputs.Length} entradas (apretadas {PressFrames} cuadros) cambió la imagen en {ProbeFrames} cuadros ({string.Join(", ", inputs)})");
+            ? LevelResult.Ok(Retro.Core.UiText.Format($"cambian la imagen: {string.Join(", ", effective)} (de {inputs.Length} probadas)"))
+            : LevelResult.Fail(Retro.Core.UiText.Format($"ninguna de {inputs.Length} entradas (apretadas {PressFrames} cuadros) cambió la imagen en {ProbeFrames} cuadros ({string.Join(", ", inputs)})"));
     }
 }

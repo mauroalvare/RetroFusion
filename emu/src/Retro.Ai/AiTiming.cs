@@ -54,7 +54,7 @@ public sealed class AiDurationHistory(string? path = null)
                 }
                 samples.Add(seconds); if (samples.Count > 20) samples.RemoveAt(0);
                 string parent = Path.GetDirectoryName(Path.GetFullPath(_path))!; Directory.CreateDirectory(parent);
-                temporary = Path.Combine(parent, Guid.NewGuid().ToString("N") + ".tmp");
+                temporary = Path.Combine(parent, Guid.NewGuid().ToString("N") + Retro.Core.UiText.Get(".tmp"));
                 File.WriteAllText(temporary, JsonSerializer.Serialize(data)); File.Move(temporary, _path, true);
             }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
@@ -94,7 +94,7 @@ public sealed class AiTiming
         _stopped = Elapsed;
         if (success) _history.Record(_key, _stopped.Value);
     }
-    public static string Duration(TimeSpan value) => string.Create(CultureInfo.InvariantCulture, $"{(int)value.TotalMinutes}:{value.Seconds:00}");
+    public static string Duration(TimeSpan value) => Retro.Core.UiText.Format($"{(int)value.TotalMinutes}:{value.Seconds:00}");
     public string RemainingText
     {
         get
@@ -103,8 +103,8 @@ public sealed class AiTiming
             TimeSpan elapsed = Elapsed;
             if (elapsed >= Range.High) return "Superó el tiempo habitual. Podés ver la actividad o cancelar.";
             var low = Range.Low - elapsed; var high = Range.High - elapsed;
-            return low <= TimeSpan.Zero ? $"Hasta {Duration(high)} restantes (orientativo)."
-                : $"Entre {Duration(low)} y {Duration(high)} restantes (orientativo).";
+            return low <= TimeSpan.Zero ? Retro.Core.UiText.Format($"Hasta {Duration(high)} restantes (orientativo).")
+                : Retro.Core.UiText.Format($"Entre {Duration(low)} y {Duration(high)} restantes (orientativo).");
         }
     }
 }

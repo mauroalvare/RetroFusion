@@ -22,12 +22,12 @@ public static class CodeExplainer
     {
         string identity = RoutineCodeIdentity.Compute(routine.Instructions.Select(address =>
             (address, machine.Disassembler.Disassemble(machine.Memory.Peek, address).Bytes)));
-        return "Original: " + JsonSerializer.Serialize(sourceName ?? "Sin nombre identificado") + ".\n" +
-            $"Referencia de rutina candidata ${routine.Start:X4}-${routine.End:X4}; máquina {machine.DisplayName}.\n" +
-            (mediaHashes.Count == 0 ? "Edición sin identificar; no extrapolar a otro archivo.\n" : "Archivos cargados SHA-256: " + string.Join(", ", mediaHashes) + ".\n") +
-            $"Identidad de firmware: {firmware}.\nHuella de instantánea de código v1: {identity}.\n" +
-            $"Agrupación estática: {routine.Instructions.Count} sitios. " + (routine.Executed ? "Se observaron instrucciones del grupo, no todos sus caminos." : "Sin ejecución observada.") +
-            " No demuestra el propósito de la rutina. La huella de código no es el hash del archivo. Aprendé la técnica y escribí una implementación propia.";
+        return Retro.Core.UiText.Get("Original: ") + JsonSerializer.Serialize(sourceName ?? "Sin nombre identificado") + ".\n" +
+            Retro.Core.UiText.Format($"Referencia de rutina candidata ${routine.Start:X4}-${routine.End:X4}; máquina {machine.DisplayName}.\n") +
+            (mediaHashes.Count == 0 ? "Edición sin identificar; no extrapolar a otro archivo.\n" : Retro.Core.UiText.Get("Archivos cargados SHA-256: ") + string.Join(", ", mediaHashes) + ".\n") +
+            Retro.Core.UiText.Format($"Identidad de firmware: {firmware}.\nHuella de instantánea de código v1: {identity}.\n") +
+            Retro.Core.UiText.Format($"Agrupación estática: {routine.Instructions.Count} sitios. ") + (routine.Executed ? "Se observaron instrucciones del grupo, no todos sus caminos." : "Sin ejecución observada.") +
+            Retro.Core.UiText.Get(" No demuestra el propósito de la rutina. La huella de código no es el hash del archivo. Aprendé la técnica y escribí una implementación propia.");
     }
 
     public const string Guide = """
@@ -78,10 +78,10 @@ public static class CodeExplainer
         foreach (var a in r.Instructions.OrderBy(x => x))
         {
             var ins = m.Disassembler.Disassemble(x => m.Memory.Peek(x), a);
-            string label = notes.Label(a) ?? m.SymbolFor(a) ?? (a == r.Start ? $"sub_{a:X4}" : "");
+            string label = notes.Label(a) ?? m.SymbolFor(a) ?? (a == r.Start ? Retro.Core.UiText.Format($"sub_{a:X4}") : "");
             if (label.Length > 0)
                 sb.AppendLine(label + ":");
-            sb.AppendLine($"  {a:X4}  {string.Join(" ", ins.Bytes.Select(b => b.ToString("X2"))),-12} {ins.Text}");
+            sb.AppendLine(Retro.Core.UiText.Format($"  {a:X4}  {string.Join(" ", ins.Bytes.Select(b => b.ToString("X2"))),-12} {ins.Text}"));
         }
         return sb.ToString();
     }
@@ -89,21 +89,21 @@ public static class CodeExplainer
     public static string Prompt(IMachine m, Routine r, CodeAnnotations notes, GameProfile? profile, CodeMap map)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"Máquina: {m.DisplayName} ({m.Cpu.CpuName}). {m.MemoryMapDescription}.");
+        sb.AppendLine(Retro.Core.UiText.Format($"Máquina: {m.DisplayName} ({m.Cpu.CpuName}). {m.MemoryMapDescription}."));
         if (profile != null)
         {
-            sb.AppendLine($"Juego: {profile.Name}. {profile.Description}");
-            sb.AppendLine("Variables de RAM conocidas:");
+            sb.AppendLine(Retro.Core.UiText.Format($"Juego: {Retro.Core.UiText.Raw(profile.Name)}. {profile.Description}"));
+            sb.AppendLine(Retro.Core.UiText.Get("Variables de RAM conocidas:"));
             foreach (var (name, v) in profile.Variables)
-                sb.AppendLine($"  ${v.Address} {name}: {v.Description}");
+                sb.AppendLine(Retro.Core.UiText.Format($"  ${v.Address} {name}: {v.Description}"));
         }
         if (r.Calls.Count > 0)
         {
-            sb.AppendLine("Rutinas que llama:");
+            sb.AppendLine(Retro.Core.UiText.Get("Rutinas que llama:"));
             foreach (var c in r.Calls)
-                sb.AppendLine($"  ${c:X4} {notes.Label(c) ?? m.SymbolFor(c) ?? "sin nombre"}{(notes.Summaries.TryGetValue(CodeAnnotations.Key(c), out var s) ? " - " + s : "")}");
+                sb.AppendLine(Retro.Core.UiText.Format($"  ${c:X4} {notes.Label(c) ?? m.SymbolFor(c) ?? "sin nombre"}{(notes.Summaries.TryGetValue(CodeAnnotations.Key(c), out var s) ? " - " + s : "")}"));
         }
-        sb.AppendLine($"La llaman {r.Callers.Count} rutinas.{(r.Executed ? " Se observaron instrucciones del grupo durante la partida; no todos los caminos están comprobados." : " No se observó ejecutar este grupo.")}");
+        sb.AppendLine(Retro.Core.UiText.Format($"La llaman {r.Callers.Count} rutinas.{(r.Executed ? Retro.Core.UiText.Get(" Se observaron instrucciones del grupo durante la partida; no todos los caminos están comprobados.") : Retro.Core.UiText.Get(" No se observó ejecutar este grupo."))}"));
         sb.AppendLine();
         sb.AppendLine("Rutina:");
         sb.Append(Listing(m, r, notes));
@@ -130,17 +130,17 @@ public static class CodeExplainer
         }
         catch (JsonException ex)
         {
-            throw new AiException("El JSON de la respuesta no es válido: " + ex.Message);
+            throw new AiException(Retro.Core.UiText.Get("El JSON de la respuesta no es válido: ") + ex.Message);
         }
     }
 
     /// <summary>The same request as text, for pasting into any chat (ChatGPT, Gemini, Claude.ai...).</summary>
     public static string ManualPrompt(string prompt) =>
-        Guide + "\n" + prompt + """
+        Guide + "\n" + prompt + Retro.Core.UiText.Get("""
 
         Respondé SOLO con un JSON con esta forma (sin texto antes ni después):
         {"name": "NombreDeLaRutina", "summary": "...", "pseudocode": "...", "comments": [{"address": "1A2B", "text": "..."}]}
-        """;
+        """);
 
     /// <summary>Stores the explanation as the routine's name, summary, pseudocode and line comments.</summary>
     public static void Apply(RoutineExplanation x, Routine r, CodeAnnotations notes)

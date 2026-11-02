@@ -294,12 +294,12 @@ public sealed class SpaceInvaders : IMachine, I8080Bus, IMemoryView, ICodePatch,
         long line = c / CyclesPerLine;
         return new[]
         {
-            $"Ciclos totales: {_cpu.Cycles:N0}",
-            $"Cuadro {FrameCount}, ciclo {c} de {CyclesPerFrame}",
-            $"Haz: línea {line} de {TotalLines}{(line >= VisibleLines ? " (retrazado vertical)" : "")}",
-            $"Interrupción pendiente: {(_pendingInterrupt is byte p ? (p == 0xCF ? "RST 1 (mitad de pantalla)" : "RST 2 (VBLANK)") : "ninguna")}",
-            $"Shifter: {_shift:X4} desplazamiento {_shiftOffset}  -> IN 3 = {(byte)(_shift >> (8 - _shiftOffset)):X2}",
-            $"Sonido: puerto 3 = {Sound.Port3:X2}, puerto 5 = {Sound.Port5:X2}",
+            Retro.Core.UiText.Format($"Ciclos totales: {_cpu.Cycles:N0}"),
+            Retro.Core.UiText.Format($"Cuadro {FrameCount}, ciclo {c} de {CyclesPerFrame}"),
+            Retro.Core.UiText.Format($"Haz: línea {line} de {TotalLines}{(line >= VisibleLines ? Retro.Core.UiText.Get(" (retrazado vertical)") : "")}"),
+            Retro.Core.UiText.Format($"Interrupción pendiente: {(_pendingInterrupt is byte p ? (p == 0xCF ? Retro.Core.UiText.Get("RST 1 (mitad de pantalla)") : Retro.Core.UiText.Get("RST 2 (VBLANK)")) : Retro.Core.UiText.Get("ninguna"))}"),
+            Retro.Core.UiText.Format($"Shifter: {_shift:X4} desplazamiento {_shiftOffset}  -> IN 3 = {(byte)(_shift >> (8 - _shiftOffset)):X2}"),
+            Retro.Core.UiText.Format($"Sonido: puerto 3 = {Sound.Port3:X2}, puerto 5 = {Sound.Port5:X2}"),
         };
     }
 

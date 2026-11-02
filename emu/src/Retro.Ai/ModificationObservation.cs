@@ -109,11 +109,11 @@ public sealed class ModificationObservation : IDisposable
         {
             var instruction = _machine.Disassembler.Disassemble(a => image[a & 0xFFFF], pc);
             string execution = _machine.ExecutedMap is { } map && map[pc] ? "" : " [contexto; ejecución no registrada]";
-            listing.AppendLine($"0x{pc:X4}: {string.Join(" ", instruction.Bytes.Select(b => b.ToString("X2")))}  {instruction.Text}{execution}");
+            listing.AppendLine(Retro.Core.UiText.Format($"0x{pc:X4}: {string.Join(" ", instruction.Bytes.Select(b => b.ToString("X2")))}  {instruction.Text}{execution}"));
             foreach (Match match in Regex.Matches(instruction.Text, @"\$([0-9a-fA-F]{2,4})\b"))
             {
                 uint address = VariableMemory.Canonical(_machine.Id, Convert.ToUInt32(match.Groups[1].Value, 16));
-                if (IsWorkRam(_machine.Id, address)) references.TryAdd(address, $"Referencia en 0x{pc:X4}: {instruction.Text}");
+                if (IsWorkRam(_machine.Id, address)) references.TryAdd(address, Retro.Core.UiText.Format($"Referencia en 0x{pc:X4}: {instruction.Text}"));
             }
         }
         var candidates = new SortedDictionary<uint, MemoryEvidence>();
