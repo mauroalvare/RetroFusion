@@ -526,6 +526,32 @@ public sealed class TerminalInputTests
 
 public sealed class AppTaskTests
 {
+    [Test]
+    public void AFailedRetryRemainsAvailableInsteadOfLosingTheContinuation()
+    {
+        int attempts = 0; var center = new AppTaskCenter();
+        var task = center.Run("propia", "x", (_, _) => throw new IOException("prueba"), () => { if (++attempts == 1) throw new IOException("reintento"); });
+        Assert.That(SpinWait.SpinUntil(() => !task.Active, TimeSpan.FromSeconds(5)), Is.True);
+        Assert.Throws<IOException>(() => task.Resume()); Assert.That(task.CanResume, Is.True);
+        Assert.That(task.Resume(), Is.True); Assert.That(task.CanResume, Is.False); Assert.That(attempts, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void RetryCannotDuplicateARunningTaskAndAFinishedRetryIsConsumedOnce()
+    {
+        var center = new AppTaskCenter(); int resumed = 0;
+        var task = center.Run("propia", "x", async (_, token) => await Task.Delay(Timeout.Infinite, token), () => resumed++);
+        try
+        {
+            Assert.That(task.CanResume, Is.False);
+            Assert.That(task.Resume(), Is.False);
+            Assert.That(resumed, Is.Zero);
+        }
+        finally { task.Cancel(); SpinWait.SpinUntil(() => !task.Active, TimeSpan.FromSeconds(5)); }
+        Assert.That(task.Resume(), Is.True); Assert.That(resumed, Is.EqualTo(1));
+        Assert.That(task.CanResume, Is.False); Assert.That(task.Resume(), Is.False);
+    }
+
     private sealed class Clock : TimeProvider
     {
         public DateTimeOffset Now = new(2026, 11, 1, 12, 0, 0, TimeSpan.Zero);

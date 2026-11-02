@@ -38,7 +38,7 @@ public sealed class AppTask
     public bool Tracked { get; internal set; }
     public bool Active => Finished == null;
     public bool CanCancel { get { lock (_gate) return Active && !CancelRequested && (_cancel != null || _cancellation != null); } }
-    public bool CanResume { get { lock (_gate) return _resume != null; } }
+    public bool CanResume { get { lock (_gate) return !Active && _resume != null; } }
     public IReadOnlyList<string> Results { get { lock (_gate) return _results.ToArray(); } }
     public IReadOnlyList<string> Errors { get { lock (_gate) return _errors.ToArray(); } }
     public IReadOnlyList<string> Artifacts { get { lock (_gate) return _artifacts.ToArray(); } }
@@ -94,10 +94,18 @@ public sealed class AppTask
 
     public bool Resume()
     {
-        Action? resume;
-        lock (_gate) resume = _resume;
-        resume?.Invoke();
-        return resume != null;
+        Action resume;
+        lock (_gate)
+        {
+            if (Active || _resume == null) return false;
+            resume = _resume; _resume = null; Revision++;
+        }
+        try { resume(); return true; }
+        catch
+        {
+            lock (_gate) { _resume = resume; Revision++; }
+            throw;
+        }
     }
 
     internal void Finish(AppTaskState state, Action? resume = null)
