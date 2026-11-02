@@ -217,8 +217,8 @@ internal static class UiTheme
         }
         if (OperatingSystem.IsMacOS())
         { if(!code) yield return "/System/Library/Fonts/Supplemental/GillSans.ttc"; yield return code ? "/System/Library/Fonts/Menlo.ttc" : "/System/Library/Fonts/Supplemental/Trebuchet MS.ttf"; }
-        yield return "/usr/share/fonts/truetype/dejavu/" + (code ? "DejaVuSansMono.ttf" : "DejaVuSans.ttf");
-        yield return "/usr/share/fonts/truetype/liberation2/" + (code ? "LiberationMono-Regular.ttf" : "LiberationSans-Regular.ttf");
+        yield return UiText.Get("/usr/share/fonts/truetype/dejavu/") + (code ? "DejaVuSansMono.ttf" : "DejaVuSans.ttf");
+        yield return UiText.Get("/usr/share/fonts/truetype/liberation2/") + (code ? "LiberationMono-Regular.ttf" : "LiberationSans-Regular.ttf");
     }
 
     private static IEnumerable<string> DisplayCandidates()
@@ -265,11 +265,11 @@ internal static class UiTheme
     public static FontScope Display() { ImGui.PushFont(_titleFont); return new(); }
     public static FontScope Label() { ImGui.PushFont(_labelFont); return new(); }
 
-    public static void Heading(string title, string? description = null)
+    public static void Heading(string title, string? description = null, bool localizeTitle = true)
     {
         bool compact = CompactHeight;
         if (!compact) ImGui.PushFont(_titleFont);
-        ImGui.PushTextWrapPos(0); ImGui.TextUnformatted(title); ImGui.PopTextWrapPos();
+        ImGui.PushTextWrapPos(0); ImGui.TextUnformatted(localizeTitle ? UiText.Get(title) : title); ImGui.PopTextWrapPos();
         if (!compact) ImGui.PopFont();
         if (description != null)
         {
@@ -281,13 +281,13 @@ internal static class UiTheme
 
     public static void Hint(string text)
     {
-        ImGui.PushStyleColor(ImGuiCol.Text, Muted); ImGui.TextWrapped(text); ImGui.PopStyleColor();
+        ImGui.PushStyleColor(ImGuiCol.Text, Muted); ImGui.TextWrapped(UiText.Get(text)); ImGui.PopStyleColor();
     }
 
     public static void Section(string title, string? description = null)
     {
         ImGui.Spacing();
-        using (Label()) { ImGui.PushStyleColor(ImGuiCol.Text,Accent); ImGui.SeparatorText(title); ImGui.PopStyleColor(); }
+        using (Label()) { ImGui.PushStyleColor(ImGuiCol.Text,Accent); ImGui.SeparatorText(UiText.Get(title)); ImGui.PopStyleColor(); }
         if (description != null) Hint(description);
     }
 
@@ -299,21 +299,21 @@ internal static class UiTheme
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.56f, 1, 0.63f, 1));
             ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.28f, 0.7f, 0.34f, 1));
             ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.01f, 0.035f, 0.015f, 1));
-            bool chosen = ImGui.Button(label, size); ImGui.PopStyleColor(4); return chosen;
+            bool chosen = ImGui.Button(UiText.Label(label), size); ImGui.PopStyleColor(4); return chosen;
         }
         ImGui.PushStyleColor(ImGuiCol.Button, HighContrast ? new Vector4(0, 0.32f, 0.68f, 1) : new Vector4(0.83f, 0.62f, 0.32f, 1));
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, HighContrast ? new Vector4(0, 0.44f, 0.84f, 1) : new Vector4(0.94f, 0.76f, 0.47f, 1));
         ImGui.PushStyleColor(ImGuiCol.ButtonActive, HighContrast ? new Vector4(0, 0.44f, 0.84f, 1) : new Vector4(0.72f,0.54f,0.29f,1));
         ImGui.PushStyleColor(ImGuiCol.Text,HighContrast?new Vector4(1,1,1,1):new Vector4(0.065f,0.08f,0.07f,1));
-        bool pressed = ImGui.Button(label, size); ImGui.PopStyleColor(4); return pressed;
+        bool pressed = ImGui.Button(UiText.Label(label), size); ImGui.PopStyleColor(4); return pressed;
     }
 
     public static void EmptyState(string title, string detail)
     {
-        ImGui.Spacing(); ImGui.TextUnformatted(title); Hint(detail); ImGui.Spacing();
+        ImGui.Spacing(); ImGui.TextUnformatted(UiText.Get(title)); Hint(detail); ImGui.Spacing();
     }
 
-    public static void Eyebrow(string text) { using(Label()) ImGui.TextColored(Accent, text); ImGui.Spacing(); }
+    public static void Eyebrow(string text) { using(Label()) ImGui.TextColored(Accent, UiText.Get(text)); ImGui.Spacing(); }
 
     public static void BeginCard(string id, Vector2 size = default)
     {
@@ -335,7 +335,7 @@ internal static class UiTheme
 
     /// <summary>Keeps the next button on this row only if it fits, so rows of buttons wrap at large text sizes.</summary>
     public static void SameLineIfFits(string buttonLabel) =>
-        SameLineIfFits(ImGui.CalcTextSize(buttonLabel, true).X + ImGui.GetStyle().FramePadding.X * 2);
+        SameLineIfFits(ImGui.CalcTextSize(UiText.Get(buttonLabel), true).X + ImGui.GetStyle().FramePadding.X * 2);
 
     public static void SameLineIfFits(float width)
     {
@@ -348,7 +348,7 @@ internal static class UiTheme
     {
         if (!ImGui.BeginTooltip()) return;
         ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35);
-        ImGui.TextUnformatted(text);
+        ImGui.TextUnformatted(UiText.Get(text));
         ImGui.PopTextWrapPos(); ImGui.EndTooltip();
     }
 
@@ -356,7 +356,7 @@ internal static class UiTheme
     {
         if (ImGui.CalcTextSize(text).X <= width) return text;
         const string suffix = "...";
-        float remaining = width - ImGui.CalcTextSize(suffix).X;
+        float remaining = width - ImGui.CalcTextSize(UiText.Get(suffix)).X;
         if (remaining <= 0) return "";
         int lo = 0, hi = text.Length;
         while (lo < hi)

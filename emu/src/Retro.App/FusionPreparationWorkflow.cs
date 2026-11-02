@@ -70,7 +70,7 @@ public sealed class FusionPreparationWorkflow
             foreach (var pair in latest) pair.Value.Experiments = history[pair.Key].TakeLast(144).ToList();
             var results = latest.Values.ToList();
             string summary = string.Join("\n", results.Select(r =>
-                $"{r.Game}: {r.Profile?.Variables.Count(v => !v.Value.ReadOnly) ?? 0} variables con pruebas de escritura. " +
+                UiText.Format($"{r.Game}: {r.Profile?.Variables.Count(v => !v.Value.ReadOnly) ?? 0} variables con pruebas de escritura. ") +
                 string.Join(" ", r.CheckedData.TakeLast(4))));
             if (stop.Length > 0) summary += "\n" + stop;
             return new(current, sources.Values.ToDictionary(s => s.Profile.Id), results, summary, CurrentSlots(), fingerprints, passes, stop);
@@ -82,7 +82,7 @@ public sealed class FusionPreparationWorkflow
             EnsureUnchanged(fingerprints);
             foreach (var pair in latest) pair.Value.Experiments = history[pair.Key].TakeLast(144).ToList();
             checkpoint(new(current, sources.Values.ToDictionary(s => s.Profile.Id), latest.Values.ToArray(),
-                string.Join("\n", latest.Values.Select(r => $"{r.Game}: {r.Profile?.Variables.Count ?? 0} datos disponibles.")),
+                string.Join("\n", latest.Values.Select(r => UiText.Format($"{r.Game}: {r.Profile?.Variables.Count ?? 0} datos disponibles."))),
                 CurrentSlots(), new Dictionary<string, string>(fingerprints), passes, stop));
         }
         try
@@ -99,22 +99,22 @@ public sealed class FusionPreparationWorkflow
                     string id = target.Source.Profile.Id;
                     var source = sources[id];
                     latest.TryGetValue(id, out var previous);
-                    progress?.Invoke($"Investigación {pass}: {source.Profile.Name}. Comprobando los requisitos de la idea.");
+                    progress?.Invoke(UiText.Format($"Investigación {pass}: {UiText.Raw(source.Profile.Name)}. Comprobando los requisitos de la idea."));
                     var result = await Prepare(target.Path, new PrepareOptions
                     {
                         FirmwareDirectory = firmware, Advisor = advisor,
-                        Goal = (humanObservation.Length>0?"Observación humana sin verificar (reproducir antes de usar): "+humanObservation[..Math.Min(800,humanObservation.Length)]+"\n":"")+Goal(current), PreviousProfile = source.Profile,
+                        Goal = (humanObservation.Length>0?UiText.Get("Observación humana sin verificar (reproducir antes de usar): ")+humanObservation[..Math.Min(800,humanObservation.Length)]+"\n":"")+Goal(current), PreviousProfile = source.Profile,
                         Resume = previous?.Continuation, PreviousExperiments = history[id].ToArray(),
                         ContinueResearch = automatic, InvestigationPass = pass, TrialRounds = FusionResearchPlan.TrialRounds,
                         MaxRounds = FusionResearchPlan.NavigationRounds,
-                    }, line => progress?.Invoke($"{source.Profile.Name}: {line}"), token);
+                    }, line => progress?.Invoke(UiText.Format($"{UiText.Raw(source.Profile.Name)}: {line}")), token);
                     // Only this original's own profile may have been written by Prepare.
                     EnsureUnchanged(fingerprints.Where(p => p.Key != previous?.ProfilePath).ToDictionary());
                     latest[id] = result;
                     history[id].AddRange(result.Experiments);
                     if (!result.Ok || result.Profile == null)
                     {
-                        stop = $"No se pudo completar la preparación de {source.Profile.Name}: {result.Problem ?? "no se verificó un arranque reproducible"}";
+                        stop = UiText.Format($"No se pudo completar la preparación de {UiText.Raw(source.Profile.Name)}: {result.Problem ?? UiText.Get("no se verificó un arranque reproducible")}");
                         return Finish();
                     }
                     var profile = result.Profile;
@@ -139,7 +139,7 @@ public sealed class FusionPreparationWorkflow
                 if (updatedSlots.Select(s => s.Profile).Distinct().Count() != updatedSlots.Count)
                     throw new InvalidDataException("Los originales preparados coinciden en la misma edición. Revisá la selección.");
                 if (review == null) break;
-                progress?.Invoke($"Revisando los datos de la misma idea después de la investigación {pass}...");
+                progress?.Invoke(UiText.Format($"Revisando los datos de la misma idea después de la investigación {pass}..."));
                 var reviewed = await review(current, updatedSlots, id => sources.Values.FirstOrDefault(s => s.Profile.Id == id)?.Profile, token);
                 token.ThrowIfCancellationRequested();
                 EnsureUnchanged(fingerprints);
@@ -181,8 +181,8 @@ public sealed class FusionPreparationWorkflow
     {
         static string Limit(string text, int length) => text.Length <= length ? text : text[..length];
         // Missing requirements precede long prose so the preparer's context limit cannot discard them.
-        return $"Datos que faltan: {Limit(concept.MissingData, 1400)}\nIdea: {Limit(concept.Title, 160)}\n" +
-            $"Pedido del jugador: {Limit(concept.PlayerRequest, 700)}\nAportes: {Limit(concept.Pitch, 600)}\nDiseño: {Limit(concept.Design, 800)}";
+        return UiText.Format($"Datos que faltan: {Limit(concept.MissingData, 1400)}\nIdea: {Limit(concept.Title, 160)}\n") +
+            UiText.Format($"Pedido del jugador: {Limit(concept.PlayerRequest, 700)}\nAportes: {Limit(concept.Pitch, 600)}\nDiseño: {Limit(concept.Design, 800)}");
     }
 
     internal static string EvidenceStamp(IEnumerable<GameSource> sources) => JsonSerializer.Serialize(sources.OrderBy(s => s.Profile.Id, StringComparer.Ordinal).Select(s => new

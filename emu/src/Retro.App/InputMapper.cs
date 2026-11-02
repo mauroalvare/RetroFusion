@@ -156,7 +156,7 @@ public sealed class InputMapper
         for (char c = 'A'; c <= 'Z'; c++) map.Add((Enum.Parse<KeyboardKey>(c.ToString()), c.ToString()));
         string[] digits = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
         for (int i = 0; i < 10; i++) map.Add((Enum.Parse<KeyboardKey>(digits[i]), i.ToString()));
-        for (int i = 1; i <= 10; i++) map.Add((Enum.Parse<KeyboardKey>("F" + i), "F" + i));
+        for (int i = 1; i <= 10; i++) map.Add((Enum.Parse<KeyboardKey>(UiText.Get("F") + i), UiText.Get("F") + i));
         map.AddRange(new (KeyboardKey, string)[]
         {
             (KeyboardKey.Escape,"ESC"), (KeyboardKey.Space,"SPACE"), (KeyboardKey.Enter,"ENTER"), (KeyboardKey.KpEnter,"ENTER"),
@@ -270,11 +270,11 @@ public sealed class InputMapper
             if (Raylib.IsGamepadButtonDown(0, GamepadButton.MiddleLeft)) now.Add("SPACE");
         }
         string port = C64Port == 1 ? "JOY1 " : "JOY2 ";
-        if (up) now.Add(port + "UP");
-        if (down) now.Add(port + "DOWN");
-        if (left) now.Add(port + "LEFT");
-        if (right) now.Add(port + "RIGHT");
-        if (fire) now.Add(port + "FIRE");
+        if (up) now.Add(port + UiText.Get("UP"));
+        if (down) now.Add(port + UiText.Get("DOWN"));
+        if (left) now.Add(port + UiText.Get("LEFT"));
+        if (right) now.Add(port + UiText.Get("RIGHT"));
+        if (fire) now.Add(port + UiText.Get("FIRE"));
         Apply(m, now);
     }
 

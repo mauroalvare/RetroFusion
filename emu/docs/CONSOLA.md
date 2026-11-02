@@ -1,11 +1,11 @@
-# Consola de Terminal hardcore
+# Consola de Terminal real
 
-Terminal hardcore se maneja escribiendo órdenes en una consola interna de RetroEmu. La
+Terminal real se maneja escribiendo órdenes en una consola interna de RetroEmu. La
 consola procesa solo órdenes del programa: nunca entrega texto a PowerShell, cmd, bash ni
 a otro intérprete del equipo. Los juegos siguen mostrando su imagen; el resto de la
 ventana es la consola.
 
-Para activarla: **Opciones > Estilos de interfaz**, o `--interface hardcore` al iniciar.
+Para activarla: **Opciones > Estilos de interfaz**, o `--interface real` al iniciar.
 Para salir de ella: `interfaz retro`. Los tres estilos comparten biblioteca, favoritos,
 fichas, partidas, proyectos y ajustes.
 
@@ -227,10 +227,11 @@ que coincida. `ayuda <orden>` agrega argumentos, ejemplos y errores.
 
 | Orden | Función |
 | --- | --- |
+| `novedades` (`news`) | Muestra las funciones nuevas y los cambios de las últimas versiones. |
 | `estado` (`status`) | Muestra máquina, partida, biblioteca, interfaz y tareas. |
 | `opciones [texto…]` (`ajustes`, `preferencias`) | Lista los ajustes del programa con su valor actual. |
 | `opcion <id> [valor…]` (`ajuste`) | Lee, cambia o restablece un ajuste compartido con todos los estilos. |
-| `interfaz <retro\|terminal\|hardcore\|preview>` (`estilo`, `tema`) | Cambia el estilo o abre la elección con vistas previas. |
+| `interfaz <retro\|terminal\|real\|preview>` (`estilo`, `tema`) | Cambia el estilo o abre la elección con vistas previas. |
 | `acciones [texto…]` | Lista las funciones del programa con su disponibilidad actual. |
 | `hacer <id>` | Ejecuta una acción del catálogo; los instrumentos visuales abren su panel. |
 | `actualizar [estado\|abrir]` (`version`, `actualizaciones`) | Consulta la versión o abre el actualizador del programa. |

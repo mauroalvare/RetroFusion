@@ -25,9 +25,9 @@ public static class FusionResearchPlan
         var high = range.High > TotalTime ? TotalTime : range.High;
         var low = range.Low > high ? high : range.Low;
         string duration = high < TimeSpan.FromMinutes(1) ? "menos de un minuto"
-            : $"{Math.Max(1, Math.Floor(low.TotalMinutes)):0}–{Math.Max(1, Math.Ceiling(high.TotalMinutes)):0} minutos";
-        return $"Tiempo orientativo: {duration} para preparar, crear y comprobar. " +
+            : UiText.Format($"{Math.Max(1, Math.Floor(low.TotalMinutes)):0}–{Math.Max(1, Math.Ceiling(high.TotalMinutes)):0} minutos");
+        return UiText.Format($"Tiempo orientativo: {duration} para preparar, crear y comprobar. ") +
             (range.Samples >= 3 ? "Basado en trabajos completos anteriores de esta configuración. " : "") +
-            "Puede variar; el máximo de este trabajo es una hora.";
+            UiText.Get("Puede variar; el máximo de este trabajo es una hora.");
     }
 }

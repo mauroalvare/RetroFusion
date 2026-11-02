@@ -121,35 +121,35 @@ public sealed partial class CodeWindow : IDisposable
         var machine = _host.Machine;
         if (machine == null || !_open) { _modificationPanelLeft = null; return; }
         WorkspaceLayout.NextEditor();
-        bool visible = ImGui.Begin("Modificar y analizar###game-tools", ref _open, WorkspaceLayout.EditorFlags);
+        bool visible = ImGui.Begin(UiText.Label("Modificar y analizar###game-tools"), ref _open, WorkspaceLayout.EditorFlags);
         if (!visible)
         { _modificationPanelLeft = null; ImGui.End(); if (!_open) StopObservation(); return; }
         _modificationPanelLeft = null;
-        UiTheme.Eyebrow("ANALIZAR / " + machine.DisplayName.ToUpperInvariant());
-        UiTheme.Heading(_gameName, "Buscá datos, entendé las rutinas y probá cambios sobre la máquina emulada.");
+        UiTheme.Eyebrow(UiText.Get("ANALIZAR / ") + machine.DisplayName.ToUpperInvariant());
+        UiTheme.Heading(_gameName, "Buscá datos, entendé las rutinas y probá cambios sobre la máquina emulada.", localizeTitle: false);
         if (_status.Length > 0)
         {
-            ImGui.TextWrapped(_status);
-            if (ImGui.SmallButton("Copiar mensaje")) ImGui.SetClipboardText(_status);
+            ImGui.TextWrapped(UiText.Get(_status));
+            if (ImGui.SmallButton(UiText.Label("Copiar mensaje"))) ImGui.SetClipboardText(_status);
         }
         if (_notes.Problem is { } problem) UiTheme.Hint(problem);
         if (_notes.CanRecover)
         {
             UiTheme.Hint("Para guardar estas anotaciones, conservá primero una copia del archivo anterior.");
-            if (ImGui.Button("Recuperar anotaciones")) _notes.Recover(_gameId);
+            if (ImGui.Button(UiText.Label("Recuperar anotaciones"))) _notes.Recover(_gameId);
         }
         if (_notes.RecoveryPath is { } backup)
         { UiTheme.Hint("Se conservó un respaldo de las anotaciones anteriores."); if (ImGui.IsItemHovered()) UiTheme.Tooltip(backup); }
         if (_requestedPage is { } requested) { _activePage = requested; _requestedPage = null; }
         bool variablesSupported = machine.Memory.AddressBits <= 16;
         float pageWidth = new[] { "Cambios", "Análisis con IA", "Buscar variables", "Código" }
-            .Max(label => ImGui.CalcTextSize(label).X) + ImGui.GetStyle().CellPadding.X * 2 + ImGui.GetStyle().ItemSpacing.X;
+            .Max(label => ImGui.CalcTextSize(UiText.Get(label)).X) + ImGui.GetStyle().CellPadding.X * 2 + ImGui.GetStyle().ItemSpacing.X;
         int pageColumns = AnalysisNavigationColumns(ImGui.GetContentRegionAvail().X, pageWidth);
         if (variablesSupported && pageColumns == 1)
         {
             int page = (int)_activePage;
             ImGui.SetNextItemWidth(-1);
-            if (ImGui.Combo("##pagina-herramientas", ref page, new[] { "Cambios", "Análisis con IA", "Buscar variables", "Código" }, 4)) _activePage = (ToolPage)page;
+            if (ImGui.Combo("##pagina-herramientas", ref page, new[] { "Cambios", "Análisis con IA", "Buscar variables", "Código" }.Select(UiText.Get).ToArray(), 4)) _activePage = (ToolPage)page;
         }
         else if (variablesSupported && ImGui.BeginTable("navegacion-herramientas", pageColumns, ImGuiTableFlags.SizingStretchSame))
         {
@@ -179,7 +179,7 @@ public sealed partial class CodeWindow : IDisposable
         void Page(string label, ToolPage page)
         {
             ImGui.TableNextColumn();
-            if (ImGui.Selectable(label, _activePage == page, ImGuiSelectableFlags.None, new Vector2(0, UiTheme.Px(30)))) _activePage = page;
+            if (ImGui.Selectable(UiText.Label(label), _activePage == page, ImGuiSelectableFlags.None, new Vector2(0, UiTheme.Px(30)))) _activePage = page;
         }
     }
 
@@ -187,17 +187,17 @@ public sealed partial class CodeWindow : IDisposable
     {
         AiPicker.Hint("Herramientas técnicas: rutinas desensambladas, parches en memoria y perfil del original.");
         if (_map == null && machine.ExecutedMap != null && machine.FrameCount > 30) Analyze(machine);
-        if (ImGui.Button(_map == null ? "Reconstruir rutinas" : "Actualizar rutinas")) Analyze(machine);
+        if (ImGui.Button(UiText.Label(_map == null ? "Reconstruir rutinas" : "Actualizar rutinas"))) Analyze(machine);
         if (_map != null)
         {
             ImGui.SameLine();
-            if (ImGui.Button("Exportar .asm")) _status = "Guardado en " + Export(machine);
+            if (ImGui.Button(UiText.Label("Exportar .asm"))) _status = UiText.Get("Guardado en ") + Export(machine);
         }
         if (_codeSummary.Length > 0) AiPicker.Hint(_codeSummary);
         if (!ImGui.BeginTabBar("herramientas-tecnicas")) return;
-        if (ImGui.BeginTabItem("Rutinas")) { DrawRoutines(machine); ImGui.EndTabItem(); }
-        if (ImGui.BeginTabItem("Parches")) { DrawPatches(machine); ImGui.EndTabItem(); }
-        if (machine.Memory.AddressBits <= 16 && ImGui.BeginTabItem("Perfil y controles")) { DrawVariables(machine); ImGui.EndTabItem(); }
+        if (ImGui.BeginTabItem(UiText.Label("Rutinas"))) { DrawRoutines(machine); ImGui.EndTabItem(); }
+        if (ImGui.BeginTabItem(UiText.Label("Parches"))) { DrawPatches(machine); ImGui.EndTabItem(); }
+        if (machine.Memory.AddressBits <= 16 && ImGui.BeginTabItem(UiText.Label("Perfil y controles"))) { DrawVariables(machine); ImGui.EndTabItem(); }
         ImGui.EndTabBar();
     }
 
@@ -258,7 +258,7 @@ public sealed partial class CodeWindow : IDisposable
             string id = Slug(name);
             return (id, name, null);
         }
-        return (m.Id, m.DisplayName + " (sin juego)", null);
+        return (m.Id, m.DisplayName + UiText.Get(" (sin juego)"), null);
     }
 
     private static string Slug(string name)
@@ -294,8 +294,8 @@ public sealed partial class CodeWindow : IDisposable
         _map = CodeMap.Build(a => m.Memory.Peek(a), m.Flow, entries, m.ExecutedMap);
         int executed = m.ExecutedMap.Count(x => x);
         int game = _map.Routines.Keys.Count(a => a >= SystemRomEnd(m));
-        _codeSummary = $"{_map.Routines.Count} rutinas ({game} del juego), {_map.Code.Count} instrucciones; " +
-                  $"{executed} se ejecutaron desde que abriste esta ventana. Jugá un rato y actualizá para encontrar más.";
+        _codeSummary = UiText.Format($"{_map.Routines.Count} rutinas ({game} del juego), {_map.Code.Count} instrucciones; ") +
+                  UiText.Format($"{executed} se ejecutaron desde que abriste esta ventana. Jugá un rato y actualizá para encontrar más.");
         if (_selected is uint s && !_map.Routines.ContainsKey(s))
             _selected = null;
         // start on the game's busiest routine
@@ -306,7 +306,7 @@ public sealed partial class CodeWindow : IDisposable
     }
 
     private string Name(IMachine m, uint a) =>
-        _notes.Label(a) ?? m.SymbolFor(a) ?? (_map?.Routines.ContainsKey(a) == true ? $"sub_{a:X4}" : $"${a:X4}");
+        _notes.Label(a) ?? m.SymbolFor(a) ?? (_map?.Routines.ContainsKey(a) == true ? UiText.Format($"sub_{a:X4}") : UiText.Format($"${a:X4}"));
 
     private string? VariableAt(uint a)
     {
@@ -317,7 +317,7 @@ public sealed partial class CodeWindow : IDisposable
             uint va = v.AddressValue;
             int len = v.Encoding is "bcd" or "ascii" ? v.Bytes : v.Encoding == "uint16" ? 2 : 1;
             if (a >= va && a < va + len)
-                return a == va ? name : $"{name}+{a - va}";
+                return a == va ? name : UiText.Format($"{name}+{a - va}");
         }
         return null;
     }
@@ -327,7 +327,7 @@ public sealed partial class CodeWindow : IDisposable
         AddressToken.Replace(text, match =>
         {
             uint a = uint.Parse(match.Groups[1].Value, NumberStyles.HexNumber);
-            return _notes.Label(a) ?? VariableAt(a) ?? (_map?.Routines.ContainsKey(a) == true ? $"sub_{a:X4}" : match.Value);
+            return _notes.Label(a) ?? VariableAt(a) ?? (_map?.Routines.ContainsKey(a) == true ? UiText.Format($"sub_{a:X4}") : match.Value);
         });
 
     private void Select(uint start, bool remember = true)
@@ -345,7 +345,7 @@ public sealed partial class CodeWindow : IDisposable
     {
         if (_map == null)
         {
-            ImGui.TextWrapped("Jugá un momento y pulsá Reconstruir rutinas. Para investigar cambios con IA usá la pestaña Analizar con IA.");
+            ImGui.TextWrapped(UiText.Get("Jugá un momento y pulsá Reconstruir rutinas. Para investigar cambios con IA usá la pestaña Analizar con IA."));
             return;
         }
         bool wide=ImGui.GetContentRegionAvail().X>=UiTheme.Px(700);
@@ -353,10 +353,10 @@ public sealed partial class CodeWindow : IDisposable
         if (!wide)
         {
             ImGui.SetNextItemWidth(-1);
-            if (ImGui.BeginCombo("##compact-routines",_selected is uint selected?Name(m,selected):"Elegí una rutina"))
+            if (ImGui.BeginCombo("##compact-routines",UiText.Get(_selected is uint selected?Name(m,selected):"Elegí una rutina")))
             {
                 foreach(var entry in _map.Routines.Values.OrderBy(r=>r.Start))
-                    if (ImGui.Selectable($"{entry.Start:X4} {Name(m,entry.Start)}",_selected==entry.Start)) Select(entry.Start);
+                    if (ImGui.Selectable(UiText.Label(UiText.Format($"{entry.Start:X4} {Name(m,entry.Start)}")),_selected==entry.Start)) Select(entry.Start);
                 ImGui.EndCombo();
             }
         }
@@ -364,10 +364,10 @@ public sealed partial class CodeWindow : IDisposable
         {
         ImGui.BeginChild("routinelist", new Vector2(listWidth, Math.Max(UiTheme.Px(240),ImGui.GetContentRegionAvail().Y)), ImGuiChildFlags.Borders);
         ImGui.SetNextItemWidth(-1);
-        ImGui.InputTextWithHint("##filtro", "Buscar rutina", ref _filter, 64);
-        ImGui.Checkbox("Solo ejecutadas", ref _onlyExecuted);
+        ImGui.InputTextWithHint("##filtro", UiText.Get("Buscar rutina"), ref _filter, 64);
+        ImGui.Checkbox(UiText.Label("Solo ejecutadas"), ref _onlyExecuted);
         if (SystemRomEnd(m) > 0)
-            ImGui.Checkbox("Ocultar ROM del sistema", ref _hideSystemRom);
+            ImGui.Checkbox(UiText.Label("Ocultar ROM del sistema"), ref _hideSystemRom);
         ImGui.Separator();
         ImGui.BeginChild("routinescroll");
         foreach (var r in _map.Routines.Values.OrderBy(r => r.Start))
@@ -382,7 +382,7 @@ public sealed partial class CodeWindow : IDisposable
                 continue;
             bool explained = _notes.Summaries.ContainsKey(CodeAnnotations.Key(r.Start));
             ImGui.PushStyleColor(ImGuiCol.Text, r.Executed ? (explained ? CommentColor : new Vector4(1, 1, 1, 1)) : DimColor);
-            if (ImGui.Selectable($"{r.Start:X4}  {name}##{r.Start}", _selected == r.Start))
+            if (ImGui.Selectable(UiText.Label(UiText.Format($"{r.Start:X4}  {name}##{r.Start}")), _selected == r.Start))
                 Select(r.Start);
             ImGui.PopStyleColor();
             if (ImGui.IsItemHovered() && _notes.Summaries.TryGetValue(CodeAnnotations.Key(r.Start), out var sum))
@@ -396,7 +396,7 @@ public sealed partial class CodeWindow : IDisposable
         if (_selected is uint sel && _map.Routines.TryGetValue(sel, out var routine))
             DrawRoutine(m, routine);
         else
-            ImGui.TextWrapped("Elegí una rutina de la lista. En blanco las que se ejecutaron, en gris las que todavía no, en verde las que ya tienen explicación.");
+            ImGui.TextWrapped(UiText.Get("Elegí una rutina de la lista. En blanco las que se ejecutaron, en gris las que todavía no, en verde las que ya tienen explicación."));
         ImGui.EndChild();
     }
 
@@ -405,54 +405,54 @@ public sealed partial class CodeWindow : IDisposable
         string key = CodeAnnotations.Key(r.Start);
         if (_back.Count > 0)
         {
-            if (ImGui.Button("< Volver"))
+            if (ImGui.Button(UiText.Label("< Volver")))
                 Select(_back.Pop(), remember: false);
             ImGui.SameLine();
         }
-        ImGui.TextColored(LabelColor, $"{Name(m, r.Start)}  (${r.Start:X4}-${r.End:X4}, {r.Instructions.Count} instrucciones)");
+        ImGui.TextColored(LabelColor, UiText.Get(UiText.Format($"{Name(m, r.Start)}  (${r.Start:X4}-${r.End:X4}, {r.Instructions.Count} instrucciones)")));
         if (_rename.Length == 0)
             _rename = _notes.Label(r.Start) ?? "";
-        ImGui.SetNextItemWidth(Math.Max(UiTheme.Px(60), ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize("Renombrar").X - ImGui.GetStyle().FramePadding.X*2 - ImGui.GetStyle().ItemSpacing.X));
-        if (ImGui.InputTextWithHint("##nombre", "nombre nuevo", ref _rename, 64, ImGuiInputTextFlags.EnterReturnsTrue))
+        ImGui.SetNextItemWidth(Math.Max(UiTheme.Px(60), ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(UiText.Get("Renombrar")).X - ImGui.GetStyle().FramePadding.X*2 - ImGui.GetStyle().ItemSpacing.X));
+        if (ImGui.InputTextWithHint("##nombre", UiText.Get("nombre nuevo"), ref _rename, 64, ImGuiInputTextFlags.EnterReturnsTrue))
             SetLabel(r.Start, _rename);
         ImGui.SameLine();
-        if (ImGui.Button("Renombrar"))
+        if (ImGui.Button(UiText.Label("Renombrar")))
             SetLabel(r.Start, _rename);
-        if (ImGui.Button("Ver en el depurador"))
+        if (ImGui.Button(UiText.Label("Ver en el depurador")))
             _showInDebugger(r.Start);
         bool bp = _host.Debug.IsBreakpoint(r.Start);
         UiTheme.SameLineIfFits(bp ? "Quitar breakpoint" : "Breakpoint al entrar");
         ImGui.BeginDisabled(_host.Fusion != null);
-        if (ImGui.Button(bp ? "Quitar breakpoint" : "Breakpoint al entrar"))
+        if (ImGui.Button(UiText.Label(bp ? "Quitar breakpoint" : "Breakpoint al entrar")))
             _host.Debug.Toggle(r.Start);
         ImGui.EndDisabled();
         if (_host.Fusion != null && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
             UiTheme.Tooltip("Durante una fusión los juegos no se detienen en breakpoints.");
         UiTheme.SameLineIfFits("Copiar referencia");
-        if (ImGui.Button("Copiar referencia"))
+        if (ImGui.Button(UiText.Label("Copiar referencia")))
         {
             ImGui.SetClipboardText(RoutineReference(m, r));
             _status = "Referencia copiada con direcciones y huellas; sin bytes del original.";
         }
 
         if (_notes.Summaries.TryGetValue(key, out var summary))
-            ImGui.TextWrapped(summary);
+            ImGui.TextWrapped(UiText.Get(summary));
         DrawRoutineLinks(m, "Llama a:", r.Calls);
         DrawRoutineLinks(m, "La llaman:", r.Callers);
-        if (ImGui.CollapsingHeader("Explicación con IA",IsWorking?ImGuiTreeNodeFlags.DefaultOpen:ImGuiTreeNodeFlags.None)) DrawExplain(m, r);
+        if (ImGui.CollapsingHeader(UiText.Label("Explicación con IA"),IsWorking?ImGuiTreeNodeFlags.DefaultOpen:ImGuiTreeNodeFlags.None)) DrawExplain(m, r);
         ImGui.Separator();
 
         if (ImGui.BeginTabBar("routinetabs"))
         {
-            if (ImGui.BeginTabItem("Código"))
+            if (ImGui.BeginTabItem(UiText.Label("Código")))
             {
                 DrawListing(m, r);
                 ImGui.EndTabItem();
             }
-            if (ImGui.BeginTabItem("Pseudocódigo"))
+            if (ImGui.BeginTabItem(UiText.Label("Pseudocódigo")))
             {
                 string code = _notes.Pseudocode.TryGetValue(key, out var p) ? p : "";
-                ImGui.TextDisabled(code.Length == 0 ? "Todavía no hay pseudocódigo: pedíselo a la IA o escribilo vos." : "Podés corregirlo: se guarda solo.");
+                ImGui.TextDisabled(UiText.Get(code.Length == 0 ? "Todavía no hay pseudocódigo: pedíselo a la IA o escribilo vos." : "Podés corregirlo: se guarda solo."));
                 if (ImGui.InputTextMultiline("##pseudo", ref code, 20000, new Vector2(-1, -1)))
                 {
                     _notes.Pseudocode[key] = code;
@@ -468,17 +468,17 @@ public sealed partial class CodeWindow : IDisposable
     {
         if (targets.Count == 0)
             return;
-        ImGui.TextDisabled(title);
+        ImGui.TextDisabled(UiText.Get(title));
         foreach (var t in targets.OrderBy(x => x).Take(24))
         {
             UiTheme.SameLineIfFits(Name(m,t));
-            if (ImGui.SmallButton($"{Name(m, t)}##{title}{t}"))
+            if (ImGui.SmallButton(UiText.Label(UiText.Format($"{Name(m, t)}##{title}{t}"))))
                 Select(t);
         }
         if (targets.Count > 24)
         {
             ImGui.SameLine();
-            ImGui.TextDisabled($"y {targets.Count - 24} más");
+            ImGui.TextDisabled(UiText.Get(UiText.Format($"y {targets.Count - 24} más")));
         }
     }
 
@@ -502,17 +502,17 @@ public sealed partial class CodeWindow : IDisposable
         foreach (var a in r.Instructions.OrderBy(x => x))
         {
             if (expected is uint e && e != a)
-                ImGui.TextDisabled("        ...");
+                ImGui.TextDisabled(UiText.Get("        ..."));
             var ins = m.Disassembler.Disassemble(x => m.Memory.Peek(x), a);
             expected = (a + (uint)ins.Length) & ((1u << m.Memory.AddressBits) - 1);
-            string? label = _notes.Label(a) ?? m.SymbolFor(a) ?? (a == r.Start ? $"sub_{a:X4}" : null);
+            string? label = _notes.Label(a) ?? m.SymbolFor(a) ?? (a == r.Start ? UiText.Format($"sub_{a:X4}") : null);
             if (a == r.Start || label != null)
-                ImGui.TextColored(LabelColor, (a == r.Start ? Name(m, a) : label) + ":");
+                ImGui.TextColored(LabelColor, UiText.Get((a == r.Start ? Name(m, a) : label) + ":"));
             bool executed = m.ExecutedMap?[a] == true;
             string bytes = string.Join(" ", ins.Bytes.Select(b => b.ToString("X2")));
-            string line = $"{(a == pc ? ">" : " ")} {a:X4}  {bytes,-12} {Pretty(m, ins.Text)}";
+            string line = UiText.Format($"{(a == pc ? UiText.Get(">") : UiText.Get(" "))} {a:X4}  {bytes,-12} {Pretty(m, ins.Text)}");
             ImGui.PushStyleColor(ImGuiCol.Text, executed ? new Vector4(1, 1, 1, 1) : DimColor);
-            if (ImGui.Selectable(line + "##" + a, _line == a, ImGuiSelectableFlags.AllowDoubleClick))
+            if (ImGui.Selectable(UiText.Label(line + "##" + a), _line == a, ImGuiSelectableFlags.AllowDoubleClick))
             {
                 _line = a;
                 _commentText = _notes.Comment(a) ?? "";
@@ -525,7 +525,7 @@ public sealed partial class CodeWindow : IDisposable
             if (_notes.Comment(a) is { } c)
             {
                 ImGui.SameLine();
-                ImGui.TextColored(CommentColor, "; " + c);
+                ImGui.TextColored(CommentColor, UiText.Get("; " + c));
             }
         }
         ImGui.EndChild();
@@ -540,20 +540,20 @@ public sealed partial class CodeWindow : IDisposable
     private void DrawLineEditor(IMachine m, Routine r, uint a)
     {
         ImGui.Separator();
-        ImGui.TextUnformatted($"Línea ${a:X4}  (doble clic en un CALL o salto para ir a esa rutina)");
+        ImGui.TextUnformatted(UiText.Get(UiText.Format($"Línea ${a:X4}  (doble clic en un CALL o salto para ir a esa rutina)")));
         ImGui.SetNextItemWidth(-130);
-        if (ImGui.InputTextWithHint("##comentario", "comentario", ref _commentText, 200, ImGuiInputTextFlags.EnterReturnsTrue))
+        if (ImGui.InputTextWithHint("##comentario", UiText.Get("comentario"), ref _commentText, 200, ImGuiInputTextFlags.EnterReturnsTrue))
             SetComment(a, _commentText);
         ImGui.SameLine();
-        if (ImGui.Button("Guardar comentario"))
+        if (ImGui.Button(UiText.Label("Guardar comentario")))
             SetComment(a, _commentText);
         ImGui.SetNextItemWidth(UiTheme.Px(200));
-        ImGui.InputText("bytes nuevos (hex)", ref _patchHex, 64);
+        ImGui.InputText(UiText.Label("bytes nuevos (hex)"), ref _patchHex, 64);
         ImGui.SameLine();
-        if (ImGui.Button("Cambiar"))
+        if (ImGui.Button(UiText.Label("Cambiar")))
             Patch(m, a, _patchHex);
         ImGui.SameLine();
-        if (ImGui.Button("Anular (NOP)"))
+        if (ImGui.Button(UiText.Label("Anular (NOP)")))
         {
             var ins = m.Disassembler.Disassemble(x => m.Memory.Peek(x), a);
             Patch(m, a, string.Join(" ", Enumerable.Repeat(NopOpcode(m).ToString("X2"), ins.Length)));
@@ -594,12 +594,12 @@ public sealed partial class CodeWindow : IDisposable
             : string.Join(" ", Enumerable.Range(0, bytes.Length).Select(i => m.Memory.Peek((uint)(a + i)).ToString("X2")));
         if (!Write(m, a, bytes))
         {
-            _status = $"${a:X4} es ROM del sistema: no se puede cambiar.";
+            _status = UiText.Format($"${a:X4} es ROM del sistema: no se puede cambiar.");
             return;
         }
         _notes.Patches[key] = original + "|" + string.Join(" ", bytes.Select(b => b.ToString("X2")));
         _notes.Save(_gameId);
-        _status = $"Cambiado ${a:X4}. El juego ya corre con el cambio (el archivo original no se toca).";
+        _status = UiText.Format($"Cambiado ${a:X4}. El juego ya corre con el cambio (el archivo original no se toca).");
         Analyze(m);
     }
 
@@ -623,13 +623,13 @@ public sealed partial class CodeWindow : IDisposable
 
     private void DrawPatches(IMachine m)
     {
-        ImGui.TextWrapped("Los parches modifican la partida en memoria. Podés guardarlos y volver a aplicarlos al cargar el juego.");
+        ImGui.TextWrapped(UiText.Get("Los parches modifican la partida en memoria. Podés guardarlos y volver a aplicarlos al cargar el juego."));
         if (_notes.Patches.Count == 0)
         {
-            ImGui.TextDisabled("Todavía no hiciste cambios. En la pestaña Rutinas elegí una línea y cambiá sus bytes o anulala.");
+            ImGui.TextDisabled(UiText.Get("Todavía no hiciste cambios. En la pestaña Rutinas elegí una línea y cambiá sus bytes o anulala."));
             return;
         }
-        if (ImGui.Button("Aplicar todos de nuevo"))
+        if (ImGui.Button(UiText.Label("Aplicar todos de nuevo")))
         {
             foreach (var (key, value) in _notes.Patches)
                 Write(m, uint.Parse(key, NumberStyles.HexNumber), Hex(value.Split('|')[1]));
@@ -641,15 +641,15 @@ public sealed partial class CodeWindow : IDisposable
             uint a = uint.Parse(key, NumberStyles.HexNumber);
             var parts = value.Split('|');
             bool applied = Hex(parts[1]).Select((b, i) => m.Memory.Peek((uint)(a + i)) == b).All(x => x);
-            ImGui.TextUnformatted($"${key}  {parts[0]}  ->  {parts[1]}   {(applied ? "(aplicado)" : "(no aplicado)")}");
+            ImGui.TextUnformatted(UiText.Get(UiText.Format($"${key}  {parts[0]}  ->  {parts[1]}   {(applied ? UiText.Get("(aplicado)") : UiText.Get("(no aplicado)"))}")));
             if (_map?.RoutineAt(a) is { } r)
             {
                 ImGui.SameLine();
-                if (ImGui.SmallButton($"{Name(m, r.Start)}##p{key}"))
+                if (ImGui.SmallButton(UiText.Label(UiText.Format($"{Name(m, r.Start)}##p{key}"))))
                     Select(r.Start);
             }
             ImGui.SameLine();
-            if (ImGui.SmallButton("Deshacer##" + key))
+            if (ImGui.SmallButton(UiText.Label(UiText.Get("Deshacer##") + key)))
             {
                 Write(m, a, Hex(parts[0]));
                 _notes.Patches.Remove(key);
@@ -666,7 +666,7 @@ public sealed partial class CodeWindow : IDisposable
         bool busy = _explainTask != null;
         if (provider != null)
         {
-            if (ImGui.Button(busy ? "La IA está leyendo..." : "Explicar esta rutina") && !busy)
+            if (ImGui.Button(UiText.Label(busy ? "La IA está leyendo..." : "Explicar esta rutina")) && !busy)
             {
                 try
                 {
@@ -687,12 +687,12 @@ public sealed partial class CodeWindow : IDisposable
             if (busy)
             {
                 ImGui.SameLine();
-                if (ImGui.Button("Cancelar"))
+                if (ImGui.Button(UiText.Label("Cancelar")))
                     _cts?.Cancel();
             }
             ImGui.SameLine();
         }
-        if (ImGui.Button("Copiar pedido"))
+        if (ImGui.Button(UiText.Label("Copiar pedido")))
         {
             ImGui.SetClipboardText(CodeExplainer.ManualPrompt(CodeExplainer.Prompt(m, r, _notes, _profile, _map!) + "\n\n" + RoutineReference(m, r)));
             _manualExplanation = true;
@@ -701,12 +701,12 @@ public sealed partial class CodeWindow : IDisposable
         if (ImGui.IsItemHovered())
             UiTheme.Tooltip("El selector de IA de esta sección también se usa para explicar rutinas.");
         if (_explainStatus.Length > 0)
-            ImGui.TextColored(new Vector4(0.6f, 0.8f, 1, 1), _explainStatus);
+            ImGui.TextColored(new Vector4(0.6f, 0.8f, 1, 1), UiText.Get(_explainStatus));
         _routineActivity.Draw(_explainTask != null, _explainStatus, _cts);
         if (_manualExplanation)
         {
             ImGui.InputTextMultiline("##respuestaia", ref _pasted, 20000, new Vector2(-1, UiTheme.Px(60)));
-            if (ImGui.Button("Usar la respuesta"))
+            if (ImGui.Button(UiText.Label("Usar la respuesta")))
             {
                 try
                 {
@@ -718,7 +718,7 @@ public sealed partial class CodeWindow : IDisposable
                 }
                 catch (AiException e)
                 {
-                    _explainStatus = "Consigna copiada, pero la respuesta no sirve: " + e.Message;
+                    _explainStatus = UiText.Get("Consigna copiada, pero la respuesta no sirve: ") + e.Message;
                 }
             }
         }
@@ -743,7 +743,7 @@ public sealed partial class CodeWindow : IDisposable
         }
         if (t.IsFaulted)
         {
-            _explainStatus = "Error: " + t.Exception!.GetBaseException().Message;
+            _explainStatus = UiText.Get("Error: ") + t.Exception!.GetBaseException().Message;
             return;
         }
         if (_map != null && _map.Routines.TryGetValue(_explainFor, out var r))
@@ -751,7 +751,7 @@ public sealed partial class CodeWindow : IDisposable
             CodeExplainer.Apply(t.Result, r, _notes);
             _notes.Save(_gameId);
             _rename = "";
-            _explainStatus = $"Listo: {t.Result.Name}. Nombre, explicación, pseudocódigo y comentarios guardados.";
+            _explainStatus = UiText.Format($"Listo: {UiText.Raw(t.Result.Name)}. Nombre, explicación, pseudocódigo y comentarios guardados.");
         }
     }
 
@@ -766,12 +766,12 @@ public sealed partial class CodeWindow : IDisposable
     {
         if (_profile == null)
         {
-            ImGui.TextWrapped("Este juego no tiene perfil. Usá Buscar variables para identificar sus datos.");
+            ImGui.TextWrapped(UiText.Get("Este juego no tiene perfil. Usá Buscar variables para identificar sus datos."));
             return;
         }
-        ImGui.TextWrapped(_profile.Description);
+        ImGui.TextWrapped(UiText.Get(_profile.Description));
         ImGui.Separator();
-        ImGui.TextUnformatted("Controles para las fusiones (qué tecla del juego es cada acción):");
+        ImGui.TextUnformatted(UiText.Get("Controles para las fusiones (qué tecla del juego es cada acción):"));
         var keys = m.Keys.Select(k => k.Name).ToArray();
         var options = new[] { "(ninguna)" }.Concat(keys).ToArray();
         bool changed = false;
@@ -786,7 +786,7 @@ public sealed partial class CodeWindow : IDisposable
                 changed = true;
             }
         }
-        ImGui.TextUnformatted("Arranque (una orden por línea: load-tape, wait N, press TECLA N):");
+        ImGui.TextUnformatted(UiText.Get("Arranque (una orden por línea: load-tape, wait N, press TECLA N):"));
         if (ImGui.InputTextMultiline("##boot", ref _bootText, 2000, new Vector2(-1, UiTheme.Px(80))))
         {
             _profile.Boot = _bootText.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
@@ -810,12 +810,12 @@ public sealed partial class CodeWindow : IDisposable
         else if (ImGui.BeginTable("vars", addresses ? 6 : 5, flags, size))
         {
             ImGui.TableSetupScrollFreeze(0, 1);
-            ImGui.TableSetupColumn("Variable", ImGuiTableColumnFlags.WidthStretch, 2);
-            if (addresses) ImGui.TableSetupColumn("Dirección", ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(110));
-            ImGui.TableSetupColumn("Valor", ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(90));
-            ImGui.TableSetupColumn("RAM actual → propuesta", ImGuiTableColumnFlags.WidthStretch, 3);
-            ImGui.TableSetupColumn("Congelar", ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(90));
-            ImGui.TableSetupColumn("Qué es", ImGuiTableColumnFlags.WidthStretch, 3);
+            ImGui.TableSetupColumn(UiText.Get("Variable"), ImGuiTableColumnFlags.WidthStretch, 2);
+            if (addresses) ImGui.TableSetupColumn(UiText.Get("Dirección"), ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(110));
+            ImGui.TableSetupColumn(UiText.Get("Valor"), ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(90));
+            ImGui.TableSetupColumn(UiText.Get("RAM actual → propuesta"), ImGuiTableColumnFlags.WidthStretch, 3);
+            ImGui.TableSetupColumn(UiText.Get("Congelar"), ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(90));
+            ImGui.TableSetupColumn(UiText.Get("Qué es"), ImGuiTableColumnFlags.WidthStretch, 3);
             ImGui.TableHeadersRow();
             foreach (var (name, v) in _profile.Variables)
             {
@@ -828,7 +828,7 @@ public sealed partial class CodeWindow : IDisposable
 
         void Field(string label)
         {
-            if (compact) ImGui.TextWrapped(label);
+            if (compact) ImGui.TextWrapped(UiText.Get(label));
             else ImGui.TableNextColumn();
         }
 
@@ -840,13 +840,13 @@ public sealed partial class CodeWindow : IDisposable
                 { readable = false; }
                 string title = VariableLabel(name) + (v.PurposeIsHypothesis ? " · hipótesis" : "");
                 if (compact) UiTheme.Section(title);
-                else { ImGui.TableNextColumn(); ImGui.TextWrapped(title); }
+                else { ImGui.TableNextColumn(); ImGui.TextWrapped(UiText.Get(title)); }
                 if (ImGui.IsItemHovered()) UiTheme.Tooltip(name + "\n" + v.PurposeSummary + "\n" + v.Description);
                 if (addresses)
                 {
                     Field("Dirección / formato");
-                    using (UiTheme.FixedWidth()) ImGui.TextUnformatted("$" + v.Address);
-                    ImGui.TextWrapped(v.Encoding);
+                    using (UiTheme.FixedWidth()) ImGui.TextUnformatted(UiText.Get("$" + v.Address));
+                    ImGui.TextWrapped(UiText.Get(v.Encoding));
                 }
                 Field("Valor propuesto");
                 ImGui.SetNextItemWidth(compact ? Math.Min(UiTheme.Px(160), ImGui.GetContentRegionAvail().X) : -1);
@@ -854,7 +854,7 @@ public sealed partial class CodeWindow : IDisposable
                 string input = _variableInputs.GetValueOrDefault(name, value.ToString(CultureInfo.InvariantCulture));
                 // InputScalar/InputInt rejects EnterReturnsTrue in this ImGui version.
                 // Keep an explicit text draft so a partial number never writes RAM.
-                bool enter = ImGui.InputText("##v" + name, ref input, 16, ImGuiInputTextFlags.CharsDecimal | ImGuiInputTextFlags.EnterReturnsTrue);
+                bool enter = ImGui.InputText(UiText.Label(UiText.Get("##v") + name), ref input, 16, ImGuiInputTextFlags.CharsDecimal | ImGuiInputTextFlags.EnterReturnsTrue);
                 if (ImGui.IsItemActive()) _variableInputs[name] = input;
                 else _variableInputs.Remove(name);
                 IReadOnlyList<VariableBytePreview>? preview = null;
@@ -867,9 +867,9 @@ public sealed partial class CodeWindow : IDisposable
                     { previewProblem = error.Message; }
                 }
                 else if (!parsed) previewProblem = "Escribí un número entero válido.";
-                if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled)) UiTheme.Tooltip($"Rango: {v.Min} a {v.Max}");
+                if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled)) UiTheme.Tooltip(UiText.Format($"Rango: {v.Min} a {v.Max}"));
                 ImGui.BeginDisabled(preview == null);
-                bool apply = ImGui.SmallButton("Aplicar##" + name);
+                bool apply = ImGui.SmallButton(UiText.Label(UiText.Get("Aplicar##") + name));
                 ImGui.EndDisabled();
                 ImGui.EndDisabled();
                 if (enter || apply)
@@ -885,7 +885,7 @@ public sealed partial class CodeWindow : IDisposable
                         foreach (var cell in preview)
                         {
                             ImGui.PushStyleColor(ImGuiCol.Text, cell.Before == cell.After ? UiTheme.Muted : UiTheme.Accent);
-                            ImGui.TextWrapped($"${cell.Address:X4}: {cell.Before:X2} → {cell.After:X2}");
+                            ImGui.TextWrapped(UiText.Get(UiText.Format($"${cell.Address:X4}: {cell.Before:X2} → {cell.After:X2}")));
                             ImGui.PopStyleColor();
                         }
                 }
@@ -895,62 +895,62 @@ public sealed partial class CodeWindow : IDisposable
                     {
                         using (UiTheme.FixedWidth())
                             foreach (var cell in VariableMemory.Cells(v, m.Memory.AddressBits))
-                                ImGui.TextUnformatted($"${cell.Address:X4}: {m.Memory.Peek(cell.Address):X2}");
+                                ImGui.TextUnformatted(UiText.Get(UiText.Format($"${cell.Address:X4}: {m.Memory.Peek(cell.Address):X2}")));
                     }
                     catch (Exception error) when (error is InvalidOperationException or ArgumentException or IndexOutOfRangeException)
                     { previewProblem = error.Message; }
-                    if (previewProblem.Length > 0) ImGui.TextWrapped(previewProblem);
+                    if (previewProblem.Length > 0) ImGui.TextWrapped(UiText.Get(previewProblem));
                 }
                 Field("Congelar");
                 ImGui.BeginDisabled(v.ReadOnly || !readable);
                 bool frozen = _modifications?.Frozen.ContainsKey(name) == true;
-                if (ImGui.Checkbox("##f" + name, ref frozen))
+                if (ImGui.Checkbox(UiText.Label(UiText.Get("##f") + name), ref frozen))
                 {
                     ApplyModifications([new(name, v.Read(m.Memory), frozen)]);
                 }
                 ImGui.EndDisabled();
                 Field("Interpretación");
                 string description = readable ? v.Description + (v.ReadOnly ? " (solo lectura)" : "") : "Este dato tiene un formato o dirección inválidos en el perfil.";
-                ImGui.TextWrapped(!compact && description.Length > 140 ? description[..137] + "..." : description);
+                ImGui.TextWrapped(UiText.Get(!compact && description.Length > 140 ? description[..137] + "..." : description));
                 if (!compact && description.Length > 140 && ImGui.IsItemHovered()) UiTheme.Tooltip(description);
         }
     }
 
     private void DrawFinder(IMachine m)
     {
-        ImGui.TextWrapped("Empezá la búsqueda, jugá un momento y filtrá según cómo cambió el valor. Repetí para reducir los resultados.");
+        ImGui.TextWrapped(UiText.Get("Empezá la búsqueda, jugá un momento y filtrá según cómo cambió el valor. Repetí para reducir los resultados."));
         var (start, end) = RamRange(m);
-        if (ImGui.Button(_search == null ? "Empezar búsqueda" : "Empezar de nuevo"))
+        if (ImGui.Button(UiText.Label(_search == null ? "Empezar búsqueda" : "Empezar de nuevo")))
         {
             _search = new MemorySearch(m.Memory);
             _search.Start(start, end);
         }
         ImGui.SameLine();
-        ImGui.TextDisabled($"RAM ${start:X4}-${end:X4}");
+        ImGui.TextDisabled(UiText.Get(UiText.Format($"RAM ${start:X4}-${end:X4}")));
         if (_search == null)
             return;
         string[] conditions = ["Cambió", "No cambió", "Aumentó", "Disminuyó", "Es igual a"];
         SearchCondition[] filters = [SearchCondition.Changed, SearchCondition.Unchanged, SearchCondition.Increased, SearchCondition.Decreased, SearchCondition.EqualTo];
         ImGui.SetNextItemWidth(UiTheme.Px(150));
-        ImGui.Combo("Condición", ref _searchCondition, conditions, conditions.Length);
-        if (_searchCondition == 4) { ImGui.SetNextItemWidth(UiTheme.Px(90)); ImGui.InputInt("Valor", ref _searchValue); }
-        if (ImGui.Button("Filtrar resultados")) _search.Filter(filters[_searchCondition], _searchValue);
-        ImGui.TextUnformatted($"Quedan {_search.Count} direcciones.");
+        ImGui.Combo(UiText.Label("Condición"), ref _searchCondition, conditions.Select(UiText.Get).ToArray(), conditions.Length);
+        if (_searchCondition == 4) { ImGui.SetNextItemWidth(UiTheme.Px(90)); ImGui.InputInt(UiText.Label("Valor"), ref _searchValue); }
+        if (ImGui.Button(UiText.Label("Filtrar resultados"))) _search.Filter(filters[_searchCondition], _searchValue);
+        ImGui.TextUnformatted(UiText.Get(UiText.Format($"Quedan {_search.Count} direcciones.")));
         if (_search.Count > 200)
         {
-            ImGui.TextDisabled("Todavía son muchas: seguí filtrando.");
+            ImGui.TextDisabled(UiText.Get("Todavía son muchas: seguí filtrando."));
             return;
         }
         ImGui.SetNextItemWidth(UiTheme.Px(160));
-        ImGui.InputTextWithHint("##nuevavar", "Nombre de la variable", ref _newVarName, 32);
+        ImGui.InputTextWithHint("##nuevavar", UiText.Get("Nombre de la variable"), ref _newVarName, 32);
         ImGui.SameLine();
         ImGui.SetNextItemWidth(-1);
-        ImGui.InputTextWithHint("##desc", "Qué representa", ref _newVarDescription, 200);
+        ImGui.InputTextWithHint("##desc", UiText.Get("Qué representa"), ref _newVarDescription, 200);
         foreach (var (address, value) in _search.Results(40))
         {
-            ImGui.TextUnformatted($"${address:X4} = {value,3}");
+            ImGui.TextUnformatted(UiText.Get(UiText.Format($"${address:X4} = {value,3}")));
             ImGui.SameLine();
-            if (ImGui.SmallButton("Agregar al perfil##" + address))
+            if (ImGui.SmallButton(UiText.Label(UiText.Get("Agregar al perfil##") + address)))
                 AddVariable(m, address, value);
         }
     }
@@ -986,12 +986,12 @@ public sealed partial class CodeWindow : IDisposable
             Encoding = "uint8",
             Min = 0,
             Max = 255,
-            Description = _newVarDescription.Trim().Length > 0 ? _newVarDescription.Trim() : $"Encontrada con el buscador (valía {value}).",
+            Description = _newVarDescription.Trim().Length > 0 ? _newVarDescription.Trim() : UiText.Format($"Encontrada con el buscador (valía {value})."),
         };
         bool saved = SaveProfile();
         _modifications ??= new GameModifications(m, _profile);
         PersistModifications();
-        if (saved) _status = $"\"{name}\" (${address:X4}) agregada al perfil de {_profile.Name}. Sus controles se configuran en Código > Perfil y controles.";
+        if (saved) _status = UiText.Format($"\"{name}\" (${address:X4}) agregada al perfil de {UiText.Raw(_profile.Name)}. Sus controles se configuran en Código > Perfil y controles.");
         _newVarName = "";
         _newVarDescription = "";
     }
@@ -1000,11 +1000,11 @@ public sealed partial class CodeWindow : IDisposable
     private string Export(IMachine m)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"; {_gameName} - {m.DisplayName} ({m.Cpu.CpuName})");
-        sb.AppendLine($"; Desensamblado por RetroEmu con los nombres y comentarios guardados. {m.MemoryMapDescription}");
+        sb.AppendLine(UiText.Format($"; {_gameName} - {m.DisplayName} ({m.Cpu.CpuName})"));
+        sb.AppendLine(UiText.Format($"; Desensamblado por RetroEmu con los nombres y comentarios guardados. {m.MemoryMapDescription}"));
         if (_profile != null)
             foreach (var (name, v) in _profile.Variables)
-                sb.AppendLine($"{name,-16} EQU ${v.Address}   ; {v.Description}");
+                sb.AppendLine(UiText.Format($"{name,-16} EQU ${v.Address}   ; {v.Description}"));
         foreach (var r in _map!.Routines.Values.OrderBy(r => r.Start))
         {
             if (_hideSystemRom && r.Start < SystemRomEnd(m))
@@ -1026,12 +1026,12 @@ public sealed partial class CodeWindow : IDisposable
                 if (a == r.Start || _notes.Label(a) != null)
                     sb.AppendLine(Name(m, a) + ":");
                 string comment = _notes.Comment(a) is { } c ? "  ; " + c : "";
-                sb.AppendLine($"        {Pretty(m, ins.Text),-28}; {a:X4}  {string.Join(" ", ins.Bytes.Select(b => b.ToString("X2")))}{comment}");
+                sb.AppendLine(UiText.Format($"        {Pretty(m, ins.Text),-28}; {a:X4}  {string.Join(" ", ins.Bytes.Select(b => b.ToString("X2")))}{comment}"));
             }
         }
         string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "RetroEmu", "codigo");
         Directory.CreateDirectory(dir);
-        string path = Path.Combine(dir, _gameId + ".asm");
+        string path = Path.Combine(dir, _gameId + UiText.Get(".asm"));
         File.WriteAllText(path, sb.ToString());
         return path;
     }

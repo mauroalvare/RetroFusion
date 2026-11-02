@@ -65,13 +65,13 @@ public sealed partial class CodeWindow
     {
         if (_host.Fusion != null)
         {
-            ImGui.TextWrapped("Esta partida es una fusión. Para cambiar sus reglas, abrila en el estudio.");
-            if (_openStudio != null && ImGui.Button("Editar la fusión")) { Close(); _openStudio(); }
+            ImGui.TextWrapped(UiText.Get("Esta partida es una fusión. Para cambiar sus reglas, abrila en el estudio."));
+            if (_openStudio != null && ImGui.Button(UiText.Label("Editar la fusión"))) { Close(); _openStudio(); }
             AiPicker.Hint("Código muestra el original enfocado para una revisión técnica.");
             return false;
         }
         if (_host.LoadedMedia != null) return true;
-        ImGui.TextWrapped("Abrí un juego de la biblioteca para modificar su partida.");
+        ImGui.TextWrapped(UiText.Get("Abrí un juego de la biblioteca para modificar su partida."));
         return false;
     }
 
@@ -80,45 +80,45 @@ public sealed partial class CodeWindow
         if (!OriginalAvailable()) return;
         AiPicker.Hint("Enter aplica un valor. Congelar mantiene el valor aunque el juego intente cambiarlo.");
         ImGui.BeginDisabled(_modifications?.CanUndo != true);
-        if (ImGui.Button("Deshacer último cambio")) RestoreModifications(undo: true);
+        if (ImGui.Button(UiText.Label("Deshacer último cambio"))) RestoreModifications(undo: true);
         ImGui.EndDisabled();
         if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-            ImGui.SetTooltip("Restaura la partida antes del último cambio, incluido el progreso desde entonces. Conserva hasta cinco cambios.");
+            ImGui.SetTooltip(UiText.Get("Restaura la partida antes del último cambio, incluido el progreso desde entonces. Conserva hasta cinco cambios."));
         ImGui.SameLine();
         ImGui.BeginDisabled(_modifications?.CanRestore != true);
-        if (ImGui.Button("Restaurar partida")) RestoreModifications();
+        if (ImGui.Button(UiText.Label("Restaurar partida"))) RestoreModifications();
         ImGui.EndDisabled();
         if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-            ImGui.SetTooltip("Vuelve al momento anterior al primer cambio de esta sesión.");
-        if (_modifications?.Frozen.Count is > 0 && ImGui.SmallButton("Liberar valores congelados"))
+            ImGui.SetTooltip(UiText.Get("Vuelve al momento anterior al primer cambio de esta sesión."));
+        if (_modifications?.Frozen.Count is > 0 && ImGui.SmallButton(UiText.Label("Liberar valores congelados")))
         { ReleaseModifications(); _status = "Los valores vuelven a cambiar con el juego."; }
         DrawRememberedChanges();
         ImGui.Separator();
         if (_profile?.Variables.Count is > 0) DrawVariableValues(machine, true);
-        else ImGui.TextWrapped("Todavía no hay variables. Analizá la partida con IA o usá la búsqueda manual.");
+        else ImGui.TextWrapped(UiText.Get("Todavía no hay variables. Analizá la partida con IA o usá la búsqueda manual."));
         if (_discoveredLabels.Count > 0) AiPicker.Hint("Las variables marcadas como hipótesis requieren comprobar su efecto en la partida.");
-        if (ImGui.Button("Analizar con IA")) _requestedPage = ToolPage.Analysis;
+        if (ImGui.Button(UiText.Label("Analizar con IA"))) _requestedPage = ToolPage.Analysis;
         if (_advice == null || _advice.Ideas.Count == 0) return;
         ImGui.Spacing(); ImGui.Separator();
-        ImGui.TextColored(LabelColor, "Propuestas para probar");
+        ImGui.TextColored(LabelColor, UiText.Get("Propuestas para probar"));
         int id = 0;
         foreach (var idea in _advice.Ideas)
         {
             int proposalId = id++;
             ImGui.PushID(proposalId);
             ImGui.TextColored(LabelColor, idea.Title);
-            ImGui.TextWrapped(idea.Effect);
+            ImGui.TextWrapped(UiText.Get(idea.Effect));
             foreach (var change in idea.Changes)
-                ImGui.TextWrapped($"{VariableLabel(change.Variable)}: {change.Value}{(change.Freeze ? " (congelado)" : "")}");
-            if (ImGui.Button("Aplicar propuesta")) ApplyProposal(proposalId, idea.Changes);
+                ImGui.TextWrapped(UiText.Get(UiText.Format($"{VariableLabel(change.Variable)}: {change.Value}{(change.Freeze ? UiText.Get(" (congelado)") : UiText.Get(""))}")));
+            if (ImGui.Button(UiText.Label("Aplicar propuesta"))) ApplyProposal(proposalId, idea.Changes);
             if (_proposalFeedback.TryGetValue(proposalId, out string? feedback))
             {
-                ImGui.TextWrapped(feedback);
-                if (_host.Paused) ImGui.TextWrapped("La partida está pausada: F9 para continuar.");
+                ImGui.TextWrapped(UiText.Get(feedback));
+                if (_host.Paused) ImGui.TextWrapped(UiText.Get("La partida está pausada: F9 para continuar."));
                 foreach (var change in idea.Changes)
                     if (_profile?.Variables.TryGetValue(change.Variable, out var variable) == true)
-                        ImGui.TextWrapped($"Ahora: {VariableLabel(change.Variable)} = {variable.Read(machine.Memory)}" +
-                            (_modifications?.Frozen.ContainsKey(change.Variable) == true ? " (congelado)" : ""));
+                        ImGui.TextWrapped(UiText.Get(UiText.Format($"Ahora: {VariableLabel(change.Variable)} = {variable.Read(machine.Memory)}") +
+                            (_modifications?.Frozen.ContainsKey(change.Variable) == true ? " (congelado)" : "")));
             }
             ImGui.Spacing(); ImGui.PopID();
         }
@@ -130,21 +130,21 @@ public sealed partial class CodeWindow
         int mode = _automaticAnalysis ? 0 : 1;
         ImGui.BeginDisabled(_autonomousTask != null || _modificationTask != null);
         ImGui.SetNextItemWidth(-1);
-        if (ImGui.Combo("##modo-analisis", ref mode, new[] { "Automático", "Observación avanzada de mi partida" }, 2)) _automaticAnalysis = mode == 0;
+        if (ImGui.Combo("##modo-analisis", ref mode, new[] { "Automático", "Observación avanzada de mi partida" }.Select(UiText.Get).ToArray(), 2)) _automaticAnalysis = mode == 0;
         ImGui.EndDisabled();
         if (_automaticAnalysis) { DrawAutonomousAnalysis(machine); return; }
         AiPicker.Hint("Jugá unos segundos para reunir datos. El análisis propone cambios; aplicarlos queda a tu elección.");
         bool busy = _modificationTask != null;
         ImGui.BeginDisabled(busy);
-        if (ImGui.SmallButton("Observar desde ahora")) RestartAnalysisObservation();
-        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Empieza un intervalo nuevo sin cambiar la partida, las variables ni los congelados.");
+        if (ImGui.SmallButton(UiText.Label("Observar desde ahora"))) RestartAnalysisObservation();
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip(UiText.Get("Empieza un intervalo nuevo sin cambiar la partida, las variables ni los congelados."));
         ImGui.SameLine();
-        ImGui.TextDisabled($"{_observation?.FramesObserved ?? 0} cuadros · {_observation?.WrittenAddresses ?? 0} bytes escritos");
+        ImGui.TextDisabled(UiText.Get(UiText.Format($"{_observation?.FramesObserved ?? 0} cuadros · {_observation?.WrittenAddresses ?? 0} bytes escritos")));
         AiPicker.Choose(_ai, "analisis", "El análisis usa un pedido a la IA elegida.");
-        ImGui.TextUnformatted("Qué querés investigar o cambiar:");
+        ImGui.TextUnformatted(UiText.Get("Qué querés investigar o cambiar:"));
         ImGui.InputTextMultiline("##investigar", ref _modificationWish, 2000, new Vector2(-1, UiTheme.Px(64)));
         bool callable = AiPicker.IsApi(_ai.Provider);
-        if (ImGui.Button(callable ? (_lastAnalysis.Length > 0 ? "Investigar este pedido" : "Analizar la partida") : _ai.Provider == "agent" ? "Copiar pedido para mi agente" : "Copiar pedido para mi IA"))
+        if (ImGui.Button(UiText.Label(callable ? (_lastAnalysis.Length > 0 ? "Investigar este pedido" : "Analizar la partida") : _ai.Provider == "agent" ? "Copiar pedido para mi agente" : "Copiar pedido para mi IA")))
         {
             try
             {
@@ -162,13 +162,13 @@ public sealed partial class CodeWindow
             { _status = error.Message; }
         }
         ImGui.EndDisabled();
-        if (busy) { ImGui.SameLine(); if (ImGui.Button("Cancelar análisis")) _modificationCts?.Cancel(); }
+        if (busy) { ImGui.SameLine(); if (ImGui.Button(UiText.Label("Cancelar análisis"))) _modificationCts?.Cancel(); }
 
         _modificationActivity.Draw(busy, _status, _modificationCts);
         if (_manualModification && _analysisSnapshot != null)
         {
             ImGui.InputTextMultiline("##analisis-recibido", ref _modificationPasted, 32000, new Vector2(-1, UiTheme.Px(90)));
-            if (ImGui.Button("Revisar respuesta"))
+            if (ImGui.Button(UiText.Label("Revisar respuesta")))
             {
                 _analysisAnswer = _modificationPasted;
                 try { AcceptAnalysis(GameModificationAnalyzer.Parse(_modificationPasted, _analysisSnapshot)); }
@@ -178,51 +178,51 @@ public sealed partial class CodeWindow
         DrawAnalysisHistory();
         if (_lastAnalysis.Length > 0)
         {
-            ImGui.Separator(); ImGui.TextColored(LabelColor, AnalysisReportHeading);
-            ImGui.TextWrapped(_lastAnalysisProvider);
-            ImGui.TextDisabled($"Cuadro {_lastAnalysisFrame} · {_lastAnalysisAt.ToLocalTime():dd/MM HH:mm:ss}");
+            ImGui.Separator(); ImGui.TextColored(LabelColor, UiText.Get(AnalysisReportHeading));
+            ImGui.TextWrapped(UiText.Get(_lastAnalysisProvider));
+            ImGui.TextDisabled(UiText.Get(UiText.Format($"Cuadro {_lastAnalysisFrame} · {_lastAnalysisAt.ToLocalTime():dd/MM HH:mm:ss}")));
             if (AnalysisReportHeading == "Informe anterior")
                 AiPicker.Hint("Este es el último informe aceptado; no corresponde al intento nuevo.");
-            if (ImGui.SmallButton("Copiar informe")) ImGui.SetClipboardText(
-                $"{AnalysisReportHeading}\n{_lastAnalysisProvider} · cuadro {_lastAnalysisFrame}\n\n{_lastAnalysis}");
+            if (ImGui.SmallButton(UiText.Label("Copiar informe"))) ImGui.SetClipboardText(
+                UiText.Format($"{AnalysisReportHeading}\n{_lastAnalysisProvider} · cuadro {_lastAnalysisFrame}\n\n{_lastAnalysis}"));
             ImGui.BeginChild("informe-analisis", new Vector2(0, Math.Clamp(ImGui.GetContentRegionAvail().Y * 0.45f, UiTheme.Px(100), UiTheme.Px(220))), ImGuiChildFlags.Borders);
-            ImGui.TextWrapped(_lastAnalysis);
+            ImGui.TextWrapped(UiText.Get(_lastAnalysis));
             ImGui.EndChild();
-            if (ImGui.Button("Ver variables y propuestas")) _requestedPage = ToolPage.Changes;
+            if (ImGui.Button(UiText.Label("Ver variables y propuestas"))) _requestedPage = ToolPage.Changes;
         }
-        if (_analysisPrompt.Length > 0 && ImGui.CollapsingHeader("Pedido, respuesta y errores"))
+        if (_analysisPrompt.Length > 0 && ImGui.CollapsingHeader(UiText.Label("Pedido, respuesta y errores")))
         {
-            ImGui.TextWrapped("Proveedor del intento: " + _analysisProvider);
-            ImGui.TextDisabled($"Captura del cuadro {_analysisSnapshot?.Frame}");
-            if (ImGui.SmallButton("Copiar pedido enviado")) ImGui.SetClipboardText(_analysisPrompt);
+            ImGui.TextWrapped(UiText.Get(UiText.Get("Proveedor del intento: ") + _analysisProvider));
+            ImGui.TextDisabled(UiText.Get(UiText.Format($"Captura del cuadro {_analysisSnapshot?.Frame}")));
+            if (ImGui.SmallButton(UiText.Label("Copiar pedido enviado"))) ImGui.SetClipboardText(_analysisPrompt);
             if (_analysisAnswer.Length > 0)
             {
                 UiTheme.SameLineIfFits("Copiar respuesta");
-                if (ImGui.SmallButton("Copiar respuesta")) ImGui.SetClipboardText(_analysisAnswer);
+                if (ImGui.SmallButton(UiText.Label("Copiar respuesta"))) ImGui.SetClipboardText(_analysisAnswer);
             }
             if (_analysisError.Length > 0)
             {
-                if (ImGui.SmallButton("Copiar error")) ImGui.SetClipboardText(_analysisError);
-                ImGui.TextWrapped(_analysisError);
+                if (ImGui.SmallButton(UiText.Label("Copiar error"))) ImGui.SetClipboardText(_analysisError);
+                ImGui.TextWrapped(UiText.Get(_analysisError));
             }
             if (_analysisAnswer.Length > 0)
             {
-                ImGui.TextUnformatted("Respuesta recibida (podés seleccionar texto):");
+                ImGui.TextUnformatted(UiText.Get("Respuesta recibida (podés seleccionar texto):"));
                 string response = _analysisAnswer;
                 ImGui.InputTextMultiline("##respuesta-del-analisis", ref response, (uint)System.Text.Encoding.UTF8.GetByteCount(response) + 1,
                     new Vector2(-1, UiTheme.Px(180)), ImGuiInputTextFlags.ReadOnly);
             }
             else if (!busy) AiPicker.Hint("Este intento no devolvió una respuesta utilizable. Ver actividad conserva la salida del CLI.");
         }
-        if (_analysisSnapshot != null && ImGui.CollapsingHeader("Evidencia enviada"))
+        if (_analysisSnapshot != null && ImGui.CollapsingHeader(UiText.Label("Evidencia enviada")))
         {
-            ImGui.TextDisabled($"{_analysisSnapshot.FramesObserved} cuadros observados · {_analysisSnapshot.Candidates.Count} bytes de RAM · recorte de código");
+            ImGui.TextDisabled(UiText.Get(UiText.Format($"{_analysisSnapshot.FramesObserved} cuadros observados · {_analysisSnapshot.Candidates.Count} bytes de RAM · recorte de código")));
             ImGui.BeginChild("evidencia", new Vector2(0, UiTheme.Px(180)), ImGuiChildFlags.Borders);
             using (UiTheme.FixedWidth())
                 foreach (var candidate in _analysisSnapshot.Candidates)
-                    ImGui.TextWrapped($"0x{candidate.Address:X4} = {candidate.Value} · {candidate.Writes} escrituras" +
-                        (candidate.Writer is uint pc ? $" · instrucción 0x{pc:X4}" : "") +
-                            (candidate.WriteMinimum is byte min ? $" · escritos {min}..{candidate.WriteMaximum} · cambios {candidate.ValueChanges}" : ""));
+                    ImGui.TextWrapped(UiText.Get(UiText.Format($"0x{candidate.Address:X4} = {candidate.Value} · {candidate.Writes} escrituras") +
+                        (candidate.Writer is uint pc ? UiText.Format($" · instrucción 0x{pc:X4}") : "") +
+                            (candidate.WriteMinimum is byte min ? UiText.Format($" · escritos {min}..{candidate.WriteMaximum} · cambios {candidate.ValueChanges}") : "")));
             ImGui.EndChild();
         }
     }
@@ -258,7 +258,7 @@ public sealed partial class CodeWindow
         _modificationCts?.Dispose(); _modificationCts = new CancellationTokenSource();
         var token = _modificationCts.Token;
         var snapshot = _analysisSnapshot!;
-        _status = $"{provider.Name} está analizando la captura de la partida...";
+        _status = UiText.Format($"{UiText.Raw(provider.Name)} está analizando la captura de la partida...");
         _modificationActivity.Start(provider);
         var reply = Task.Run(() => provider.CompleteAsync(request, token), token);
         _analysisReply = reply;
@@ -275,8 +275,8 @@ public sealed partial class CodeWindow
     private void AnalysisFailed(Exception error)
     {
         _analysisError = error.Message;
-        _status = "No se pudo completar el análisis: " + error.Message;
-        if (_lastAnalysis.Length > 0) _status += " Se conserva el informe anterior de " + _lastAnalysisProvider + ".";
+        _status = UiText.Get("No se pudo completar el análisis: ") + error.Message;
+        if (_lastAnalysis.Length > 0) _status += UiText.Get(" Se conserva el informe anterior de ") + _lastAnalysisProvider + ".";
     }
 
     private void AcceptAnalysis(GameAnalysisResult result)
@@ -298,7 +298,7 @@ public sealed partial class CodeWindow
         _manualModification = false; _modificationPasted = "";
         RecordAnalysis();
         int variables = result.Variables.Count, proposals = result.Advice.Ideas.Count;
-        _status = $"Análisis listo: {variables} variable{(variables == 1 ? "" : "s")} nueva{(variables == 1 ? "" : "s")} y {proposals} propuesta{(proposals == 1 ? "" : "s")}. Revisá Cambios.";
+        _status = UiText.Format($"Análisis listo: {variables} variable{(variables == 1 ? UiText.Get("") : UiText.Get("s"))} nueva{(variables == 1 ? UiText.Get("") : UiText.Get("s"))} y {proposals} propuesta{(proposals == 1 ? UiText.Get("") : UiText.Get("s"))}. Revisá Cambios.");
     }
 
     private void PollModificationAdvice()
@@ -322,11 +322,11 @@ public sealed partial class CodeWindow
     private void ApplyProposal(int id, IReadOnlyList<VariableEdit> changes)
     {
         var before = changes.Select(c => _profile?.Variables.TryGetValue(c.Variable, out var v) == true
-            ? $"{VariableLabel(c.Variable)}: {v.Read(_machine!.Memory)} -> {c.Value}" : c.Variable).ToArray();
+            ? UiText.Format($"{VariableLabel(c.Variable)}: {v.Read(_machine!.Memory)} -> {c.Value}") : c.Variable).ToArray();
         bool applied = ApplyModifications(changes);
         _proposalFeedback.Clear();
         _proposalFeedback[id] = applied
-            ? "Propuesta aplicada. " + string.Join("; ", before) + ". Revisá su efecto en la partida."
+            ? UiText.Get("Propuesta aplicada. ") + string.Join("; ", before) + UiText.Get(". Revisá su efecto en la partida.")
             : _status;
     }
 
@@ -341,7 +341,7 @@ public sealed partial class CodeWindow
             return true;
         }
         catch (Exception error) when (error is InvalidOperationException or IOException or NotSupportedException)
-        { _status = "No se aplicó el cambio: " + error.Message; return false; }
+        { _status = UiText.Get("No se aplicó el cambio: ") + error.Message; return false; }
     }
 
     private void RestoreModifications(bool undo = false)
@@ -369,7 +369,7 @@ public sealed partial class CodeWindow
             return true;
         }
         catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
-        { _status = "No se pudo guardar el perfil: " + error.Message; return false; }
+        { _status = UiText.Get("No se pudo guardar el perfil: ") + error.Message; return false; }
     }
 
     private readonly List<Task> _retiredWork = new();

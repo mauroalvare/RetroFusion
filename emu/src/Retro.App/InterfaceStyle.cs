@@ -4,9 +4,12 @@ public enum InterfaceStyle { Retro, Terminal, Hardcore }
 
 public sealed record InterfaceDescription(InterfaceStyle Style, string Id, string Name, string Description)
 {
+    private string _name = Name, _description = Description, _handling = "";
+    public string Name { get => UiText.Get(_name); init => _name = value; }
+    public string Description { get => UiText.Get(_description); init => _description = value; }
     public string ShortName => Name.Split('·')[0].Trim();
     /// <summary>How it is operated, in a few words.</summary>
-    public string Handling { get; init; } = "";
+    public string Handling { get => UiText.Get(_handling); init => _handling = value; }
     /// <summary>What sets it apart in practice.</summary>
     public IReadOnlyList<string> Features { get; init; } = [];
 }
@@ -24,7 +27,7 @@ public static class InterfaceStyles
             Handling = "Menús y botones, sin comandos",
             Features = ["Las mismas pantallas y acciones que Retro.", "Texto de ancho fijo y contraste fuerte entre verde y negro."]
         },
-        new(InterfaceStyle.Hardcore, "hardcore", "Terminal hardcore · por comandos", "Una consola dentro de RetroEmu. Buscá juegos, jugá y ajustá el equipo escribiendo órdenes. Incluye ayuda, historial y autocompletado. Volvés con interfaz retro.")
+        new(InterfaceStyle.Hardcore, "real", "Terminal real · por comandos", "Una consola dentro de RetroEmu. Buscá juegos, jugá y ajustá el equipo escribiendo órdenes. Incluye ayuda, historial y autocompletado. Volvés con interfaz retro.")
         {
             Handling = "Órdenes escritas",
             Features = ["Autocompletado, historial y búsqueda de órdenes anteriores.", "Tareas largas en segundo plano, sin perder el prompt.", "Los editores visuales se siguen abriendo con hacer."]
@@ -33,6 +36,7 @@ public static class InterfaceStyles
 
     public static bool TryParse(string? id, out InterfaceStyle style)
     {
+        if (string.Equals(id, "hardcore", StringComparison.OrdinalIgnoreCase)) id = "real";
         var match = All.FirstOrDefault(item => item.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
         style = match?.Style ?? InterfaceStyle.Retro;
         return match != null;

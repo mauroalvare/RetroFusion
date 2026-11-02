@@ -13,7 +13,8 @@ public sealed class SoundSettings
     public bool Muted { get; set; }
     public bool MuteInBackground { get; set; }
     public int BufferFrames { get; set; } = 2;
-    public string? Problem { get; private set; }
+    private string? _problem;
+    public string? Problem { get => _problem == null ? null : UiText.Get(_problem); private set => _problem = value; }
     public bool CanRecover => _persist && _unreadable;
     public string? RecoveryPath { get; private set; }
 
@@ -27,8 +28,13 @@ public sealed class SoundSettings
             if (!File.Exists(_path)) return;
             if (new FileInfo(_path).Length > 16384) throw new InvalidDataException();
             var doc = JsonSerializer.Deserialize<Document>(File.ReadAllText(_path));
-            if (doc is not { Version: 1 } || !Valid(doc.VolumePercent, doc.BufferFrames)) throw new InvalidDataException();
+            if (doc is not { Version: >= 1 } || !Valid(doc.VolumePercent, doc.BufferFrames)) throw new InvalidDataException();
             VolumePercent = doc.VolumePercent; Muted = doc.Muted; MuteInBackground = doc.MuteInBackground; BufferFrames = doc.BufferFrames;
+            if (doc.Version > 1)
+            {
+                _unreadable = true;
+                Problem = "Estas opciones de sonido son de una versión posterior. Se leen los valores conocidos sin modificar el archivo. Recuperar archivo conserva una copia antes de guardar.";
+            }
         }
         catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException or JsonException)
         {
@@ -42,7 +48,7 @@ public sealed class SoundSettings
         if (!Valid(VolumePercent, BufferFrames)) { Problem = "Las opciones de sonido no son válidas."; return false; }
         if (!_persist) return true;
         if (_unreadable) return false;
-        string temporary = _path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        string temporary = _path + "." + Guid.NewGuid().ToString("N") + UiText.Get(".tmp");
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(_path))!);
@@ -64,7 +70,7 @@ public sealed class SoundSettings
         if (!CanRecover) return Save();
         if (!Valid(VolumePercent, BufferFrames))
         { Problem = "Las opciones de sonido no son válidas."; return false; }
-        string backup = _path + ".respaldo-" + Guid.NewGuid().ToString("N");
+        string backup = _path + UiText.Get(".respaldo-") + Guid.NewGuid().ToString("N");
         try { File.Copy(_path, backup, overwrite: false); RecoveryPath = backup; }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         { Problem = "No pude conservar el archivo anterior. Los cambios siguen solo en esta sesión."; return false; }

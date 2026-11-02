@@ -118,7 +118,7 @@ public sealed class CreatorWindow
             return;
         }
         WorkspaceLayout.NextEditor();
-        bool visible = ImGui.Begin("Crear un juego de 8 bits", ref _open, WorkspaceLayout.EditorFlags);
+        bool visible = ImGui.Begin(UiText.Label("Crear un juego de 8 bits"), ref _open, WorkspaceLayout.EditorFlags);
         if (!visible)
         {
             _panelLeft = null;
@@ -131,21 +131,21 @@ public sealed class CreatorWindow
         if (Busy && !_wasBusy) ImGui.SetScrollY(0);
         _wasBusy = Busy;
         if (_focusWork) ImGui.SetScrollY(0);
-        if (_pendingWork.Count>0 && ImGui.CollapsingHeader($"{_pendingWork.Count} trabajos para retomar")) DrawPendingWork();
+        if (_pendingWork.Count>0 && ImGui.CollapsingHeader(UiText.Label(UiText.Format($"{_pendingWork.Count} trabajos para retomar")))) DrawPendingWork();
         if (Busy) { DrawProgress(); ImGui.Separator(); }
-        int tabColumns = ImGui.GetContentRegionAvail().X >= ImGui.CalcTextSize("Proyectos guardados").X * 2 + UiTheme.Px(60) ? 2 : 1;
+        int tabColumns = ImGui.GetContentRegionAvail().X >= ImGui.CalcTextSize(UiText.Get("Proyectos guardados")).X * 2 + UiTheme.Px(60) ? 2 : 1;
         if (tabColumns == 1)
         {
             int page = _showSavedProjects ? 1 : 0;
             ImGui.SetNextItemWidth(-1);
-            if (ImGui.Combo("##proyecto-creador", ref page, new[] { "Nuevo proyecto", "Proyectos guardados" }, 2)) _showSavedProjects = page == 1;
+            if (ImGui.Combo("##proyecto-creador", ref page, new[] { "Nuevo proyecto", "Proyectos guardados" }.Select(UiText.Get).ToArray(), 2)) _showSavedProjects = page == 1;
         }
         else if (ImGui.BeginTable("proyectos-creador", 2, ImGuiTableFlags.SizingStretchSame))
         {
             ImGui.TableNextColumn();
-            if (ImGui.Selectable("Nuevo proyecto", !_showSavedProjects, ImGuiSelectableFlags.None, new(0, UiTheme.Px(30)))) _showSavedProjects = false;
+            if (ImGui.Selectable(UiText.Label("Nuevo proyecto"), !_showSavedProjects, ImGuiSelectableFlags.None, new(0, UiTheme.Px(30)))) _showSavedProjects = false;
             ImGui.TableNextColumn();
-            if (ImGui.Selectable("Proyectos guardados", _showSavedProjects, ImGuiSelectableFlags.None, new(0, UiTheme.Px(30)))) _showSavedProjects = true;
+            if (ImGui.Selectable(UiText.Label("Proyectos guardados"), _showSavedProjects, ImGuiSelectableFlags.None, new(0, UiTheme.Px(30)))) _showSavedProjects = true;
             ImGui.EndTable();
         }
         ImGui.Separator();
@@ -191,7 +191,7 @@ public sealed class CreatorWindow
         ImGui.EndDisabled();
         UiTheme.SameLineIfFits("Empezar desde una plantilla");
         ImGui.BeginDisabled(Busy);
-        if (ImGui.Button("Empezar desde una plantilla"))
+        if (ImGui.Button(UiText.Label("Empezar desde una plantilla")))
             FromTemplate();
         ImGui.EndDisabled();
         AiPicker.Hint("La plantilla se puede usar sin IA. La creación automática ensambla, ejecuta y revisa el resultado; aprobar esas pruebas no evalúa por sí solo la calidad del juego.");
@@ -208,12 +208,12 @@ public sealed class CreatorWindow
         if (_progress.Length > 0)
         {
             ImGui.PushStyleColor(ImGuiCol.Text, Blue);
-            ImGui.TextWrapped(_progress);
+            ImGui.TextWrapped(UiText.Get(_progress));
             ImGui.PopStyleColor();
         }
         if (_cts != null && (_writeTask != null || _manualTask != null || _agentTask != null))
         {
-            bool cancel = ImGui.SmallButton("Cancelar");
+            bool cancel = ImGui.SmallButton(UiText.Label("Cancelar"));
             ObserveControl("Cancelar");
             if (cancel)
                 _cts.Cancel();
@@ -222,11 +222,11 @@ public sealed class CreatorWindow
         if (_problem != null)
         {
             ImGui.PushStyleColor(ImGuiCol.Text, Red);
-            ImGui.TextWrapped(_problem);
+            ImGui.TextWrapped(UiText.Get(_problem));
             ImGui.PopStyleColor();
-            if (_problemDetail != null && ImGui.TreeNode("Informe de la prueba##problema"))
+            if (_problemDetail != null && ImGui.TreeNode(UiText.Label("Informe de la prueba##problema")))
             {
-                ImGui.TextWrapped(_problemDetail);
+                ImGui.TextWrapped(UiText.Get(_problemDetail));
                 ImGui.TreePop();
             }
         }
@@ -235,23 +235,23 @@ public sealed class CreatorWindow
     private void DrawManual()
     {
         ImGui.Separator();
-        ImGui.TextColored(Gold, _manualDraft == null ? "Copiar y pegar" : $"Corregir \"{_manualDraft.Title}\"");
-        if (ImGui.Button(_manualDraft == null ? "1. Copiar la consigna" : "1. Copiar el pedido de corrección"))
+        ImGui.TextColored(Gold, UiText.Get(_manualDraft == null ? "Copiar y pegar" : UiText.Format($"Corregir \"{UiText.Raw(_manualDraft.Title)}\"")));
+        if (ImGui.Button(UiText.Label(_manualDraft == null ? "1. Copiar la consigna" : "1. Copiar el pedido de corrección")))
         {
             ImGui.SetClipboardText(_manualPrompt);
             _progress = "Pedido copiado. Pegalo en tu chat y traé la respuesta completa.";
         }
-        ImGui.TextUnformatted("2. Pegá acá la respuesta completa:");
+        ImGui.TextUnformatted(UiText.Get("2. Pegá acá la respuesta completa:"));
         ImGui.InputTextMultiline("##respuesta-crear", ref _pasted, 200_000, new Vector2(-1, UiTheme.Px(90)));
         ObserveControl("Respuesta");
         ImGui.BeginDisabled(Busy || _pasted.Trim().Length == 0);
-        bool test = ImGui.Button("3. Probar el juego");
+        bool test = ImGui.Button(UiText.Label("3. Probar el juego"));
         ObserveControl("Probar");
         if (test)
             TryPasted();
         ImGui.EndDisabled();
         ImGui.SameLine();
-        if (ImGui.SmallButton("Cancelar##manual"))
+        if (ImGui.SmallButton(UiText.Label("Cancelar##manual")))
         {
             if (_manualTask != null) _cts?.Cancel();
             _manualPrompt = null;
@@ -263,18 +263,18 @@ public sealed class CreatorWindow
     private void DrawAgent()
     {
         ImGui.Separator();
-        ImGui.TextColored(Gold, "Carpeta del agente");
-        ImGui.TextWrapped(_agentDir);
-        if (ImGui.Button("Abrir la carpeta##agente"))
+        ImGui.TextColored(Gold, UiText.Get("Carpeta del agente"));
+        ImGui.TextWrapped(UiText.Get(_agentDir));
+        if (ImGui.Button(UiText.Label("Abrir la carpeta##agente")))
             Process.Start(new ProcessStartInfo { FileName = _agentDir, UseShellExecute = true });
         ImGui.SameLine();
-        if (ImGui.Button("Copiar la instrucción para el agente"))
+        if (ImGui.Button(UiText.Label("Copiar la instrucción para el agente")))
         {
-            ImGui.SetClipboardText($"Trabajá en la carpeta {_agentDir}: leé TAREA.md y seguí sus instrucciones.");
+            ImGui.SetClipboardText(UiText.Format($"Trabajá en la carpeta {_agentDir}: leé TAREA.md y seguí sus instrucciones."));
             _progress = "Instrucción copiada. Pegala en tu agente.";
         }
         ImGui.SameLine();
-        if (ImGui.SmallButton("Dejar de esperar"))
+        if (ImGui.SmallButton(UiText.Label("Dejar de esperar")))
         {
             if (_agentTask != null) _cts?.Cancel();
             _agentDir = null;
@@ -283,12 +283,12 @@ public sealed class CreatorWindow
         }
         UiTheme.SameLineIfFits("Volver a probar");
         ImGui.BeginDisabled(_agentTask != null);
-        if (ImGui.SmallButton("Volver a probar##agente")) _agentSeen = DateTime.MinValue;
+        if (ImGui.SmallButton(UiText.Label("Volver a probar##agente"))) _agentSeen = DateTime.MinValue;
         ImGui.EndDisabled();
         AiPicker.Hint(_agentTask != null ? "Probando lo que guardó el agente..." : "Esperando cambios en juego.s o juego.json...");
-        if (_agentReport != null && ImGui.TreeNode("Último informe##agente"))
+        if (_agentReport != null && ImGui.TreeNode(UiText.Label("Último informe##agente")))
         {
-            ImGui.TextWrapped(_agentReport);
+            ImGui.TextWrapped(UiText.Get(_agentReport));
             ImGui.TreePop();
         }
     }
@@ -310,11 +310,11 @@ public sealed class CreatorWindow
         var draft = GameWriter.ParseDraft(_pasted, out var error);
         if (draft == null)
         {
-            Problem("No pude leer la respuesta: " + error + ". Copiá toda la respuesta de la IA, con el bloque de código.");
+            Problem(UiText.Get("No pude leer la respuesta: ") + error + UiText.Get(". Copiá toda la respuesta de la IA, con el bloque de código."));
             return;
         }
         _problem = _problemDetail = null;
-        _progress = $"Probando \"{draft.Title}\" en el emulador...";
+        _progress = UiText.Format($"Probando \"{UiText.Raw(draft.Title)}\" en el emulador...");
         string machine = _writeMachine;
         _manualDraft = draft;
         var token = BeginTrial();
@@ -328,7 +328,7 @@ public sealed class CreatorWindow
     }
 
     private void TrialProgress(TrialProgress progress) => _progress = progress.TotalFrames is int total
-        ? $"{progress.Stage}: {progress.Frames} de {total} cuadros." : progress.Stage + "...";
+        ? UiText.Format($"{progress.Stage}: {progress.Frames} de {total} cuadros.") : progress.Stage + "...";
 
     private void EndTrial() { _cts?.Dispose(); _cts = null; }
 
@@ -339,7 +339,7 @@ public sealed class CreatorWindow
         _writeMachine = Templates.All[_machine].Machine;
         _writeWish = _wish;
         string cli = Path.Combine(AppContext.BaseDirectory, OperatingSystem.IsWindows() ? "retro-cli.exe" : "retro-cli");
-        _agentDir = GameWorkspace.Create(_writeMachine, _wish, Random.Shared, File.Exists(cli) ? $"\"{cli}\" probar {GameWorkspace.SourceFile}" : null);
+        _agentDir = GameWorkspace.Create(_writeMachine, _wish, Random.Shared, File.Exists(cli) ? UiText.Format($"\"{cli}\" probar {GameWorkspace.SourceFile}") : null);
         _agentSeen = GameWorkspace.Read(_agentDir)?.written ?? DateTime.MinValue;
         _agentReport = null;
         _progress = "Carpeta lista: pasale la instrucción a tu agente.";
@@ -376,25 +376,25 @@ public sealed class CreatorWindow
     private void DrawGames()
     {
         _games ??= CreatedGames.All();
-        ImGui.TextColored(Gold, "Proyectos guardados");
-        if (ImGui.SmallButton("Actualizar proyectos")) _games = CreatedGames.All();
+        ImGui.TextColored(Gold, UiText.Get("Proyectos guardados"));
+        if (ImGui.SmallButton(UiText.Label("Actualizar proyectos"))) _games = CreatedGames.All();
         ImGui.SameLine();
         ImGui.BeginDisabled(_exported || _exportTask != null);
-        if (ImGui.SmallButton("Agregar demos incluidas"))
+        if (ImGui.SmallButton(UiText.Label("Agregar demos incluidas")))
         { _exported = true; _exportTask = Task.Run(() => CreatedGames.ExportExamples(_romDir)); }
         ImGui.EndDisabled();
-        if (ImGui.SmallButton("Abrir la carpeta"))
+        if (ImGui.SmallButton(UiText.Label("Abrir la carpeta")))
         {
             Directory.CreateDirectory(CreatedGames.UserFolder);
             Process.Start(new ProcessStartInfo { FileName = CreatedGames.UserFolder, UseShellExecute = true });
         }
-        if (ImGui.IsItemHovered()) ImGui.SetTooltip(CreatedGames.UserFolder);
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip(UiText.Get(CreatedGames.UserFolder));
         if (_games.Count == 0)
         {
             AiPicker.Hint("Todavía no hay ninguno.");
             return;
         }
-        if (ImGui.TreeNode("Editar juegos a mano"))
+        if (ImGui.TreeNode(UiText.Label("Editar juegos a mano")))
         {
             AiPicker.Hint("Abrí la carpeta del juego y modificá juego.s. Después usá Probar de nuevo.");
             ImGui.TreePop();
@@ -406,31 +406,31 @@ public sealed class CreatorWindow
             ImGui.TextColored(Gold, g.Title);
             ImGui.SameLine();
             if (g.Passed)
-                ImGui.TextColored(Green, "pasó la prueba");
+                ImGui.TextColored(Green, UiText.Get("pasó la prueba"));
             else
-                ImGui.TextColored(Red, "no pasó la prueba");
-            ImGui.TextDisabled($"{g.MachineName} - {g.Author} - {g.Created:dd/MM HH:mm}");
+                ImGui.TextColored(Red, UiText.Get("no pasó la prueba"));
+            ImGui.TextDisabled(UiText.Get(UiText.Format($"{g.MachineName} - {g.Author} - {g.Created:dd/MM HH:mm}")));
             if (g.Pitch.Length > 0)
-                ImGui.TextWrapped(g.Pitch);
+                ImGui.TextWrapped(UiText.Get(g.Pitch));
             if (g.HowToPlay.Length > 0)
-                AiPicker.Hint("Cómo se juega: " + g.HowToPlay);
-            if (g.Usage is { } usage && ImGui.TreeNode("Uso de IA"))
+                AiPicker.Hint(UiText.Get("Cómo se juega: ") + g.HowToPlay);
+            if (g.Usage is { } usage && ImGui.TreeNode(UiText.Label("Uso de IA")))
             { AiBuildWindow.UsageDetails(usage); ImGui.TreePop(); }
             ImGui.BeginDisabled(Busy || !File.Exists(g.ProgramPath));
-            if (ImGui.Button("Jugar"))
+            if (ImGui.Button(UiText.Label("Jugar")))
                 _play(g.ProgramPath);
             ImGui.EndDisabled();
             ImGui.SameLine();
             ImGui.BeginDisabled(Busy);
-            if (ImGui.Button("Probar de nuevo"))
+            if (ImGui.Button(UiText.Label("Probar de nuevo")))
                 TryAgain(g);
             ImGui.EndDisabled();
             ImGui.SameLine();
-            if (ImGui.Button("Abrir su carpeta"))
+            if (ImGui.Button(UiText.Label("Abrir su carpeta")))
                 Process.Start(new ProcessStartInfo { FileName = g.Folder, UseShellExecute = true });
-            if (g.Trial.Length > 0 && ImGui.TreeNode("Prueba automática"))
+            if (g.Trial.Length > 0 && ImGui.TreeNode(UiText.Label("Prueba automática")))
             {
-                ImGui.TextWrapped(g.Trial);
+                ImGui.TextWrapped(UiText.Get(g.Trial));
                 ImGui.TreePop();
             }
             ImGui.PopID();
@@ -448,23 +448,23 @@ public sealed class CreatorWindow
     private void DrawPendingWork()
     {
         if (Busy || _pendingWork.Count == 0) return;
-        if (!ImGui.CollapsingHeader($"Trabajos pendientes ({_pendingWork.Count})", _pendingWork.Count == 1 ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.None)) return;
+        if (!ImGui.CollapsingHeader(UiText.Label(UiText.Format($"Trabajos pendientes ({_pendingWork.Count})")), _pendingWork.Count == 1 ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.None)) return;
         foreach (var work in _pendingWork.Take(3))
         {
             ImGui.PushID(work.Id);
-            ImGui.TextColored(Gold, work.State.Draft?.Title ?? "Juego en preparación");
+            ImGui.TextColored(Gold, work.State.Draft?.Title ?? UiText.Get("Juego en preparación"));
             if (work.State.Wish.Length > 0) AiPicker.Hint(work.State.Wish.Length > 160 ? work.State.Wish[..160] + "..." : work.State.Wish);
             AiPicker.Hint(work.State.Draft != null ? "Se probará el código guardado antes de pedir otra respuesta." : "Se conservó la idea elegida. Todavía no hubo código nuevo.");
             ImGui.BeginDisabled(!AiPicker.IsApi(_ai.Provider) || _manualPrompt != null || _agentDir != null);
-            if (ImGui.Button("Continuar")) StartWriting(work, resume: true);
+            if (ImGui.Button(UiText.Label("Continuar"))) StartWriting(work, resume: true);
             ImGui.EndDisabled();
             if (work.State.Draft is { } draft)
-            { ImGui.SameLine(); if (ImGui.SmallButton("Copiar código")) ImGui.SetClipboardText(draft.Source); }
+            { ImGui.SameLine(); if (ImGui.SmallButton(UiText.Label("Copiar código"))) ImGui.SetClipboardText(draft.Source); }
             ImGui.SameLine();
-            if (ImGui.SmallButton("Descartar pendiente"))
+            if (ImGui.SmallButton(UiText.Label("Descartar pendiente")))
             {
                 try { GameWorkStore.Remove(work.Id); RefreshWork(); }
-                catch (Exception e) when (e is IOException or UnauthorizedAccessException) { Problem("No se pudo descartar el pendiente: " + e.Message); }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException) { Problem(UiText.Get("No se pudo descartar el pendiente: ") + e.Message); }
             }
             if (!AiPicker.IsApi(_ai.Provider)) AiPicker.Hint("Elegí una herramienta conectada para continuar.");
             ImGui.PopID();
@@ -488,7 +488,7 @@ public sealed class CreatorWindow
                 if (string.IsNullOrWhiteSpace(source)) { Problem("El archivo de código está vacío. El borrador pendiente se conserva; terminá de editarlo antes de continuar."); return; }
                 if (source != draft.Source) { work.State.Draft = draft with { Source = source }; work.State.Author = "edición manual"; }
             }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { Problem("No se pudo leer el borrador editado: " + e.Message); return; }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { Problem(UiText.Get("No se pudo leer el borrador editado: ") + e.Message); return; }
         }
         provider = _ai.Operation(provider, previous: resume ? work.State.Usage : null);
         _problem = _problemDetail = null;
@@ -500,8 +500,8 @@ public sealed class CreatorWindow
         if (resume) { _wish = _writeWish; _machine = Enumerable.Range(0, Templates.All.Count).First(i=>Templates.All[i].Machine==_writeMachine); }
         _writeAuthor = provider.Name;
         _activeWork = work;
-        _progress = $"{provider.Name} está escribiendo el juego...";
-        _build.Start(provider, resume ? "continuar" : "diseño", $"{_ai.CliEfforts.GetValueOrDefault(_ai.Provider)}/{_ai.DesignAttempts}");
+        _progress = UiText.Format($"{UiText.Raw(provider.Name)} está escribiendo el juego...");
+        _build.Start(provider, resume ? "continuar" : "diseño", UiText.Format($"{_ai.CliEfforts.GetValueOrDefault(_ai.Provider)}/{_ai.DesignAttempts}"));
         var token = _cts.Token;
         string machine = _writeMachine, wish = _writeWish;
         var writer = new GameWriter { MaxAttempts = _ai.DesignAttempts, Checkpoint = state => { work.State = state; GameWorkStore.Save(work); } };
@@ -520,7 +520,7 @@ public sealed class CreatorWindow
     private void TryAgain(CreatedGame g)
     {
         _problem = _problemDetail = null;
-        _progress = $"Probando \"{g.Title}\" de nuevo...";
+        _progress = UiText.Format($"Probando \"{UiText.Raw(g.Title)}\" de nuevo...");
         _retryTask = Task.Run(() => (g, CreatedGames.TryAgain(g, _romDir)));
     }
 
@@ -542,7 +542,7 @@ public sealed class CreatorWindow
                 _manualPrompt = null;
                 _manualDraft = null;
                 _pasted = "";
-                _progress = $"\"{g.Title}\" pasó la prueba.";
+                _progress = UiText.Format($"\"{UiText.Raw(g.Title)}\" pasó la prueba.");
                 _play(g.ProgramPath);
             }
             else
@@ -550,7 +550,7 @@ public sealed class CreatorWindow
                 _manualDraft = mt.Result.draft;
                 _manualPrompt = GameWriter.ManualFixPrompt(mt.Result.draft, mt.Result.report, _writeWish);
                 _pasted = "";
-                Problem($"\"{mt.Result.draft.Title}\" no pasó la prueba: copiá el pedido de corrección y pegale la respuesta nueva.", mt.Result.report.Summary);
+                Problem(UiText.Format($"\"{UiText.Raw(mt.Result.draft.Title)}\" no pasó la prueba: copiá el pedido de corrección y pegale la respuesta nueva."), mt.Result.report.Summary);
             }
         }
         if (_agentTask is { IsCompleted: true } at)
@@ -570,7 +570,7 @@ public sealed class CreatorWindow
                     _games = null;
                     _agentDir = null;
                     _agentReport = null;
-                    _progress = $"\"{g.Title}\" pasó la prueba.";
+                    _progress = UiText.Format($"\"{UiText.Raw(g.Title)}\" pasó la prueba.");
                     _play(g.ProgramPath);
                 }
                 else
@@ -582,7 +582,7 @@ public sealed class CreatorWindow
             _exportTask = null;
             _games = null;
             if (!et.IsCompletedSuccessfully)
-                Problem("No pude copiar los juegos de ejemplo: " + Failure(et.Exception));
+                Problem(UiText.Get("No pude copiar los juegos de ejemplo: ") + Failure(et.Exception));
         }
         if (_writeTask is { IsCompleted: true } wt)
         {
@@ -601,22 +601,22 @@ public sealed class CreatorWindow
                 try { g = CreatedGames.Save(draft, wt.Result.Report, _writeMachine, _writeWish,
                     string.IsNullOrEmpty(work?.State.Author) ? _writeAuthor : work.State.Author, _build.Usage, work?.Id); }
                 catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-                { Problem("No se pudo guardar el juego: " + e.Message + ". Podés continuar desde el trabajo pendiente."); return; }
+                { Problem(UiText.Get("No se pudo guardar el juego: ") + e.Message + UiText.Get(". Podés continuar desde el trabajo pendiente.")); return; }
                 _games = null;
                 if (wt.Result.Ok)
                 {
                     if (work != null)
                         try { GameWorkStore.Remove(work.Id); RefreshWork(); }
                         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
-                    _progress = wt.Result.Attempts == 0 ? "Borrador recuperado y probado." : $"\"{g.Title}\" listo en {wt.Result.Attempts} intento{(wt.Result.Attempts > 1 ? "s" : "")}.";
+                    _progress = wt.Result.Attempts == 0 ? "Borrador recuperado y probado." : UiText.Format($"\"{UiText.Raw(g.Title)}\" listo en {wt.Result.Attempts} intento{(wt.Result.Attempts > 1 ? UiText.Get("s") : UiText.Get(""))}.");
                     _play(g.ProgramPath);
                 }
                 else
-                    Problem($"La IA no logró que \"{g.Title}\" pase la prueba en {wt.Result.Attempts} intentos ({wt.Result.Problem}). " +
-                            "Quedó guardado: podés editarlo y probarlo de nuevo.", wt.Result.Report?.Summary);
+                    Problem(UiText.Format($"La IA no logró que \"{UiText.Raw(g.Title)}\" pase la prueba en {wt.Result.Attempts} intentos ({wt.Result.Problem}). ") +
+                            UiText.Get("Quedó guardado: podés editarlo y probarlo de nuevo."), wt.Result.Report?.Summary);
             }
             else
-                Problem("El trabajo quedó pendiente: " + wt.Result.Problem);
+                Problem(UiText.Get("El trabajo quedó pendiente: ") + wt.Result.Problem);
         }
         if (_templateTask is { IsCompleted: true } tt)
         {
@@ -626,7 +626,7 @@ public sealed class CreatorWindow
                 Problem(Failure(tt.Exception));
             else
             {
-                _progress = $"Listo: {tt.Result.SourcePath}";
+                _progress = UiText.Format($"Listo: {tt.Result.SourcePath}");
                 _play(tt.Result.ProgramPath);
             }
         }
@@ -638,11 +638,11 @@ public sealed class CreatorWindow
                 Problem(Failure(rt.Exception));
             else if (rt.Result.report.Ok)
             {
-                _progress = $"\"{rt.Result.game.Title}\" pasó la prueba.";
+                _progress = UiText.Format($"\"{UiText.Raw(rt.Result.game.Title)}\" pasó la prueba.");
                 _play(rt.Result.game.ProgramPath);
             }
             else
-                Problem($"\"{rt.Result.game.Title}\" no pasó la prueba.", rt.Result.report.Summary);
+                Problem(UiText.Format($"\"{UiText.Raw(rt.Result.game.Title)}\" no pasó la prueba."), rt.Result.report.Summary);
         }
     }
 

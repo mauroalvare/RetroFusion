@@ -9,7 +9,7 @@ public sealed partial class RetroApp
     private bool _preferencesOpen;
     private string _preferencesGroup = "";
     private string _preferencesSearch = "";
-    private bool ConfigurationOpen => _preferencesOpen || _soundWindowOpen || AiConnectionWindow.IsOpen;
+    private bool ConfigurationOpen => _preferencesOpen || _soundWindowOpen || _newsOpen || AiConnectionWindow.IsOpen;
     private static readonly string[] JoystickNames = ["Kempston (Alt = disparo)", "Cursor (5 6 7 8 0)", "Sinclair 1 (6 7 8 9 0)"];
     private static readonly string[] C64Ports = ["Puerto 1", "Puerto 2 (la mayoría de los juegos)"];
 
@@ -36,8 +36,8 @@ public sealed partial class RetroApp
             ImGui.SetNextWindowSize(Vector2.Min(UiTheme.Px(820, 620), available), ImGuiCond.Appearing);
             ImGui.SetNextWindowSizeConstraints(Vector2.Min(UiTheme.Px(360, 240), available), available);
         }
-        bool shown = compact ? ImGui.Begin("Preferencias###preferencias", WorkspaceLayout.EditorFlags | ImGuiWindowFlags.NoScrollbar)
-            : ImGui.Begin("Preferencias###preferencias", ref _preferencesOpen, ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar);
+        bool shown = compact ? ImGui.Begin(UiText.Label("Preferencias###preferencias"), WorkspaceLayout.EditorFlags | ImGuiWindowFlags.NoScrollbar)
+            : ImGui.Begin(UiText.Label("Preferencias###preferencias"), ref _preferencesOpen, ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar);
         if (compact) ImGui.PopStyleVar();
         if (!shown) { ImGui.End(); return; }
         if (!compact) WorkspaceLayout.KeepOnScreen();
@@ -47,9 +47,9 @@ public sealed partial class RetroApp
         if (ImGui.GetContentRegionAvail().X < UiTheme.Px(620))
         {
             ImGui.SetNextItemWidth(-1);
-            if (ImGui.BeginCombo("##grupo-preferencias", _preferencesGroup))
+            if (ImGui.BeginCombo("##grupo-preferencias", UiText.Get(_preferencesGroup)))
             {
-                foreach (string group in groups) if (ImGui.Selectable(group, group == _preferencesGroup)) _preferencesGroup = group;
+                foreach (string group in groups) if (ImGui.Selectable(UiText.Label(group), group == _preferencesGroup)) _preferencesGroup = group;
                 ImGui.EndCombo();
             }
         }
@@ -57,10 +57,10 @@ public sealed partial class RetroApp
         {
             ImGui.BeginChild("grupos-preferencias", new(UiTheme.Px(190), -footer));
             ImGui.SetNextItemWidth(-1);
-            ImGui.InputTextWithHint("##buscar-ajuste", "Buscar ajuste", ref _preferencesSearch, 60);
+            ImGui.InputTextWithHint("##buscar-ajuste", UiText.Get("Buscar ajuste"), ref _preferencesSearch, 60);
             ImGui.Spacing();
             foreach (string group in groups)
-                if (ImGui.Selectable(group, group == _preferencesGroup && _preferencesSearch.Length == 0)) { _preferencesGroup = group; _preferencesSearch = ""; }
+                if (ImGui.Selectable(UiText.Label(group), group == _preferencesGroup && _preferencesSearch.Length == 0)) { _preferencesGroup = group; _preferencesSearch = ""; }
             ImGui.EndChild();
             ImGui.SameLine();
         }
@@ -73,23 +73,23 @@ public sealed partial class RetroApp
         ImGui.Separator();
         // Settings apply as they change: the footer says what happened to them instead of asking for a save.
         string? problem = _prefs.Problem ?? _sound.Problem;
-        if (!compact || problem != null) UiTheme.Hint(UiTheme.Fit(problem ?? "Los cambios se aplican y se guardan al instante, para los tres estilos.", ImGui.GetContentRegionAvail().X));
-        if (ImGui.Button("Restablecer todo")) ResetPreferences();
+        if (!compact || problem != null) UiTheme.Hint(UiTheme.Fit(problem ?? UiText.Get("Los cambios se aplican y se guardan al instante, para los tres estilos."), ImGui.GetContentRegionAvail().X));
+        if (ImGui.Button(UiText.Label("Restablecer todo"))) ResetPreferences();
         InterfaceControlBounds?.Invoke("Restablecer todo", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
         if (ImGui.IsItemHovered()) UiTheme.Tooltip("Vuelve a los valores iniciales de pantalla, sonido, controles y consola. No cambia tus juegos, partidas ni fichas.");
         if (_prefs.CanRecover)
         {
             UiTheme.SameLineIfFits("Recuperar archivo");
-            if (ImGui.Button("Recuperar archivo")) _prefs.Recover();
+            if (ImGui.Button(UiText.Label("Recuperar archivo"))) _prefs.Recover();
             if (ImGui.IsItemHovered()) UiTheme.Tooltip("Conserva el archivo anterior y guarda los valores de esta sesión en uno nuevo.");
         }
         if (_prefs.RecoveryPath is { } backup)
-        { UiTheme.SameLineIfFits("Respaldo"); ImGui.TextDisabled("Respaldo"); if (ImGui.IsItemHovered()) UiTheme.Tooltip(backup); }
-        float close = ImGui.CalcTextSize("Cerrar").X + ImGui.GetStyle().FramePadding.X * 2;
+        { UiTheme.SameLineIfFits("Respaldo"); ImGui.TextDisabled(UiText.Get("Respaldo")); if (ImGui.IsItemHovered()) UiTheme.Tooltip(backup); }
+        float close = ImGui.CalcTextSize(UiText.Get("Cerrar")).X + ImGui.GetStyle().FramePadding.X * 2;
         float right = ImGui.GetCursorPosX() + ImGui.GetContentRegionAvail().X - close;
         ImGui.SameLine();
         ImGui.SetCursorPosX(Math.Max(ImGui.GetCursorPosX(), right));
-        if (ImGui.Button("Cerrar")) _preferencesOpen = false;
+        if (ImGui.Button(UiText.Label("Cerrar"))) _preferencesOpen = false;
         InterfaceControlBounds?.Invoke("Cerrar preferencias", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
         ImGui.End();
     }
@@ -99,6 +99,8 @@ public sealed partial class RetroApp
         SetInterface(InterfaceStyle.Retro);
         bool wasFullscreen = Raylib.IsWindowFullscreen();
         _prefs.Defaults();
+        UiText.Language = _prefs.Language;
+        _commandCatalog = null; _optionCatalog = null; _terminalCatalog = null;
         if (wasFullscreen) Raylib.ToggleFullscreen();
         _input.Joystick = _prefs.SpectrumJoystick; _input.C64Port = _prefs.C64Port;
         _host.TurboWhileLoading = _prefs.TurboWhileLoading;

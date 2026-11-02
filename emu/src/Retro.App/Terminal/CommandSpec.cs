@@ -35,9 +35,9 @@ public sealed record CommandArgument(string Name, ArgumentKind Kind = ArgumentKi
         {
             string inner = Kind switch
             {
-                ArgumentKind.Choice when Choices.Count is > 0 and <= 6 => string.Join('|', Choices),
+                ArgumentKind.Choice when Choices.Count is > 0 and <= 6 => string.Join('|', Choices.Select(TerminalLanguage.Choice)),
                 ArgumentKind.Toggle => "on|off",
-                _ => Name
+                _ => UiText.Get(Name)
             } + (Rest ? "…" : "");
             return Optional ? "[" + inner + "]" : "<" + inner + ">";
         }
@@ -46,11 +46,11 @@ public sealed record CommandArgument(string Name, ArgumentKind Kind = ArgumentKi
     public string? Validate(string value) => Kind switch
     {
         ArgumentKind.Number when !int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int number) || number < Min || number > Max
-            => Min != int.MinValue && Max != int.MaxValue ? $"{Name}: usá un número de {Min} a {Max}." : $"{Name}: usá un número.",
+            => Min != int.MinValue && Max != int.MaxValue ? UiText.Format($"{Name}: usá un número de {Min} a {Max}.") : UiText.Format($"{Name}: usá un número."),
         ArgumentKind.Hex when !uint.TryParse(value.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? value[2..] : value.TrimStart('$'), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _)
-            => $"{Name}: usá una dirección hexadecimal, por ejemplo 8000.",
-        ArgumentKind.Toggle when CommandArguments.Toggle(value) == null => $"{Name}: usá on u off.",
-        ArgumentKind.Choice when !Choices.Any(choice => CommandLine.Fold(choice) == CommandLine.Fold(value)) => $"{Name}: valores admitidos: {string.Join(", ", Choices)}.",
+            => UiText.Format($"{Name}: usá una dirección hexadecimal, por ejemplo 8000."),
+        ArgumentKind.Toggle when CommandArguments.Toggle(value) == null => UiText.Format($"{Name}: usá on u off."),
+        ArgumentKind.Choice when !Choices.Any(choice => CommandLine.Fold(choice) == CommandLine.Fold(value)) => UiText.Format($"{UiText.Get(Name)}: valores admitidos: {string.Join(", ", Choices.Select(TerminalLanguage.Choice))}."),
         _ => null
     };
 }
@@ -72,21 +72,25 @@ public static class CommandArguments
 public sealed class CommandSpec
 {
     public required string Id { get; init; }
-    public required string Name { get; init; }
-    public required string Group { get; init; }
-    public required string Summary { get; init; }
-    public IReadOnlyList<string> Aliases { get; init; } = [];
+    private string _name = "";
+    public required string Name { get => TerminalLanguage.Name(_name); init => _name = value; }
+    internal string CanonicalName => _name;
+    private string _group = "", _summary = "", _keywords = "", _result = "", _requires = "", _cancellation = "";
+    private IReadOnlyList<string> _aliases = [];
+    public required string Group { get => UiText.Get(_group); init => _group = value; }
+    public required string Summary { get => UiText.Get(_summary); init => _summary = value; }
+    public IReadOnlyList<string> Aliases { get => _aliases.Where(alias => CommandLine.Fold(alias) != CommandLine.Fold(Name)).ToArray(); init => _aliases = value; }
     public IReadOnlyList<CommandArgument> Arguments { get; init; } = [];
     public IReadOnlyList<string> Examples { get; init; } = [];
     /// <summary>Words people may search for that do not appear in the name or summary.</summary>
-    public string Keywords { get; init; } = "";
+    public string Keywords { get => UiText.Get(_keywords); init => _keywords = value; }
     /// <summary>What a successful run leaves behind.</summary>
-    public string Result { get; init; } = "";
+    public string Result { get => UiText.Get(_result); init => _result = value; }
     public IReadOnlyList<string> Errors { get; init; } = [];
     /// <summary>What stops it once started; empty for instant orders.</summary>
-    public string Cancellation { get; init; } = "";
+    public string Cancellation { get => UiText.Get(_cancellation); init => _cancellation = value; }
     /// <summary>What must be true to run it, for the help.</summary>
-    public string Requires { get; init; } = "";
+    public string Requires { get => UiText.Get(_requires); init => _requires = value; }
     /// <summary>Why it cannot run now, with the way to change that. Checked when it runs.</summary>
     public Func<CommandFailure?>? Unavailable { get; init; }
     /// <summary>An operation without a command route yet; it explains the alternative instead of running.</summary>
@@ -97,7 +101,8 @@ public sealed class CommandSpec
     public bool Answers(string word)
     {
         string folded = CommandLine.Fold(word);
-        return CommandLine.Fold(Name) == folded || Aliases.Any(alias => CommandLine.Fold(alias) == folded);
+        return CommandLine.Fold(Name) == folded || CommandLine.Fold(_name) == folded ||
+            CommandLine.Fold(TerminalLanguage.Name(_name)) == folded || Aliases.Any(alias => CommandLine.Fold(alias) == folded);
     }
 }
 
@@ -126,10 +131,12 @@ public sealed class CommandContext(ProgramTerminal terminal, CommandSpec spec, I
     public void Heading(string text) => Write(text, TerminalKind.Heading);
     public void Detail(string text) => Write(text, TerminalKind.Detail);
     public void Success(string text) => Write(text, TerminalKind.Success);
-    public void Warning(string text) => Write("aviso: " + text, TerminalKind.Warning);
+    public void Warning(string text) => Write(UiText.Get("aviso: ") + text, TerminalKind.Warning);
     public void Table(IReadOnlyList<TableColumn> columns, IEnumerable<IReadOnlyList<string>> rows)
     {
-        foreach (var (text, kind) in TextTable.Layout(columns, rows.ToList(), Terminal.Output.Columns)) Write(text, kind);
+        string[] dataColumns = ["Título", "Juego", "Nombre", "Archivo", "Ruta", "Proyecto"];
+        foreach (var (text, kind) in TextTable.Layout(columns.Select(column => column with { Title = UiText.Get(column.Title) }).ToArray(),
+            rows.Select(row => (IReadOnlyList<string>)row.Select((value, index) => index < columns.Count && dataColumns.Contains(columns[index].Title) ? value : UiText.Get(value)).ToArray()).ToList(), Terminal.Output.Columns)) Write(text, kind);
     }
 }
 

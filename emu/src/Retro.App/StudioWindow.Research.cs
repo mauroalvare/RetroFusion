@@ -41,26 +41,26 @@ public sealed partial class StudioWindow
         if (_researchWork==null) return;
         _researchWork.Status="paused"; _showResearch=true;
         try { _researchStore.Save(_researchWork); RefreshWork(); }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { _progress="El último checkpoint se conserva; no se pudo actualizar la pausa: "+error.Message; }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { _progress=UiText.Get("El último checkpoint se conserva; no se pudo actualizar la pausa: ")+error.Message; }
     }
 
     private void DrawLegacyRecovery()
     {
         if (Busy) return;
-        if (ImGui.Button("Buscar investigaciones de versiones anteriores")) _legacyIdeas=LegacyResearchImport.Read(_games.Select(g=>g.Profile.Id));
+        if (ImGui.Button(UiText.Label("Buscar investigaciones de versiones anteriores"))) _legacyIdeas=LegacyResearchImport.Read(_games.Select(g=>g.Profile.Id));
         if (_legacyIdeas==null) return;
         if (_legacyIdeas.Count==0) { UiTheme.Hint("No encontré objetivos comunes de laboratorio para los originales de esta carpeta."); return; }
         foreach(var idea in _legacyIdeas)
         {
             ImGui.PushID(idea.Goal); UiTheme.BeginCard("legacy-idea");
             ImGui.TextColored(UiTheme.Accent,idea.Title);
-            UiTheme.Hint("Objetivo recuperado de "+string.Join(" + ",idea.Profiles.Select(id=>_games.First(g=>g.Profile.Id==id).Profile.Name)));
-            ImGui.TextWrapped("El registro anterior puede estar recortado y no conserva el orden de los originales ni la base. Revisalos antes de preparar la propuesta. No se recuperó un programa jugable.");
-            if (ImGui.TreeNode("Leer texto recuperado")) { ImGui.TextWrapped(idea.Goal); ImGui.TreePop(); }
-            if (ImGui.Button("Revisar esta propuesta"))
+            UiTheme.Hint(UiText.Get("Objetivo recuperado de ")+string.Join(" + ",idea.Profiles.Select(id=>_games.First(g=>g.Profile.Id==id).Profile.Name)));
+            ImGui.TextWrapped(UiText.Get("El registro anterior puede estar recortado y no conserva el orden de los originales ni la base. Revisalos antes de preparar la propuesta. No se recuperó un programa jugable."));
+            if (ImGui.TreeNode(UiText.Label("Leer texto recuperado"))) { ImGui.TextWrapped(UiText.Get(idea.Goal)); ImGui.TreePop(); }
+            if (ImGui.Button(UiText.Label("Revisar esta propuesta")))
             {
                 _chosen.Clear(); _chosen.AddRange(idea.Profiles); _baseProfile=null;
-                _wish="Propuesta recuperada para revisar. Las letras de ranura del texto antiguo no identifican por sí solas a los originales actuales. Respetar la base que elija ahora el jugador.\n"+idea.Goal;
+                _wish=UiText.Get("Propuesta recuperada para revisar. Las letras de ranura del texto antiguo no identifican por sí solas a los originales actuales. Respetar la base que elija ahora el jugador.\n")+idea.Goal;
                 _concepts=null; _showResearch=false; _savedPage=false; _focusWork=true;
             }
             UiTheme.EndCard(); ImGui.PopID();
@@ -83,7 +83,7 @@ public sealed partial class StudioWindow
             _researchStore.Save(_researchWork); _showResearch=true; return true;
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException)
-        { Problem("No se pudo guardar el punto de partida. La investigación no empezó: "+error.Message); return false; }
+        { Problem(UiText.Get("No se pudo guardar el punto de partida. La investigación no empezó: ")+error.Message); return false; }
     }
 
     private void CheckpointResearch(FusionPreparationResult result)
@@ -158,16 +158,16 @@ public sealed partial class StudioWindow
         if (Busy || _pendingResearch.Count==0) return;
         foreach (var work in _pendingResearch.Where(w=>w.Inspired==_inspiredMode).Take(4))
         {
-            ImGui.PushID("research-"+work.Id);
+            ImGui.PushID(UiText.Get("research-")+work.Id);
             UiTheme.Section(work.Concept.Title.Length>0?work.Concept.Title:"Investigación guardada");
-            UiTheme.Hint($"{work.Preparations.Count} originales con datos guardados · {work.Passes} rondas · {work.Updated.ToLocalTime():g}");
-            if (ImGui.Button("Ver investigación")) { _researchWork=work; _showResearch=true; _savedPage=false; }
+            UiTheme.Hint(UiText.Format($"{work.Preparations.Count} originales con datos guardados · {work.Passes} rondas · {work.Updated.ToLocalTime():g}"));
+            if (ImGui.Button(UiText.Label("Ver investigación"))) { _researchWork=work; _showResearch=true; _savedPage=false; }
             UiTheme.SameLineIfFits("Continuar");
-            if (ImGui.Button("Continuar")) { _savedPage=false; ResumeResearch(work); }
+            if (ImGui.Button(UiText.Label("Continuar"))) { _savedPage=false; ResumeResearch(work); }
             UiTheme.SameLineIfFits("Descartar");
-            if (ImGui.Button("Descartar"))
+            if (ImGui.Button(UiText.Label("Descartar")))
                 try { _researchStore.Remove(work.Id); if (_researchWork?.Id==work.Id) _researchWork=null; RefreshWork(); }
-                catch (IOException error) { Problem("No se pudo descartar: "+error.Message); }
+                catch (IOException error) { Problem(UiText.Get("No se pudo descartar: ")+error.Message); }
             ImGui.PopID();
         }
     }
@@ -179,17 +179,17 @@ public sealed partial class StudioWindow
         if (ImGui.GetWindowWidth()<UiTheme.Px(700) || ImGui.GetWindowHeight()<UiTheme.Px(400))
         {
             _quickOriginal=Math.Clamp(_quickOriginal,0,work.Originals.Count-1);
-            ImGui.SetNextItemWidth(Math.Max(UiTheme.Px(70),ImGui.GetContentRegionAvail().X-ImGui.CalcTextSize("Jugar").X-ImGui.GetStyle().FramePadding.X*2-ImGui.GetStyle().ItemSpacing.X));
+            ImGui.SetNextItemWidth(Math.Max(UiTheme.Px(70),ImGui.GetContentRegionAvail().X-ImGui.CalcTextSize(UiText.Get("Jugar")).X-ImGui.GetStyle().FramePadding.X*2-ImGui.GetStyle().ItemSpacing.X));
             ImGui.Combo("##quick-original",ref _quickOriginal,work.Originals.Select(o=>CanFindOriginal(o,out var source,out _)?source.Profile.Name:o.Profile).ToArray(),work.Originals.Count);
             ImGui.SameLine();
             if (UiTheme.PrimaryButton("Jugar")) OpenResearchOriginal(work.Originals[_quickOriginal].Slot);
             ImGui.Separator();
         }
         if (_observationFor!=work.Id) { _observationFor=work.Id; _humanObservation=work.HumanObservation; }
-        UiTheme.Heading(work.Concept.Title.Length>0?work.Concept.Title:"Tu investigación",
-            Busy?"El laboratorio trabaja en una instancia separada. Podés jugar los originales mientras tanto.":"Investigación guardada · quedan comprobaciones antes de construir un programa jugable.");
+        UiTheme.Heading(work.Concept.Title.Length>0?work.Concept.Title:UiText.Get("Tu investigación"),
+            Busy?"El laboratorio trabaja en una instancia separada. Podés jugar los originales mientras tanto.":"Investigación guardada · quedan comprobaciones antes de construir un programa jugable.", localizeTitle: false);
         ImGui.PushTextWrapPos(0);
-        ImGui.TextColored(Busy?UiTheme.Accent:UiTheme.Warning,_fusionPrepareTask!=null?"01 Originales  /  02 Investigando  /  03 Construcción pendiente":Busy?"01 Originales  /  02 Datos reunidos  /  03 Construyendo":work.Concept.MissingData.Length>0?"02 Requiere comprobaciones  /  03 Construcción pendiente":"02 Datos reunidos  /  03 Construcción pendiente");
+        ImGui.TextColored(Busy?UiTheme.Accent:UiTheme.Warning,UiText.Get(_fusionPrepareTask!=null?"01 Originales  /  02 Investigando  /  03 Construcción pendiente":Busy?"01 Originales  /  02 Datos reunidos  /  03 Construyendo":work.Concept.MissingData.Length>0?"02 Requiere comprobaciones  /  03 Construcción pendiente":"02 Datos reunidos  /  03 Construcción pendiente"));
         ImGui.PopTextWrapPos();
         if (Busy || _problem!=null || _manual!=null || _agentDir!=null) DrawProgress();
         if (!Busy && work.StopReason.Length>0) UiTheme.Hint(work.StopReason);
@@ -200,27 +200,27 @@ public sealed partial class StudioWindow
         UiTheme.Section("Los originales están a mano", "Podés abrirlos para jugar o reproducir una observación del laboratorio.");
         foreach (var original in work.Originals)
         {
-            ImGui.PushID("original-"+original.Slot);
+            ImGui.PushID(UiText.Get("original-")+original.Slot);
             bool found=CanFindOriginal(original,out var source,out string path);
-            ImGui.TextWrapped(found?source.Profile.Name:original.Profile);
-            UiTheme.Hint(found?$"{source.Profile.Variables.Count} datos disponibles · {source.Profile.HelpersDoc.Count} funciones documentadas":"Archivo no encontrado en la carpeta actual.");
+            ImGui.TextWrapped(UiText.Get(found?source.Profile.Name:original.Profile));
+            UiTheme.Hint(found?UiText.Format($"{source.Profile.Variables.Count} datos disponibles · {source.Profile.HelpersDoc.Count} funciones documentadas"):"Archivo no encontrado en la carpeta actual.");
             ImGui.BeginDisabled(!found || _playOriginal==null);
             if (UiTheme.PrimaryButton("Jugar original")) OpenResearchOriginal(original.Slot);
             ImGui.EndDisabled(); UiTheme.SameLineIfFits("Abrir analizador");
             ImGui.BeginDisabled(!found || _analyzeOriginal==null);
-            if (ImGui.Button("Abrir analizador")) OpenResearchOriginal(original.Slot,analyze:true);
+            if (ImGui.Button(UiText.Label("Abrir analizador"))) OpenResearchOriginal(original.Slot,analyze:true);
             ImGui.EndDisabled();
             var preparation=work.Preparations.FirstOrDefault(p=>p.Profile?.Id==original.Profile);
-            if (preparation!=null && ImGui.TreeNode("Qué se comprobó en este original"))
+            if (preparation!=null && ImGui.TreeNode(UiText.Label("Qué se comprobó en este original")))
             {
-                foreach(string fact in preparation.CheckedData) ImGui.TextWrapped(fact);
-                foreach(string unresolved in preparation.UnresolvedData) UiTheme.Hint("Pendiente: "+unresolved);
+                foreach(string fact in preparation.CheckedData) ImGui.TextWrapped(UiText.Get(fact));
+                foreach(string unresolved in preparation.UnresolvedData) UiTheme.Hint(UiText.Get("Pendiente: ")+unresolved);
                 foreach(var experiment in preparation.Experiments.TakeLast(3))
-                { ImGui.TextWrapped(experiment.Description); UiTheme.Hint(experiment.Outcome); }
+                { ImGui.TextWrapped(UiText.Get(experiment.Description)); UiTheme.Hint(experiment.Outcome); }
                 ImGui.TreePop();
             }
-            if (found && source.Profile.HelpersDoc.Count>0 && ImGui.TreeNode("Funciones disponibles para esta edición"))
-            { foreach(string helper in source.Profile.HelpersDoc) ImGui.TextWrapped(helper); ImGui.TreePop(); }
+            if (found && source.Profile.HelpersDoc.Count>0 && ImGui.TreeNode(UiText.Label("Funciones disponibles para esta edición")))
+            { foreach(string helper in source.Profile.HelpersDoc) ImGui.TextWrapped(UiText.Get(helper)); ImGui.TreePop(); }
             ImGui.PopID(); ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
         }
         if (!Busy)
@@ -228,8 +228,8 @@ public sealed partial class StudioWindow
             UiTheme.Section("Retomar este proyecto");
             if (UiTheme.PrimaryButton("Continuar investigación")) ResumeResearch(work);
             UiTheme.Hint("Reutiliza lo guardado e inicia otro trabajo con el proveedor elegido. Puede usar varios pedidos; conserva los requisitos pendientes.");
-            if (ImGui.CollapsingHeader("Proveedor y modelo")) DrawAiChooser("Elegí el método que se usará al continuar.");
-            if (ImGui.Button("Volver a configurar")) { _showResearch=false; _focusWork=true; }
+            if (ImGui.CollapsingHeader(UiText.Label("Proveedor y modelo"))) DrawAiChooser("Elegí el método que se usará al continuar.");
+            if (ImGui.Button(UiText.Label("Volver a configurar"))) { _showResearch=false; _focusWork=true; }
         }
         UiTheme.EndCard();
         ImGui.TableNextColumn(); UiTheme.BeginCard("research-checklist");
@@ -237,21 +237,21 @@ public sealed partial class StudioWindow
         foreach (var check in ResearchGuidance.For(work.Concept))
             if (ImGui.CollapsingHeader(check.Title))
             {
-                ImGui.TextWrapped(check.Needed); ImGui.Spacing();
-                for (int i=0;i<check.Steps.Count;i++) { ImGui.TextWrapped($"{i+1}. {check.Steps[i]}"); ImGui.Spacing(); }
-                UiTheme.Hint("Evidencia necesaria: "+check.Evidence);
+                ImGui.TextWrapped(UiText.Get(check.Needed)); ImGui.Spacing();
+                for (int i=0;i<check.Steps.Count;i++) { ImGui.TextWrapped(UiText.Get(UiText.Format($"{i+1}. {check.Steps[i]}"))); ImGui.Spacing(); }
+                UiTheme.Hint(UiText.Get("Evidencia necesaria: ")+check.Evidence);
             }
-        if (ImGui.Button("Copiar guía completa")) ImGui.SetClipboardText(ResearchGuidance.Markdown(work));
-        if (ImGui.TreeNode("Requisitos e informe completo"))
-        { ImGui.TextWrapped(work.Concept.MissingData); ImGui.TextWrapped(work.Summary); ImGui.TreePop(); }
+        if (ImGui.Button(UiText.Label("Copiar guía completa"))) ImGui.SetClipboardText(ResearchGuidance.Markdown(work));
+        if (ImGui.TreeNode(UiText.Label("Requisitos e informe completo")))
+        { ImGui.TextWrapped(UiText.Get(work.Concept.MissingData)); ImGui.TextWrapped(UiText.Get(work.Summary)); ImGui.TreePop(); }
         UiTheme.Section("Registrar una observación", "Anotá los pasos, teclas, valores antes/después y lo que ocurrió. La IA tendrá que reproducirlo: una nota no verifica un dato.");
         ImGui.BeginDisabled(Busy);
         ImGui.InputTextMultiline("##human-observation",ref _humanObservation,8000,new(-1,UiTheme.Px(100)));
-        if (ImGui.Button("Guardar observación"))
+        if (ImGui.Button(UiText.Label("Guardar observación")))
         {
             work.HumanObservation=_humanObservation;
             try { _researchStore.Save(work); }
-            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { Problem("No se pudo guardar la observación: "+error.Message); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { Problem(UiText.Get("No se pudo guardar la observación: ")+error.Message); }
         }
         ImGui.EndDisabled(); UiTheme.EndCard(); ImGui.EndTable();
     }

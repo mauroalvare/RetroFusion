@@ -27,10 +27,10 @@ public sealed partial class RetroApp
             Examples = ["cd favoritos", "cd nes", "cd .."], Result = "El prompt muestra la sección y ls la lista.",
             Run = context =>
             {
-                string location = context.Text("seccion").Trim('/').ToLowerInvariant();
+                string location = TerminalLanguage.CanonicalChoice(context.Text("seccion").Trim('/').ToLowerInvariant(), Sections);
                 if (location is ".." or "" or "inicio") location = "biblioteca";
                 if (_home.TerminalMachines().Any(machine => machine.Id == location)) _home.TerminalShowMachine(location);
-                else if (!Sections.Contains(location)) throw new CommandFailure(CommandProblem.InvalidArgument, "No existe la sección " + location + ".", "Secciones: " + string.Join(", ", Sections) + ".");
+                else if (!Sections.Contains(location)) throw new CommandFailure(CommandProblem.InvalidArgument, UiText.Get("No existe la sección ") + location + ".", UiText.Get("Secciones: ") + string.Join(", ", Sections) + ".");
                 else if (location is not ("herramientas" or "opciones" or "ayuda")) _home.TerminalSection(location);
                 Terminal.Location = location; _terminalListedKeys = [];
                 ListLocation(context);
@@ -71,8 +71,9 @@ public sealed partial class RetroApp
             Run = context =>
             {
                 string field = CommandLine.Fold(context.Text("campo"));
-                if (field != "quitar" && !context.Has("valor")) throw new CommandFailure(CommandProblem.InvalidArgument, "Falta el valor de " + field + ".", "Valores: " + string.Join(", ", _home.TerminalFilterValues(field).Take(12)));
-                context.Success(_home.TerminalFilter(field, context.Optional("valor") ?? ""));
+                if (field != "quitar" && !context.Has("valor")) throw new CommandFailure(CommandProblem.InvalidArgument, UiText.Get("Falta el valor de ") + field + ".", UiText.Get("Valores: ") + string.Join(", ", _home.TerminalFilterValues(field).Take(12)));
+                string value = TerminalLanguage.CanonicalChoice(context.Optional("valor") ?? "", _home.TerminalFilterValues(field).ToArray());
+                context.Success(_home.TerminalFilter(field, value));
                 _terminalListedKeys = [];
             }
         },
@@ -143,7 +144,7 @@ public sealed partial class RetroApp
                     case "reintentar": _gameMetadata.Retry(); break;
                 }
                 context.Write(_gameMetadata.Status);
-                context.Detail("Consulta en línea: " + (_prefs.OnlineGameInfo ? "activada" : "desactivada") + ". Envía el título limpio; nunca archivos ni rutas.");
+                context.Detail(UiText.Get("Consulta en línea: ") + (_prefs.OnlineGameInfo ? "activada" : "desactivada") + UiText.Get(". Envía el título limpio; nunca archivos ni rutas."));
                 if (_gameMetadata.Problem is { } problem) context.Warning(problem);
             }
         },
@@ -200,11 +201,11 @@ public sealed partial class RetroApp
             {
                 if (context.Optional("ruta") is { } path)
                 {
-                    if (!Directory.Exists(path)) throw new CommandFailure(CommandProblem.MissingResource, "No existe la carpeta " + path + ".");
+                    if (!Directory.Exists(path)) throw new CommandFailure(CommandProblem.MissingResource, UiText.Get("No existe la carpeta ") + path + ".");
                     UseLibraryFolder(path);
                 }
-                context.Write("Carpeta: " + _library.Folder);
-                context.Detail(_library.Scanning ? "Buscando juegos en segundo plano." : _library.Entries.Count + " archivos reconocidos.");
+                context.Write(UiText.Get("Carpeta: ") + _library.Folder);
+                context.Detail(_library.Scanning ? "Buscando juegos en segundo plano." : _library.Entries.Count + UiText.Get(" archivos reconocidos."));
             }
         },
         new()
@@ -222,7 +223,7 @@ public sealed partial class RetroApp
     {
         if (_terminal == null || _candidatesFor == null) return;
         var buffer = _terminal; string title = _candidatesFor; _candidatesFor = null;
-        buffer.Write("Candidatos para " + title + ": " + _gameMetadata.CandidateStatus, TerminalKind.Heading);
+        buffer.Write(UiText.Get("Candidatos para ") + title + ": " + _gameMetadata.CandidateStatus, TerminalKind.Heading);
         var found = _gameMetadata.Candidates;
         foreach (var (text, kind) in TextTable.Layout([new("#", Right: true), new("Título", Flexible: true), new("Año"), new("Por qué", Flexible: true, Optional: true)],
             found.Select((candidate, index) => (IReadOnlyList<string>)[(index + 1).ToString(), candidate.Game.Title, (candidate.Game.ReleaseYear ?? candidate.Game.FirstReleaseYear)?.ToString() ?? "?", candidate.Reason]).ToList(), buffer.Output.Columns))
@@ -259,27 +260,27 @@ public sealed partial class RetroApp
         context.Table([new("#", Right: true), new("*"), new("Título", Flexible: true), new("Sistema", Flexible: true), new("Año", Optional: true), new("Género", Flexible: true, Optional: true)],
             games.Select((game, index) => new[]
             {
-                (index + 1).ToString(), game.Favorite ? "*" : "", game.Title + (game.Openable ? "" : " [no se puede abrir]"), game.Systems, game.Info.YearLabel, string.Join(", ", game.Info.Genres)
+                (index + 1).ToString(), game.Favorite ? "*" : "", game.Title + (game.Openable ? "" : UiText.Get(" [no se puede abrir]")), game.Systems, game.Info.YearLabel, string.Join(", ", game.Info.Genres.Select(UiText.Get))
             }));
-        context.Detail($"{games.Count} juegos · jugar <n> · ficha <n> · favorito <n> · filtrar quitar");
+        context.Detail(UiText.Format($"{games.Count} juegos · jugar <n> · ficha <n> · favorito <n> · filtrar quitar"));
     }
 
     private void ShowCard(CommandContext context, TerminalGame game)
     {
         context.Heading(game.Title);
-        context.Write("Sistema: " + game.Systems + " · tipo: " + game.Kind);
-        context.Write("Año: " + game.Info.YearLabel + (game.Info.WorkYear ? " · año de la obra; el de esta plataforma no está determinado" : ""));
-        context.Write("Género: " + (game.Info.Genres.Count == 0 ? "sin clasificar" : string.Join(", ", game.Info.Genres)));
-        context.Write(game.Openable ? "Archivo: disponible; la jugabilidad depende de su compatibilidad." : "Archivo: no se puede abrir" + (game.Hint is { Length: > 0 } hint ? " · " + hint : "") + ".");
-        if (game.Path != null) context.Detail("Ubicación: " + game.Path);
+        context.Write(UiText.Get("Sistema: ") + game.Systems + UiText.Get(" · tipo: ") + game.Kind);
+        context.Write(UiText.Get("Año: ") + game.Info.YearLabel + (game.Info.WorkYear ? " · año de la obra; el de esta plataforma no está determinado" : ""));
+        context.Write(UiText.Get("Género: ") + (game.Info.Genres.Count == 0 ? "sin clasificar" : string.Join(", ", game.Info.Genres)));
+        context.Write(game.Openable ? "Archivo: disponible; la jugabilidad depende de su compatibilidad." : UiText.Get("Archivo: no se puede abrir") + (game.Hint is { Length: > 0 } hint ? " · " + hint : "") + ".");
+        if (game.Path != null) context.Detail(UiText.Get("Ubicación: ") + game.Path);
         context.Write(game.Preparation);
         if (game.Detected is { } facts)
         {
-            context.Detail("Identificación: " + facts.Method);
-            context.Detail("Fuente: " + facts.Source + (facts.Publisher != null ? " · editora: " + facts.Publisher : ""));
+            context.Detail(UiText.Get("Identificación: ") + facts.Method);
+            context.Detail(UiText.Get("Fuente: ") + facts.Source + (facts.Publisher != null ? UiText.Get(" · editora: ") + facts.Publisher : ""));
         }
         else context.Detail("Identificación: sin coincidencia automática; los datos desconocidos quedan así.");
-        context.Detail("Clave: " + game.Key);
+        context.Detail(UiText.Get("Clave: ") + game.Key);
         context.Detail("corregir <juego> genero|año <valor> guarda una corrección que tiene prioridad. omitir <juego> rechaza la coincidencia.");
     }
 
@@ -289,7 +290,7 @@ public sealed partial class RetroApp
         if (int.TryParse(value, out int number))
         {
             if (_terminalListedKeys.Length == 0) throw new CommandFailure(CommandProblem.WrongContext, "Todavía no hay una lista numerada.", "juegos lista la biblioteca; después usá el número, por ejemplo jugar 1.");
-            if (number < 1 || number > _terminalListedKeys.Length) throw new CommandFailure(CommandProblem.InvalidArgument, $"La última lista tiene {_terminalListedKeys.Length} juegos.", "juegos vuelve a listar.");
+            if (number < 1 || number > _terminalListedKeys.Length) throw new CommandFailure(CommandProblem.InvalidArgument, UiText.Format($"La última lista tiene {_terminalListedKeys.Length} juegos."), "juegos vuelve a listar.");
             return games.FirstOrDefault(game => game.Key == _terminalListedKeys[number - 1])
                 ?? throw new CommandFailure(CommandProblem.MissingResource, "Ese juego ya no está en la biblioteca.", "juegos vuelve a listar.");
         }
@@ -300,10 +301,10 @@ public sealed partial class RetroApp
         if (exact.Length == 1) return exact[0];
         var partial = exact.Length > 1 ? exact : games.Where(game => CommandLine.Fold(game.Title).Contains(folded)).ToArray();
         if (partial.Length == 1) return partial[0];
-        if (partial.Length == 0) throw new CommandFailure(CommandProblem.MissingResource, "No hay ningún juego llamado " + value + ".", "juegos lista la biblioteca; buscar <texto> la filtra.");
+        if (partial.Length == 0) throw new CommandFailure(CommandProblem.MissingResource, UiText.Get("No hay ningún juego llamado ") + value + ".", "juegos lista la biblioteca; buscar <texto> la filtra.");
         // The ambiguous matches become the current list, so the answer is one number away.
         _terminalListedKeys = partial.Select(game => game.Key).ToArray();
-        throw new CommandFailure(CommandProblem.Ambiguous, $"{partial.Length} juegos coinciden con {value}. Elegí uno por número:",
-            partial.Take(8).Select((game, index) => $"{index + 1}. {game.Title} · {game.Systems}").ToArray());
+        throw new CommandFailure(CommandProblem.Ambiguous, UiText.Format($"{partial.Length} juegos coinciden con {value}. Elegí uno por número:"),
+            partial.Take(8).Select((game, index) => UiText.Format($"{index + 1}. {UiText.Raw(game.Title)} · {game.Systems}")).ToArray());
     }
 }

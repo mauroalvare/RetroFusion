@@ -42,7 +42,7 @@ public sealed partial class RetroApp
     /// <summary>[nes pausa] (2): the machine, whether it runs and how many tasks are alive.</summary>
     private string ConsolePromptDetail()
     {
-        string machine = _host.Machine == null || !HasGame ? "" : "[" + _host.Machine.Id + (_host.Paused ? " pausa" : "") + "]";
+        string machine = _host.Machine == null || !HasGame ? "" : "[" + _host.Machine.Id + (_host.Paused ? UiText.Get(" pausa") : "") + "]";
         int tasks = _tasks.Active.Count;
         return machine + (tasks > 0 ? (machine.Length > 0 ? " " : "") + "(" + tasks + ")" : "");
     }
@@ -54,11 +54,20 @@ public sealed partial class RetroApp
         _host.Paused = true; _interfacePicker.Open(_prefs.Interface, version);
     }
 
-    /// <summary>Only called after UpdateRunner has validated and acknowledged the actual startup receipt.</summary>
+    /// <summary>Every validated update asks again, including a reinstallation of the same version.</summary>
     public bool OfferInterfaceAfterUpdate(string version)
     {
-        if (!System.Version.TryParse(version, out _) || _prefs.InterfaceOfferedVersion == version) return false;
+        if (!System.Version.TryParse(version, out _)) return false;
+        _prefs.LastStartedVersion = version;
+        _newsOpen = true;
         ShowInterfacePicker(version); return true;
+    }
+
+    /// <summary>Also detects manual updates, which have no updater receipt. The choice is saved only after answering.</summary>
+    public bool OfferInterfaceOnStartup(string version)
+    {
+        if (!System.Version.TryParse(version, out _) || _prefs.LastStartedVersion == version) return false;
+        return OfferInterfaceAfterUpdate(version);
     }
 
     private void FinishInterfaceChoice(InterfaceStyle style, string? version)
@@ -106,7 +115,7 @@ public sealed partial class RetroApp
     private void ReleaseConsoleKeyboard()
     {
         _terminalOpen = _terminalBarKeyboard = false;
-        ImGui.SetWindowFocus((string)null!);
+        ImGui.SetWindowFocus(UiText.Label((string)null!));
     }
 
     private void PrepareTerminalLayout()
@@ -132,7 +141,7 @@ public sealed partial class RetroApp
         {
             _awaitingStop = false;
             if (_host.Machine is { } machine)
-                _terminal.Write($"Detenida en PC = {machine.Cpu.ProgramCounter:X4}" + (_host.LastStopReason is { Length: > 0 } reason ? " · " + reason : ""), TerminalKind.Detail);
+                _terminal.Write(UiText.Format($"Detenida en PC = {machine.Cpu.ProgramCounter:X4}") + (_host.LastStopReason is { Length: > 0 } reason ? " · " + reason : ""), TerminalKind.Detail);
         }
     }
 

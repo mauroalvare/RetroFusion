@@ -53,17 +53,17 @@ public static class ResearchGuidance
 
     public static string Markdown(FusionResearchWork work)
     {
-        var text = new StringBuilder($"# {work.Concept.Title}\n\nInvestigación guardada. Todavía no hay una fusión ejecutable.\n\n");
-        foreach (var original in work.Originals) text.AppendLine($"- Original {original.Slot}: perfil `{original.Profile}`; SHA-256 del archivo `{original.Fingerprint}`.");
-        text.AppendLine("\n## Qué falta\n\n"+work.Concept.MissingData);
+        var text = new StringBuilder(UiText.Format($"# {UiText.Raw(work.Concept.Title)}\n\nInvestigación guardada. Todavía no hay una fusión ejecutable.\n\n"));
+        foreach (var original in work.Originals) text.AppendLine(UiText.Format($"- Original {original.Slot}: perfil `{original.Profile}`; SHA-256 del archivo `{original.Fingerprint}`."));
+        text.AppendLine(UiText.Get("\n## Qué falta\n\n")+work.Concept.MissingData);
         foreach (var check in For(work.Concept))
         {
             text.AppendLine("\n## "+check.Title+"\n\n"+check.Needed+"\n");
-            for (int i=0;i<check.Steps.Count;i++) text.AppendLine($"{i+1}. {check.Steps[i]}");
-            text.AppendLine("\nEvidencia necesaria: "+check.Evidence);
+            for (int i=0;i<check.Steps.Count;i++) text.AppendLine(UiText.Format($"{i+1}. {check.Steps[i]}"));
+            text.AppendLine(UiText.Get("\nEvidencia necesaria: ")+check.Evidence);
         }
         text.AppendLine("\nLa IA y las pruebas disponibles tienen límites. No se inventan direcciones ni resultados para completar una idea. Conservá los originales y la ranura inicial.");
-        if (work.HumanObservation.Length>0) text.AppendLine("\n## Observación humana sin verificar\n\n"+work.HumanObservation);
+        if (work.HumanObservation.Length>0) text.AppendLine(UiText.Get("\n## Observación humana sin verificar\n\n")+work.HumanObservation);
         return text.ToString();
     }
 }

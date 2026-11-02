@@ -30,49 +30,49 @@ internal sealed class AiBuildWindow(string id, string title = "Construcción del
         if ((!_started && wholeWork == null) || _displayTiming == null) return;
         if (!busy) _timing?.Stop(false);
         if(busy)RetroArt.Activity();
-        ImGui.TextDisabled($"Transcurrido: {Duration(_displayTiming.Elapsed)}");
-        if (busy && (_estimate || wholeWork != null)) ImGui.TextWrapped(_displayTiming.RemainingText);
-        if (ImGui.SmallButton($"{openLabel}##{id}")) _open = true;
+        ImGui.TextDisabled(UiText.Get(UiText.Format($"Transcurrido: {Duration(_displayTiming.Elapsed)}")));
+        if (busy && (_estimate || wholeWork != null)) ImGui.TextWrapped(UiText.Get(_displayTiming.RemainingText));
+        if (ImGui.SmallButton(UiText.Label(UiText.Format($"{openLabel}##{id}")))) _open = true;
         if (!_open) return;
         ImGui.SetNextWindowSize(UiTheme.Px(640, 420), ImGuiCond.FirstUseEver);
-        if (ImGui.Begin($"{title}##{id}", ref _open))
+        if (ImGui.Begin(UiText.Label(UiText.Format($"{title}##{id}")), ref _open))
         {
-            ImGui.TextWrapped(stage);
-            if (ImGui.SmallButton("Copiar estado")) ImGui.SetClipboardText(stage);
-            ImGui.TextUnformatted($"Tiempo transcurrido: {Duration(_displayTiming.Elapsed)}");
-            if (busy && (_estimate || wholeWork != null)) ImGui.TextWrapped(_displayTiming.RemainingText);
+            ImGui.TextWrapped(UiText.Get(stage));
+            if (ImGui.SmallButton(UiText.Label("Copiar estado"))) ImGui.SetClipboardText(stage);
+            ImGui.TextUnformatted(UiText.Get(UiText.Format($"Tiempo transcurrido: {Duration(_displayTiming.Elapsed)}")));
+            if (busy && (_estimate || wholeWork != null)) ImGui.TextWrapped(UiText.Get(_displayTiming.RemainingText));
             if (_operation?.Stats is { } stats)
                 UsageDetails(stats);
             if (_cli?.Activity is { } activity)
             {
-                ImGui.TextUnformatted(activity.Status);
+                ImGui.TextUnformatted(UiText.Get(activity.Status));
                 ImGui.BeginDisabled(activity.Output.Length == 0);
-                if (ImGui.SmallButton("Copiar salida del CLI")) ImGui.SetClipboardText(activity.Output);
+                if (ImGui.SmallButton(UiText.Label("Copiar salida del CLI"))) ImGui.SetClipboardText(activity.Output);
                 ImGui.EndDisabled();
-                ImGui.TextDisabled(activity.OutputCharacters == 0
+                ImGui.TextDisabled(UiText.Get(activity.OutputCharacters == 0
                     ? "Todavía no hay salida."
-                    : $"Sin salida nueva hace {Duration(activity.QuietFor)} · {activity.OutputCharacters:N0} caracteres");
+                    : UiText.Format($"Sin salida nueva hace {Duration(activity.QuietFor)} · {activity.OutputCharacters:N0} caracteres")));
                 ImGui.BeginChild("salida", new Vector2(0, -UiTheme.Px(70)), ImGuiChildFlags.Borders, ImGuiWindowFlags.HorizontalScrollbar);
                 bool atBottom = ImGui.GetScrollY() >= ImGui.GetScrollMaxY() - 2;
-                ImGui.TextUnformatted(activity.Output.Length > 0 ? activity.Output : "Esperando salida del CLI...");
+                ImGui.TextUnformatted(UiText.Get(activity.Output.Length > 0 ? activity.Output : "Esperando salida del CLI..."));
                 if (atBottom) ImGui.SetScrollHereY(1);
                 ImGui.EndChild();
             }
             else
-                ImGui.TextWrapped(_cli != null ? "Preparando la llamada al CLI..." : "Esperando la respuesta de la IA...");
+                ImGui.TextWrapped(UiText.Get(_cli != null ? "Preparando la llamada al CLI..." : "Esperando la respuesta de la IA..."));
             AiPicker.Hint("Algunas herramientas muestran la respuesta recién al terminar.");
-            if (busy && cancellation != null && ImGui.Button("Cancelar##construccion")) cancellation.Cancel();
+            if (busy && cancellation != null && ImGui.Button(UiText.Label("Cancelar##construccion"))) cancellation.Cancel();
         }
         ImGui.End();
     }
 
-    private static string Duration(TimeSpan elapsed) => $"{(int)elapsed.TotalMinutes}:{elapsed.Seconds:00}";
+    private static string Duration(TimeSpan elapsed) => UiText.Format($"{(int)elapsed.TotalMinutes}:{elapsed.Seconds:00}");
     public static void UsageDetails(AiOperationStats stats)
     {
-        ImGui.TextDisabled($"Pedidos: {stats.Calls} · Texto enviado: {stats.TextCharacters:N0} caracteres");
+        ImGui.TextDisabled(UiText.Get(UiText.Format($"Pedidos: {stats.Calls} · Texto enviado: {stats.TextCharacters:N0} caracteres")));
         if (stats.CallsWithUsage > 0)
-            ImGui.TextWrapped($"Tokens informados{(stats.CallsWithUsage < stats.Calls ? " (parcial)" : "")}: {stats.InputTokens:N0} entrada · {stats.OutputTokens:N0} salida" +
-                (stats.CachedInputTokens is long cached ? $" · {cached:N0} de entrada en caché" : ""));
-        else ImGui.TextDisabled("La herramienta no informó consumo de tokens.");
+            ImGui.TextWrapped(UiText.Get(UiText.Format($"Tokens informados{(stats.CallsWithUsage < stats.Calls ? UiText.Get(" (parcial)") : UiText.Get(""))}: {stats.InputTokens:N0} entrada · {stats.OutputTokens:N0} salida") +
+                (stats.CachedInputTokens is long cached ? UiText.Format($" · {cached:N0} de entrada en caché") : "")));
+        else ImGui.TextDisabled(UiText.Get("La herramienta no informó consumo de tokens."));
     }
 }

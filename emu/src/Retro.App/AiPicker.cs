@@ -39,7 +39,7 @@ public static class AiPicker
     {
         int provider = Math.Max(0, Array.IndexOf(Ids, ai.Provider));
         ImGui.SetNextItemWidth(-1);
-        if (ImGui.Combo(id, ref provider, Names, Names.Length, Names.Length))
+        if (ImGui.Combo(id, ref provider, Names.Select(UiText.Get).ToArray(), Names.Length, Names.Length))
         {
             ConnectionProbe.Cancel();
             ai.Provider = Ids[provider];
@@ -54,7 +54,7 @@ public static class AiPicker
         if (ai.CanRecover)
         {
             Hint("Podés conservar el archivo anterior y guardar los valores de esta sesión en uno nuevo.");
-            if (ImGui.Button("Recuperar archivo##" + id)) ai.Recover();
+            if (ImGui.Button(UiText.Label(UiText.Get("Recuperar archivo##") + id))) ai.Recover();
         }
         if (ai.RecoveryPath is { } backup)
         { Hint("Se conservó un respaldo del archivo anterior."); if (ImGui.IsItemHovered()) UiTheme.Tooltip(backup); }
@@ -64,14 +64,14 @@ public static class AiPicker
     public static void Choose(AiSettings ai, string id, string costNote, Func<AiRequest>? preview = null)
     {
         ConnectionProbe.Poll();
-        Combo(ai, "##ia-" + id);
+        Combo(ai, UiText.Get("##ia-") + id);
         if (!IsApi(ai.Provider)) return;
         string model = CliTools.ById(ai.Provider) != null ? ai.CliModels.GetValueOrDefault(ai.Provider, "")
             : ai.Provider switch { "claude" => ai.ClaudeModel, "openai" => ai.OpenAiModel, "gemini" => ai.GeminiModel, _ => ai.OllamaModel };
         string effort = ai.CliEfforts.GetValueOrDefault(ai.Provider, "");
-        Hint(model.Length > 0 ? "Modelo: " + model + (effort.Length > 0 ? " · " + effort : "")
+        Hint(model.Length > 0 ? UiText.Get("Modelo: ") + model + (effort.Length > 0 ? " · " + effort : "")
             : "Modelo: el configurado en la herramienta.");
-        if (ImGui.CollapsingHeader("Modelo y conexión##" + id))
+        if (ImGui.CollapsingHeader(UiText.Label(UiText.Get("Modelo y conexión##") + id)))
         {
             Settings(ai, costNote);
             if (preview != null) Generation(ai, preview);
@@ -82,16 +82,16 @@ public static class AiPicker
 
     public static void Generation(AiSettings ai, Func<AiRequest> preview)
     {
-        if (!ImGui.TreeNode("Uso de IA")) return;
+        if (!ImGui.TreeNode(UiText.Label("Uso de IA"))) return;
         int mode = ai.Economic ? 1 : 0;
         ImGui.SetNextItemWidth(UiTheme.Px(150));
-        if (ImGui.Combo("Modo", ref mode, new[] { "Equilibrado", "Económico" }, 2)) { ai.Economic = mode == 1; ai.Save(); }
-        Hint($"Hasta {ai.DesignAttempts} pedidos por escritura o revisión. Se mantienen las mismas pruebas del juego.");
+        if (ImGui.Combo(UiText.Label("Modo"), ref mode, new[] { "Equilibrado", "Económico" }.Select(UiText.Get).ToArray(), 2)) { ai.Economic = mode == 1; ai.Save(); }
+        Hint(UiText.Format($"Hasta {ai.DesignAttempts} pedidos por escritura o revisión. Se mantienen las mismas pruebas del juego."));
         int limit = ai.TextLimitThousands;
         ImGui.SetNextItemWidth(UiTheme.Px(150));
-        if (ImGui.InputInt("Tope de texto (miles de caracteres)", ref limit, 10))
+        if (ImGui.InputInt(UiText.Label("Tope de texto (miles de caracteres)"), ref limit, 10))
         { ai.TextLimitThousands = Math.Clamp(limit, 0, 10000); ai.Save(); }
-        if (ImGui.IsItemHovered()) ImGui.SetTooltip("0: sin tope. Cuenta instrucciones, pedido, código y esquema en todos los intentos de ese trabajo. No recorta el contenido.");
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip(UiText.Get("0: sin tope. Cuenta instrucciones, pedido, código y esquema en todos los intentos de ese trabajo. No recorta el contenido."));
         uint key = ImGui.GetID("estimacion-local");
         double now = ImGui.GetTime();
         if (!Estimates.TryGetValue(key, out var cached) || now - cached.At >= 1 || now < cached.At)
@@ -100,8 +100,8 @@ public static class AiPicker
             Estimates[key] = cached;
         }
         var estimate = cached.Estimate;
-        ImGui.TextDisabled($"Entrada orientativa: {estimate.Characters:N0} caracteres.");
-        ImGui.TextDisabled($"Tokens de texto estimados: {estimate.LowTokens:N0} a {estimate.HighTokens:N0}.");
+        ImGui.TextDisabled(UiText.Get(UiText.Format($"Entrada orientativa: {estimate.Characters:N0} caracteres.")));
+        ImGui.TextDisabled(UiText.Get(UiText.Format($"Tokens de texto estimados: {estimate.LowTokens:N0} a {estimate.HighTokens:N0}.")));
         Hint("La idea elegida, las imágenes, la salida y el contexto propio del CLI pueden aumentar el consumo. No estima el cupo de tu cuenta.");
         ImGui.TreePop();
     }
@@ -123,59 +123,59 @@ public static class AiPicker
             {
                 string key = ai.ClaudeApiKey;
                 ImGui.SetNextItemWidth(UiTheme.Px(320));
-                if (ImGui.InputText("Clave de API", ref key, 200, ImGuiInputTextFlags.Password))
+                if (ImGui.InputText(UiText.Label("Clave de API"), ref key, 200, ImGuiInputTextFlags.Password))
                 {
                     ai.ClaudeApiKey = key.Trim();
                     ai.Save();
                 }
-                if (ImGui.IsItemHovered()) ImGui.SetTooltip("Si está vacía, usa ANTHROPIC_API_KEY del entorno.");
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip(UiText.Get("Si está vacía, usa ANTHROPIC_API_KEY del entorno."));
                 string model = ai.ClaudeModel;
                 ImGui.SetNextItemWidth(UiTheme.Px(320));
-                if (ImGui.InputText("Modelo de Claude", ref model, 100))
+                if (ImGui.InputText(UiText.Label("Modelo de Claude"), ref model, 100))
                 {
                     ai.ClaudeModel = model;
                     ai.Save();
                 }
-                Hint("La API se cobra por separado de tu suscripción. " + costNote);
+                Hint(UiText.Get("La API se cobra por separado de tu suscripción. ") + costNote);
                 break;
             }
             case "openai":
             {
                 string key = ai.OpenAiApiKey, model = ai.OpenAiModel;
                 ImGui.SetNextItemWidth(UiTheme.Px(320));
-                if (ImGui.InputText("Clave de API", ref key, 200, ImGuiInputTextFlags.Password))
+                if (ImGui.InputText(UiText.Label("Clave de API"), ref key, 200, ImGuiInputTextFlags.Password))
                 {
                     ai.OpenAiApiKey = key.Trim();
                     ai.Save();
                 }
-                if (ImGui.IsItemHovered()) ImGui.SetTooltip("Si está vacía, usa OPENAI_API_KEY del entorno.");
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip(UiText.Get("Si está vacía, usa OPENAI_API_KEY del entorno."));
                 ImGui.SetNextItemWidth(UiTheme.Px(320));
-                if (ImGui.InputText("Modelo de OpenAI", ref model, 100)) { ai.OpenAiModel = model; ai.Save(); }
-                if (ImGui.IsItemHovered()) ImGui.SetTooltip($"Si está vacío, usa {OpenAiProvider.DefaultModel}.");
-                Hint("La API se cobra por separado de tu suscripción. " + costNote);
+                if (ImGui.InputText(UiText.Label("Modelo de OpenAI"), ref model, 100)) { ai.OpenAiModel = model; ai.Save(); }
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip(UiText.Get(UiText.Format($"Si está vacío, usa {OpenAiProvider.DefaultModel}.")));
+                Hint(UiText.Get("La API se cobra por separado de tu suscripción. ") + costNote);
                 break;
             }
             case "gemini":
             {
                 string key = ai.GeminiApiKey, model = ai.GeminiModel;
                 ImGui.SetNextItemWidth(UiTheme.Px(320));
-                if (ImGui.InputText("Clave de API", ref key, 200, ImGuiInputTextFlags.Password))
+                if (ImGui.InputText(UiText.Label("Clave de API"), ref key, 200, ImGuiInputTextFlags.Password))
                 {
                     ai.GeminiApiKey = key.Trim();
                     ai.Save();
                 }
-                if (ImGui.IsItemHovered()) ImGui.SetTooltip("Si está vacía, usa GEMINI_API_KEY del entorno.");
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip(UiText.Get("Si está vacía, usa GEMINI_API_KEY del entorno."));
                 ImGui.SetNextItemWidth(UiTheme.Px(320));
-                if (ImGui.InputText("Modelo de Gemini", ref model, 100)) { ai.GeminiModel = model; ai.Save(); }
-                if (ImGui.IsItemHovered()) ImGui.SetTooltip($"Si está vacío, usa {GeminiProvider.DefaultModel}.");
-                Hint("La API tiene sus propios límites y condiciones. " + costNote);
+                if (ImGui.InputText(UiText.Label("Modelo de Gemini"), ref model, 100)) { ai.GeminiModel = model; ai.Save(); }
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip(UiText.Get(UiText.Format($"Si está vacío, usa {GeminiProvider.DefaultModel}.")));
+                Hint(UiText.Get("La API tiene sus propios límites y condiciones. ") + costNote);
                 break;
             }
             case "ollama":
             {
-                if (setupLink && ImGui.Button("Cómo conectar Ollama")) AiConnectionWindow.Open(ai);
+                if (setupLink && ImGui.Button(UiText.Label("Cómo conectar Ollama"))) AiConnectionWindow.Open(ai);
                 DrawModels(ai, null, null);
-                if (ImGui.TreeNode("Dirección de Ollama"))
+                if (ImGui.TreeNode(UiText.Label("Dirección de Ollama")))
                 {
                     string url = ai.OllamaUrl;
                     ImGui.SetNextItemWidth(-1);
@@ -195,19 +195,19 @@ public static class AiPicker
         string? found = CliTools.Find(tool, path);
         if (found != null)
         {
-            ImGui.TextColored(new System.Numerics.Vector4(0.5f, 1, 0.5f, 1), $"{tool.Name} instalado");
-            if (ImGui.IsItemHovered()) ImGui.SetTooltip(found);
+            ImGui.TextColored(new System.Numerics.Vector4(0.5f, 1, 0.5f, 1), UiText.Get(UiText.Format($"{UiText.Raw(tool.Name)} instalado")));
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip(UiText.Get(found));
         }
         else
         {
-            ImGui.TextColored(new System.Numerics.Vector4(1, 0.6f, 0.4f, 1), $"No encontré {tool.Name} en esta PC.");
-            if (ImGui.Button("Volver a detectar")) found = CliTools.Find(tool, path);
+            ImGui.TextColored(new System.Numerics.Vector4(1, 0.6f, 0.4f, 1), UiText.Get(UiText.Format($"No encontré {UiText.Raw(tool.Name)} en esta PC.")));
+            if (ImGui.Button(UiText.Label("Volver a detectar"))) found = CliTools.Find(tool, path);
         }
-        if (setupLink && ImGui.Button("Cómo instalar o iniciar sesión")) AiConnectionWindow.Open(ai);
+        if (setupLink && ImGui.Button(UiText.Label("Cómo instalar o iniciar sesión"))) AiConnectionWindow.Open(ai);
         if (found != null) DrawModels(ai, tool, found);
-        if (!ImGui.TreeNode("Conexión avanzada")) return;
+        if (!ImGui.TreeNode(UiText.Label("Conexión avanzada"))) return;
         ImGui.SetNextItemWidth(-1);
-        if (Edit(tool.Id + "-ruta", "Ruta opcional; Enter para guardar", ref path, 400))
+        if (Edit(tool.Id + UiText.Get("-ruta"), "Ruta opcional; Enter para guardar", ref path, 400))
         {
             if (string.IsNullOrWhiteSpace(path)) ai.CliPaths.Remove(tool.Id);
             else ai.CliPaths[tool.Id] = path.Trim().Trim('"');
@@ -215,7 +215,7 @@ public static class AiPicker
         }
         string model = ai.CliModels.GetValueOrDefault(tool.Id, "");
         ImGui.SetNextItemWidth(-1);
-        if (Edit(tool.Id + "-modelo", "Modelo manual opcional; Enter para guardar", ref model, 100))
+        if (Edit(tool.Id + UiText.Get("-modelo"), "Modelo manual opcional; Enter para guardar", ref model, 100))
         {
             if (string.IsNullOrWhiteSpace(model)) ai.CliModels.Remove(tool.Id);
             else ai.CliModels[tool.Id] = model.Trim();
@@ -227,24 +227,24 @@ public static class AiPicker
         bool testing = ConnectionProbe.Busy;
         string key = tool.Id + "|" + found + "|" + model + "|" + ai.CliEfforts.GetValueOrDefault(tool.Id);
         ImGui.BeginDisabled(testing || found == null);
-        if (ImGui.Button(testing ? "Probando..." : "Probar conexión"))
+        if (ImGui.Button(UiText.Label(testing ? "Probando..." : "Probar conexión")))
         {
             var provider = new CliAgentProvider(tool, ai.CliPaths.GetValueOrDefault(tool.Id), TimeSpan.FromMinutes(3), ai.CliModels.GetValueOrDefault(tool.Id), ai.CliEfforts.GetValueOrDefault(tool.Id));
             ConnectionProbe.Start(key, provider.TestAsync);
         }
         ImGui.EndDisabled();
         if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-            ImGui.SetTooltip("Envía un pedido breve para comprobar la sesión. Cuenta para los límites de tu plan.");
+            ImGui.SetTooltip(UiText.Get("Envía un pedido breve para comprobar la sesión. Cuenta para los límites de tu plan."));
         if (ConnectionProbe.Busy)
         {
             ImGui.BeginDisabled(ConnectionProbe.IsCancelling);
-            if (ImGui.Button(ConnectionProbe.IsCancelling ? "Deteniendo prueba..." : "Cancelar prueba")) ConnectionProbe.Cancel();
+            if (ImGui.Button(UiText.Label(ConnectionProbe.IsCancelling ? "Deteniendo prueba..." : "Cancelar prueba"))) ConnectionProbe.Cancel();
             ImGui.EndDisabled();
             Hint("Podés detener esta prueba sin iniciar otro pedido.");
         }
         if (ConnectionProbe.Result.Length > 0 && ConnectionProbe.Key == key)
         {
-            ImGui.TextWrapped(ConnectionProbe.Result);
+            ImGui.TextWrapped(UiText.Get(ConnectionProbe.Result));
         }
         ImGui.TreePop();
     }
@@ -274,21 +274,21 @@ public static class AiPicker
         }
         bool loading = state.Task != null;
         ImGui.BeginDisabled(loading);
-        if (ImGui.Button(loading ? "Consultando modelos..." : "Actualizar modelos")) Refresh();
+        if (ImGui.Button(UiText.Label(loading ? "Consultando modelos..." : "Actualizar modelos"))) Refresh();
         ImGui.EndDisabled();
-        if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled)) ImGui.SetTooltip("Consulta las opciones de la herramienta sin generar respuestas.");
+        if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled)) ImGui.SetTooltip(UiText.Get("Consulta las opciones de la herramienta sin generar respuestas."));
         if (state.Error.Length > 0) { Hint(state.Error); return; }
         if (state.Task != null) return;
         if (state.Models.Count == 0) { Hint("No hay modelos descargados. Agregá uno en Ollama y actualizá la lista."); return; }
 
         string selected = tool != null ? ai.CliModels.GetValueOrDefault(provider, "") : ai.OllamaModel;
         var current = state.Models.FirstOrDefault(m => m.Matches(selected));
-        string preview = selected.Length == 0 ? "Predeterminado de la herramienta" : current?.Name ?? $"Guardado: {selected}";
-        ImGui.TextUnformatted("Modelo:");
+        string preview = selected.Length == 0 ? "Predeterminado de la herramienta" : current?.Name ?? UiText.Format($"Guardado: {selected}");
+        ImGui.TextUnformatted(UiText.Get("Modelo:"));
         ImGui.SetNextItemWidth(-1);
-        if (ImGui.BeginCombo("##modelo-detectado", preview))
+        if (ImGui.BeginCombo("##modelo-detectado", UiText.Get(preview)))
         {
-            if (tool != null && ImGui.Selectable("Predeterminado de la herramienta", selected.Length == 0)) Select("");
+            if (tool != null && ImGui.Selectable(UiText.Label("Predeterminado de la herramienta"), selected.Length == 0)) Select("");
             foreach (var option in state.Models)
                 if (ImGui.Selectable(option.Name + "##" + option.Id, option == current)) Select(option.Id);
             ImGui.EndCombo();
@@ -302,11 +302,11 @@ public static class AiPicker
                 : ai.CliEfforts.GetValueOrDefault(provider, "");
             if (effort.Length > 0 && active.Efforts.All(e => e.Id != effort)) Hint("El esfuerzo guardado ya no aparece disponible. Elegí otro de la lista.");
             ImGui.SetNextItemWidth(-1);
-            if (ImGui.BeginCombo("##esfuerzo", "Esfuerzo: " + (effort.Length == 0 ? "predeterminado" : EffortName(effort))))
+            if (ImGui.BeginCombo("##esfuerzo", UiText.Get(UiText.Get("Esfuerzo: ") + (effort.Length == 0 ? "predeterminado" : EffortName(effort)))))
             {
-                if (!variants && ImGui.Selectable("Predeterminado", effort.Length == 0)) { ai.CliEfforts.Remove(provider); ai.Save(); }
+                if (!variants && ImGui.Selectable(UiText.Label("Predeterminado"), effort.Length == 0)) { ai.CliEfforts.Remove(provider); ai.Save(); }
                 foreach (var level in active.Efforts)
-                    if (ImGui.Selectable(EffortName(level.Id) + "##" + level.Id, level.Id == effort))
+                    if (ImGui.Selectable(UiText.Label(EffortName(level.Id) + "##" + level.Id), level.Id == effort))
                     {
                         if (variants) { ai.CliModels[provider] = level.ModelId!; ai.CliEfforts.Remove(provider); }
                         else ai.CliEfforts[provider] = level.Id;
@@ -343,7 +343,7 @@ public static class AiPicker
     private static bool Edit(string id, string hint, ref string value, uint length)
     {
         string buffer = Edits.GetValueOrDefault(id, value);
-        bool entered = ImGui.InputTextWithHint("##" + id, hint, ref buffer, length, ImGuiInputTextFlags.EnterReturnsTrue);
+        bool entered = ImGui.InputTextWithHint(UiText.Label("##" + id), UiText.Get(hint), ref buffer, length, ImGuiInputTextFlags.EnterReturnsTrue);
         Edits[id] = buffer;
         if (entered) value = buffer;
         return entered;
@@ -353,7 +353,7 @@ public static class AiPicker
     public static void Hint(string text)
     {
         ImGui.PushStyleColor(ImGuiCol.Text, ImGui.GetStyle().Colors[(int)ImGuiCol.TextDisabled]);
-        ImGui.TextWrapped(text);
+        ImGui.TextWrapped(UiText.Get(text));
         ImGui.PopStyleColor();
     }
 }

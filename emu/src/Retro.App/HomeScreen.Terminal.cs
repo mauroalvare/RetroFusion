@@ -63,7 +63,7 @@ public sealed partial class HomeScreen
             case "quitar": _filters = new() { Order = _section == "recent" ? LibraryOrder.LastPlayed : LibraryOrder.Name }; _search = ""; break;
             case "buscar": _search = value; break;
             case "sistema":
-                if (value != "todos" && !Machines.Any(machine => machine.Id == value)) throw new ArgumentException("Sistema: " + string.Join(", ", Machines.Select(machine => machine.Id)) + " o todos.");
+                if (value != "todos" && !Machines.Any(machine => machine.Id == value)) throw new ArgumentException(UiText.Get("Sistema: ") + string.Join(", ", Machines.Select(machine => machine.Id)) + UiText.Get(" o todos."));
                 _filters = _filters with { Machine = value == "todos" ? "" : value }; break;
             case "tipo":
                 _filters = _filters with { Kind = value switch { "todos" => null, "original" => LibraryGameKind.Original, "creado" => LibraryGameKind.Created, "fusion" => LibraryGameKind.Fusion, "inspirado" => LibraryGameKind.Inspired,
@@ -85,29 +85,29 @@ public sealed partial class HomeScreen
                 break;
             case "orden":
                 int index = Array.IndexOf(TerminalOrders, value);
-                if (index < 0) throw new ArgumentException("Orden: " + string.Join(", ", TerminalOrders));
+                if (index < 0) throw new ArgumentException(UiText.Get("Orden: ") + string.Join(", ", TerminalOrders));
                 _filters = _filters with { Order = (LibraryOrder)index }; break;
             case "disponibles":
                 _filters = _filters with { Availability = value switch { "todos" => LibraryAvailability.Any, "si" or "sí" => LibraryAvailability.Openable, "no" => LibraryAvailability.Unavailable, _ => throw new ArgumentException("Usá todos, si o no.") } }; break;
-            default: throw new ArgumentException("Filtros: " + string.Join(", ", TerminalFilterFields) + ".");
+            default: throw new ArgumentException(UiText.Get("Filtros: ") + string.Join(", ", TerminalFilterFields) + ".");
         }
-        return $"Filtro aplicado · {TerminalGames().Count} juegos. juegos muestra la lista.";
+        return UiText.Format($"Filtro aplicado · {TerminalGames().Count} juegos. juegos muestra la lista.");
     }
 
     /// <summary>The active filters in words, the same ones the graphical list shows.</summary>
     internal IReadOnlyList<string> TerminalFilterSummary()
     {
         var lines = new List<string>();
-        if (_search.Trim().Length > 0) lines.Add("Búsqueda: " + _search.Trim());
-        if (_filters.Machine.Length > 0) lines.Add("Sistema: " + _filters.Machine);
-        if (_filters.Kind is { } kind) lines.Add("Tipo: " + kind);
-        if (_filters.GenreMode == LibraryGenreFilter.Selected) lines.Add("Género: " + _filters.Genre);
+        if (_search.Trim().Length > 0) lines.Add(UiText.Get("Búsqueda: ") + _search.Trim());
+        if (_filters.Machine.Length > 0) lines.Add(UiText.Get("Sistema: ") + _filters.Machine);
+        if (_filters.Kind is { } kind) lines.Add(UiText.Get("Tipo: ") + kind);
+        if (_filters.GenreMode == LibraryGenreFilter.Selected) lines.Add(UiText.Get("Género: ") + _filters.Genre);
         else if (_filters.GenreMode == LibraryGenreFilter.Missing) lines.Add("Género: sin clasificar");
-        if (_filters.YearMode == LibraryYearFilter.Interval) lines.Add($"Año: {_filters.YearFrom}–{_filters.YearTo}");
+        if (_filters.YearMode == LibraryYearFilter.Interval) lines.Add(UiText.Format($"Año: {_filters.YearFrom}–{_filters.YearTo}"));
         else if (_filters.YearMode == LibraryYearFilter.Missing) lines.Add("Año: sin año");
-        if (_filters.Activity != LibraryActivityFilter.Any) lines.Add("Actividad: " + _filters.Activity);
-        if (_filters.Availability != LibraryAvailability.Any) lines.Add("Disponibilidad: " + _filters.Availability);
-        if (_filters.Order != LibraryOrder.Name) lines.Add("Orden: " + TerminalOrders[(int)_filters.Order]);
+        if (_filters.Activity != LibraryActivityFilter.Any) lines.Add(UiText.Get("Actividad: ") + _filters.Activity);
+        if (_filters.Availability != LibraryAvailability.Any) lines.Add(UiText.Get("Disponibilidad: ") + _filters.Availability);
+        if (_filters.Order != LibraryOrder.Name) lines.Add(UiText.Get("Orden: ") + TerminalOrders[(int)_filters.Order]);
         return lines;
     }
 

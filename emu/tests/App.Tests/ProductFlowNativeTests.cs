@@ -119,7 +119,7 @@ public sealed class ProductFlowNativeTests
         ui.Set("_preferencesGroup", "Consola"); ui.Set("_preferencesOpen", true); ui.Frames(4);
         Assert.That(ui.Bounds.ContainsKey("Opción:indicador"), Is.True, "The generic form presents the new option.");
         ui.Click("Opción:indicador"); Assert.That(indicator, Is.False, "The checkbox writes through the same contract.");
-        Assert.That(CommandPalette.Search(commands, "novedad").Single().Id, Is.EqualTo("accion-nueva"));
+        Assert.That(CommandPalette.Search(commands, "novedad").Select(command => command.Id), Has.Member("accion-nueva"));
     }
 
     [Test]
@@ -132,12 +132,13 @@ public sealed class ProductFlowNativeTests
         void Choose(string name) { Assert.That(ui.Bounds.ContainsKey(name), Is.True, name); ui.Click(name); }
         Assert.That(ui.App.OfferInterfaceAfterUpdate("not-a-version"), Is.False, "An invalid receipt offers nothing.");
         Assert.That(ui.App.OfferInterfaceAfterUpdate("9.0.1"), Is.True); ui.Frames(4);
-        Choose("Elegir hardcore"); ui.Frames(3);
+        Choose("Elegir real"); ui.Frames(3);
         Assert.That(prefs.Interface, Is.EqualTo(InterfaceStyle.Retro), "Looking at a preview does not apply it.");
         Choose("Ampliar"); ui.Frames(3); ui.Capture("selector-ampliado"); Choose("Ampliar"); ui.Frames(2);
         Choose("Conservar el actual"); ui.Frames(3);
         Assert.That(prefs.Interface, Is.EqualTo(InterfaceStyle.Retro)); Assert.That(prefs.InterfaceOfferedVersion, Is.EqualTo("9.0.1"), "The answer is remembered.");
-        Assert.That(ui.App.OfferInterfaceAfterUpdate("9.0.1"), Is.False, "The same version does not ask again.");
+        Assert.That(ui.App.OfferInterfaceOnStartup("9.0.1"), Is.False, "An ordinary restart does not ask again.");
+        Assert.That(ui.App.OfferInterfaceAfterUpdate("9.0.1"), Is.True, "Every validated update asks again.");
         Assert.That(ui.App.OfferInterfaceAfterUpdate("9.0.2"), Is.True); ui.Frames(4);
         Choose("Elegir terminal"); ui.Frames(2); Choose("Usar este estilo"); ui.Frames(4);
         Assert.That(prefs.Interface, Is.EqualTo(InterfaceStyle.Terminal));

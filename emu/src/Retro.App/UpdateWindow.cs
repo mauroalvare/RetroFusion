@@ -23,9 +23,10 @@ public sealed class UpdateWindow : IDisposable
     private double? _fraction;
     public bool RestartRequested { get; private set; }
     public bool Blocking => _open;
+    internal Action<string, Vector2, Vector2>? ControlBounds { get; set; }
     /// <summary>A line for the console; installing always goes through the window.</summary>
     public string Summary => !_packaged ? "Esta copia no es un paquete instalado: el actualizador no está disponible." :
-        _ready != null ? $"RetroEmu {_ready.ToVersion} está listo; actualizar abrir lo instala." : _status.Length > 0 ? _status : "Sin consultar en esta sesión; actualizar abrir busca la última entrega.";
+        _ready != null ? UiText.Format($"RetroEmu {_ready.ToVersion} está listo; actualizar abrir lo instala.") : _status.Length > 0 ? _status : "Sin consultar en esta sesión; actualizar abrir busca la última entrega.";
 
     public UpdateWindow(string[] args, HttpClient? http = null, string? root = null, string? settings = null, Action<UpdatePlan>? install = null)
     {
@@ -59,7 +60,7 @@ public sealed class UpdateWindow : IDisposable
             var asset = await client.CheckAsync(ReleaseClient.ParseVersion(current.Version), current.Runtime, check.Token);
             if (asset == null) return null;
             if (startup && _preferences.FailedVersion == asset.Version.ToString(3)) throw new IOException("La última actualización no se pudo completar. Podés reintentar desde Ayuda > Actualizaciones.");
-            _messages.Enqueue(new($"Preparando RetroEmu {asset.Version.ToString(3)}..."));
+            _messages.Enqueue(new(UiText.Format($"Preparando RetroEmu {asset.Version.ToString(3)}...")));
             return await UpdatePreparation.PrepareAsync(client, asset, _root, new QueueProgress(_messages), ct);
         }, ct);
     }
@@ -76,7 +77,7 @@ public sealed class UpdateWindow : IDisposable
         {
             _ready = task.GetAwaiter().GetResult();
             if (_cancelled) { _ready = null; return; }
-            _status = _ready == null ? "Ya tenés la versión más reciente." : $"RetroEmu {_ready.ToVersion} está listo para instalar.";
+            _status = _ready == null ? "Ya tenés la versión más reciente." : UiText.Format($"RetroEmu {_ready.ToVersion} está listo para instalar.");
             if (_startup)
             {
                 if (_ready == null) _open = false;
@@ -100,35 +101,36 @@ public sealed class UpdateWindow : IDisposable
     public void Draw()
     {
         const string title = "Actualizaciones de RetroEmu";
-        if (!_open && !ImGui.IsPopupOpen(title)) return;
+        if (!_open && !ImGui.IsPopupOpen(UiText.Label(title))) return;
         var vp = ImGui.GetMainViewport();
         ImGui.SetNextWindowSizeConstraints(Vector2.Min(UiTheme.Px(280, 180), vp.WorkSize), Vector2.Min(UiTheme.Px(520, 400), vp.WorkSize));
         ImGui.SetNextWindowSize(Vector2.Min(UiTheme.Px(480, 230), vp.WorkSize), ImGuiCond.Appearing);
         ImGui.SetNextWindowPos(vp.GetCenter(), ImGuiCond.Appearing, new(.5f));
-        if (_open && !ImGui.IsPopupOpen(title)) ImGui.OpenPopup(title);
-        bool shown = ImGui.BeginPopupModal(title, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoSavedSettings);
+        if (_open && !ImGui.IsPopupOpen(UiText.Label(title))) ImGui.OpenPopup(UiText.Label(title));
+        bool shown = ImGui.BeginPopupModal(UiText.Label(title), ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoSavedSettings);
         if (shown)
         {
             if (!_open) { ImGui.CloseCurrentPopup(); ImGui.EndPopup(); return; }
-            ImGui.TextWrapped(_status);
+            ImGui.TextWrapped(UiText.Get(_status));
             if (_task != null)
             {
-                ImGui.ProgressBar((float)(_fraction ?? 0), new(-1, 0), _fraction is double p ? $"{p:P0}" : "");
-                if (ImGui.Button("Continuar sin actualizar")) { Skip(); ImGui.CloseCurrentPopup(); }
+                ImGui.ProgressBar((float)(_fraction ?? 0), new(-1, 0), _fraction is double p ? UiText.Format($"{p:P0}") : "");
+                if (ImGui.Button(UiText.Label("Continuar sin actualizar"))) { Skip(); ImGui.CloseCurrentPopup(); }
             }
-            else if (_ready != null && !RestartRequested && ImGui.Button("Instalar y reiniciar")) Install();
+            else if (_ready != null && !RestartRequested && ImGui.Button(UiText.Label("Instalar y reiniciar"))) Install();
             bool automatic = _preferences.Automatic;
-            if (ImGui.Checkbox("Buscar e instalar al abrir", ref automatic))
+            if (ImGui.Checkbox(UiText.Label("Buscar e instalar al abrir"), ref automatic))
             {
                 _preferences.Automatic = automatic;
                 try { _preferences.Save(_settings); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { _error = "No pude guardar esta preferencia."; }
                 if (!automatic && _startup) { Skip(); ImGui.CloseCurrentPopup(); }
             }
-            if (_error.Length > 0 && ImGui.CollapsingHeader("Detalles")) ImGui.TextWrapped(_error);
+            if (_error.Length > 0 && ImGui.CollapsingHeader(UiText.Label("Detalles"))) ImGui.TextWrapped(UiText.Get(_error));
             if (_task == null && !RestartRequested)
             {
-                if (ImGui.Button("Volver a buscar")) { _ready = null; Begin(startup: false); }
-                ImGui.SameLine(); if (ImGui.Button("Cerrar")) { _open = false; ImGui.CloseCurrentPopup(); }
+                if (ImGui.Button(UiText.Label("Volver a buscar"))) { _ready = null; Begin(startup: false); }
+                ImGui.SameLine(); if (ImGui.Button(UiText.Label("Cerrar"))) { _open = false; ImGui.CloseCurrentPopup(); }
+                ControlBounds?.Invoke("Cerrar actualizaciones", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
             }
         }
         if (shown) ImGui.EndPopup();

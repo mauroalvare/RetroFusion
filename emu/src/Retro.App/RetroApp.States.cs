@@ -34,15 +34,15 @@ public sealed partial class RetroApp
         var size = WorkspaceLayout.Available();
         ImGui.SetNextWindowSizeConstraints(Vector2.Min(UiTheme.Px(540, 300), size), size);
         ImGui.SetNextWindowSize(Vector2.Min(UiTheme.Px(650, 420), size), ImGuiCond.FirstUseEver);
-        if (!ImGui.Begin("Partidas guardadas", ref _stateWindowOpen)) { ImGui.End(); return; }
+        if (!ImGui.Begin(UiText.Label("Partidas guardadas"), ref _stateWindowOpen)) { ImGui.End(); return; }
         WorkspaceLayout.KeepOnScreen();
         try
         {
             if (!_host.CanUseStates)
-            { ImGui.TextWrapped("Abrí un juego original para guardar o recuperar una partida."); return; }
+            { ImGui.TextWrapped(UiText.Get("Abrí un juego original para guardar o recuperar una partida.")); return; }
             if (_stateListingRevision != _host.MediaRevision) { RefreshStateSlots(); _stateMessage = ""; }
             bool compact = ImGui.GetContentRegionAvail().X < UiTheme.Px(520);
-            ImGui.TextWrapped(_host.LoadedMedia ?? _host.Info?.Name ?? _host.Machine!.DisplayName);
+            ImGui.TextWrapped(UiText.Get(_host.LoadedMedia ?? _host.Info?.Name ?? _host.Machine!.DisplayName));
             if (!compact) UiTheme.Hint("Cada juego y edición tiene sus propias ranuras.");
             else if (ImGui.IsItemHovered()) UiTheme.Tooltip("Cada juego y edición tiene sus propias ranuras.");
             ImGui.Separator();
@@ -51,7 +51,7 @@ public sealed partial class RetroApp
                 foreach (var slot in _savedSlots)
                 {
                     ImGui.PushID(slot.Number);
-                    ImGui.TextUnformatted($"Ranura {slot.Number}");
+                    ImGui.TextUnformatted(UiText.Get(UiText.Format($"Ranura {slot.Number}")));
                     string detail = slot.Problem ?? slot.SavedAt?.ToString("dd/MM/yyyy HH:mm") ?? "Vacía";
                     UiTheme.SameLineIfFits(detail); UiTheme.Hint(detail);
                     DrawStateSlotButtons(slot);
@@ -60,30 +60,30 @@ public sealed partial class RetroApp
             }
             else if (ImGui.BeginTable("slots", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerH))
             {
-                float actionsWidth = ImGui.CalcTextSize("GuardarCargar").X + ImGui.GetStyle().FramePadding.X * 4 + ImGui.GetStyle().ItemSpacing.X;
-                ImGui.TableSetupColumn("Ranura", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Ranura").X);
-                ImGui.TableSetupColumn("Guardada", ImGuiTableColumnFlags.WidthStretch);
-                ImGui.TableSetupColumn("Acciones", ImGuiTableColumnFlags.WidthFixed, actionsWidth);
+                float actionsWidth = ImGui.CalcTextSize(UiText.Get("Guardar") + UiText.Get("Cargar")).X + ImGui.GetStyle().FramePadding.X * 4 + ImGui.GetStyle().ItemSpacing.X;
+                ImGui.TableSetupColumn(UiText.Get("Ranura"), ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize(UiText.Get("Ranura")).X);
+                ImGui.TableSetupColumn(UiText.Get("Guardada"), ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn(UiText.Get("Acciones"), ImGuiTableColumnFlags.WidthFixed, actionsWidth);
                 ImGui.TableHeadersRow();
                 foreach (var slot in _savedSlots)
                 {
                     ImGui.PushID(slot.Number); ImGui.TableNextRow(); ImGui.TableNextColumn();
-                    ImGui.TextUnformatted(slot.Number.ToString()); ImGui.TableNextColumn();
-                    ImGui.TextWrapped(slot.Problem ?? slot.SavedAt?.ToString("dd/MM/yyyy HH:mm") ?? "Vacía");
+                    ImGui.TextUnformatted(UiText.Get(slot.Number.ToString())); ImGui.TableNextColumn();
+                    ImGui.TextWrapped(UiText.Get(slot.Problem ?? slot.SavedAt?.ToString("dd/MM/yyyy HH:mm") ?? "Vacía"));
                     ImGui.TableNextColumn();
                     DrawStateSlotButtons(slot); ImGui.PopID();
                 }
                 ImGui.EndTable();
             }
             DrawStateSaveConfirmation();
-            if (_stateMessage.Length > 0) ImGui.TextWrapped(_stateMessage);
+            if (_stateMessage.Length > 0) ImGui.TextWrapped(UiText.Get(_stateMessage));
             ImGui.Spacing();
-            if (_legacySlots.Any(s => s.SavedAt != null) && ImGui.CollapsingHeader("Guardados de versiones anteriores"))
+            if (_legacySlots.Any(s => s.SavedAt != null) && ImGui.CollapsingHeader(UiText.Label("Guardados de versiones anteriores")))
             {
-                ImGui.TextWrapped("Estos archivos se compartían entre juegos. Cargalos solo si corresponden a esta partida.");
+                ImGui.TextWrapped(UiText.Get("Estos archivos se compartían entre juegos. Cargalos solo si corresponden a esta partida."));
                 foreach (var slot in _legacySlots.Where(s => s.SavedAt != null))
                 {
-                    if (ImGui.SmallButton($"Cargar anterior {slot.Number}"))
+                    if (ImGui.SmallButton(UiText.Label(UiText.Format($"Cargar anterior {slot.Number}"))))
                     {
                         TryStateAction(() =>
                         {
@@ -92,21 +92,21 @@ public sealed partial class RetroApp
                         });
                         RefreshStateSlots();
                     }
-                    ImGui.SameLine(); ImGui.TextDisabled(slot.SavedAt!.Value.ToString("dd/MM/yyyy HH:mm"));
+                    ImGui.SameLine(); ImGui.TextDisabled(UiText.Get(slot.SavedAt!.Value.ToString("dd/MM/yyyy HH:mm")));
                 }
             }
             ImGui.Separator();
-            ImGui.TextWrapped("Las ranuras se conservan entre sesiones. El guardado rápido es temporal.");
-            if (ImGui.SmallButton("Actualizar lista")) RefreshStateSlots();
+            ImGui.TextWrapped(UiText.Get("Las ranuras se conservan entre sesiones. El guardado rápido es temporal."));
+            if (ImGui.SmallButton(UiText.Label("Actualizar lista"))) RefreshStateSlots();
         }
         finally { ImGui.End(); }
     }
 
     private void DrawStateSlotButtons(StateSlotInfo slot)
     {
-        if (ImGui.SmallButton("Guardar")) RequestStateSlotSave(slot.Number);
+        if (ImGui.SmallButton(UiText.Label("Guardar"))) RequestStateSlotSave(slot.Number);
         UiTheme.SameLineIfFits("Cargar"); ImGui.BeginDisabled(slot.SavedAt == null);
-        if (ImGui.SmallButton("Cargar")) RunStateSlot(slot.Number, save: false);
+        if (ImGui.SmallButton(UiText.Label("Cargar"))) RunStateSlot(slot.Number, save: false);
         ImGui.EndDisabled();
     }
 
@@ -132,17 +132,17 @@ public sealed partial class RetroApp
     private void DrawStateSaveConfirmation()
     {
         if (_pendingStateSave is not { } pending) return;
-        ImGui.OpenPopup("Reemplazar partida guardada");
+        ImGui.OpenPopup(UiText.Label("Reemplazar partida guardada"));
         float width = Math.Min(UiTheme.Px(440), ImGui.GetMainViewport().WorkSize.X - 24);
         ImGui.SetNextWindowSizeConstraints(new(width, 0), new(width, ImGui.GetMainViewport().WorkSize.Y - 24));
         ImGui.SetNextWindowSize(new(width, 0), ImGuiCond.Appearing);
         bool open = true;
-        if (ImGui.BeginPopupModal("Reemplazar partida guardada", ref open, ImGuiWindowFlags.AlwaysAutoResize))
+        if (ImGui.BeginPopupModal(UiText.Label("Reemplazar partida guardada"), ref open, ImGuiWindowFlags.AlwaysAutoResize))
         {
-            ImGui.TextWrapped($"La ranura {pending.Slot} ya tiene una partida. ¿Querés reemplazarla por la actual?");
-            if (ImGui.Button("Reemplazar")) { ConfirmStateSlotSave(true); ImGui.CloseCurrentPopup(); }
+            ImGui.TextWrapped(UiText.Get(UiText.Format($"La ranura {pending.Slot} ya tiene una partida. ¿Querés reemplazarla por la actual?")));
+            if (ImGui.Button(UiText.Label("Reemplazar"))) { ConfirmStateSlotSave(true); ImGui.CloseCurrentPopup(); }
             ImGui.SameLine();
-            if (ImGui.Button("Cancelar")) { ConfirmStateSlotSave(false); ImGui.CloseCurrentPopup(); }
+            if (ImGui.Button(UiText.Label("Cancelar"))) { ConfirmStateSlotSave(false); ImGui.CloseCurrentPopup(); }
             ImGui.EndPopup();
         }
         if (!open) ConfirmStateSlotSave(false);
@@ -157,7 +157,7 @@ public sealed partial class RetroApp
         {
             string path = _stateSlots.PathFor(_stateKey, slot);
             if (save) _host.SaveStateToFile(path); else _host.LoadStateFromFile(path);
-            _stateMessage = $"Ranura {slot} {(save ? "guardada" : "cargada")}.";
+            _stateMessage = UiText.Format($"Ranura {slot} {(save ? UiText.Get("guardada") : UiText.Get("cargada"))}.");
         });
         RefreshStateSlots();
     }

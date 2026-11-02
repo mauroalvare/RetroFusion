@@ -41,12 +41,12 @@ public sealed partial class HomeScreen
         bool showFavorite = ImGui.GetContentRegionAvail().X >= UiTheme.Px(200);
         // In a very narrow list the actions shrink to signs, explained on hover, so that a title can still be read.
         _shortActions = ImGui.GetContentRegionAvail().X < UiTheme.Px(340);
-        float actions = ImGui.CalcTextSize(PlayLabel).X + ImGui.CalcTextSize(CardLabel).X + ImGui.GetStyle().FramePadding.X * 4 + ImGui.GetStyle().ItemSpacing.X + UiTheme.Px(8);
+        float actions = ImGui.CalcTextSize(UiText.Get(PlayLabel)).X + ImGui.CalcTextSize(UiText.Get(CardLabel)).X + ImGui.GetStyle().FramePadding.X * 4 + ImGui.GetStyle().ItemSpacing.X + UiTheme.Px(8);
         int columns = 2 + (showSystem ? 1 : 0) + (showFavorite ? 1 : 0);
         if (!ImGui.BeginTable("juegos", columns, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY | ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.NoPadOuterX, new(0, Math.Max(RowHeight, ImGui.GetContentRegionAvail().Y)))) return;
         ImGui.TableSetupScrollFreeze(0, _compactRows ? 0 : 1);
-        ImGui.TableSetupColumn("Juego", ImGuiTableColumnFlags.WidthStretch);
-        if (showSystem) ImGui.TableSetupColumn("Sistema", ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(_compactRows ? 112 : 136));
+        ImGui.TableSetupColumn(UiText.Get("Juego"), ImGuiTableColumnFlags.WidthStretch);
+        if (showSystem) ImGui.TableSetupColumn(UiText.Get("Sistema"), ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(_compactRows ? 112 : 136));
         if (showFavorite) ImGui.TableSetupColumn("##favorito", ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(30));
         ImGui.TableSetupColumn("##acciones", ImGuiTableColumnFlags.WidthFixed, actions);
         if (!_compactRows) ImGui.TableHeadersRow();
@@ -95,8 +95,8 @@ public sealed partial class HomeScreen
         }
         float width = Math.Max(20, start.X + ImGui.GetContentRegionAvail().X - textX);
         var info = EffectiveInfo(card.Key);
-        string meta = !card.Openable ? card.Hint ?? "Formato sin confirmar"
-            : string.Join(" · ", info.Genres.Concat(info.ReleaseYear != null ? [info.YearLabel] : []));
+        string meta = !card.Openable ? UiText.Get(card.Hint ?? "Formato sin confirmar")
+            : string.Join(" · ", info.Genres.Select(UiText.Get).Concat(info.ReleaseYear != null ? [info.YearLabel] : []));
         uint ink = ImGui.GetColorU32(ImGuiCol.Text), muted = ImGui.ColorConvertFloat4ToU32(card.Openable ? UiTheme.Muted : UiTheme.Warning);
         float line = ImGui.GetTextLineHeight();
         if (_compactRows || meta.Length == 0)
@@ -110,7 +110,7 @@ public sealed partial class HomeScreen
         {
             ImGui.TableNextColumn();
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + (height - line) / 2);
-            ImGui.TextUnformatted(UiTheme.Fit(card.Detail, ImGui.GetContentRegionAvail().X));
+            ImGui.TextUnformatted(UiText.Get(UiTheme.Fit(card.Detail, ImGui.GetContentRegionAvail().X)));
         }
         ImGui.TableNextColumn();
         float buttonY = ImGui.GetCursorPosY() + (height - ImGui.GetFrameHeight()) / 2;
@@ -122,13 +122,13 @@ public sealed partial class HomeScreen
         }
         ImGui.SetCursorPosY(buttonY);
         ImGui.BeginDisabled(!card.Openable || library.Scanning);
-        if (UiTheme.PrimaryButton(PlayLabel + "###jugar")) { Close(); card.Play(); }
-        LibraryControlBounds?.Invoke("Jugar:" + card.Key, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
+        if (UiTheme.PrimaryButton(PlayLabel + UiText.Get("###jugar"))) { Close(); card.Play(); }
+        LibraryControlBounds?.Invoke(UiText.Get("Jugar:") + card.Key, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
         ImGui.EndDisabled();
         if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled)) UiTheme.Tooltip(card.Openable ? "Jugar" : card.Hint ?? "Este formato todavía no se puede abrir.");
         ImGui.SameLine();
-        if (ImGui.Button(CardLabel + "###ficha")) OpenMetadata(card.Key);
-        LibraryControlBounds?.Invoke("Ficha:" + card.Key, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
+        if (ImGui.Button(UiText.Label(CardLabel + UiText.Get("###ficha")))) OpenMetadata(card.Key);
+        LibraryControlBounds?.Invoke(UiText.Get("Ficha:") + card.Key, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
         if (_shortActions && ImGui.IsItemHovered()) UiTheme.Tooltip("Ficha");
         ImGui.PopID();
     }
@@ -150,7 +150,7 @@ public sealed partial class HomeScreen
     {
         bool favorite = _activity.IsFavorite(key);
         if (ImGui.Button("##favorito", size)) _activity.SetFavorite(key, !favorite);
-        LibraryControlBounds?.Invoke("Favorito:" + key, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
+        LibraryControlBounds?.Invoke(UiText.Get("Favorito:") + key, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
         var center = (ImGui.GetItemRectMin() + ImGui.GetItemRectMax()) / 2;
         Span<Vector2> star = stackalloc Vector2[10];
         for (int i = 0; i < star.Length; i++)
@@ -180,7 +180,7 @@ public sealed partial class HomeScreen
         if (UiTheme.PrimaryButton("Jugar##detalle", new(-1, 0))) { Close(); card.Play(); }
         LibraryControlBounds?.Invoke("Jugar detalle", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
         ImGui.EndDisabled();
-        if (ImGui.Button("Ficha##detalle", new(width - ImGui.GetFrameHeight() - ImGui.GetStyle().ItemSpacing.X, 0))) OpenMetadata(card.Key);
+        if (ImGui.Button(UiText.Label("Ficha##detalle"), new(width - ImGui.GetFrameHeight() - ImGui.GetStyle().ItemSpacing.X, 0))) OpenMetadata(card.Key);
         LibraryControlBounds?.Invoke("Ficha detalle", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
         ImGui.SameLine();
         ImGui.PushID("detalle"); FavoriteButton(card.Key, new(ImGui.GetFrameHeight(), ImGui.GetFrameHeight())); ImGui.PopID();
@@ -198,8 +198,8 @@ public sealed partial class HomeScreen
 
         static void Fact(string label, string value)
         {
-            using (UiTheme.Label()) ImGui.TextDisabled(label);
-            ImGui.PushTextWrapPos(0); ImGui.TextUnformatted(value); ImGui.PopTextWrapPos();
+            using (UiTheme.Label()) ImGui.TextDisabled(UiText.Get(label));
+            ImGui.PushTextWrapPos(0); ImGui.TextUnformatted(UiText.Get(value)); ImGui.PopTextWrapPos();
         }
     }
 }

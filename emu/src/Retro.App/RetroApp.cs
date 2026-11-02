@@ -15,7 +15,7 @@ public sealed partial class RetroApp
     private readonly InputMapper _input = new();
     private readonly string _romDir;
     private readonly FileBrowser _browser;
-    private readonly Retro.Ai.AiSettings _ai = Retro.Ai.AiSettings.Load();
+    private readonly Retro.Ai.AiSettings _ai;
     private readonly StudioWindow _studio;
     private readonly CreatorWindow _creator;
     private readonly GameLibrary _library;
@@ -75,9 +75,14 @@ public sealed partial class RetroApp
 
     public RetroApp(string[] args)
     {
+        _ai = args.Contains("--autotest") || args.Contains("--no-ai")
+            ? new Retro.Ai.AiSettings { Provider = "manual", ProvidersDisabled = true } : Retro.Ai.AiSettings.Load();
         _input.KeySink = _host.SetInput;
         _host.InputReset += _input.ForgetKeys;
         _prefs = new AppPreferences(persist: !args.Contains("--autotest"));
+        int languageArg = Array.IndexOf(args, "--language");
+        if (languageArg >= 0 && languageArg + 1 < args.Length && args[languageArg + 1] is "es" or "en") _prefs.Language = args[languageArg + 1];
+        UiText.Language = _prefs.Language;
         _gameMetadata = new(new GameIdentificationCache(persist: !args.Contains("--autotest")));
         _gameMetadata.CandidatesReady += ReportCandidates;
         int interfaceArg = Array.IndexOf(args, "--interface");
@@ -135,7 +140,7 @@ public sealed partial class RetroApp
         }
         catch (Exception e)
         {
-            _errorPopup = e.Message + "\n\nCopiá la ROM a la carpeta firmware/ junto al programa.";
+            _errorPopup = e.Message + UiText.Get("\n\nCopiá la ROM a la carpeta firmware/ junto al programa.");
         }
         bool openedFile = false;
         for (int i = 0; i < args.Length; i++)
@@ -180,7 +185,7 @@ public sealed partial class RetroApp
             else if(args[i]=="--auto-analysis-window" && args.Contains("--autotest")) {CloseEditors();_home.Close();_code.OpenAutomaticAnalysis();}
             else if (args[i] is "--auto-analysis-action" or "--auto-analysis-section" && args.Contains("--autotest") && i + 1 < args.Length)
                 i++;
-            else if (args[i] is "--text-size" or "--interface")
+            else if (args[i] is "--text-size" or "--interface" or "--language")
                 i++;
             else if (args[i] != "--hidden" && File.Exists(args[i]))
             {
@@ -197,6 +202,7 @@ public sealed partial class RetroApp
         if (!openedFile && !args.Any(a => a is "--studio" or "--preparar" or "--crear-window" or "--studio-window" or "--code" or "--mods-window" or "--states-window" or "--sound-window" or "--preferences-window" or "--debug" or "--create-hub" or "--tools-hub" or "--help-hub" or "--research-window" or "--auto-analysis-window"))
             _home.Open();
         _updates = new UpdateWindow(args);
+        _updates.ControlBounds = (name, min, max) => InterfaceControlBounds?.Invoke(name, min, max);
         if (Hardcore) OpenTerminal();
         if (args.Contains("--interface-picker")) OpenInterfacePicker();
     }
@@ -204,10 +210,18 @@ public sealed partial class RetroApp
     /// <summary>Without a sound device everything else keeps working: games run silent, at their real speed.</summary>
     private unsafe void StartAudioStream()
     {
+        if (!Raylib.IsAudioDeviceReady())
+        {
+            _stream = default; _host.SoundDeviceMissing = true; _audioRetried = false;
+            return;
+        }
         Raylib.SetAudioStreamBufferSizeDefault(512);
         _stream = Raylib.LoadAudioStream(44100, 16, 1);
-        Raylib.SetAudioStreamCallback(_stream, &AudioCallback);
-        Raylib.PlayAudioStream(_stream);
+        if (Raylib.IsAudioStreamValid(_stream))
+        {
+            Raylib.SetAudioStreamCallback(_stream, &AudioCallback);
+            Raylib.PlayAudioStream(_stream);
+        }
         _host.SoundDeviceMissing = !AudioReady;
         _audioRetried = false;
     }
@@ -291,7 +305,7 @@ public sealed partial class RetroApp
         if (_texW != 0)
             Raylib.UnloadTexture(_screenTex);
         s_queue = null;
-        Raylib.UnloadAudioStream(_stream);
+        if (Raylib.IsAudioStreamValid(_stream)) Raylib.UnloadAudioStream(_stream);
     }
 
     private bool CaptureGuiKeyboard()
@@ -361,7 +375,7 @@ public sealed partial class RetroApp
         }
         if (_autotestResearchAction is { } action && _elapsed>1)
         {
-            Console.WriteLine("acción investigación: "+_studio.OpenResearchOriginal("a",analyze:action=="analyze"));
+            Console.WriteLine(UiText.Get("acción investigación: ")+_studio.OpenResearchOriginal("a",analyze:action=="analyze"));
             _autotestResearchAction=null;
         }
 
@@ -399,6 +413,7 @@ public sealed partial class RetroApp
         _updates.Draw();
         _interfacePicker.ControlBounds = InterfaceControlBounds;
         if (!_updates.Blocking) _interfacePicker.Draw(FinishInterfaceChoice);
+        if (!_updates.Blocking) DrawNews();
         rlImGui.End();
         Raylib.EndDrawing();
 
@@ -407,23 +422,23 @@ public sealed partial class RetroApp
         {
             _autotestGeometry=true;
             var viewport=ImGui.GetMainViewport();var io=ImGui.GetIO();
-            Console.WriteLine($"geometria: ventana={Raylib.GetScreenWidth()}x{Raylib.GetScreenHeight()} render={Raylib.GetRenderWidth()}x{Raylib.GetRenderHeight()} dpi={Raylib.GetWindowScaleDPI()} viewport={viewport.Pos}/{viewport.Size} imgui={io.DisplaySize}/{io.DisplayFramebufferScale}");
+            Console.WriteLine(UiText.Format($"geometria: ventana={Raylib.GetScreenWidth()}x{Raylib.GetScreenHeight()} render={Raylib.GetRenderWidth()}x{Raylib.GetRenderHeight()} dpi={Raylib.GetWindowScaleDPI()} viewport={viewport.Pos}/{viewport.Size} imgui={io.DisplaySize}/{io.DisplayFramebufferScale}"));
         }
         // Frames drawn during the last second: Raylib.GetFPS averages samples taken per call, so read once per second it overstated the rate.
         if (_autotestSeconds >= 0 && (int)_elapsed != (int)(_elapsed - dt))
         {
-            Console.WriteLine($"t={_elapsed:F1}s fps={_windowFrames} objetivo={_targetFps} velocidad={_host.EffectiveSpeed * 100:F0}% audio_en_cola={_host.Audio.Count} cuadros={_host.Machine?.FrameCount}");
+            Console.WriteLine(UiText.Format($"t={_elapsed:F1}s fps={_windowFrames} objetivo={_targetFps} velocidad={_host.EffectiveSpeed * 100:F0}% audio_en_cola={_host.Audio.Count} cuadros={_host.Machine?.FrameCount}"));
             _windowFrames = 0;
         }
         if (_autotestSeconds >= 0 && _elapsed >= _autotestSeconds && _autotestShot != null)
         {
             FramebufferCapture.Save(_autotestShot);
             // The emulated screen too, through the same path as Juego > Guardar captura (out/autotest-capturas).
-            if (!_home.IsOpen) { SaveCapture(); Console.WriteLine("captura: " + _host.Status); }
+            if (!_home.IsOpen) { SaveCapture(); Console.WriteLine(UiText.Get("captura: ") + _host.Status); }
             foreach (var group in _library.Entries.GroupBy(e => e.Machine.Name))
-                Console.WriteLine($"biblioteca: {group.Key}: {string.Join(", ", group.Select(e => e.Name))}");
+                Console.WriteLine(UiText.Format($"biblioteca: {group.Key}: {string.Join(", ", group.Select(e => e.Name))}"));
             foreach (var e in _library.Entries.Where(e => FusionsOf(e.ProfileId).Count > 0))
-                Console.WriteLine($"con fusión: {e.Name}: {string.Join(", ", FusionsOf(e.ProfileId))}");
+                Console.WriteLine(UiText.Format($"con fusión: {UiText.Raw(e.Name)}: {string.Join(", ", FusionsOf(e.ProfileId))}"));
             QuitRequested = true;
         }
     }
@@ -600,12 +615,12 @@ public sealed partial class RetroApp
             var files = MediaArchive.Open(path);
             if (files.Count == 0)
             {
-                _errorPopup = $"{fileName} está vacío (o es un zip sin archivos).";
+                _errorPopup = UiText.Format($"{fileName} está vacío (o es un zip sin archivos).");
                 return;
             }
             if (files.Count == 1 && MachineCatalog.Unsupported(files[0]) is { } why)
             {
-                _errorPopup = $"{fileName} {why}";
+                _errorPopup = UiText.Format($"{fileName} {why}");
                 return;
             }
             if (Retro.Systems.Arcade.SpaceInvadersSound.IsSampleSet(files))
@@ -629,7 +644,7 @@ public sealed partial class RetroApp
                 .ToList();
             if (candidates.Count == 0)
             {
-                _errorPopup = $"No se reconoce el formato de {fileName}.\nAbrí el archivo del juego o su ZIP. En Biblioteca se indican los formatos de cada máquina.";
+                _errorPopup = UiText.Format($"No se reconoce el formato de {fileName}.\nAbrí el archivo del juego o su ZIP. En Biblioteca se indican los formatos de cada máquina.");
                 return;
             }
             var playable = candidates.Where(c => c.Machine.Status == MachineStatus.Available && c.Confidence >= 50 && MachineCatalog.NotLoadableYet(c) == null).ToList();
@@ -637,9 +652,9 @@ public sealed partial class RetroApp
             {
                 var best = candidates[0];
                 _errorPopup = MachineCatalog.NotLoadableYet(best) is { } notYet
-                    ? $"{fileName}: {best.Machine.Name}.\nNo se puede abrir todavía: {notYet}."
-                    : $"{fileName} es para {best.Machine.Name} (CPU {best.Machine.Cpu}): {best.Reason}.\n" +
-                      "Este sistema todavía está en desarrollo. En Biblioteca podés ver las máquinas disponibles.";
+                    ? UiText.Format($"{fileName}: {UiText.Raw(best.Machine.Name)}.\nNo se puede abrir todavía: {notYet}.")
+                    : UiText.Format($"{fileName} es para {UiText.Raw(best.Machine.Name)} (CPU {best.Machine.Cpu}): {best.Reason}.\n") +
+                      UiText.Get("Este sistema todavía está en desarrollo. En Biblioteca podés ver las máquinas disponibles.");
                 return;
             }
             var versions = playable
@@ -661,7 +676,7 @@ public sealed partial class RetroApp
         }
         catch (Exception e)
         {
-            _errorPopup = $"No se pudo abrir {fileName}: {e.Message}";
+            _errorPopup = UiText.Format($"No se pudo abrir {fileName}: {e.Message}");
         }
     }
 
@@ -723,8 +738,8 @@ public sealed partial class RetroApp
         catch (Exception e)
         {
             _errorPopup = e is FileNotFoundException
-                ? $"No se pudo arrancar {c.Machine.Name}: {e.Message}\nEl firmware va en la carpeta firmware/ junto al programa."
-                : $"No se pudo cargar {c.File.Name} en {c.Machine.Name}: {e.Message}";
+                ? UiText.Format($"No se pudo arrancar {UiText.Raw(c.Machine.Name)}: {e.Message}\nEl firmware va en la carpeta firmware/ junto al programa.")
+                : UiText.Format($"No se pudo cargar {UiText.Raw(c.File.Name)} en {UiText.Raw(c.Machine.Name)}: {e.Message}");
             return false;
         }
     }
@@ -741,7 +756,7 @@ public sealed partial class RetroApp
         }
         catch (Exception e)
         {
-            _errorPopup = $"No se pudo encender {info.Name}: {e.Message}";
+            _errorPopup = UiText.Format($"No se pudo encender {UiText.Raw(info.Name)}: {e.Message}");
             return false;
         }
     }
@@ -832,9 +847,9 @@ public sealed partial class RetroApp
     {
         if (_host.CurrentVideo is not { } video) return;
         string title = _host.Fusion?.Title ?? (_host.LoadedMedia != null ? Path.GetFileNameWithoutExtension(_host.LoadedMedia) : _host.Info?.Name ?? "captura");
-        try { _host.Status = "Captura guardada: " + ScreenCapture.Save(video, _captureFolder, title, DateTime.Now); }
+        try { _host.Status = UiText.Get("Captura guardada: ") + ScreenCapture.Save(video, _captureFolder, title, DateTime.Now); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException)
-        { _errorPopup = "No se pudo guardar la captura: " + e.Message; }
+        { _errorPopup = UiText.Get("No se pudo guardar la captura: ") + e.Message; }
     }
 
     /// <summary>The library original being played: thumbnails are not offered for fusions, creations or loose files.</summary>
@@ -848,11 +863,11 @@ public sealed partial class RetroApp
         try
         {
             _host.Status = ScreenCapture.SaveThumbnail(video, media) is { } path
-                ? $"Miniatura guardada: {Path.GetFileName(path)}. Se ve al volver a la biblioteca."
+                ? UiText.Format($"Miniatura guardada: {UiText.Raw(Path.GetFileName(path))}. Se ve al volver a la biblioteca.")
                 : "Ese juego ya tiene una imagen junto a su archivo; no se reemplaza.";
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException)
-        { _errorPopup = "No se pudo guardar la miniatura: " + e.Message; }
+        { _errorPopup = UiText.Get("No se pudo guardar la miniatura: ") + e.Message; }
     }
 
     private void ToggleFullscreen()
@@ -864,7 +879,7 @@ public sealed partial class RetroApp
     // ------------------------------------------------------------------ menu
     private bool ToolShortcutsNeedShift => InputMapper.ToolShortcutsNeedShift(_host.Machine, _host.Fusion != null);
     private string ToolShortcut(string key) => (ToolShortcutsNeedShift ? "Ctrl+Shift+" : "Ctrl+") + key;
-    private string Shortcut(string key) => _host.Pc != null && _host.Fusion == null ? "Ctrl+" + key :
+    private string Shortcut(string key) => _host.Pc != null && _host.Fusion == null ? UiText.Get("Ctrl+") + key :
         _host.Fusion == null && _host.C64 != null && key is "F5" or "Shift+F5" ? "" : key;
 
     private void DrawMenu()
@@ -876,126 +891,126 @@ public sealed partial class RetroApp
         var io = ImGui.GetIO();
         if ((io.ConfigFlags & ImGuiConfigFlags.NavEnableKeyboard) != 0 && !io.WantTextInput && ImGui.IsKeyPressed(ImGuiKey.LeftAlt, false))
             ImGui.SetWindowFocus();
-        float menuWidth = ImGui.CalcTextSize("Biblioteca Juego Crear Herramientas Opciones Ayuda" + (UiTheme.CompactHeight ? " Volver a jugar" : "")).X + ImGui.GetStyle().ItemSpacing.X * 14;
+        float menuWidth = ImGui.CalcTextSize(UiText.Get(UiText.Get("Biblioteca Juego Crear Herramientas Opciones Ayuda") + (UiTheme.CompactHeight ? " Volver a jugar" : ""))).X + ImGui.GetStyle().ItemSpacing.X * 14;
         bool compactMenu = ImGui.GetMainViewport().WorkSize.X < menuWidth;
-        if (compactMenu && !ImGui.BeginMenu("Menú"))
+        if (compactMenu && !ImGui.BeginMenu(UiText.Label("Menú")))
         {
-            if (ImGui.MenuItem("Buscar acción…", ToolShortcut("P"))) _commands.Open();
+            if (ImGui.MenuItem(UiText.Label("Buscar acción…"), ToolShortcut("P"))) _commands.Open();
             ImGui.EndMainMenuBar(); return;
         }
-        if (ImGui.MenuItem("Biblioteca", ToolShortcut("L"))) { CloseEditors(); _home.Open(); }
-        if (UiTheme.CompactHeight && ImGui.MenuItem("Volver a jugar", "", false, _host.Machine != null)) OpenPlay();
-        if (ImGui.BeginMenu("Juego"))
+        if (ImGui.MenuItem(UiText.Label("Biblioteca"), ToolShortcut("L"))) { CloseEditors(); _home.Open(); }
+        if (UiTheme.CompactHeight && ImGui.MenuItem(UiText.Label("Volver a jugar"), "", false, _host.Machine != null)) OpenPlay();
+        if (ImGui.BeginMenu(UiText.Label("Juego")))
         {
-            if (ImGui.MenuItem("Abrir juego o programa...", ToolShortcut("O"))) _browser.Open();
-            if (ImGui.BeginMenu("Recientes"))
+            if (ImGui.MenuItem(UiText.Label("Abrir juego o programa..."), ToolShortcut("O"))) _browser.Open();
+            if (ImGui.BeginMenu(UiText.Label("Recientes")))
             {
                 var recents = _home.Recents(10);
-                if (recents.Count == 0) ImGui.TextDisabled("Todavía no abriste juegos.");
+                if (recents.Count == 0) ImGui.TextDisabled(UiText.Get("Todavía no abriste juegos."));
                 for (int r = 0; r < recents.Count; r++)
                     if (ImGui.MenuItem($"{UiTheme.Fit(recents[r].Title, UiTheme.Px(360))}##reciente{r}", recents[r].Detail)) recents[r].Play();
                 ImGui.Separator();
-                if (ImGui.MenuItem("Ver todos en la biblioteca")) { CloseEditors(); _home.ShowRecents(); }
+                if (ImGui.MenuItem(UiText.Label("Ver todos en la biblioteca"))) { CloseEditors(); _home.ShowRecents(); }
                 ImGui.EndMenu();
             }
-            if (ImGui.BeginMenu(_versions.Count > 0 && _versions.All(v => v.Machine.Id == "pcxt") ? "Programas del archivo" : "Otras versiones del último juego", _versions.Count > 1))
+            if (ImGui.BeginMenu(UiText.Label(_versions.Count > 0 && _versions.All(v => v.Machine.Id == "pcxt") ? "Programas del archivo" : "Otras versiones del último juego"), _versions.Count > 1))
             {
-                ImGui.TextDisabled("Elegí otro archivo del mismo paquete.");
+                ImGui.TextDisabled(UiText.Get("Elegí otro archivo del mismo paquete."));
                 foreach (var v in _versions)
-                    if (ImGui.MenuItem($"{PcDos.DisplayPath(v.File)}##{v.File.Source}"))
+                    if (ImGui.MenuItem(UiText.Label(UiText.Format($"{PcDos.DisplayPath(v.File)}##{v.File.Source}"))))
                         Launch(v);
                 ImGui.EndMenu();
             }
             ImGui.Separator();
-            if (ImGui.MenuItem("Guardar estado rápido", Shortcut("F2"), false, _host.CanUseStates)) _host.QuickSave();
-            if (ImGui.MenuItem("Cargar estado rápido", _host.Pc != null ? Shortcut("F4") : _host.C64 != null ? "F4" : "F3", false, _host.CanUseStates)) _host.QuickLoad();
-            if (ImGui.MenuItem("Partidas guardadas...", "", false, _host.CanUseStates)) OpenStateWindow();
-            if (ImGui.BeginMenu("Rebobinado y entradas", _host.CanUseStates))
+            if (ImGui.MenuItem(UiText.Label("Guardar estado rápido"), Shortcut("F2"), false, _host.CanUseStates)) _host.QuickSave();
+            if (ImGui.MenuItem(UiText.Label("Cargar estado rápido"), _host.Pc != null ? Shortcut("F4") : _host.C64 != null ? "F4" : "F3", false, _host.CanUseStates)) _host.QuickLoad();
+            if (ImGui.MenuItem(UiText.Label("Partidas guardadas..."), "", false, _host.CanUseStates)) OpenStateWindow();
+            if (ImGui.BeginMenu(UiText.Label("Rebobinado y entradas"), _host.CanUseStates))
             {
                 bool rewind = _host.RewindEnabled;
-                if (ImGui.MenuItem("Conservar historial (hasta 64 MB)", "", ref rewind)) _host.SetRewindEnabled(rewind);
-                if (ImGui.MenuItem("Retroceder cinco segundos", "", false, _host.RewindPoints > 0 && !_host.IsRecordingInputs && !_host.IsReplayingInputs))
+                if (ImGui.MenuItem(UiText.Label("Conservar historial (hasta 64 MB)"), "", ref rewind)) _host.SetRewindEnabled(rewind);
+                if (ImGui.MenuItem(UiText.Label("Retroceder cinco segundos"), "", false, _host.RewindPoints > 0 && !_host.IsRecordingInputs && !_host.IsReplayingInputs))
                     TryStateAction(() => _host.Rewind());
-                if (ImGui.MenuItem("Vaciar historial", "", false, _host.RewindPoints > 0)) _host.ClearRewind();
-                ImGui.TextDisabled($"Historial: {_host.RewindPoints} puntos · {_host.RewindBytes / (1024 * 1024.0):F1} MB");
+                if (ImGui.MenuItem(UiText.Label("Vaciar historial"), "", false, _host.RewindPoints > 0)) _host.ClearRewind();
+                ImGui.TextDisabled(UiText.Get(UiText.Format($"Historial: {_host.RewindPoints} puntos · {_host.RewindBytes / (1024 * 1024.0):F1} MB")));
                 ImGui.Separator();
-                if (ImGui.MenuItem("Grabar entradas desde aquí", "", false, _host.CanRecordInputs)) TryStateAction(() => _host.StartInputRecording());
-                if (ImGui.MenuItem("Terminar grabación", "", false, _host.IsRecordingInputs)) _host.StopInputRecording();
-                if (ImGui.MenuItem("Reproducir última grabación", "", false, _host.CanReplayInputs)) TryStateAction(() => _host.StartInputReplay());
-                if (ImGui.MenuItem("Detener reproducción", "", false, _host.IsReplayingInputs)) _host.StopInputReplay();
-                ImGui.TextDisabled($"Grabación: {_host.RecordedFrames} cuadros (solo esta sesión)");
+                if (ImGui.MenuItem(UiText.Label("Grabar entradas desde aquí"), "", false, _host.CanRecordInputs)) TryStateAction(() => _host.StartInputRecording());
+                if (ImGui.MenuItem(UiText.Label("Terminar grabación"), "", false, _host.IsRecordingInputs)) _host.StopInputRecording();
+                if (ImGui.MenuItem(UiText.Label("Reproducir última grabación"), "", false, _host.CanReplayInputs)) TryStateAction(() => _host.StartInputReplay());
+                if (ImGui.MenuItem(UiText.Label("Detener reproducción"), "", false, _host.IsReplayingInputs)) _host.StopInputReplay();
+                ImGui.TextDisabled(UiText.Get(UiText.Format($"Grabación: {_host.RecordedFrames} cuadros (solo esta sesión)")));
                 ImGui.EndMenu();
             }
             ImGui.Separator();
-            if (ImGui.MenuItem("Guardar captura de pantalla", ToolShortcut("S"), false, _host.CurrentVideo != null)) SaveCapture();
-            if (ImGui.IsItemHovered()) UiTheme.Tooltip("PNG de la pantalla emulada, a su resolución, en " + _captureFolder);
-            if (ImGui.MenuItem("Usar la pantalla como miniatura", "", false, ThumbnailTarget() != null)) SaveThumbnail();
+            if (ImGui.MenuItem(UiText.Label("Guardar captura de pantalla"), ToolShortcut("S"), false, _host.CurrentVideo != null)) SaveCapture();
+            if (ImGui.IsItemHovered()) UiTheme.Tooltip(UiText.Get("PNG de la pantalla emulada, a su resolución, en ") + _captureFolder);
+            if (ImGui.MenuItem(UiText.Label("Usar la pantalla como miniatura"), "", false, ThumbnailTarget() != null)) SaveThumbnail();
             if (ImGui.IsItemHovered()) UiTheme.Tooltip("Guarda la imagen junto al juego para la biblioteca. No reemplaza una imagen que ya exista.");
             ImGui.Separator();
             ImGui.BeginDisabled(_host.Machine == null);
-            if (ImGui.MenuItem(_host.Paused ? "Continuar" : "Pausa", Shortcut("F9"), false, !_home.IsOpen))
+            if (ImGui.MenuItem(UiText.Label(_host.Paused ? "Continuar" : "Pausa"), Shortcut("F9"), false, !_home.IsOpen))
             { if (_host.Paused) _host.Continue(); else _host.Pause("Pausa"); }
-            if (ImGui.MenuItem(_host.Fusion != null ? "Reiniciar fusión o creación" : "Reiniciar", Shortcut("F5"))) _host.Reset(false);
-            if (ImGui.MenuItem("Reinicio total (borra RAM)", Shortcut("Shift+F5"), false, _host.Fusion == null)) _host.Reset(true);
+            if (ImGui.MenuItem(UiText.Label(_host.Fusion != null ? "Reiniciar fusión o creación" : "Reiniciar"), Shortcut("F5"))) _host.Reset(false);
+            if (ImGui.MenuItem(UiText.Label("Reinicio total (borra RAM)"), Shortcut("Shift+F5"), false, _host.Fusion == null)) _host.Reset(true);
             bool turbo = _host.Turbo;
-            if (ImGui.MenuItem("Turbo", Shortcut("F8"), ref turbo)) _host.Turbo = turbo;
-            if (ImGui.MenuItem("Detener fusión o creación", "", false, _host.Fusion != null)) _host.StopFusion();
-            if ((_host.Zx != null || _host.C64 != null || _host.Invaders != null) && ImGui.BeginMenu("Controles y hardware"))
+            if (ImGui.MenuItem(UiText.Label("Turbo"), Shortcut("F8"), ref turbo)) _host.Turbo = turbo;
+            if (ImGui.MenuItem(UiText.Label("Detener fusión o creación"), "", false, _host.Fusion != null)) _host.StopFusion();
+            if ((_host.Zx != null || _host.C64 != null || _host.Invaders != null) && ImGui.BeginMenu(UiText.Label("Controles y hardware")))
             {
             if (_host.Zx != null)
             {
-                if (ImGui.BeginMenu("Joystick en flechas / gamepad"))
+                if (ImGui.BeginMenu(UiText.Label("Joystick en flechas / gamepad")))
                 {
                     foreach (JoystickMode jm in Enum.GetValues<JoystickMode>())
-                        if (ImGui.MenuItem(JoystickNames[(int)jm], "", _input.Joystick == jm)) SetSpectrumJoystick(jm);
+                        if (ImGui.MenuItem(UiText.Label(JoystickNames[(int)jm]), "", _input.Joystick == jm)) SetSpectrumJoystick(jm);
                     ImGui.EndMenu();
                 }
             }
             if (_host.C64 is { } c64)
             {
-                if (ImGui.BeginMenu("Joystick en flechas / gamepad"))
+                if (ImGui.BeginMenu(UiText.Label("Joystick en flechas / gamepad")))
                 {
-                    if (ImGui.MenuItem("Puerto 2 (la mayoría de los juegos)", "", _input.C64Port == 2)) SetC64Port(2);
-                    if (ImGui.MenuItem("Puerto 1", "", _input.C64Port == 1)) SetC64Port(1);
-                    ImGui.TextDisabled("Si el personaje no se mueve, probá el otro puerto.");
+                    if (ImGui.MenuItem(UiText.Label("Puerto 2 (la mayoría de los juegos)"), "", _input.C64Port == 2)) SetC64Port(2);
+                    if (ImGui.MenuItem(UiText.Label("Puerto 1"), "", _input.C64Port == 1)) SetC64Port(1);
+                    ImGui.TextDisabled(UiText.Get("Si el personaje no se mueve, probá el otro puerto."));
                     ImGui.EndMenu();
                 }
-                if (ImGui.MenuItem("Pulsar RUN/STOP + RESTORE (vuelve al BASIC)"))
+                if (ImGui.MenuItem(UiText.Label("Pulsar RUN/STOP + RESTORE (vuelve al BASIC)")))
                     c64.QueueKeys(8, "RUN/STOP", "RESTORE");
                 if (c64.OpenRoms && c64.UnhandledKernalCalls.Count > 0)
-                    ImGui.TextDisabled($"El juego llamó a rutinas internas del KERNAL original: {string.Join(", ", c64.UnhandledKernalCalls.Select(a => $"${a:X4}"))}.");
+                    ImGui.TextDisabled(UiText.Get(UiText.Format($"El juego llamó a rutinas internas del KERNAL original: {string.Join(", ", c64.UnhandledKernalCalls.Select(a => UiText.Format($"${a:X4}")))}.")));
             }
-            if (_host.Invaders is { } inv && ImGui.BeginMenu("DIP switches de la placa"))
+            if (_host.Invaders is { } inv && ImGui.BeginMenu(UiText.Label("DIP switches de la placa")))
             {
                 for (int ships = 3; ships <= 6; ships++)
-                    if (ImGui.MenuItem($"{ships} naves por partida", "", inv.Ships == ships)) inv.Ships = ships;
+                    if (ImGui.MenuItem(UiText.Label(UiText.Format($"{ships} naves por partida")), "", inv.Ships == ships)) inv.Ships = ships;
                 ImGui.Separator();
                 bool bonus = inv.BonusAt1000;
-                if (ImGui.MenuItem("Nave extra a los 1000 puntos (si no, 1500)", "", ref bonus)) inv.BonusAt1000 = bonus;
+                if (ImGui.MenuItem(UiText.Label("Nave extra a los 1000 puntos (si no, 1500)"), "", ref bonus)) inv.BonusAt1000 = bonus;
                 bool coin = inv.ShowCoinInfo;
-                if (ImGui.MenuItem("Mostrar información de monedas", "", ref coin)) inv.ShowCoinInfo = coin;
-                ImGui.TextDisabled("Los cambios se leen al empezar la próxima partida.");
+                if (ImGui.MenuItem(UiText.Label("Mostrar información de monedas"), "", ref coin)) inv.ShowCoinInfo = coin;
+                ImGui.TextDisabled(UiText.Get("Los cambios se leen al empezar la próxima partida."));
                 ImGui.EndMenu();
             }
                 ImGui.EndMenu();
             }
-        if (_host.Zx is { } zx && ImGui.BeginMenu("Cinta"))
+        if (_host.Zx is { } zx && ImGui.BeginMenu(UiText.Label("Cinta")))
         {
             var tape = zx.Tape;
             bool typeLoad = _prefs.TypeLoad;
-            if (ImGui.MenuItem("Escribir LOAD \"\" al abrir cintas", "", ref typeLoad)) { _prefs.TypeLoad = typeLoad; _prefs.Save(); }
+            if (ImGui.MenuItem(UiText.Label("Escribir LOAD \"\" al abrir cintas"), "", ref typeLoad)) { _prefs.TypeLoad = typeLoad; _prefs.Save(); }
             bool turboLoading = _host.TurboWhileLoading;
-            if (ImGui.MenuItem("Acelerar durante la carga", "", ref turboLoading)) SetTurboWhileLoading(turboLoading);
-            if (ImGui.MenuItem(tape.IsPlaying ? "Detener" : "Reproducir", "F6", false, tape.IsLoaded)) ToggleTape();
-            if (ImGui.MenuItem("Rebobinar", "F7", false, tape.IsLoaded)) tape.Rewind();
-            if (ImGui.MenuItem("Expulsar", "", false, tape.IsLoaded)) tape.Eject();
+            if (ImGui.MenuItem(UiText.Label("Acelerar durante la carga"), "", ref turboLoading)) SetTurboWhileLoading(turboLoading);
+            if (ImGui.MenuItem(UiText.Label(tape.IsPlaying ? "Detener" : "Reproducir"), "F6", false, tape.IsLoaded)) ToggleTape();
+            if (ImGui.MenuItem(UiText.Label("Rebobinar"), "F7", false, tape.IsLoaded)) tape.Rewind();
+            if (ImGui.MenuItem(UiText.Label("Expulsar"), "", false, tape.IsLoaded)) tape.Eject();
             bool auto = zx.AutoPlayTape;
-            if (ImGui.MenuItem("Arrancar sola al ejecutar LOAD", "", ref auto)) zx.AutoPlayTape = auto;
-            if (ImGui.MenuItem("Escribir LOAD \"\" ahora")) zx.TypeLoadCommand();
+            if (ImGui.MenuItem(UiText.Label("Arrancar sola al ejecutar LOAD"), "", ref auto)) zx.AutoPlayTape = auto;
+            if (ImGui.MenuItem(UiText.Label("Escribir LOAD \"\" ahora"))) zx.TypeLoadCommand();
             ImGui.EndMenu();
         }
             ImGui.EndDisabled();
-            if (ImGui.BeginMenu("Encender sin juego"))
+            if (ImGui.BeginMenu(UiText.Label("Encender sin juego")))
             {
                 foreach (string id in new[] { "zx48", "c64" })
                 {
@@ -1009,113 +1024,114 @@ public sealed partial class RetroApp
                 ImGui.EndMenu();
             }
             ImGui.Separator();
-            if (ImGui.MenuItem("Salir")) RequestQuit();
+            if (ImGui.MenuItem(UiText.Label("Salir"))) RequestQuit();
             ImGui.EndMenu();
         }
-        if (ImGui.BeginMenu("Crear"))
+        if (ImGui.BeginMenu(UiText.Label("Crear")))
         {
-            if (ImGui.MenuItem("Fusionar juegos...")) OpenFusionStudio();
-            if (ImGui.MenuItem("Juego nuevo desde cero...")) OpenCreator();
-            if (ImGui.MenuItem("Juego nuevo con tus ROMs...")) OpenInspiredCreator();
+            if (ImGui.MenuItem(UiText.Label("Fusionar juegos..."))) OpenFusionStudio();
+            if (ImGui.MenuItem(UiText.Label("Juego nuevo desde cero..."))) OpenCreator();
+            if (ImGui.MenuItem(UiText.Label("Juego nuevo con tus ROMs..."))) OpenInspiredCreator();
             ImGui.EndMenu();
         }
-        if (ImGui.BeginMenu("Herramientas"))
+        if (ImGui.BeginMenu(UiText.Label("Herramientas")))
         {
-            if (ImGui.MenuItem("Buscar acción...", ToolShortcut("P"))) _commands.Open();
+            if (ImGui.MenuItem(UiText.Label("Buscar acción..."), ToolShortcut("P"))) _commands.Open();
             ImGui.Separator();
             ImGui.BeginDisabled(_host.Machine == null);
-            if (ImGui.MenuItem("Modificar y analizar...", ToolShortcut("M"))) OpenModifications();
-            if(ImGui.MenuItem("Investigar variables automáticamente...","",false,_host.LoadedMediaSource!=null && _host.Fusion==null)) OpenAutomaticAnalysis();
-            if (ImGui.MenuItem("Código y rutinas...", ToolShortcut("K"))) { CloseEditors(); _home.Close(); _code.Open(); }
+            if (ImGui.MenuItem(UiText.Label("Modificar y analizar..."), ToolShortcut("M"))) OpenModifications();
+            if(ImGui.MenuItem(UiText.Label("Investigar variables automáticamente..."),"",false,_host.LoadedMediaSource!=null && _host.Fusion==null)) OpenAutomaticAnalysis();
+            if (ImGui.MenuItem(UiText.Label("Código y rutinas..."), ToolShortcut("K"))) { CloseEditors(); _home.Close(); _code.Open(); }
             ImGui.Separator();
-            if (ImGui.BeginMenu("Depuración"))
+            if (ImGui.BeginMenu(UiText.Label("Depuración")))
             {
-                if (ImGui.MenuItem("Mostrar depurador", "F12", _debugMode)) { if (_debugMode && !InterfaceWorkspace) OpenPlay(); else OpenDebugger(); }
-                if (ImGui.MenuItem("Paso (una instrucción)", Shortcut("F10"))) { OpenDebugger(); _host.StepInto(); }
-                if (ImGui.MenuItem("Paso por encima (CALL, bucles)", Shortcut("Shift+F10"))) { OpenDebugger(); _host.StepOver(); }
-                if (ImGui.MenuItem("Avanzar un cuadro")) { OpenDebugger(); _host.StepFrame(); }
-                if (ImGui.MenuItem("Reorganizar paneles")) { OpenDebugger(); _arrangeDebugger = true; }
+                if (ImGui.MenuItem(UiText.Label("Mostrar depurador"), "F12", _debugMode)) { if (_debugMode && !InterfaceWorkspace) OpenPlay(); else OpenDebugger(); }
+                if (ImGui.MenuItem(UiText.Label("Paso (una instrucción)"), Shortcut("F10"))) { OpenDebugger(); _host.StepInto(); }
+                if (ImGui.MenuItem(UiText.Label("Paso por encima (CALL, bucles)"), Shortcut("Shift+F10"))) { OpenDebugger(); _host.StepOver(); }
+                if (ImGui.MenuItem(UiText.Label("Avanzar un cuadro"))) { OpenDebugger(); _host.StepFrame(); }
+                if (ImGui.MenuItem(UiText.Label("Reorganizar paneles"))) { OpenDebugger(); _arrangeDebugger = true; }
                 if (ImGui.IsItemHovered()) UiTheme.Tooltip("Vuelve a ubicar los paneles para que entren en la ventana actual.");
-                if (ImGui.MenuItem("Borrar todos los breakpoints", "", false, _host.Debug.Breakpoints.Count > 0)) _host.Debug.Clear();
+                if (ImGui.MenuItem(UiText.Label("Borrar todos los breakpoints"), "", false, _host.Debug.Breakpoints.Count > 0)) _host.Debug.Clear();
                 ImGui.EndMenu();
             }
             ImGui.EndDisabled();
             ImGui.EndMenu();
         }
-        if (ImGui.BeginMenu("Opciones"))
+        if (ImGui.BeginMenu(UiText.Label("Opciones")))
         {
-            if (ImGui.MenuItem("Estilos de interfaz…")) OpenInterfacePicker();
-            if (ImGui.MenuItem("Preferencias...")) _preferencesOpen = true;
-            if (ImGui.MenuItem("Conectar o configurar IA...")) AiConnectionWindow.Open(_ai);
+            if (ImGui.MenuItem(UiText.Label("Estilos de interfaz…"))) OpenInterfacePicker();
+            if (ImGui.MenuItem(UiText.Label("Preferencias..."))) _preferencesOpen = true;
+            if (ImGui.MenuItem(UiText.Label("Conectar o configurar IA..."))) AiConnectionWindow.Open(_ai);
             ImGui.Separator();
-            if (ImGui.BeginMenu("Sonido"))
+            if (ImGui.BeginMenu(UiText.Label("Sonido")))
             {
                 bool muted = _sound.Muted;
-                if (ImGui.MenuItem("Silenciar", "", ref muted)) { _sound.Muted = muted; _sound.Save(); }
-                if (ImGui.MenuItem("Volumen y opciones...")) _soundWindowOpen = true;
+                if (ImGui.MenuItem(UiText.Label("Silenciar"), "", ref muted)) { _sound.Muted = muted; _sound.Save(); }
+                if (ImGui.MenuItem(UiText.Label("Volumen y opciones..."))) _soundWindowOpen = true;
                 ImGui.EndMenu();
             }
-            if (ImGui.BeginMenu("Pantalla"))
+            if (ImGui.BeginMenu(UiText.Label("Pantalla")))
             {
-                if (ImGui.MenuItem("Pantalla completa", "F11", Raylib.IsWindowFullscreen())) ToggleFullscreen();
+                if (ImGui.MenuItem(UiText.Label("Pantalla completa"), "F11", Raylib.IsWindowFullscreen())) ToggleFullscreen();
                 bool integer = _prefs.IntegerScale;
-                if (ImGui.MenuItem("Escala entera (píxeles nítidos)", "", ref integer)) { _prefs.IntegerScale = integer; _prefs.Save(); }
+                if (ImGui.MenuItem(UiText.Label("Escala entera (píxeles nítidos)"), "", ref integer)) { _prefs.IntegerScale = integer; _prefs.Save(); }
                 bool fps = _prefs.ShowFps;
-                if (ImGui.MenuItem("Mostrar cuadros por segundo", "", ref fps)) { _prefs.ShowFps = fps; _prefs.Save(); }
+                if (ImGui.MenuItem(UiText.Label("Mostrar cuadros por segundo"), "", ref fps)) { _prefs.ShowFps = fps; _prefs.Save(); }
                 ImGui.EndMenu();
             }
-            if (ImGui.BeginMenu("Accesibilidad"))
+            if (ImGui.BeginMenu(UiText.Label("Accesibilidad")))
             {
-                if (ImGui.BeginMenu("Tamaño del texto"))
+                if (ImGui.BeginMenu(UiText.Label("Tamaño del texto")))
                 {
                     foreach (int size in AppPreferences.TextSizes)
-                        if (ImGui.MenuItem($"{size} %", "", _prefs.TextPercent == size)) SetTextSize(size);
+                        if (ImGui.MenuItem(UiText.Label(UiText.Format($"{size} %")), "", _prefs.TextPercent == size)) SetTextSize(size);
                     ImGui.EndMenu();
                 }
                 bool contrast = _prefs.HighContrast;
-                if (ImGui.MenuItem("Alto contraste", "", ref contrast)) SetHighContrast(contrast);
+                if (ImGui.MenuItem(UiText.Label("Alto contraste"), "", ref contrast)) SetHighContrast(contrast);
                 ImGui.EndMenu();
             }
             ImGui.EndMenu();
         }
-        if (ImGui.BeginMenu("Ayuda"))
+        if (ImGui.BeginMenu(UiText.Label("Ayuda")))
         {
-            if (ImGui.MenuItem("Actualizaciones...")) _updates.Open();
-            if (ImGui.BeginMenu("Sistemas disponibles y previstos"))
+            if (ImGui.MenuItem(UiText.Label("Novedades…"))) OpenNews();
+            if (ImGui.MenuItem(UiText.Label("Actualizaciones..."))) _updates.Open();
+            if (ImGui.BeginMenu(UiText.Label("Sistemas disponibles y previstos")))
             {
                 foreach (var info in MachineCatalog.All)
                 {
-                    ImGui.TextUnformatted(info.Name + (info.Status == MachineStatus.Available ? " · disponible" : " · en desarrollo"));
+                    ImGui.TextUnformatted(UiText.Get(info.Name + (info.Status == MachineStatus.Available ? " · disponible" : " · en desarrollo")));
                     if (ImGui.IsItemHovered()) UiTheme.Tooltip(info.Cpu + "\n" + info.Needs);
                 }
                 ImGui.EndMenu();
             }
 
-            if (ImGui.BeginMenu("Abrir y jugar"))
+            if (ImGui.BeginMenu(UiText.Label("Abrir y jugar")))
             {
-                ImGui.TextUnformatted("En Biblioteca elegí una máquina o Todos los juegos y pulsá Jugar.");
-                ImGui.TextUnformatted("También podés arrastrar un archivo a la ventana.");
-                ImGui.TextUnformatted("Hacé clic en la pantalla para usar el teclado.");
+                ImGui.TextUnformatted(UiText.Get("En Biblioteca elegí una máquina o Todos los juegos y pulsá Jugar."));
+                ImGui.TextUnformatted(UiText.Get("También podés arrastrar un archivo a la ventana."));
+                ImGui.TextUnformatted(UiText.Get("Hacé clic en la pantalla para usar el teclado."));
                 ImGui.EndMenu();
             }
-            if (ImGui.BeginMenu("Controles de la partida"))
+            if (ImGui.BeginMenu(UiText.Label("Controles de la partida")))
             {
                 DrawControlsHelp();
                 ImGui.EndMenu();
             }
-            if (ImGui.BeginMenu("Atajos"))
+            if (ImGui.BeginMenu(UiText.Label("Atajos")))
             {
                 DrawShortcutsHelp();
                 ImGui.EndMenu();
             }
-            if (ImGui.BeginMenu("Accesibilidad y teclado"))
+            if (ImGui.BeginMenu(UiText.Label("Accesibilidad y teclado")))
             {
                 ImGui.PushTextWrapPos(UiTheme.Px(440));
-                ImGui.TextWrapped("Opciones > Accesibilidad cambia el tamaño del texto y activa el alto contraste. Los cambios se guardan.");
-                ImGui.TextWrapped("En la biblioteca, los diálogos y con la partida en pausa, Alt izquierdo lleva a los menús; Tab y las flechas recorren los controles, Enter o Espacio los activan y Esc vuelve.");
-                ImGui.TextWrapped("Mientras el juego corre, el teclado es de la máquina emulada. Pausá con " + Shortcut("F9") + " para usar la interfaz con el teclado.");
-                ImGui.TextWrapped("Con un mando, Select + Start abre la biblioteca; la cruceta recorre, A elige y B vuelve.");
-                ImGui.TextWrapped("Opciones > Preferencias puede pausar el juego al pasar a otra ventana.");
+                ImGui.TextWrapped(UiText.Get("Opciones > Accesibilidad cambia el tamaño del texto y activa el alto contraste. Los cambios se guardan."));
+                ImGui.TextWrapped(UiText.Get("En la biblioteca, los diálogos y con la partida en pausa, Alt izquierdo lleva a los menús; Tab y las flechas recorren los controles, Enter o Espacio los activan y Esc vuelve."));
+                ImGui.TextWrapped(UiText.Get(UiText.Get("Mientras el juego corre, el teclado es de la máquina emulada. Pausá con ") + Shortcut("F9") + UiText.Get(" para usar la interfaz con el teclado.")));
+                ImGui.TextWrapped(UiText.Get("Con un mando, Select + Start abre la biblioteca; la cruceta recorre, A elige y B vuelve."));
+                ImGui.TextWrapped(UiText.Get("Opciones > Preferencias puede pausar el juego al pasar a otra ventana."));
                 ImGui.PopTextWrapPos();
                 ImGui.EndMenu();
             }
@@ -1127,8 +1143,8 @@ public sealed partial class RetroApp
 
     private void DrawControlsHelp()
     {
-        if (_host.Fusion is Retro.Studio.StudioSession) ImGui.TextWrapped(ControlsHelp()[0]);
-        else foreach (string line in ControlsHelp()) ImGui.TextUnformatted(line);
+        if (_host.Fusion is Retro.Studio.StudioSession) ImGui.TextWrapped(UiText.Get(ControlsHelp()[0]));
+        else foreach (string line in ControlsHelp()) ImGui.TextUnformatted(UiText.Get(line));
     }
 
     /// <summary>Controls of the current machine, shared by the help pages and the console.</summary>
@@ -1173,13 +1189,13 @@ public sealed partial class RetroApp
         rows.Add(("Alt izquierdo", "Menús, con la partida en pausa"));
         rows.Add(("Ctrl+F", "Buscar en la biblioteca"));
         rows.Add(("Select + Start", "Biblioteca desde el mando"));
-        if (_host.Fusion != null) ImGui.TextDisabled("Los estados guardados están disponibles en originales.");
+        if (_host.Fusion != null) ImGui.TextDisabled(UiText.Get("Los estados guardados están disponibles en originales."));
         if (!ImGui.BeginTable("atajos", 2, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.RowBg)) return;
         foreach (var (keys, action) in rows)
         {
             ImGui.TableNextRow();
-            ImGui.TableNextColumn(); ImGui.TextColored(UiTheme.Accent, keys);
-            ImGui.TableNextColumn(); ImGui.TextUnformatted(action);
+            ImGui.TableNextColumn(); ImGui.TextColored(UiTheme.Accent, UiText.Get(keys));
+            ImGui.TableNextColumn(); ImGui.TextUnformatted(UiText.Get(action));
         }
         ImGui.EndTable();
     }
@@ -1201,7 +1217,7 @@ public sealed partial class RetroApp
     {
         try { action(); }
         catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
-        { _errorPopup = "No se pudo guardar o cargar el estado: " + error.Message; }
+        { _errorPopup = UiText.Get("No se pudo guardar o cargar el estado: ") + error.Message; }
     }
 
     private void RevealCurrentWork()
@@ -1223,42 +1239,42 @@ public sealed partial class RetroApp
             | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoScrollbar);
         string status;
         if (Hardcore && (_terminalOpen || _terminalBarKeyboard)) status = ConsoleStatus();
-        else if (_home.IsOpen) status = _library.Scanning ? "Buscando juegos..." : $"{_home.GameCount} {(_home.GameCount == 1 ? "juego" : "juegos")} en la biblioteca";
+        else if (_home.IsOpen) status = _library.Scanning ? "Buscando juegos..." : UiText.Format($"{_home.GameCount} {(_home.GameCount == 1 ? UiText.Get("juego") : UiText.Get("juegos"))} en la biblioteca");
         else if (_hub!=HubPage.None) status = _hub==HubPage.Create ? "Taller de creación · Ideas, proyectos y trabajos guardados." : _hub==HubPage.Tools ? "Herramientas · Partida, análisis y configuración." : "Ayuda · Controles, atajos y próximos pasos.";
         else if (ShowEmptyPreview) status = _creator.IsOpen ? "Creación desde cero · Prepará una idea o empezá desde una plantilla."
             : "Creación con originales · Elegí los juegos y definí cómo se combinan.";
         else
         {
             var m = _host.Machine;
-            string speed = m == null ? "" : _host.Paused ? "Pausa" : _host.IsFastForwarding ? $"Rápido x{_host.EffectiveSpeed:F0}" : $"{_host.EffectiveSpeed * 100:F0}%";
-            string extra = _host.Zx is { } zx ? !zx.Tape.IsLoaded ? " · Sin cinta" : zx.Tape.IsPlaying
-                ? $" · Cargando cinta ({zx.Tape.Progress * 100:F0}%)" : zx.Tape.AtEnd ? " · Cinta al final" : " · Cinta detenida" : "";
-            if (_host.C64 is { OpenRoms: true } c64 && c64.UnhandledKernalCalls.Count > 0) extra = " · Requiere revisar el firmware";
-            if (_host.SoundDeviceMissing) extra += " · Sin salida de audio";
+            string speed = m == null ? "" : _host.Paused ? "Pausa" : _host.IsFastForwarding ? UiText.Format($"Rápido x{_host.EffectiveSpeed:F0}") : UiText.Format($"{_host.EffectiveSpeed * 100:F0}%");
+            string extra = _host.Zx is { } zx ? !zx.Tape.IsLoaded ? UiText.Get(" · Sin cinta") : zx.Tape.IsPlaying
+                ? UiText.Format($" · Cargando cinta ({zx.Tape.Progress * 100:F0}%)") : zx.Tape.AtEnd ? UiText.Get(" · Cinta al final") : UiText.Get(" · Cinta detenida") : "";
+            if (_host.C64 is { OpenRoms: true } c64 && c64.UnhandledKernalCalls.Count > 0) extra = UiText.Get(" · Requiere revisar el firmware");
+            if (_host.SoundDeviceMissing) extra += UiText.Get(" · Sin salida de audio");
             string title = _host.Fusion?.Title ?? _host.Info?.Name ?? "Sin máquina";
-            status = $"{title} · {speed}{extra} · {_host.Status}";
+            status = UiText.Format($"{title} · {UiText.Get(speed)}{extra} · {_host.Status}");
             if (_host.Fusion is Retro.Studio.StudioSession session)
             {
                 string live = FusionPresentation.Status(session.Hud, session.Events, session.Tick);
-                if (live.Length > 0) status = $"{live} · {title} · {speed}";
+                if (live.Length > 0) status = UiText.Format($"{live} · {title} · {speed}");
             }
         }
-        if (_prefs.ShowFps) status = $"{Raylib.GetFPS()} cuadros/s · {status}";
+        if (_prefs.ShowFps) status = UiText.Format($"{Raylib.GetFPS()} cuadros/s · {status}");
         // A scan of a few milliseconds is not worth a button that flickers.
         var running = _tasks.Active.Where(task => task.Elapsed > TimeSpan.FromSeconds(1)).ToArray();
         int jobs = running.Length;
         bool work = jobs > 0;
-        string workLabel = jobs > 1 ? $"{jobs} tareas en curso" : jobs == 1 ? _tasks.IsQuiet(running[0]) ? "Tarea sin actividad" : "Tarea: " + running[0].Kind : "";
-        float buttonWidth = ImGui.CalcTextSize(workLabel).X + ImGui.GetStyle().FramePadding.X * 2;
+        string workLabel = jobs > 1 ? UiText.Format($"{jobs} tareas en curso") : jobs == 1 ? _tasks.IsQuiet(running[0]) ? UiText.Get("Tarea sin actividad") : UiText.Get("Tarea: ") + UiText.Get(running[0].Kind) : "";
+        float buttonWidth = ImGui.CalcTextSize(UiText.Get(workLabel)).X + ImGui.GetStyle().FramePadding.X * 2;
         // The console's status line uses its cells: at large text sizes the proportional font leaves room for very little.
         if (Hardcore) ImGui.PushFont(UiTheme.ConsoleFont);
-        ImGui.TextUnformatted(UiTheme.Fit(status, ImGui.GetContentRegionAvail().X - (work ? buttonWidth + UiTheme.Px(12) : 0)));
+        ImGui.TextUnformatted(UiText.Get(UiTheme.Fit(status, ImGui.GetContentRegionAvail().X - (work ? buttonWidth + UiTheme.Px(12) : 0))));
         if (Hardcore) ImGui.PopFont();
         if (ImGui.IsItemHovered()) UiTheme.Tooltip(status);
         if (work)
         {
             ImGui.SameLine(Math.Max(ImGui.GetCursorPosX(), ImGui.GetWindowWidth() - buttonWidth - UiTheme.Px(8)));
-            if (ImGui.SmallButton(workLabel)) ImGui.OpenPopup("tareas-activas");
+            if (ImGui.SmallButton(UiText.Label(workLabel))) ImGui.OpenPopup(UiText.Label("tareas-activas"));
             DrawTaskList();
         }
         ImGui.End(); ImGui.PopStyleVar();
@@ -1268,25 +1284,25 @@ public sealed partial class RetroApp
     private void DrawTaskList()
     {
         ImGui.SetNextWindowSizeConstraints(new(Math.Min(UiTheme.Px(420), ImGui.GetMainViewport().Size.X - 24), 0), ImGui.GetMainViewport().Size - new Vector2(24));
-        if (!ImGui.BeginPopup("tareas-activas")) return;
+        if (!ImGui.BeginPopup(UiText.Label("tareas-activas"))) return;
         UiTheme.Eyebrow("TAREAS EN CURSO");
         foreach (var task in _tasks.Active)
         {
             ImGui.PushID(task.Id);
-            ImGui.TextUnformatted(task.Kind + " · " + task.Target);
+            ImGui.TextUnformatted(UiText.Get(task.Kind + " · " + task.Target));
             UiTheme.Hint(_tasks.Describe(task) + " · " + AppTaskCenter.Duration(task.Elapsed));
             if (task.Stage.Length > 0) UiTheme.Hint(task.Stage);
             // A bar only where something was counted; a guessed percentage would be a lie.
             if (task.Fraction is { } fraction) ImGui.ProgressBar((float)fraction, new(-1, 0), AppTaskCenter.Progress(task));
             if (_tasks.Advice(task) is { Length: > 0 } advice) UiTheme.Hint(advice);
             ImGui.BeginDisabled(!task.CanCancel);
-            if (ImGui.SmallButton(task.CancelRequested ? "Cancelando…" : "Cancelar")) task.Cancel();
+            if (ImGui.SmallButton(UiText.Label(task.CancelRequested ? "Cancelando…" : "Cancelar"))) task.Cancel();
             ImGui.EndDisabled();
             if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled)) UiTheme.Tooltip("Lo que ya produjo se conserva.");
             ImGui.PopID();
             ImGui.Separator();
         }
-        if ((_studio.IsWorking || _creator.IsWorking || _code.IsWorking) && ImGui.Button("Ver el taller")) { ImGui.CloseCurrentPopup(); RevealCurrentWork(); }
+        if ((_studio.IsWorking || _creator.IsWorking || _code.IsWorking) && ImGui.Button(UiText.Label("Ver el taller"))) { ImGui.CloseCurrentPopup(); RevealCurrentWork(); }
         ImGui.EndPopup();
     }
 
@@ -1295,22 +1311,22 @@ public sealed partial class RetroApp
         if (_quitNotice is { } notice)
         {
             const string title = "Salir de RetroEmu";
-            ImGui.OpenPopup(title);
+            ImGui.OpenPopup(UiText.Label(title));
             var viewport = ImGui.GetMainViewport();
             ImGui.SetNextWindowSize(new(Math.Min(UiTheme.Px(520), viewport.WorkSize.X - 24), 0), ImGuiCond.Appearing);
             ImGui.SetNextWindowPos(viewport.GetCenter(), ImGuiCond.Appearing, new(0.5f));
             bool open = true;
-            if (ImGui.BeginPopupModal(title, ref open, ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoDocking))
+            if (ImGui.BeginPopupModal(UiText.Label(title), ref open, ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoDocking))
             {
                 ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + Math.Min(UiTheme.Px(490), viewport.WorkSize.X - 60));
-                ImGui.TextWrapped(notice);
+                ImGui.TextWrapped(UiText.Get(notice));
                 ImGui.PopTextWrapPos();
                 ImGui.Spacing();
-                if (ImGui.Button("Volver")) { _quitNotice = null; ImGui.CloseCurrentPopup(); }
+                if (ImGui.Button(UiText.Label("Volver"))) { _quitNotice = null; ImGui.CloseCurrentPopup(); }
                 ImGui.SameLine();
-                if (ImGui.Button("Ver el trabajo")) { _quitNotice = null; ImGui.CloseCurrentPopup(); RevealCurrentWork(); }
+                if (ImGui.Button(UiText.Label("Ver el trabajo"))) { _quitNotice = null; ImGui.CloseCurrentPopup(); RevealCurrentWork(); }
                 ImGui.SameLine();
-                if (ImGui.Button("Salir y cancelar")) { _quitNotice = null; ImGui.CloseCurrentPopup(); QuitRequested = true; }
+                if (ImGui.Button(UiText.Label("Salir y cancelar"))) { _quitNotice = null; ImGui.CloseCurrentPopup(); QuitRequested = true; }
                 if (ImGui.IsKeyPressed(ImGuiKey.Escape)) { _quitNotice = null; ImGui.CloseCurrentPopup(); }
                 ImGui.EndPopup();
             }
@@ -1318,18 +1334,18 @@ public sealed partial class RetroApp
         }
         if (_errorPopup != null)
         {
-            ImGui.OpenPopup("Aviso");
+            ImGui.OpenPopup(UiText.Label("Aviso"));
             bool open = true;
             var area = ImGui.GetMainViewport().WorkSize;
             float width = Math.Min(UiTheme.Px(620), area.X - 24);
             ImGui.SetNextWindowSizeConstraints(new(width, UiTheme.Px(100)), new(width, area.Y - 32));
             ImGui.SetNextWindowSize(new(width, 0), ImGuiCond.Appearing);
-            if (ImGui.BeginPopupModal("Aviso", ref open, ImGuiWindowFlags.AlwaysAutoResize))
+            if (ImGui.BeginPopupModal(UiText.Label("Aviso"), ref open, ImGuiWindowFlags.AlwaysAutoResize))
             {
                 float minimum = UiTheme.Px(55);
-                float height = Math.Clamp(ImGui.CalcTextSize(_errorPopup, false, ImGui.GetContentRegionAvail().X).Y + UiTheme.Px(12),
+                float height = Math.Clamp(ImGui.CalcTextSize(UiText.Get(_errorPopup), false, ImGui.GetContentRegionAvail().X).Y + UiTheme.Px(12),
                     minimum, Math.Max(minimum, area.Y - UiTheme.Px(160)));
-                ImGui.BeginChild("mensaje-aviso", new(0, height)); ImGui.TextWrapped(_errorPopup); ImGui.EndChild();
+                ImGui.BeginChild("mensaje-aviso", new(0, height)); ImGui.TextWrapped(UiText.Get(_errorPopup)); ImGui.EndChild();
                 UiTheme.Hint("Tus juegos y partidas no cambiaron.");
                 if (UiTheme.PrimaryButton("Aceptar"))
                 {
@@ -1337,14 +1353,14 @@ public sealed partial class RetroApp
                     ImGui.CloseCurrentPopup();
                 }
                 UiTheme.SameLineIfFits("Ir a la biblioteca");
-                if (ImGui.Button("Ir a la biblioteca"))
+                if (ImGui.Button(UiText.Label("Ir a la biblioteca")))
                 {
                     _errorPopup = null;
                     ImGui.CloseCurrentPopup();
                     if (Hardcore) OpenTerminal(); else { CloseEditors(); _home.Open(); }
                 }
                 UiTheme.SameLineIfFits("Copiar mensaje");
-                if (_errorPopup != null && ImGui.Button("Copiar mensaje")) ImGui.SetClipboardText(Anonymize(_errorPopup));
+                if (_errorPopup != null && ImGui.Button(UiText.Label("Copiar mensaje"))) ImGui.SetClipboardText(Anonymize(_errorPopup));
                 ImGui.EndPopup();
             }
             if (!open)
@@ -1353,14 +1369,14 @@ public sealed partial class RetroApp
         if (_pendingOpen is { } request)
         {
             const string title = "Elegir programa";
-            ImGui.OpenPopup(title);
+            ImGui.OpenPopup(UiText.Label(title));
             bool open = true;
             var viewport = ImGui.GetMainViewport();
             ImGui.SetNextWindowSize(Vector2.Min(UiTheme.Px(660, 430), viewport.WorkSize - new Vector2(24)), ImGuiCond.Always);
             ImGui.SetNextWindowPos(viewport.WorkPos + viewport.WorkSize / 2, ImGuiCond.Appearing, new(0.5f));
-            if (ImGui.BeginPopupModal(title, ref open, ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoDocking))
+            if (ImGui.BeginPopupModal(UiText.Label(title), ref open, ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoDocking))
             {
-                ImGui.TextUnformatted("El archivo contiene varios programas. Elegí cuál iniciar.");
+                ImGui.TextUnformatted(UiText.Get("El archivo contiene varios programas. Elegí cuál iniciar."));
                 ImGui.Separator();
                 if (ImGui.BeginChild("programas", new(0, -ImGui.GetFrameHeightWithSpacing() - UiTheme.Px(10)), ImGuiChildFlags.Borders))
                 {
@@ -1379,7 +1395,7 @@ public sealed partial class RetroApp
                     }
                 }
                 ImGui.EndChild();
-                if (ImGui.Button("Cancelar", new(UiTheme.Px(110), 0)) || ImGui.IsKeyPressed(ImGuiKey.Escape))
+                if (ImGui.Button(UiText.Label("Cancelar"), new(UiTheme.Px(110), 0)) || ImGui.IsKeyPressed(ImGuiKey.Escape))
                 {
                     CancelOpen();
                     ImGui.CloseCurrentPopup();
@@ -1427,7 +1443,7 @@ public sealed partial class RetroApp
     private void DrawScreenWindow()
     {
         PlacePanel(DebuggerLayout.Panel.Screen);
-        ImGui.Begin("Pantalla");
+        ImGui.Begin(UiText.Label("Pantalla"));
         WorkspaceLayout.KeepOnScreen();
         if (_texW != 0)
         {
@@ -1439,7 +1455,7 @@ public sealed partial class RetroApp
         }
         _screenFocused = ImGui.IsWindowFocused();
         if (_screenFocused)
-            ImGui.TextWrapped("El teclado va a la máquina emulada.");
+            ImGui.TextWrapped(UiText.Get("El teclado va a la máquina emulada."));
         else
             UiTheme.Hint("Hacé clic en la pantalla para usar el teclado en la máquina.");
         ImGui.End();
@@ -1449,21 +1465,21 @@ public sealed partial class RetroApp
     {
         var cpu = m.Cpu;
         PlacePanel(DebuggerLayout.Panel.Cpu);
-        ImGui.Begin("CPU###cpu");
+        ImGui.Begin(UiText.Label("CPU###cpu"));
         WorkspaceLayout.KeepOnScreen();
-        ImGui.TextUnformatted(cpu.CpuName);
-        if (ImGui.Button((_host.Paused ? "Continuar (" : "Pausa (") + Shortcut("F9") + ")"))
+        ImGui.TextUnformatted(UiText.Get(cpu.CpuName));
+        if (ImGui.Button(UiText.Label((_host.Paused ? "Continuar (" : "Pausa (") + Shortcut("F9") + ")")))
         {
             if (_host.Paused) _host.Continue(); else _host.Pause("Pausa");
         }
         UiTheme.SameLineIfFits("Paso");
-        if (ImGui.Button("Paso")) _host.StepInto();
+        if (ImGui.Button(UiText.Label("Paso"))) _host.StepInto();
         UiTheme.SameLineIfFits("Por encima");
-        if (ImGui.Button("Por encima")) _host.StepOver();
+        if (ImGui.Button(UiText.Label("Por encima"))) _host.StepOver();
         UiTheme.SameLineIfFits("Cuadro");
-        if (ImGui.Button("Cuadro")) _host.StepFrame();
+        if (ImGui.Button(UiText.Label("Cuadro"))) _host.StepFrame();
         UiTheme.SameLineIfFits("Reiniciar");
-        if (ImGui.Button("Reiniciar")) _host.Reset(false);
+        if (ImGui.Button(UiText.Label("Reiniciar"))) _host.Reset(false);
         ImGui.Separator();
         if (ImGui.BeginTable("regs", 2, ImGuiTableFlags.SizingFixedFit))
         {
@@ -1479,7 +1495,7 @@ public sealed partial class RetroApp
                     if (!_regEdit.TryGetValue(r.Name, out var text))
                         text = fmt;
                     ImGui.SetNextItemWidth(UiTheme.Px(70));
-                    if (ImGui.InputText("##" + r.Name, ref text, (uint)((r.Bits + 3) / 4), ImGuiInputTextFlags.CharsHexadecimal | ImGuiInputTextFlags.EnterReturnsTrue))
+                    if (ImGui.InputText(UiText.Label("##" + r.Name), ref text, (uint)((r.Bits + 3) / 4), ImGuiInputTextFlags.CharsHexadecimal | ImGuiInputTextFlags.EnterReturnsTrue))
                     {
                         if (uint.TryParse(text, NumberStyles.HexNumber, null, out var v))
                             cpu.TrySetRegister(r.Name, v);
@@ -1492,30 +1508,30 @@ public sealed partial class RetroApp
                 }
                 else
                 {
-                    ImGui.TextUnformatted(fmt);
+                    ImGui.TextUnformatted(UiText.Get(fmt));
                 }
             }
             ImGui.EndTable();
         }
         ImGui.Separator();
-        ImGui.TextUnformatted("Flags (clic para cambiar, en pausa):");
+        ImGui.TextUnformatted(UiText.Get("Flags (clic para cambiar, en pausa):"));
         int i = 0;
         foreach (var f in cpu.GetFlags())
         {
             // Flags wrap to the next row instead of leaving the panel at large text sizes.
             if (i++ > 0) UiTheme.SameLineIfFits(ImGui.GetFrameHeight() + ImGui.GetStyle().ItemInnerSpacing.X + ImGui.CalcTextSize(f.Name).X);
             bool set = f.Set;
-            if (ImGui.Checkbox(f.Name + "##flag", ref set) && _host.Paused)
+            if (ImGui.Checkbox(UiText.Label(f.Name + UiText.Get("##flag")), ref set) && _host.Paused)
                 cpu.TrySetFlag(f.Name, set);
             if (ImGui.IsItemHovered())
                 UiTheme.Tooltip(f.Description);
         }
         ImGui.Separator();
         foreach (var line in cpu.GetInterruptState())
-            ImGui.TextUnformatted(line);
+            ImGui.TextUnformatted(UiText.Message(line));
         ImGui.Separator();
         foreach (var line in m.GetMachineInfo())
-            ImGui.TextUnformatted(line);
+            ImGui.TextUnformatted(UiText.Get(line));
         ImGui.End();
     }
 
@@ -1528,12 +1544,12 @@ public sealed partial class RetroApp
     private void DrawDisassemblyWindow(IMachine m)
     {
         PlacePanel(DebuggerLayout.Panel.Disassembly);
-        ImGui.Begin("Desensamblado");
+        ImGui.Begin(UiText.Label("Desensamblado"));
         WorkspaceLayout.KeepOnScreen();
-        ImGui.Checkbox("Seguir PC", ref _followPc);
+        ImGui.Checkbox(UiText.Label("Seguir PC"), ref _followPc);
         ImGui.SameLine();
         ImGui.SetNextItemWidth(UiTheme.Px(70));
-        if (ImGui.InputText("Ir a##dis", ref _disasmAddr, (uint)((m.Memory.AddressBits + 3) / 4), ImGuiInputTextFlags.CharsHexadecimal | ImGuiInputTextFlags.EnterReturnsTrue))
+        if (ImGui.InputText(UiText.Label("Ir a##dis"), ref _disasmAddr, (uint)((m.Memory.AddressBits + 3) / 4), ImGuiInputTextFlags.CharsHexadecimal | ImGuiInputTextFlags.EnterReturnsTrue))
             _followPc = false;
         uint pc = m.Cpu.ProgramCounter;
         Func<uint, byte> peek = m.Memory.Peek;   // one delegate per frame instead of one per decoded instruction
@@ -1547,28 +1563,28 @@ public sealed partial class RetroApp
             bool bp = _host.Debug.IsBreakpoint(addr);
             ImGui.PushID((int)addr);
             ImGui.PushStyleColor(ImGuiCol.Text, bp ? UiTheme.Error : UiTheme.Muted);
-            if (ImGui.SmallButton(bp ? "(*)" : "( )"))
+            if (ImGui.SmallButton(UiText.Label(bp ? "(*)" : "( )")))
                 _host.Debug.Toggle(addr);
             ImGui.PopStyleColor();
             ImGui.SameLine();
             string bytes = string.Join(" ", ins.Bytes.Select(b => HexBytes[b]));
             string? sym = m.SymbolFor(addr);
-            string line = $"{(isPc ? ">" : " ")} {addr:X4}  {bytes,-12} {ins.Text}";
+            string line = UiText.Format($"{(isPc ? UiText.Get(">") : UiText.Get(" "))} {addr:X4}  {bytes,-12} {ins.Text}");
             if (sym != null)
             {
-                ImGui.TextColored(UiTheme.Accent, sym + ":");
+                ImGui.TextColored(UiTheme.Accent, UiText.Get(sym + ":"));
                 ImGui.SameLine();
             }
             if (isPc)
                 ImGui.PushStyleColor(ImGuiCol.Text, UiTheme.Highlight);
-            ImGui.Selectable(line, isPc);
+            ImGui.Selectable(UiText.Label(line), isPc);
             if (isPc)
                 ImGui.PopStyleColor();
             if (ImGui.BeginPopupContextItem("ctx"))
             {
-                if (ImGui.MenuItem("Ejecutar hasta aquí")) _host.RunTo(addr);
-                if (ImGui.MenuItem("Mover PC aquí")) m.Cpu.ProgramCounter = addr;
-                if (ImGui.MenuItem("Ver en memoria")) { _memStart = addr & (((1u << m.Memory.AddressBits) - 1) & ~15u); _memAddr = _memStart.ToString("X4"); }
+                if (ImGui.MenuItem(UiText.Label("Ejecutar hasta aquí"))) _host.RunTo(addr);
+                if (ImGui.MenuItem(UiText.Label("Mover PC aquí"))) m.Cpu.ProgramCounter = addr;
+                if (ImGui.MenuItem(UiText.Label("Ver en memoria"))) { _memStart = addr & (((1u << m.Memory.AddressBits) - 1) & ~15u); _memAddr = _memStart.ToString("X4"); }
                 ImGui.EndPopup();
             }
             ImGui.PopID();
@@ -1583,30 +1599,30 @@ public sealed partial class RetroApp
     private void DrawMemoryWindow(IMachine m)
     {
         PlacePanel(DebuggerLayout.Panel.Memory);
-        ImGui.Begin("Memoria");
+        ImGui.Begin(UiText.Label("Memoria"));
         WorkspaceLayout.KeepOnScreen();
         ImGui.SetNextItemWidth(UiTheme.Px(70));
-        if (ImGui.InputText("Dirección", ref _memAddr, (uint)((m.Memory.AddressBits + 3) / 4), ImGuiInputTextFlags.CharsHexadecimal | ImGuiInputTextFlags.EnterReturnsTrue)
+        if (ImGui.InputText(UiText.Label("Dirección"), ref _memAddr, (uint)((m.Memory.AddressBits + 3) / 4), ImGuiInputTextFlags.CharsHexadecimal | ImGuiInputTextFlags.EnterReturnsTrue)
             && uint.TryParse(_memAddr, NumberStyles.HexNumber, null, out var a))
             _memStart = a & (((1u << m.Memory.AddressBits) - 1) & ~15u);
         UiTheme.SameLineIfFits("< página");
-        if (ImGui.Button("< página")) _memStart = (_memStart - 0x100) & ((1u << m.Memory.AddressBits) - 1);
+        if (ImGui.Button(UiText.Label("< página"))) _memStart = (_memStart - 0x100) & ((1u << m.Memory.AddressBits) - 1);
         UiTheme.SameLineIfFits("página >");
-        if (ImGui.Button("página >")) _memStart = (_memStart + 0x100) & ((1u << m.Memory.AddressBits) - 1);
+        if (ImGui.Button(UiText.Label("página >"))) _memStart = (_memStart + 0x100) & ((1u << m.Memory.AddressBits) - 1);
         UiTheme.SameLineIfFits("PC");
-        if (ImGui.Button("PC")) _memStart = m.Cpu.ProgramCounter & (((1u << m.Memory.AddressBits) - 1) & ~15u);
+        if (ImGui.Button(UiText.Label("PC"))) _memStart = m.Cpu.ProgramCounter & (((1u << m.Memory.AddressBits) - 1) & ~15u);
         UiTheme.SameLineIfFits("SP");
-        if (ImGui.Button("SP")) _memStart = m.Cpu.StackPointer & (((1u << m.Memory.AddressBits) - 1) & ~15u);
+        if (ImGui.Button(UiText.Label("SP"))) _memStart = m.Cpu.StackPointer & (((1u << m.Memory.AddressBits) - 1) & ~15u);
         UiTheme.SameLineIfFits("Video");
-        if (ImGui.Button("Video")) _memStart = m.Id == "pcxt" ? 0xB8000u : m.Id == "invaders" ? 0x2400u : 0x4000u;
-        ImGui.TextDisabled(m.MemoryMapDescription + ". Clic en un byte para editarlo.");
+        if (ImGui.Button(UiText.Label("Video"))) _memStart = m.Id == "pcxt" ? 0xB8000u : m.Id == "invaders" ? 0x2400u : 0x4000u;
+        ImGui.TextDisabled(UiText.Get(m.MemoryMapDescription + UiText.Get(". Clic en un byte para editarlo.")));
         ImGui.BeginChild("memgrid", Vector2.Zero, ImGuiChildFlags.None, ImGuiWindowFlags.HorizontalScrollbar);
         uint pc = m.Cpu.ProgramCounter, sp = m.Cpu.StackPointer;
         Span<char> chars = stackalloc char[17];
         for (int row = 0; row < 16; row++)
         {
             uint rowAddr = (uint)((_memStart + row * 16) & ((1u << m.Memory.AddressBits) - 1));
-            ImGui.TextUnformatted($"{rowAddr:X4} ");
+            ImGui.TextUnformatted(UiText.Get(UiText.Format($"{rowAddr:X4} ")));
             for (int col = 0; col < 16; col++)
             {
                 uint ad = (uint)((rowAddr + col) & ((1u << m.Memory.AddressBits) - 1));
@@ -1615,15 +1631,15 @@ public sealed partial class RetroApp
                 bool highlight = ad == pc || ad == sp;
                 if (highlight) ImGui.PushStyleColor(ImGuiCol.Text, UiTheme.Highlight);
                 ImGui.PushID((int)ad);
-                if (ImGui.Selectable(HexBytes[v], false, ImGuiSelectableFlags.None, new Vector2(MathF.Ceiling(ImGui.CalcTextSize("00").X), 0)))
+                if (ImGui.Selectable(UiText.Label(HexBytes[v]), false, ImGuiSelectableFlags.None, new Vector2(MathF.Ceiling(ImGui.CalcTextSize(UiText.Get("00")).X), 0)))
                 {
                     _editMemAddr = ad.ToString("X4");
                     _editMemValue = HexBytes[v];
-                    ImGui.OpenPopup("editmem");
+                    ImGui.OpenPopup(UiText.Label("editmem"));
                 }
-                if (ImGui.BeginPopup("editmem"))
+                if (ImGui.BeginPopup(UiText.Label("editmem")))
                 {
-                    ImGui.TextUnformatted("Nuevo valor en $" + _editMemAddr);
+                    ImGui.TextUnformatted(UiText.Get(UiText.Get("Nuevo valor en $") + _editMemAddr));
                     ImGui.SetNextItemWidth(UiTheme.Px(50));
                     if (ImGui.InputText("##val", ref _editMemValue, 2, ImGuiInputTextFlags.CharsHexadecimal | ImGuiInputTextFlags.EnterReturnsTrue))
                     {
@@ -1631,7 +1647,7 @@ public sealed partial class RetroApp
                             m.Memory.Poke(uint.Parse(_editMemAddr, NumberStyles.HexNumber), nv);
                         ImGui.CloseCurrentPopup();
                     }
-                    ImGui.TextDisabled("La ROM no se puede modificar.");
+                    ImGui.TextDisabled(UiText.Get("La ROM no se puede modificar."));
                     ImGui.EndPopup();
                 }
                 ImGui.PopID();
@@ -1644,7 +1660,7 @@ public sealed partial class RetroApp
                 byte v = m.Memory.Peek((uint)((rowAddr + col) & ((1u << m.Memory.AddressBits) - 1)));
                 chars[col + 1] = v is >= 32 and < 127 ? (char)v : '.';
             }
-            ImGui.TextUnformatted(new string(chars));
+            ImGui.TextUnformatted(UiText.Get(new string(chars)));
         }
         ImGui.EndChild();
         ImGui.End();
@@ -1653,7 +1669,7 @@ public sealed partial class RetroApp
     private void DrawStackWindow(IMachine m)
     {
         PlacePanel(DebuggerLayout.Panel.Stack);
-        ImGui.Begin("Pila");
+        ImGui.Begin(UiText.Label("Pila"));
         WorkspaceLayout.KeepOnScreen();
         uint sp = m.Cpu.StackPointer;
         for (int i = 0; i < 14; i++)
@@ -1661,7 +1677,7 @@ public sealed partial class RetroApp
             uint a = (uint)((sp + i * 2) & ((1u << m.Memory.AddressBits) - 1));
             uint v = (uint)(m.Memory.Peek(a) | (m.Memory.Peek((a + 1) & ((1u << m.Memory.AddressBits) - 1)) << 8));
             string? sym = m.SymbolFor(v);
-            ImGui.TextUnformatted($"{(i == 0 ? "SP>" : "   ")} {a:X4}: {v:X4}{(sym != null ? "  " + sym : "")}");
+            ImGui.TextUnformatted(UiText.Get(UiText.Format($"{(i == 0 ? UiText.Get("SP>") : UiText.Get("   "))} {a:X4}: {v:X4}{(sym != null ? UiText.Get("  ") + sym : UiText.Get(""))}")));
         }
         ImGui.End();
     }
@@ -1670,53 +1686,53 @@ public sealed partial class RetroApp
     {
         var zx = _host.Zx!;
         PlacePanel(DebuggerLayout.Panel.Tape);
-        ImGui.Begin("Cinta");
+        ImGui.Begin(UiText.Label("Cinta"));
         WorkspaceLayout.KeepOnScreen();
         var tape = zx.Tape;
         if (!tape.IsLoaded)
         {
-            ImGui.TextUnformatted("No hay cinta. Abrí un .tap o .tzx.");
+            ImGui.TextUnformatted(UiText.Get("No hay cinta. Abrí un .tap o .tzx."));
             ImGui.End();
             return;
         }
-        if (ImGui.Button(tape.IsPlaying ? "Detener (F6)" : "Reproducir (F6)")) ToggleTape();
+        if (ImGui.Button(UiText.Label(tape.IsPlaying ? "Detener (F6)" : "Reproducir (F6)"))) ToggleTape();
         UiTheme.SameLineIfFits("Rebobinar (F7)");
-        if (ImGui.Button("Rebobinar (F7)")) tape.Rewind();
+        if (ImGui.Button(UiText.Label("Rebobinar (F7)"))) tape.Rewind();
         UiTheme.SameLineIfFits("LOAD \"\"");
-        if (ImGui.Button("LOAD \"\"")) zx.TypeLoadCommand();
-        ImGui.ProgressBar((float)tape.Progress, new Vector2(-1, 0), $"{tape.Progress * 100:F0}%");
+        if (ImGui.Button(UiText.Label("LOAD \"\""))) zx.TypeLoadCommand();
+        ImGui.ProgressBar((float)tape.Progress, new Vector2(-1, 0), UiText.Format($"{tape.Progress * 100:F0}%"));
         int current = tape.CurrentBlock;
         foreach (var b in tape.Tape!.Blocks)
-            ImGui.Selectable($"{b.Index,3}  {b.Description}", b.Index == current);
+            ImGui.Selectable(UiText.Label(UiText.Format($"{b.Index,3}  {b.Description}")), b.Index == current);
         ImGui.End();
     }
 
     private void DrawTestProgramWindow(IMachine m)
     {
         PlacePanel(DebuggerLayout.Panel.TestProgram);
-        ImGui.Begin("Programa de prueba");
+        ImGui.Begin(UiText.Label("Programa de prueba"));
         WorkspaceLayout.KeepOnScreen();
-        ImGui.TextWrapped($"Cargá bytes de {m.Cpu.CpuName} o un .bin en memoria para estudiar su ejecución paso a paso.");
+        ImGui.TextWrapped(UiText.Get(UiText.Format($"Cargá bytes de {m.Cpu.CpuName} o un .bin en memoria para estudiar su ejecución paso a paso.")));
         ImGui.SetNextItemWidth(UiTheme.Px(70));
-        ImGui.InputText("Dirección##test", ref _testAddr, (uint)((m.Memory.AddressBits + 3) / 4), ImGuiInputTextFlags.CharsHexadecimal);
-        ImGui.Checkbox("Poner PC en esa dirección", ref _testSetPc);
-        ImGui.InputText("Bytes (hex)", ref _testHex, 512);
+        ImGui.InputText(UiText.Label("Dirección##test"), ref _testAddr, (uint)((m.Memory.AddressBits + 3) / 4), ImGuiInputTextFlags.CharsHexadecimal);
+        ImGui.Checkbox(UiText.Label("Poner PC en esa dirección"), ref _testSetPc);
+        ImGui.InputText(UiText.Label("Bytes (hex)"), ref _testHex, 512);
         uint addr = uint.TryParse(_testAddr, NumberStyles.HexNumber, null, out var ta) ? ta & ((1u << m.Memory.AddressBits) - 1) : 0x8000;
         // Bad input or a program that does not fit only shows a notice: it used to close the program.
-        if (ImGui.Button("Cargar bytes"))
+        if (ImGui.Button(UiText.Label("Cargar bytes")))
         {
             if (TestProgram.ParseHex(_testHex) is { } bytes) TryLoadBinary(() => bytes, addr);
             else _errorPopup = "Bytes inválidos: usá pares hexadecimales separados por espacios.";
         }
-        ImGui.InputText("Archivo .bin", ref _testPath, 512);
-        if (ImGui.Button("Cargar archivo"))
+        ImGui.InputText(UiText.Label("Archivo .bin"), ref _testPath, 512);
+        if (ImGui.Button(UiText.Label("Cargar archivo")))
         {
             if (File.Exists(_testPath))
                 TryLoadBinary(() => File.ReadAllBytes(_testPath), addr);
             else
-                _errorPopup = "No existe el archivo " + _testPath;
+                _errorPopup = UiText.Get("No existe el archivo ") + _testPath;
         }
-        ImGui.TextDisabled("Escribí bytes en hexadecimal o cargá un archivo binario.");
+        ImGui.TextDisabled(UiText.Get("Escribí bytes en hexadecimal o cargá un archivo binario."));
         ImGui.End();
     }
 
@@ -1724,6 +1740,6 @@ public sealed partial class RetroApp
     {
         try { _host.LoadBinary(read(), address, _testSetPc); }
         catch (Exception error) when (error is InvalidDataException or IOException or UnauthorizedAccessException)
-        { _errorPopup = "No se pudo cargar el programa: " + error.Message; }
+        { _errorPopup = UiText.Get("No se pudo cargar el programa: ") + error.Message; }
     }
 }

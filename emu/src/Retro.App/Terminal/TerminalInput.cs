@@ -91,7 +91,7 @@ public sealed class TerminalInput(ProgramTerminal terminal, Func<string> readCli
         // Nothing pasted ever runs by itself; several lines wait for a look and an explicit Enter.
         var lines = normal.Split('\n').Select(line => line.Trim()).Where(line => line.Length > 0).ToArray();
         if (lines.Length > MaxPasteLines || normal.Length > MaxPasteCharacters)
-        { Notice = $"El pegado es demasiado largo: hasta {MaxPasteLines} líneas y {MaxPasteCharacters / 1024} KB."; return; }
+        { Notice = UiText.Format($"El pegado es demasiado largo: hasta {MaxPasteLines} líneas y {MaxPasteCharacters / 1024} KB."); return; }
         if (lines.Length == 1) { Editor.Insert(lines[0]); FollowPrompt = true; return; }
         PendingPaste = lines; FollowPrompt = true;
     }
@@ -103,7 +103,7 @@ public sealed class TerminalInput(ProgramTerminal terminal, Func<string> readCli
         foreach (string line in lines)
             if (!terminal.Submit(line))
             {
-                terminal.Write($"aviso: se detuvo el pegado en «{line}». Las líneas siguientes no se ejecutaron.", TerminalKind.Warning);
+                terminal.Write(UiText.Format($"aviso: se detuvo el pegado en «{line}». Las líneas siguientes no se ejecutaron."), TerminalKind.Warning);
                 break;
             }
     }
@@ -189,7 +189,7 @@ public sealed class TerminalInput(ProgramTerminal terminal, Func<string> readCli
         if (Editor.Text.Length > 0)
         {
             terminal.Output.BeginBlock();
-            terminal.Write(terminal.Prompt + " " + Editor.Text + "^C", TerminalKind.Command);
+            terminal.Write(terminal.Prompt + " " + Editor.Text + UiText.Get("^C"), TerminalKind.Command);
             Editor.Reset(); terminal.History.Rewind(); return;
         }
         if (RunningTasks?.Invoke() is > 0) Notice = "Ctrl+C no detiene tareas. Usá tareas y cancelar <id>.";

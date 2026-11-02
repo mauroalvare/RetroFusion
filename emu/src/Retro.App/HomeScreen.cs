@@ -108,7 +108,7 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            _problem = "No pude actualizar la biblioteca: " + e.Message;
+            _problem = UiText.Get("No pude actualizar la biblioteca: ") + e.Message;
         }
     }
 
@@ -124,7 +124,7 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
             foreach (var pair in profiles) _profiles.Add(pair.Key, pair.Value);
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-        { _problem = "No se pudieron actualizar los datos de los juegos: " + error.Message; }
+        { _problem = UiText.Get("No se pudieron actualizar los datos de los juegos: ") + error.Message; }
     }
 
     public void Draw()
@@ -166,7 +166,7 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
             Nav("Favoritos", "favorites");
             Nav("Recientes", "recent");
             ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
-            ImGui.TextDisabled("Máquinas");
+            ImGui.TextDisabled(UiText.Get("Máquinas"));
             foreach (var machine in Machines) Nav(Name(machine), "machine", machine.Id);
             ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
             Nav("Fusionados", "fusions");
@@ -174,10 +174,10 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
             if (actions != null)
             {
                 ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
-                if (ImGui.Selectable("Buscar acción…", false, ImGuiSelectableFlags.None, new Vector2(0, UiTheme.Px(28)))) actions.FindAction();
+                if (ImGui.Selectable(UiText.Label("Buscar acción…"), false, ImGuiSelectableFlags.None, new Vector2(0, UiTheme.Px(28)))) actions.FindAction();
                 if (ImGui.IsItemHovered()) UiTheme.Tooltip("Encontrá herramientas, controles y opciones por nombre.");
             }
-            if (canReturn()) { ImGui.Spacing(); if (ImGui.Button("Volver al juego", new Vector2(-1, 0))) Close(); }
+            if (canReturn()) { ImGui.Spacing(); if (ImGui.Button(UiText.Label("Volver al juego"), new Vector2(-1, 0))) Close(); }
             ImGui.EndChild();
             ImGui.SameLine();
         }
@@ -208,17 +208,17 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
 
     private void DrawFileActions(bool primary)
     {
-        if (primary ? UiTheme.PrimaryButton("Abrir archivo…") : ImGui.SmallButton("Abrir archivo…")) browse();
+        if (primary ? UiTheme.PrimaryButton("Abrir archivo…") : ImGui.SmallButton(UiText.Label("Abrir archivo…"))) browse();
         LibraryControlBounds?.Invoke("Abrir archivo", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
         UiTheme.SameLineIfFits("Actualizar biblioteca");
         ImGui.BeginDisabled(library.Scanning);
         string label = library.Scanning ? "Buscando…" : "Actualizar biblioteca";
-        if (primary ? ImGui.Button(label) : ImGui.SmallButton(label)) { library.Rescan(library.Folder); Refresh(); }
+        if (primary ? ImGui.Button(UiText.Label(label)) : ImGui.SmallButton(UiText.Label(label))) { library.Rescan(library.Folder); Refresh(); }
         ImGui.EndDisabled();
         if (actions?.ChooseFolder is { } choose && primary)
         {
             UiTheme.SameLineIfFits("Elegir carpeta…");
-            if (ImGui.Button("Elegir carpeta…")) choose();
+            if (ImGui.Button(UiText.Label("Elegir carpeta…"))) choose();
             if (ImGui.IsItemHovered()) UiTheme.Tooltip(library.Folder);
         }
     }
@@ -230,13 +230,13 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
         var section = Catalog.Where(InSection);
         if (_section is "favorites" or "recent") section = section.DistinctBy(card => card.Key);
         int total = section.Count();
-        string count = cards.Count == total ? $"{total} {(total == 1 ? "juego" : "juegos")}" : $"{cards.Count} de {total} juegos";
+        string count = cards.Count == total ? UiText.Format($"{total} {(total == 1 ? UiText.Get("juego") : UiText.Get("juegos"))}") : UiText.Format($"{cards.Count} de {total} juegos");
         if (library.Scanning) count += " · actualizando";
         if (!compact)
         {
-            using (UiTheme.Display()) ImGui.TextUnformatted(SectionTitle());
-            ImGui.SameLine(); ImGui.SetCursorPosY(ImGui.GetCursorPosY() + UiTheme.Px(8)); ImGui.TextDisabled(count);
-            float actions = ImGui.CalcTextSize("Abrir archivo…Actualizar biblioteca").X + ImGui.GetStyle().FramePadding.X * 4 + ImGui.GetStyle().ItemSpacing.X * 2;
+            using (UiTheme.Display()) ImGui.TextUnformatted(UiText.Get(SectionTitle()));
+            ImGui.SameLine(); ImGui.SetCursorPosY(ImGui.GetCursorPosY() + UiTheme.Px(8)); ImGui.TextDisabled(UiText.Get(count));
+            float actions = ImGui.CalcTextSize(UiText.Get("Abrir archivo…Actualizar biblioteca")).X + ImGui.GetStyle().FramePadding.X * 4 + ImGui.GetStyle().ItemSpacing.X * 2;
             if (ImGui.GetContentRegionAvail().X > actions + UiTheme.Px(40))
             {
                 ImGui.SameLine(ImGui.GetCursorPosX() + ImGui.GetContentRegionAvail().X - actions);
@@ -247,13 +247,13 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
 
     private void DrawLibraryNotices()
     {
-        if (_activity.Problem is { } activityProblem) ImGui.TextWrapped(activityProblem);
-        if (_problem.Length > 0) ImGui.TextWrapped(_problem);
-        if (library.OrganizationError != null) ImGui.TextWrapped(library.OrganizationError);
+        if (_activity.Problem is { } activityProblem) ImGui.TextWrapped(UiText.Get(activityProblem));
+        if (_problem.Length > 0) ImGui.TextWrapped(UiText.Get(_problem));
+        if (library.OrganizationError != null) ImGui.TextWrapped(UiText.Get(library.OrganizationError));
         else if (library.OrganizedCount > 0 || library.UnclassifiedCount > 0)
         {
-            ImGui.TextDisabled($"Ordenados por sistema: {library.OrganizedCount}" +
-                (library.UnclassifiedCount > 0 ? $" · Sin clasificar: {library.UnclassifiedCount}" : ""));
+            ImGui.TextDisabled(UiText.Get(UiText.Format($"Ordenados por sistema: {library.OrganizedCount}") +
+                (library.UnclassifiedCount > 0 ? UiText.Format($" · Sin clasificar: {library.UnclassifiedCount}") : "")));
             if (ImGui.IsItemHovered()) UiTheme.Tooltip("Los archivos cuyo sistema no se puede identificar quedan en ROMs.");
         }
     }
@@ -269,7 +269,7 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
     {
         bool shared = _section != "home" && UiTheme.CompactHeight;
         ImGui.SetNextItemWidth(shared ? ImGui.GetContentRegionAvail().X * 0.34f : canReturn() ? Math.Max(UiTheme.Px(150), ImGui.GetContentRegionAvail().X - UiTheme.Px(168)) : -1);
-        if (ImGui.BeginCombo("##seccion-biblioteca", _section == "home" ? "Inicio" : SectionTitle()))
+        if (ImGui.BeginCombo("##seccion-biblioteca", UiText.Get(_section == "home" ? "Inicio" : SectionTitle())))
         {
             Choice("Inicio", "home"); Choice("Todos los juegos", "all");
             Choice("Favoritos", "favorites"); Choice("Recientes", "recent");
@@ -279,16 +279,16 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
             ImGui.EndCombo();
         }
         if (shared) ImGui.SameLine();
-        else if (canReturn()) { ImGui.SameLine(); if (ImGui.Button("Volver al juego", new(UiTheme.Px(158), 0))) Close(); }
+        else if (canReturn()) { ImGui.SameLine(); if (ImGui.Button(UiText.Label("Volver al juego"), new(UiTheme.Px(158), 0))) Close(); }
         void Choice(string label, string section, string machine = "")
         {
-            if (ImGui.Selectable(label, _section == section && _machine == machine)) Select(section, machine);
+            if (ImGui.Selectable(UiText.Label(label), _section == section && _machine == machine)) Select(section, machine);
         }
     }
 
     private void Nav(string label, string section, string machine = "")
     {
-        if (ImGui.Selectable(label, _section == section && _machine == machine, ImGuiSelectableFlags.None, new Vector2(0, UiTheme.Px(28))))
+        if (ImGui.Selectable(UiText.Label(label), _section == section && _machine == machine, ImGuiSelectableFlags.None, new Vector2(0, UiTheme.Px(28))))
             Select(section, machine);
     }
 
@@ -305,7 +305,7 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
             {
                 index++; ImGui.TableNextColumn();
                 var size = new Vector2(ImGui.GetContentRegionAvail().X, UiTheme.Px(122));
-                bool selected = ImGui.Button("##maquina-" + machine.Id, size);
+                bool selected = ImGui.Button(UiText.Label(UiText.Get("##maquina-") + machine.Id), size);
                 bool hovered = ImGui.IsItemHovered() || ImGui.IsItemFocused();
                 var min = ImGui.GetItemRectMin(); var max = ImGui.GetItemRectMax(); var draw = ImGui.GetWindowDrawList();
                 uint accent=ImGui.ColorConvertFloat4ToU32(UiTheme.Accent);
@@ -315,15 +315,15 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
                 float artWidth=Math.Min(UiTheme.Px(144),size.X*0.29f);
                 HardwareArt.Draw(draw,machine.Id,min+UiTheme.Px(8,12),new(artWidth,UiTheme.Px(80)));
                 float textX=artWidth+UiTheme.Px(22),width=size.X-textX-UiTheme.Px(12);
-                draw.AddText(min+new Vector2(textX,UiTheme.Px(18)),ImGui.GetColorU32(ImGuiCol.Text),UiTheme.Fit(Name(machine),width));
+                draw.AddText(min+new Vector2(textX,UiTheme.Px(18)),ImGui.GetColorU32(ImGuiCol.Text),UiText.Get(UiTheme.Fit(Name(machine),width)));
                 string formats=machine.Id switch {"zx48"=>"TAP / TZX / Z80 / SNA","c64"=>"PRG / T64","nes"=>"CARTUCHOS NES","pcxt"=>"EXE / COM / ZIP / IMG",_=>"ROM DE PLACA ARCADE"};
-                using(UiTheme.Label()) draw.AddText(min+new Vector2(textX,UiTheme.Px(46)),ImGui.GetColorU32(ImGuiCol.TextDisabled),UiTheme.Fit(formats,width));
-                draw.AddText(min+new Vector2(textX,UiTheme.Px(72)),ImGui.GetColorU32(ImGuiCol.TextDisabled),UiTheme.Fit(Summary(machine.Id),width));
+                using(UiTheme.Label()) draw.AddText(min+new Vector2(textX,UiTheme.Px(46)),ImGui.GetColorU32(ImGuiCol.TextDisabled),UiTheme.Fit(UiText.Get(formats),width));
+                draw.AddText(min+new Vector2(textX,UiTheme.Px(72)),ImGui.GetColorU32(ImGuiCol.TextDisabled),UiTheme.Fit(UiText.Get(Summary(machine.Id)),width));
                 draw.AddLine(min+UiTheme.Px(14,96),new(max.X-UiTheme.Px(14),min.Y+UiTheme.Px(96)),ImGui.GetColorU32(ImGuiCol.Border));
                 using(UiTheme.Label())
                 {
-                    draw.AddText(min+UiTheme.Px(14,102),accent,UiTheme.Fit($"{index:00} / {machine.Cpu}",size.X-UiTheme.Px(108)));
-                    draw.AddText(new(max.X-UiTheme.Px(78),min.Y+UiTheme.Px(102)),ImGui.GetColorU32(ImGuiCol.Text),"ABRIR >");
+                    draw.AddText(min+UiTheme.Px(14,102),accent,UiText.Get(UiTheme.Fit(UiText.Format($"{index:00} / {machine.Cpu}"),size.X-UiTheme.Px(108))));
+                    draw.AddText(new(max.X-UiTheme.Px(78),min.Y+UiTheme.Px(102)),ImGui.GetColorU32(ImGuiCol.Text),UiText.Get("ABRIR >"));
                 }
                 if(!UiTheme.HighContrast) RetroArt.Screw(draw,new(max.X-UiTheme.Px(8),min.Y+UiTheme.Px(12)));
                 if (hovered) UiTheme.Tooltip(Name(machine)+" · "+machine.Cpu+"\n"+Summary(machine.Id));
@@ -332,16 +332,16 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
             }
             ImGui.EndTable();
         }
-        if (ImGui.Button("Ver todos los juegos")) Select("all");
+        if (ImGui.Button(UiText.Label("Ver todos los juegos"))) Select("all");
     }
 
     private void DrawCreativeActions()
     {
         if (actions == null) return;
         UiTheme.Section("Dale forma a una idea", "Creá algo propio o combiná mecánicas de los originales que tenés.");
-        if (ImGui.Button("Crear desde cero…")) actions.Create();
+        if (ImGui.Button(UiText.Label("Crear desde cero…"))) actions.Create();
         UiTheme.SameLineIfFits("Fusionar juegos…");
-        if (ImGui.Button("Fusionar juegos…")) actions.Fuse();
+        if (ImGui.Button(UiText.Label("Fusionar juegos…"))) actions.Fuse();
     }
 
     private bool Ready(CreatedGame game) => _readyCreated.Get(_contentRevision,
@@ -358,7 +358,7 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
         int count = originals.Count + created.Count;
         int ready = originals.Count(g => g.NotYet == null && g.Confidence >= 50) + created.Count(Ready);
         return count == 0 ? "Sin juegos agregados"
-            : ready == count ? $"{count} archivo{(count == 1 ? "" : "s")}" : $"{count} archivos / {ready} admitidos";
+            : ready == count ? UiText.Format($"{count} archivo{(count == 1 ? UiText.Get("") : UiText.Get("s"))}") : UiText.Format($"{count} archivos / {ready} admitidos");
     }
 
     private static string OriginalKey(LibraryEntry game) => game.Identity.Length > 0 ? game.Identity

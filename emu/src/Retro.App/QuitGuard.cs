@@ -10,10 +10,10 @@ public static class QuitGuard
         if (fusion) work.Add("una fusión o creación con originales");
         if (creator) work.Add("un juego nuevo desde cero");
         if (analysis) work.Add("un análisis o una modificación");
-        if (backgroundTasks > 0) work.Add(backgroundTasks == 1 ? "una tarea de la consola" : $"{backgroundTasks} tareas de la consola");
+        if (backgroundTasks > 0) work.Add(backgroundTasks == 1 ? "una tarea de la consola" : UiText.Format($"{backgroundTasks} tareas de la consola"));
         if (work.Count == 0) return null;
-        string list = work.Count == 1 ? work[0] : string.Join(", ", work.Take(work.Count - 1)) + " y " + work[^1];
-        return $"Hay trabajo en curso: {list}. Si salís ahora se cancela. " +
-            "Se conserva lo que ya estaba guardado: juegos, partidas, perfiles y proyectos.";
+        string list = work.Count == 1 ? work[0] : string.Join(", ", work.Take(work.Count - 1)) + UiText.Get(" y ") + work[^1];
+        return UiText.Format($"Hay trabajo en curso: {list}. Si salís ahora se cancela. ") +
+            UiText.Get("Se conserva lo que ya estaba guardado: juegos, partidas, perfiles y proyectos.");
     }
 }

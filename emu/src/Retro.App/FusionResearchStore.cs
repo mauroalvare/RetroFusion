@@ -37,7 +37,7 @@ public sealed class FusionResearchStore(string? folder = null)
     private string PathFor(string id)
     {
         if (id is not {Length:32} || id.Any(c => !char.IsAsciiHexDigit(c))) throw new InvalidDataException("Identificador de investigación inválido.");
-        return Path.Combine(Folder, id + ".json");
+        return Path.Combine(Folder, id + UiText.Get(".json"));
     }
 
     private void CheckFolder()
@@ -51,7 +51,7 @@ public sealed class FusionResearchStore(string? folder = null)
     {
         Validate(work); string path = PathFor(work.Id); CheckFolder();
         Directory.CreateDirectory(Folder);
-        string leasePath=Path.Combine(Folder, work.Id + ".lock");
+        string leasePath=Path.Combine(Folder, work.Id + UiText.Get(".lock"));
         if (File.Exists(leasePath) && File.GetAttributes(leasePath).HasFlag(FileAttributes.ReparsePoint)) throw new IOException("El bloqueo de investigación es un enlace.");
         using var lease = new FileStream(leasePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
         if (File.Exists(path) && File.GetAttributes(path).HasFlag(FileAttributes.ReparsePoint)) throw new IOException("El checkpoint es un enlace.");
@@ -64,7 +64,7 @@ public sealed class FusionResearchStore(string? folder = null)
         if (bytes.Length > MaxBytes) throw new IOException("La investigación supera el límite de 4 MB. Los checkpoints anteriores se conservaron.");
         if (!File.Exists(path) && Directory.EnumerateFiles(Folder, "*.json").Count() >= 12)
             throw new IOException("Hay doce investigaciones guardadas. Descartá una que no necesites antes de empezar otra.");
-        string temp = Path.Combine(Folder, work.Id + "."+Guid.NewGuid().ToString("N")+".tmp");
+        string temp = Path.Combine(Folder, work.Id + "."+Guid.NewGuid().ToString("N")+UiText.Get(".tmp"));
         try
         {
             using (var stream = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
@@ -114,7 +114,7 @@ public sealed class FusionResearchStore(string? folder = null)
                 results.Add(work);
             }
             catch (Exception error) when (error is IOException or InvalidDataException or JsonException or ArgumentException or NullReferenceException)
-            { Problem = "No se pudo leer una investigación guardada. El archivo se conserva: " + file.Name; }
+            { Problem = UiText.Get("No se pudo leer una investigación guardada. El archivo se conserva: ") + file.Name; }
         return results;
     }
 
@@ -123,7 +123,7 @@ public sealed class FusionResearchStore(string? folder = null)
         CheckFolder(); string path = PathFor(id);
         if (File.Exists(path) && File.GetAttributes(path).HasFlag(FileAttributes.ReparsePoint)) throw new IOException("El checkpoint es un enlace.");
         File.Delete(path);
-        string lease = Path.Combine(Folder, id + ".lock");
+        string lease = Path.Combine(Folder, id + UiText.Get(".lock"));
         if (File.Exists(lease) && !File.GetAttributes(lease).HasFlag(FileAttributes.ReparsePoint)) File.Delete(lease);
     }
 }

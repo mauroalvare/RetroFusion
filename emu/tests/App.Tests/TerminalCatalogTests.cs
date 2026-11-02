@@ -2,10 +2,12 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Retro.App;
+using Retro.Core;
 
 namespace App.Tests;
 
 /// <summary>Rules every order must follow, checked on the real catalog. A new order that breaks one fails here.</summary>
+[NonParallelizable]
 public sealed class TerminalCatalogTests
 {
     private static IReadOnlyList<CommandSpec> Catalog()
@@ -72,12 +74,27 @@ public sealed class TerminalCatalogTests
         Assert.That(current, Is.EqualTo(reference), "Run this test with RETROEMU_WRITE_REFERENCE=1 after changing an order.");
     }
 
+    [Test]
+    public void TheEnglishReferenceMatchesTheSameCatalog()
+    {
+        string previous = UiText.Language;
+        try
+        {
+            UiText.Language = "en";
+            string path = Path.Combine(Path.GetDirectoryName(DocumentPath())!, "CONSOLE-EN.md");
+            string reference = ("# Real terminal command reference\n\nChoose English in Preferences. Existing Spanish aliases remain accepted.\nUse help <command> for examples, requirements and errors.\n" + Reference()).TrimEnd() + "\n";
+            if (Environment.GetEnvironmentVariable("RETROEMU_WRITE_REFERENCE") == "1") { File.WriteAllText(path, reference); return; }
+            Assert.That(File.ReadAllText(path).Replace("\r\n", "\n"), Is.EqualTo(reference));
+        }
+        finally { UiText.Language = previous; }
+    }
+
     private static string Reference()
     {
         var text = new StringBuilder("\n");
         foreach (var group in Catalog().GroupBy(order => order.Group).OrderBy(group => Array.IndexOf<string>(["Biblioteca", "Partida", "Análisis", "Proyectos", "Tareas", "Sistema", "Consola"], group.Key)))
         {
-            text.Append("\n### ").Append(group.Key).Append("\n\n| Orden | Función |\n| --- | --- |\n");
+            text.Append("\n### ").Append(group.Key).Append(UiText.English ? "\n\n| Command | Function |\n| --- | --- |\n" : "\n\n| Orden | Función |\n| --- | --- |\n");
             foreach (var order in group)
                 text.Append("| `").Append(order.Usage.Replace("|", "\\|")).Append('`').Append(order.Aliases.Count > 0 ? " (" + string.Join(", ", order.Aliases.Select(alias => "`" + alias + "`")) + ")" : "").Append(" | ").Append(order.Summary).Append(" |\n");
         }

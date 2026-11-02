@@ -215,17 +215,17 @@ public sealed class AppTaskCenter(TimeProvider? clock = null)
     {
         string state = StateName(task.State);
         if (!IsQuiet(task)) return state;
-        return state + $" · sin actividad hace {Duration(task.Quiet)}";
+        return state + UiText.Format($" · sin actividad hace {Duration(task.Quiet)}");
     }
 
     public string Advice(AppTask task)
     {
         if (!IsQuiet(task)) return "";
         string reason = task.State == AppTaskState.WaitingProvider ? "Sigue esperando la respuesta del proveedor; puede tardar o haberse cortado." : "El proceso no informó avances.";
-        return reason + (task.CanCancel ? " Podés cancelarla; los resultados parciales se conservan." : " No se puede cancelar desde acá.");
+        return UiText.Get(reason) + UiText.Get(task.CanCancel ? " Podés cancelarla; los resultados parciales se conservan." : " No se puede cancelar desde acá.");
     }
 
-    public static string StateName(AppTaskState state) => state switch
+    public static string StateName(AppTaskState state) => UiText.Get(state switch
     {
         AppTaskState.Queued => "en cola",
         AppTaskState.Working => "trabajo local",
@@ -237,15 +237,15 @@ public sealed class AppTaskCenter(TimeProvider? clock = null)
         AppTaskState.PartlyCompleted => "terminada en parte",
         AppTaskState.Failed => "falló",
         _ => "cancelada"
-    };
+    });
 
     public static string Duration(TimeSpan time) =>
-        time.TotalHours >= 1 ? ((int)time.TotalHours).ToString(CultureInfo.InvariantCulture) + " h " + time.Minutes + " min"
-        : time.TotalMinutes >= 1 ? ((int)time.TotalMinutes).ToString(CultureInfo.InvariantCulture) + " min " + time.Seconds + " s"
-        : Math.Max(0, (int)time.TotalSeconds).ToString(CultureInfo.InvariantCulture) + " s";
+        time.TotalHours >= 1 ? ((int)time.TotalHours).ToString(CultureInfo.InvariantCulture) + UiText.Get(" h ") + time.Minutes + UiText.Get(" min")
+        : time.TotalMinutes >= 1 ? ((int)time.TotalMinutes).ToString(CultureInfo.InvariantCulture) + UiText.Get(" min ") + time.Seconds + UiText.Get(" s")
+        : Math.Max(0, (int)time.TotalSeconds).ToString(CultureInfo.InvariantCulture) + UiText.Get(" s");
 
     /// <summary>"12 de 40 juegos" when a count exists; empty when progress cannot be measured.</summary>
     public static string Progress(AppTask task) => task.Done is { } done
-        ? task.Total is { } total ? $"{done} de {total} {task.Unit}".TrimEnd() : $"{done} {task.Unit}".TrimEnd()
+        ? task.Total is { } total ? UiText.Format($"{done} de {total} {task.Unit}").TrimEnd() : UiText.Format($"{done} {task.Unit}").TrimEnd()
         : "";
 }

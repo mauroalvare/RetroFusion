@@ -37,7 +37,7 @@ public sealed class FusionInputSnapshot
             if (media != MediaHash(MediaArchive.Open(bytes, Path.GetFileName(path), path)))
                 throw new InvalidDataException("Un original cambió desde que se eligió. Actualizá la biblioteca antes de crear.");
             string profileJson = source.Profile.ToJson();
-            string profilePath = Path.Combine(ProfileLibrary.UserFolder, id + ".json");
+            string profilePath = Path.Combine(ProfileLibrary.UserFolder, id + UiText.Get(".json"));
             if (File.Exists(profilePath) && GameProfile.Parse(File.ReadAllText(profilePath)).ToJson() != profileJson)
                 throw new InvalidDataException("Un perfil cambió desde que se eligió. Actualizá la biblioteca antes de crear.");
             frozen[id] = new(GameProfile.Parse(profileJson),

@@ -38,13 +38,13 @@ internal static class InterfaceScene
     {
         var body = UiTheme.PreviewFont(style); var label = UiTheme.PreviewLabelFont(style); var title = UiTheme.PreviewTitleFont(style);
         Vector2 P(float x, float y) => at + new Vector2(x, y) * unit;
-        void Text(ImFontPtr font, float size, float x, float y, Vector4 ink, string value) => draw.AddText(font, size * unit, P(x, y), Color(ink), value);
+        void Text(ImFontPtr font, float size, float x, float y, Vector4 ink, string value) => draw.AddText(font, size * unit, P(x, y), Color(ink), UiText.Get(value));
         void Button(float x, float y, float w, float h, string value, bool primary)
         {
             draw.AddRectFilled(P(x, y), P(x + w, y + h), Color(primary ? palette.Accent : palette.Button), palette.Rounded ? 2 * unit : 0);
             if (!primary) draw.AddRect(P(x, y), P(x + w, y + h), Color(palette.Border), palette.Rounded ? 2 * unit : 0);
             var fit = body.CalcTextSizeA(11 * unit, float.MaxValue, 0, value);
-            draw.AddText(body, 11 * unit, P(x, y) + (new Vector2(w, h) * unit - fit) / 2, Color(primary ? palette.OnAccent : palette.Text), value);
+            draw.AddText(body, 11 * unit, P(x, y) + (new Vector2(w, h) * unit - fit) / 2, Color(primary ? palette.OnAccent : palette.Text), UiText.Get(value));
         }
         draw.AddRectFilled(P(0, 0), P(Width, 26), Color(palette.Panel));
         Text(title, 15, 10, 5, palette.Text, "RETROEMU");
@@ -101,7 +101,7 @@ internal static class InterfaceScene
         var font = UiTheme.ConsoleFont; float size = 14 * unit, row = MathF.Round(size * 1.2f);
         int columns = (int)((Width * unit - 16 * unit) / Math.Max(1, font.CalcTextSizeA(size, float.MaxValue, 0, "M").X));
         var position = at + new Vector2(8, 6) * unit;
-        void Line(string text, Vector4 ink) { draw.AddText(font, size, position, Color(ink), text); position.Y += row; }
+        void Line(string text, Vector4 ink) { draw.AddText(font, size, position, Color(ink), UiText.Get(text)); position.Y += row; }
         Line("retro:/biblioteca> juegos", palette.Bright);
         // The real table layout: a change to how tables are drawn reaches this preview too.
         var lines = TextTable.Layout([new("#", Right: true), new("Título", Flexible: true), new("Sistema"), new("Año"), new("Género", Optional: true)],
@@ -112,7 +112,7 @@ internal static class InterfaceScene
         Line("guardar <ranura> [reemplazar]   Guarda la partida", palette.Text);
         Line("retro:/biblioteca> jugar 1", palette.Bright);
         Line("Abriendo: Faro del taller", palette.Accent);
-        draw.AddText(font, size, position, Color(palette.Accent), "retro:/biblioteca> ");
+        draw.AddText(font, size, position, Color(palette.Accent), UiText.Get("retro:/biblioteca> "));
         var end = position + new Vector2(font.CalcTextSizeA(size, float.MaxValue, 0, "retro:/biblioteca> ").X, 0);
         draw.AddRectFilled(end, end + new Vector2(size * 0.55f, row), Color(palette.Bright));
     }

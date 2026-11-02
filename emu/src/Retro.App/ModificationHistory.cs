@@ -30,7 +30,7 @@ public sealed class ModificationHistory(string? folder = null, bool persist = tr
     }
 
     private static bool ValidKey(string key) => key is { Length: 64 } && key.All(char.IsAsciiHexDigit);
-    private string FileFor(string key) => ValidKey(key) ? Path.Combine(_folder, key + ".json") : throw new ArgumentException("Identidad de historial inválida.");
+    private string FileFor(string key) => ValidKey(key) ? Path.Combine(_folder, key + UiText.Get(".json")) : throw new ArgumentException("Identidad de historial inválida.");
 
     public SavedModifications? Read(string key, string machine, int addressBits)
     {
@@ -56,7 +56,7 @@ public sealed class ModificationHistory(string? folder = null, bool persist = tr
     public bool Write(SavedModifications saved, int addressBits)
     {
         if (!persist) return true;
-        string path = FileFor(saved.Key), temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        string path = FileFor(saved.Key), temporary = path + "." + Guid.NewGuid().ToString("N") + UiText.Get(".tmp");
         if (_unreadable.Contains(saved.Key)) return false;
         try
         {

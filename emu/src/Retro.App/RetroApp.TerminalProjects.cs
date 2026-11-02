@@ -19,16 +19,16 @@ public sealed partial class RetroApp
         foreach (var game in StudioLibrary.AllVersions().GroupBy(game => game.Id).Select(group => group.OrderByDescending(version => version.Version).First()).OrderBy(game => game.Title))
         {
             var missing = game.Games.Where(slot => !available.Contains(slot.Profile)).Select(slot => slot.Profile).ToArray();
-            rows.Add(new("fusion:" + game.Id, game.IsInspired ? "con originales" : "fusión", game.Title, "v" + game.Version, missing.Length == 0 ? "lista para abrir" : "faltan originales: " + missing.Length));
+            rows.Add(new(UiText.Get("fusion:") + game.Id, game.IsInspired ? "con originales" : "fusión", game.Title, UiText.Get("v") + game.Version, missing.Length == 0 ? "lista para abrir" : UiText.Get("faltan originales: ") + missing.Length));
         }
         foreach (var game in CreatedGames.All())
-            rows.Add(new("creado:" + game.Folder, "desde cero", game.Title, game.Machine, game.Passed ? "prueba aprobada" : "prueba pendiente o fallida"));
+            rows.Add(new(UiText.Get("creado:") + game.Folder, "desde cero", game.Title, game.Machine, game.Passed ? "prueba aprobada" : "prueba pendiente o fallida"));
         foreach (var work in StudioWorkStore.Pending())
-            rows.Add(new("trabajo-fusion:" + work.Id, "trabajo guardado", work.State.Draft?.Title ?? work.State.Template.Title, "", "esperando continuar"));
+            rows.Add(new(UiText.Get("trabajo-fusion:") + work.Id, "trabajo guardado", work.State.Draft?.Title ?? work.State.Template.Title, "", "esperando continuar"));
         foreach (var work in GameWorkStore.Pending())
-            rows.Add(new("trabajo-creado:" + work.Id, "trabajo guardado", work.State.Draft?.Title ?? work.State.Wish, work.State.Machine, "esperando continuar"));
+            rows.Add(new(UiText.Get("trabajo-creado:") + work.Id, "trabajo guardado", work.State.Draft?.Title ?? work.State.Wish, work.State.Machine, "esperando continuar"));
         foreach (var work in new FusionResearchStore().Pending())
-            rows.Add(new("investigacion:" + work.Id, "investigación", work.Concept.Title, "", work.Summary.Length > 0 ? work.Summary : "en pausa"));
+            rows.Add(new(UiText.Get("investigacion:") + work.Id, "investigación", work.Concept.Title, "", work.Summary.Length > 0 ? work.Summary : "en pausa"));
         return rows;
     }
 
@@ -38,7 +38,7 @@ public sealed partial class RetroApp
         if (int.TryParse(value, out int number))
         {
             if (_terminalProjects.Length == 0) throw new CommandFailure(CommandProblem.WrongContext, "Todavía no hay una lista de proyectos.", "proyectos lista tus trabajos; después usá el número.");
-            if (number < 1 || number > _terminalProjects.Length) throw new CommandFailure(CommandProblem.InvalidArgument, $"La última lista tiene {_terminalProjects.Length} proyectos.");
+            if (number < 1 || number > _terminalProjects.Length) throw new CommandFailure(CommandProblem.InvalidArgument, UiText.Format($"La última lista tiene {_terminalProjects.Length} proyectos."));
             string key = _terminalProjects[number - 1];
             return rows.FirstOrDefault(row => row.Key == key) is { Key: not null } found ? found
                 : throw new CommandFailure(CommandProblem.MissingResource, "Ese proyecto ya no existe.", "proyectos vuelve a listar.");
@@ -46,9 +46,9 @@ public sealed partial class RetroApp
         string folded = CommandLine.Fold(value);
         var matches = rows.Where(row => CommandLine.Fold(row.Title).Contains(folded)).ToArray();
         if (matches.Length == 1) return matches[0];
-        if (matches.Length == 0) throw new CommandFailure(CommandProblem.MissingResource, "No hay ningún proyecto llamado " + value + ".", "proyectos lista tus trabajos.");
+        if (matches.Length == 0) throw new CommandFailure(CommandProblem.MissingResource, UiText.Get("No hay ningún proyecto llamado ") + value + ".", "proyectos lista tus trabajos.");
         _terminalProjects = matches.Select(row => row.Key).ToArray();
-        throw new CommandFailure(CommandProblem.Ambiguous, $"{matches.Length} proyectos coinciden. Elegí uno por número:", matches.Take(8).Select((row, index) => $"{index + 1}. {row.Title} · {row.Type}").ToArray());
+        throw new CommandFailure(CommandProblem.Ambiguous, UiText.Format($"{matches.Length} proyectos coinciden. Elegí uno por número:"), matches.Take(8).Select((row, index) => UiText.Format($"{index + 1}. {UiText.Raw(row.Title)} · {row.Type}")).ToArray());
     }
 
     private static string KeyValue(ProjectRow row) => row.Key[(row.Key.IndexOf(':') + 1)..];
@@ -83,22 +83,22 @@ public sealed partial class RetroApp
                     var versions = StudioLibrary.AllVersions().Where(game => game.Id == KeyValue(row)).OrderByDescending(game => game.Version).ToArray();
                     var game = versions[0];
                     context.Write(game.Pitch);
-                    context.Write("Cómo se juega: " + (game.HowToPlay.Length > 0 ? game.HowToPlay : "sin instrucciones"));
-                    context.Detail($"Versiones: {versions.Length} · originales: {string.Join(", ", game.Games.Select(slot => slot.Profile))}");
-                    context.Detail("Estado: " + row.State + ". Una validación comprueba robots y escenas; no certifica diversión ni un final.");
+                    context.Write(UiText.Get("Cómo se juega: ") + (game.HowToPlay.Length > 0 ? game.HowToPlay : "sin instrucciones"));
+                    context.Detail(UiText.Format($"Versiones: {versions.Length} · originales: {string.Join(", ", game.Games.Select(slot => slot.Profile))}"));
+                    context.Detail(UiText.Get("Estado: ") + row.State + UiText.Get(". Una validación comprueba robots y escenas; no certifica diversión ni un final."));
                 }
                 else if (row.Key.StartsWith("creado:", StringComparison.Ordinal))
                 {
                     var game = CreatedGames.All().First(item => item.Folder == KeyValue(row));
                     context.Write(game.Pitch);
-                    if (game.HowToPlay.Length > 0) context.Write("Cómo se juega: " + game.HowToPlay);
-                    context.Detail("Carpeta: " + game.Folder);
+                    if (game.HowToPlay.Length > 0) context.Write(UiText.Get("Cómo se juega: ") + game.HowToPlay);
+                    context.Detail(UiText.Get("Carpeta: ") + game.Folder);
                     if (game.Trial.Length > 0) context.Write(game.Trial);
                 }
                 else
                 {
-                    context.Write("Estado: " + row.State);
-                    context.Detail("retomar-trabajo " + context.Text("proyecto") + " abre el taller donde se continúa.");
+                    context.Write(UiText.Get("Estado: ") + row.State);
+                    context.Detail(UiText.Get("retomar-trabajo ") + context.Text("proyecto") + UiText.Get(" abre el taller donde se continúa."));
                 }
             }
         },
@@ -114,7 +114,7 @@ public sealed partial class RetroApp
                 var task = row.Key.StartsWith("fusion:", StringComparison.Ordinal) ? ValidateFusion(KeyValue(row), row.Title)
                     : row.Key.StartsWith("creado:", StringComparison.Ordinal) ? ValidateCreated(KeyValue(row), row.Title)
                     : throw new CommandFailure(CommandProblem.WrongContext, "Solo se valida una creación guardada.", "retomar-trabajo continúa un trabajo pendiente.");
-                context.Success($"Tarea {task.Id}: {task.Kind} de {task.Target}. seguir {task.Id} muestra el avance.");
+                context.Success(UiText.Format($"Tarea {task.Id}: {task.Kind} de {task.Target}. seguir {task.Id} muestra el avance."));
             }
         },
         new()
@@ -128,7 +128,7 @@ public sealed partial class RetroApp
                 if (row.Key.StartsWith("trabajo-creado:", StringComparison.Ordinal)) { OpenCreator(); _creator.ShowSavedProjects(); }
                 else if (row.Key.StartsWith("trabajo-fusion:", StringComparison.Ordinal)) { OpenFusionStudio(); _studio.ShowSavedWork(); }
                 else if (row.Key.StartsWith("investigacion:", StringComparison.Ordinal)) { OpenFusionStudio(); _studio.ShowResearch(KeyValue(row)); }
-                else throw new CommandFailure(CommandProblem.WrongContext, row.Title + " ya está terminado.", "jugar " + row.Title);
+                else throw new CommandFailure(CommandProblem.WrongContext, row.Title + UiText.Get(" ya está terminado."), UiText.Get("jugar ") + row.Title);
                 ReleaseConsoleKeyboard(); context.Success("Taller abierto · Ctrl+Shift+T vuelve a la consola.");
             }
         },
@@ -144,7 +144,7 @@ public sealed partial class RetroApp
                 var game = FindGame(context.Text("juego"));
                 if (game.Path == null || game.Kind != nameof(LibraryGameKind.Original)) throw new CommandFailure(CommandProblem.WrongContext, "Solo se preparan originales.", "ficha muestra el tipo del juego.");
                 var task = PrepareOriginal(game);
-                context.Success($"Tarea {task.Id}: preparación de {game.Title}. seguir {task.Id} muestra el avance.");
+                context.Success(UiText.Format($"Tarea {task.Id}: preparación de {UiText.Raw(game.Title)}. seguir {task.Id} muestra el avance."));
             }
         }
     ];
@@ -161,7 +161,7 @@ public sealed partial class RetroApp
             foreach (var slot in game.Games)
             {
                 var source = catalog.FirstOrDefault(item => item.Profile.Id == slot.Profile);
-                if (source == null) throw new InvalidOperationException("Falta el original " + slot.Profile + ". Agregalo a la biblioteca y volvé a validar.");
+                if (source == null) throw new InvalidOperationException(UiText.Get("Falta el original ") + slot.Profile + UiText.Get(". Agregalo a la biblioteca y volvé a validar."));
                 sources[slot.Profile] = source.Source;
             }
             token.ThrowIfCancellationRequested();
@@ -195,8 +195,8 @@ public sealed partial class RetroApp
         {
             var options = new PrepareOptions { FirmwareDirectory = firmware };
             var result = await GamePreparer.PrepareAsync(path, options, line => task.Report(line), token).ConfigureAwait(false);
-            foreach (string line in result.CheckedData) task.Result("comprobado: " + line);
-            foreach (string line in result.UnresolvedData) task.Result("sin resolver: " + line);
+            foreach (string line in result.CheckedData) task.Result(UiText.Get("comprobado: ") + line);
+            foreach (string line in result.UnresolvedData) task.Result(UiText.Get("sin resolver: ") + line);
             if (result.Problem != null) task.Error(result.Problem);
             task.Partial = !result.Ok;
         });
@@ -204,7 +204,7 @@ public sealed partial class RetroApp
 
     private AppTask? TaskArgument(CommandContext context)
     {
-        var task = _tasks.Find(context.Number("tarea")) ?? throw new CommandFailure(CommandProblem.MissingResource, "No existe la tarea " + context.Text("tarea") + ".", "tareas lista las de esta sesión.");
+        var task = _tasks.Find(context.Number("tarea")) ?? throw new CommandFailure(CommandProblem.MissingResource, UiText.Get("No existe la tarea ") + context.Text("tarea") + ".", "tareas lista las de esta sesión.");
         return task;
     }
 
@@ -235,15 +235,15 @@ public sealed partial class RetroApp
                 Run = context =>
                 {
                     var task = TaskArgument(context)!;
-                    context.Heading($"Tarea {task.Id}: {task.Kind} · {task.Target}");
-                    context.Write("Estado: " + _tasks.Describe(task) + " · " + AppTaskCenter.Duration(task.Elapsed));
-                    if (task.Stage.Length > 0) context.Write("Etapa: " + task.Stage);
-                    if (AppTaskCenter.Progress(task) is { Length: > 0 } progress) context.Write("Avance: " + progress);
+                    context.Heading(UiText.Format($"Tarea {task.Id}: {task.Kind} · {task.Target}"));
+                    context.Write(UiText.Get("Estado: ") + _tasks.Describe(task) + " · " + AppTaskCenter.Duration(task.Elapsed));
+                    if (task.Stage.Length > 0) context.Write(UiText.Get("Etapa: ") + task.Stage);
+                    if (AppTaskCenter.Progress(task) is { Length: > 0 } progress) context.Write(UiText.Get("Avance: ") + progress);
                     if (_tasks.Advice(task) is { Length: > 0 } advice) context.Warning(advice);
                     foreach (string line in task.Results) context.Write(line);
-                    foreach (string line in task.Errors) context.Write("error: " + line, TerminalKind.Error);
-                    foreach (string line in task.Artifacts) context.Detail("Archivo: " + line);
-                    if (task.CanResume) context.Detail($"retomar {task.Id} la vuelve a intentar.");
+                    foreach (string line in task.Errors) context.Write(UiText.Get("error: ") + line, TerminalKind.Error);
+                    foreach (string line in task.Artifacts) context.Detail(UiText.Get("Archivo: ") + line);
+                    if (task.CanResume) context.Detail(UiText.Format($"retomar {task.Id} la vuelve a intentar."));
                 }
             },
             new()
@@ -254,7 +254,7 @@ public sealed partial class RetroApp
                 Run = context =>
                 {
                     var task = TaskArgument(context)!;
-                    if (!task.Active) { context.Detail("Esa tarea ya terminó: " + _tasks.Describe(task) + "."); return; }
+                    if (!task.Active) { context.Detail(UiText.Get("Esa tarea ya terminó: ") + _tasks.Describe(task) + "."); return; }
                     _followed = task; _followedRevision = -1; context.Detail("Siguiendo la tarea · Ctrl+C deja de seguirla.");
                 }
             },
@@ -266,7 +266,7 @@ public sealed partial class RetroApp
                 {
                     var task = TaskArgument(context)!;
                     if (!task.Cancel()) throw new CommandFailure(CommandProblem.WrongContext, task.Active ? "Esta tarea no se puede cancelar desde acá." : "Esa tarea ya terminó.", "tareas muestra su estado.");
-                    context.Success($"Cancelación pedida para la tarea {task.Id}. Se detiene en el próximo punto seguro.");
+                    context.Success(UiText.Format($"Cancelación pedida para la tarea {task.Id}. Se detiene en el próximo punto seguro."));
                 }
             },
             new()
@@ -291,7 +291,7 @@ public sealed partial class RetroApp
         {
             _followedRevision = task.Revision;
             string progress = AppTaskCenter.Progress(task);
-            if (task.Active && task.Stage.Length > 0) _terminal.Write($"[{task.Id}] {task.Stage}" + (progress.Length > 0 ? " · " + progress : ""), TerminalKind.Detail);
+            if (task.Active && task.Stage.Length > 0) _terminal.Write(UiText.Format($"[{task.Id}] {task.Stage}") + (progress.Length > 0 ? " · " + progress : ""), TerminalKind.Detail);
         }
     }
 
@@ -300,6 +300,6 @@ public sealed partial class RetroApp
         if (_followed == task) _followed = null;
         if (_terminal == null || !Hardcore) return;
         var kind = task.State switch { AppTaskState.Completed => TerminalKind.Success, AppTaskState.Failed => TerminalKind.Error, _ => TerminalKind.Warning };
-        _terminal.Write($"[{task.Id}] {task.Kind} de {task.Target}: {AppTaskCenter.StateName(task.State)} · {AppTaskCenter.Duration(task.Elapsed)}. tarea {task.Id} muestra el detalle.", kind);
+        _terminal.Write(UiText.Format($"[{task.Id}] {task.Kind} de {task.Target}: {AppTaskCenter.StateName(task.State)} · {AppTaskCenter.Duration(task.Elapsed)}. tarea {task.Id} muestra el detalle."), kind);
     }
 }

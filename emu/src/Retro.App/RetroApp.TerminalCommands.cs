@@ -12,25 +12,30 @@ public sealed partial class RetroApp
         set => _terminalCatalog = value;
     }
 
-    private IEnumerable<CompletionItem> OptionCompletions() => Options.Select(option => new CompletionItem(option.Id, option.Title));
+    private IEnumerable<CompletionItem> OptionCompletions() => Options.Select(option => new CompletionItem(TerminalLanguage.Option(option.Id), option.Title));
     private IEnumerable<CompletionItem> ActionCompletions() => Commands.Select(command => new CompletionItem(command.Id, command.Title));
 
     private IEnumerable<CommandSpec> SystemOrders() =>
     [
         new()
         {
+            Id = "system.news", Name = "novedades", Group = "Sistema", Summary = "Muestra las funciones nuevas y los cambios de las últimas versiones.",
+            Aliases = ["news"], Examples = ["novedades"], Run = _ => { OpenNews(); ReleaseConsoleKeyboard(); }
+        },
+        new()
+        {
             Id = "system.status", Name = "estado", Group = "Sistema", Summary = "Muestra máquina, partida, biblioteca, interfaz y tareas.",
             Aliases = ["status"], Keywords = "resumen situacion ahora",
             Run = context =>
             {
-                context.Write($"Máquina: {_host.Machine?.DisplayName ?? "apagada"} · {(_host.Paused ? "en pausa" : "en ejecución")}");
-                context.Write("Juego: " + (_host.Fusion?.Title ?? (_host.LoadedMedia != null ? Path.GetFileName(_host.LoadedMedia) : "ninguno")));
-                context.Write("Biblioteca: " + _home.GameCount + " juegos · " + (_library.Scanning ? "actualizando" : "al día"));
-                context.Write("Identificación: " + _gameMetadata.Status);
-                context.Write("Interfaz: " + InterfaceStyles.Describe(_prefs.Interface).Name + $" · texto {_prefs.TextPercent} %");
+                context.Write(UiText.Format($"Máquina: {_host.Machine?.DisplayName ?? UiText.Get("apagada")} · {(_host.Paused ? UiText.Get("en pausa") : UiText.Get("en ejecución"))}"));
+                context.Write(UiText.Get("Juego: ") + (_host.Fusion?.Title ?? (_host.LoadedMedia != null ? Path.GetFileName(_host.LoadedMedia) : "ninguno")));
+                context.Write(UiText.Get("Biblioteca: ") + _home.GameCount + UiText.Get(" juegos · ") + (_library.Scanning ? "actualizando" : "al día"));
+                context.Write(UiText.Get("Identificación: ") + _gameMetadata.Status);
+                context.Write(UiText.Get("Interfaz: ") + InterfaceStyles.Describe(_prefs.Interface).Name + UiText.Format($" · texto {_prefs.TextPercent} %"));
                 if (_host.SoundDeviceMissing) context.Warning("no hay salida de audio: los juegos corren sin sonido, a su velocidad. hacer audio-retry la vuelve a buscar.");
                 var active = _tasks.Active;
-                context.Write(active.Count == 0 ? "Tareas: ninguna en curso" : $"Tareas: {active.Count} en curso · usá tareas");
+                context.Write(active.Count == 0 ? "Tareas: ninguna en curso" : UiText.Format($"Tareas: {active.Count} en curso · usá tareas"));
                 if (_host.Status.Length > 0) context.Detail(_host.Status);
             }
         },
@@ -55,21 +60,22 @@ public sealed partial class RetroApp
             Errors = ["el valor no está entre los admitidos"], Result = "El cambio se ve al instante en los tres estilos.",
             Run = context =>
             {
-                string id = context.Text("id");
+                string id = TerminalLanguage.CanonicalOption(context.Text("id"));
                 var option = Options.FirstOrDefault(option => CommandLine.Fold(option.Id) == CommandLine.Fold(id))
-                    ?? throw new CommandFailure(CommandProblem.InvalidArgument, "No existe el ajuste " + id + ".", "opciones lista los disponibles.");
+                    ?? throw new CommandFailure(CommandProblem.InvalidArgument, UiText.Get("No existe el ajuste ") + id + ".", "opciones lista los disponibles.");
                 if (context.Optional("valor") is { } value)
                 {
-                    if (CommandLine.Fold(value) == "restablecer")
+                    if (CommandLine.Fold(value) is "restablecer" or "reset")
                     {
                         if (option.Default == null) throw new CommandFailure(CommandProblem.WrongContext, "Este ajuste no tiene un valor inicial fijo.");
                         value = option.Default;
                     }
-                    if (option.Write(value) is { } problem) throw new CommandFailure(CommandProblem.InvalidArgument, problem, "Valores: " + option.Values);
+                    if (option.Choices != null) value = TerminalLanguage.CanonicalChoice(value, option.Choices.Select(choice => choice.Value).ToArray());
+                    if (option.Write(value) is { } problem) throw new CommandFailure(CommandProblem.InvalidArgument, problem, UiText.Get("Valores: ") + option.Values);
                 }
-                context.Write(option.Id + " = " + option.Read() + " · " + option.Title, TerminalKind.Success);
+                context.Write(TerminalLanguage.Option(option.Id) + " = " + option.Read() + " · " + option.Title, TerminalKind.Success);
                 context.Detail(option.Description);
-                context.Detail("Valores: " + option.Values + (option.Default != null ? " · inicial: " + option.Default : "") + " · alcance: " + option.ScopeName);
+                context.Detail(UiText.Get("Valores: ") + option.Values + (option.Default != null ? UiText.Get(" · inicial: ") + option.Default : "") + UiText.Get(" · alcance: ") + option.ScopeName);
                 string saving = _prefs.Problem ?? _sound.Problem ?? "";
                 if (saving.Length > 0) context.Warning(saving);
             }
@@ -77,15 +83,15 @@ public sealed partial class RetroApp
         new()
         {
             Id = "system.interface", Name = "interfaz", Group = "Sistema", Summary = "Cambia el estilo o abre la elección con vistas previas.",
-            Aliases = ["estilo", "tema"], Keywords = "apariencia retro terminal hardcore cambiar grafica",
-            Arguments = [new("estilo", ArgumentKind.Choice, "El estilo que querés usar.") { Choices = ["retro", "terminal", "hardcore", "preview"] }],
+            Aliases = ["estilo", "tema"], Keywords = "apariencia retro terminal real cambiar grafica",
+            Arguments = [new("estilo", ArgumentKind.Choice, "El estilo que querés usar.") { Choices = ["retro", "terminal", "real", "preview"] }],
             Examples = ["interfaz retro", "interfaz preview"], Result = "Los datos, ajustes y la partida se conservan.",
             Run = context =>
             {
                 string id = context.Text("estilo");
                 if (id == "preview") { OpenInterfacePicker(); return; }
                 InterfaceStyles.TryParse(id, out var style); SetInterface(style);
-                context.Success("Interfaz: " + InterfaceStyles.Describe(style).Name);
+                context.Success(UiText.Get("Interfaz: ") + InterfaceStyles.Describe(style).Name);
             }
         },
         new()
@@ -107,7 +113,7 @@ public sealed partial class RetroApp
             {
                 string id = context.Text("id");
                 var command = Commands.FirstOrDefault(command => CommandLine.Fold(command.Id) == CommandLine.Fold(id))
-                    ?? throw new CommandFailure(CommandProblem.InvalidArgument, "No existe la acción " + id + ".", "acciones lista las disponibles.");
+                    ?? throw new CommandFailure(CommandProblem.InvalidArgument, UiText.Get("No existe la acción ") + id + ".", "acciones lista las disponibles.");
                 if (!command.Enabled) throw new CommandFailure(CommandProblem.WrongContext, command.Unavailable, "juegos lista tu biblioteca.");
                 command.Execute();
                 if (_home.IsOpen || _hub != HubPage.None || _creator.IsOpen || _studio.IsOpen || _code.IsOpen || _stateWindowOpen || _debugMode || ConfigurationOpen || _browser.IsOpen)
@@ -126,7 +132,7 @@ public sealed partial class RetroApp
             Run = context =>
             {
                 if (context.Optional("accion") == "abrir") { _updates.Open(); return; }
-                context.Write("Versión: RetroEmu " + Retro.Update.UpdateRunner.AppVersion.ToString(3));
+                context.Write(UiText.Get("Versión: RetroEmu ") + Retro.Update.UpdateRunner.AppVersion.ToString(3));
                 context.Detail(_updates.Summary);
             }
         },
@@ -191,23 +197,23 @@ public sealed partial class RetroApp
     private void ListTerminalOptions(CommandContext context, string filter)
     {
         string folded = CommandLine.Fold(filter);
-        var found = Options.Where(option => CommandLine.Fold(option.Id + " " + option.Title + " " + option.Group).Contains(folded)).ToArray();
-        if (found.Length == 0) throw new CommandFailure(CommandProblem.InvalidArgument, "Ningún ajuste coincide con " + filter + ".", "opciones lista todos.");
-        context.Table([new("Ajuste"), new("Valor"), new("Grupo", Optional: true), new("Descripción", Flexible: true)], found.Select(option => new[] { option.Id, option.Read(), option.Group, option.Title }));
+        var found = Options.Where(option => CommandLine.Fold(TerminalLanguage.Option(option.Id) + " " + option.Title + " " + UiText.Get(option.Group)).Contains(folded)).ToArray();
+        if (found.Length == 0) throw new CommandFailure(CommandProblem.InvalidArgument, UiText.Get("Ningún ajuste coincide con ") + filter + ".", "opciones lista todos.");
+        context.Table([new("Ajuste"), new("Valor"), new("Grupo", Optional: true), new("Descripción", Flexible: true)], found.Select(option => new[] { TerminalLanguage.Option(option.Id), option.Read(), option.Group, option.Title }));
         context.Detail("opcion <ajuste> muestra sus valores; opcion <ajuste> <valor> lo cambia.");
     }
 
     private void ListTerminalActions(CommandContext context, string filter)
     {
         var found = CommandPalette.Search(Commands, filter);
-        if (found.Count == 0) throw new CommandFailure(CommandProblem.InvalidArgument, "Ninguna acción coincide con " + filter + ".", "acciones lista todas.");
+        if (found.Count == 0) throw new CommandFailure(CommandProblem.InvalidArgument, UiText.Get("Ninguna acción coincide con ") + filter + ".", "acciones lista todas.");
         context.Table([new("Acción"), new("Grupo", Optional: true), new("Función", Flexible: true)], found.Select(command => new[] { command.Id, command.Group, command.Title + (command.Enabled ? "" : " [" + command.Unavailable + "]") }));
         context.Detail("hacer <acción> la ejecuta.");
     }
 
     private void RegisterConsoleCapabilities(ProgramTerminal terminal)
     {
-        terminal.Capabilities = _ => Commands.Select(command => ("hacer " + command.Id, command.Title + " · " + command.Group + " " + command.Keywords))
-            .Concat(Options.Select(option => ("opcion " + option.Id, option.Title + " · " + option.Group + " " + option.Description)));
+        terminal.Capabilities = _ => Commands.Select(command => (UiText.Get("hacer ") + command.Id, command.Title + " · " + command.Group + " " + command.Keywords))
+            .Concat(Options.Select(option => (UiText.Get("opcion ") + option.Id, option.Title + " · " + option.Group + " " + option.Description)));
     }
 }

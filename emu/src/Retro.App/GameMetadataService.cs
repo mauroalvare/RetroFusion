@@ -63,7 +63,7 @@ public sealed class GameMetadataService : IDisposable
         {
             var rejected = Cache.Get(CandidateKey ?? "")?.Rejected ?? [];
             Candidates = finished.Result.Where(candidate => !rejected.Contains(candidate.Game.Source)).ToArray();
-            CandidateStatus = Candidates.Count == 0 ? "El catálogo no ofrece candidatos para este título." : $"{Candidates.Count} candidatos. Ninguno se aplica sin que lo elijas.";
+            CandidateStatus = Candidates.Count == 0 ? "El catálogo no ofrece candidatos para este título." : UiText.Format($"{Candidates.Count} candidatos. Ninguno se aplica sin que lo elijas.");
         }
         else { _ = finished.Exception; CandidateStatus = "El catálogo no respondió. Tus datos no cambiaron; podés reintentar."; }
         CandidatesReady?.Invoke();
@@ -151,7 +151,7 @@ public sealed class GameMetadataService : IDisposable
             _cancel = new CancellationTokenSource(TimeSpan.FromSeconds(8));
             _task = new WikidataGameLookup(_http).FindAsync(_current.Name, _current.Machine, _cancel.Token);
         }
-        Status = Pending > 0 ? $"Completando fichas en segundo plano · {Pending} pendientes" : "Identificación al día · sin coincidencia segura, queda sin clasificar";
+        Status = Pending > 0 ? UiText.Format($"Completando fichas en segundo plano · {Pending} pendientes") : "Identificación al día · sin coincidencia segura, queda sin clasificar";
     }
 
     private static string Query(GameLookup game) => game.Machine + ":" + GameIdentification.TitleFromName(game.Name);

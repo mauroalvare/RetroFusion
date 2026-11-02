@@ -68,7 +68,7 @@ internal sealed class TerminalView(ProgramTerminal terminal, TerminalInput input
     public void Draw(bool keyboard)
     {
         ImGui.PushFont(UiTheme.ConsoleFont);
-        _cell = ImGui.CalcTextSize("M").X; _rowHeight = MathF.Round(ImGui.GetFontSize() * 1.2f);
+        _cell = ImGui.CalcTextSize(UiText.Get("M")).X; _rowHeight = MathF.Round(ImGui.GetFontSize() * 1.2f);
         var origin = ImGui.GetCursorScreenPos(); var area = ImGui.GetContentRegionAvail();
         float scrollbar = UiTheme.Px(10), pad = UiTheme.Px(UiTheme.CompactHeight ? 4 : 8);
         int columns = Math.Max(8, (int)((area.X - scrollbar - pad * 2) / _cell));
@@ -80,7 +80,7 @@ internal sealed class TerminalView(ProgramTerminal terminal, TerminalInput input
         var output = terminal.Output;
         if (input.ClearViewRequested) { input.ClearViewRequested = false; _floor = output.RowCount; _follow = true; }
         _floor = Math.Min(_floor, output.RowCount);
-        string prompt = input.Searching ? $"(buscar{(input.SearchFailed ? ", sin resultado" : "")} «{input.SearchText}») "
+        string prompt = input.Searching ? UiText.Format($"(buscar{(input.SearchFailed ? UiText.Get(", sin resultado") : UiText.Get(""))} «{input.SearchText}») ")
             : (columns < 48 ? "/" + terminal.Location + ">" : terminal.Prompt) + " ";
         string line = prompt + input.Editor.Text;
         int cursor = prompt.Length + input.Editor.Cursor;
@@ -140,7 +140,7 @@ internal sealed class TerminalView(ProgramTerminal terminal, TerminalInput input
             else if (row >= inputRow + inputRows)
             {
                 int review = row - inputRow - inputRows;
-                string text = review == 0 ? $"Pegaste {paste.Count} órdenes. Enter las ejecuta en orden · Esc las descarta" : review <= paste.Count ? "  " + paste[review - 1] : "";
+                string text = review == 0 ? UiText.Format($"Pegaste {paste.Count} órdenes. Enter las ejecuta en orden · Esc las descarta") : review <= paste.Count ? "  " + paste[review - 1] : "";
                 DrawText(draw, font, size, Cell(row, 0), UiTheme.TerminalInk(review == 0 ? TerminalKind.Warning : TerminalKind.Output), text.Length > columns ? text[..(columns - 1)] + "…" : text);
             }
         }
@@ -159,11 +159,11 @@ internal sealed class TerminalView(ProgramTerminal terminal, TerminalInput input
     public void DrawBar(bool keyboard)
     {
         ImGui.PushFont(UiTheme.ConsoleFont);
-        _cell = ImGui.CalcTextSize("M").X;
+        _cell = ImGui.CalcTextSize(UiText.Get("M")).X;
         var origin = ImGui.GetCursorScreenPos(); var area = new Vector2(ImGui.GetContentRegionAvail().X, ImGui.GetFontSize() * 1.2f);
         ImGui.InvisibleButton("##terminal-bar", area);
         if (keyboard) ProcessKeyboard();
-        string prompt = keyboard ? terminal.Prompt + " " : terminal.Prompt + " Clic para escribir · Ctrl+Shift+T abre la consola";
+        string prompt = keyboard ? terminal.Prompt + " " : terminal.Prompt + UiText.Get(" Clic para escribir · Ctrl+Shift+T abre la consola");
         string line = prompt + (keyboard ? input.Editor.Text : "");
         int columns = Math.Max(8, (int)(area.X / _cell)), cursor = prompt.Length + input.Editor.Cursor;
         int shift = Math.Max(0, cursor - columns + 2);
@@ -267,11 +267,11 @@ internal sealed class TerminalView(ProgramTerminal terminal, TerminalInput input
                 _regularGlyph[c] = same = MathF.Abs(font.GetCharAdvance(c) - _cell) < 0.5f;
             if (!same) { regular = false; break; }
         }
-        if (regular) { draw.AddText(font, size, at, color, text); return; }
+        if (regular) { draw.AddText(font, size, at, color, UiText.Get(text)); return; }
         for (int i = 0; i < text.Length; i++)
         {
             string glyph = char.IsHighSurrogate(text[i]) && i + 1 < text.Length ? text.Substring(i++, 2) : text[i].ToString();
-            draw.AddText(font, size, at, color, glyph); at.X += _cell;
+            draw.AddText(font, size, at, color, UiText.Get(glyph)); at.X += _cell;
         }
     }
 
@@ -287,7 +287,7 @@ internal sealed class TerminalView(ProgramTerminal terminal, TerminalInput input
             case TerminalCursor.Underline: draw.AddRectFilled(at + new Vector2(0, cell.Y - UiTheme.Px(3)), at + cell, ink); break;
             default:
                 draw.AddRectFilled(at, at + cell, ink);
-                if (!char.IsWhiteSpace(under)) draw.AddText(font, size, at, ImGui.GetColorU32(ImGuiCol.WindowBg), under.ToString());
+                if (!char.IsWhiteSpace(under)) draw.AddText(font, size, at, ImGui.GetColorU32(ImGuiCol.WindowBg), UiText.Get(under.ToString()));
                 break;
         }
     }
@@ -323,6 +323,6 @@ internal sealed class TerminalView(ProgramTerminal terminal, TerminalInput input
             if (text.Length > width - 1) text = text[..Math.Max(1, width - 2)] + "…";
             DrawText(draw, font, size, row, UiTheme.TerminalInk(first + i == input.ChoiceIndex ? TerminalKind.Command : TerminalKind.Output), text);
         }
-        DrawText(draw, font, size, at + new Vector2(_cell / 2, count * _rowHeight), UiTheme.TerminalInk(TerminalKind.Detail), $"{input.ChoiceIndex + 1} de {choices.Count} · Tab sigue · Esc deja como estaba");
+        DrawText(draw, font, size, at + new Vector2(_cell / 2, count * _rowHeight), UiTheme.TerminalInk(TerminalKind.Detail), UiText.Format($"{input.ChoiceIndex + 1} de {choices.Count} · Tab sigue · Esc deja como estaba"));
     }
 }

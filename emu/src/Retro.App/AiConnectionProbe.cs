@@ -29,8 +29,8 @@ internal sealed class AiConnectionProbe
     {
         if (_pending is not { IsCompleted: true } completed) return;
         Result = completed.IsCanceled ? "Prueba cancelada. No se iniciará otro pedido."
-            : completed.IsCompletedSuccessfully ? $"Funciona. Respondió: \"{completed.Result}\""
-            : "No funcionó: " + completed.Exception!.GetBaseException().Message;
+            : completed.IsCompletedSuccessfully ? UiText.Format($"Funciona. Respondió: \"{completed.Result}\"")
+            : UiText.Get("No funcionó: ") + completed.Exception!.GetBaseException().Message;
         _pending = null;
         _cancellation!.Dispose();
         _cancellation = null;

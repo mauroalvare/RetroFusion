@@ -22,7 +22,7 @@ public sealed class ProgramTerminal
         get
         {
             string detail = PromptDetail?.Invoke() ?? "";
-            return "retro:/" + Location + (detail.Length == 0 ? "" : " " + detail) + ">";
+            return "retro:/" + TerminalLanguage.Choice(Location) + (detail.Length == 0 ? "" : " " + detail) + ">";
         }
     }
 
@@ -45,7 +45,7 @@ public sealed class ProgramTerminal
         return valid;
     }
 
-    public void Write(string text, TerminalKind kind = TerminalKind.Output) => Output.Append(text, kind);
+    public void Write(string text, TerminalKind kind = TerminalKind.Output) => Output.Append(kind == TerminalKind.Command ? text : UiText.Get(text), kind);
 
     /// <summary>Runs one line. False means nothing happened or the order failed, which also stops a pasted sequence.</summary>
     public bool Submit(string line)
@@ -55,13 +55,13 @@ public sealed class ProgramTerminal
         string shown = line.Length <= TerminalBuffer.MaxLineLength ? line : line[..TerminalBuffer.MaxLineLength];
         Write(Prompt + " " + shown, TerminalKind.Command);
         History.Add(line);
-        if (!CommandLine.TryParse(line, out var tokens, out string? error)) { Write("error: " + error, TerminalKind.Error); return false; }
+        if (!CommandLine.TryParse(line, out var tokens, out string? error)) { Write(UiText.Get("error: ") + error, TerminalKind.Error); return false; }
         if (tokens.Count == 0) return false;
         var words = tokens.Select(token => token.Text).ToArray();
         try
         {
             var spec = Find(words[0]) ?? throw Unknown(words[0]);
-            if (spec.Planned != null) throw new CommandFailure(CommandProblem.NotImplemented, spec.Name + " todavía no tiene recorrido por órdenes.", spec.Planned);
+            if (spec.Planned != null) throw new CommandFailure(CommandProblem.NotImplemented, spec.Name + UiText.Get(" todavía no tiene recorrido por órdenes."), spec.Planned);
             if (spec.Unavailable?.Invoke() is { } unavailable) throw unavailable;
             var values = Bind(spec, words.Skip(1).ToArray());
             spec.Run!(new CommandContext(this, spec, values, words.Skip(1).ToArray()));
@@ -87,8 +87,8 @@ public sealed class ProgramTerminal
             CommandProblem.MissingResource => "falta un recurso",
             _ => "error"
         };
-        Write(label + ": " + failure.Message, TerminalKind.Error);
-        foreach (string suggestion in failure.TryInstead) Write("  " + suggestion, TerminalKind.Detail);
+        Write(UiText.Get(label) + ": " + UiText.Message(failure.Message), TerminalKind.Error);
+        foreach (string suggestion in failure.TryInstead) Write("  " + UiText.Message(suggestion), TerminalKind.Detail);
     }
 
     private CommandSpec? Find(string word) => Commands.FirstOrDefault(command => command.Answers(word));
@@ -97,33 +97,34 @@ public sealed class ProgramTerminal
     {
         string folded = CommandLine.Fold(word);
         if (HostShellWords.Contains(folded))
-            return new(CommandProblem.UnknownOrder, word + " es un programa del sistema. Esta consola solo procesa órdenes de RetroEmu.", "ayuda muestra todo lo que puede hacer.");
+            return new(CommandProblem.UnknownOrder, word + UiText.Get(" es un programa del sistema. Esta consola solo procesa órdenes de RetroEmu."), "ayuda muestra todo lo que puede hacer.");
         var near = Commands.SelectMany(command => command.Aliases.Prepend(command.Name).Select(name => (command.Name, Distance: CommandLine.Distance(word, name))))
             .Where(item => item.Distance <= Math.Max(2, word.Length / 3)).OrderBy(item => item.Distance).ThenBy(item => item.Name, StringComparer.Ordinal)
             .Select(item => item.Name).Distinct().Take(3).ToArray();
         return new(CommandProblem.UnknownOrder, word + ".",
-            near.Length > 0 ? "¿Quisiste decir " + string.Join(", ", near) + "?" : "como " + word + " busca funciones por tema.", "ayuda lista todas las órdenes.");
+            near.Length > 0 ? UiText.Get("¿Quisiste decir ") + string.Join(", ", near) + "?" : UiText.Get("como ") + word + UiText.Get(" busca funciones por tema."), "ayuda lista todas las órdenes.");
     }
 
     /// <summary>Validates the words against the definition, so a handler only sees well-formed values.</summary>
     private static Dictionary<string, string> Bind(CommandSpec spec, IReadOnlyList<string> words)
     {
         var values = new Dictionary<string, string>(StringComparer.Ordinal);
-        CommandFailure Misuse(string message) => new(CommandProblem.InvalidArgument, message, ["Uso: " + spec.Usage, .. spec.Examples.Take(2).Select(example => "Ejemplo: " + example)]);
+        CommandFailure Misuse(string message) => new(CommandProblem.InvalidArgument, message, [UiText.Get("Uso: ") + spec.Usage, .. spec.Examples.Take(2).Select(example => UiText.Get("Ejemplo: ") + example)]);
         int word = 0;
         foreach (var argument in spec.Arguments)
         {
             if (word >= words.Count)
             {
-                if (!argument.Optional) throw Misuse("Falta " + argument.Name + ".");
+                if (!argument.Optional) throw Misuse(UiText.Get("Falta ") + argument.Name + ".");
                 continue;
             }
             string value = argument.Rest ? string.Join(' ', words.Skip(word)) : words[word];
+            if (argument.Kind == ArgumentKind.Choice) value = TerminalLanguage.CanonicalChoice(value, argument.Choices);
             word = argument.Rest ? words.Count : word + 1;
             if (argument.Validate(value) is { } problem) throw Misuse(problem);
             values[argument.Name] = value;
         }
-        if (word < words.Count) throw Misuse("Sobran datos: " + string.Join(' ', words.Skip(word)) + ".");
+        if (word < words.Count) throw Misuse(UiText.Get("Sobran datos: ") + string.Join(' ', words.Skip(word)) + ".");
         return values;
     }
 
@@ -140,11 +141,15 @@ public sealed class ProgramTerminal
         int end = cursor;
         while (end < line.Length && !char.IsWhiteSpace(line[end])) end++;
         IEnumerable<CompletionItem> candidates;
-        if (position == 0) candidates = Commands.SelectMany(command => command.Aliases.Prepend(command.Name).Select(name => new CompletionItem(name, command.Summary)));
+        if (position == 0) candidates = Commands.SelectMany(command => (UiText.English ? [command.Name] : command.Aliases.Prepend(command.Name)).Select(name => new CompletionItem(name, UiText.Get(command.Summary))));
         else
         {
             var spec = Find(tokens[0].Text);
             var earlier = tokens.Skip(1).Take(position - 1).Select(token => token.Text).ToArray();
+            if (spec != null)
+                for (int i = 0; i < earlier.Length && i < spec.Arguments.Count; i++)
+                    if (spec.Arguments[i].Kind == ArgumentKind.Choice) earlier[i] = TerminalLanguage.CanonicalChoice(earlier[i], spec.Arguments[i].Choices);
+                    else if (spec.Id == "system.option" && i == 0) earlier[i] = TerminalLanguage.CanonicalOption(earlier[i]);
             int index = spec == null ? -1 : Math.Min(position - 1, spec.Arguments.Count - 1);
             bool beyond = spec != null && position - 1 >= spec.Arguments.Count && !(spec.Arguments.Count > 0 && spec.Arguments[^1].Rest);
             candidates = index < 0 || beyond ? [] : Candidates(spec!.Arguments[index], earlier, prefix);
@@ -159,11 +164,11 @@ public sealed class ProgramTerminal
 
     private static IEnumerable<CompletionItem> Candidates(CommandArgument argument, IReadOnlyList<string> earlier, string prefix)
     {
-        if (argument.Complete != null) return argument.Complete(earlier);
+        if (argument.Complete != null) return argument.Complete(earlier).Select(item => item with { Value = TerminalLanguage.Choice(item.Value), Detail = UiText.Get(item.Detail) });
         return argument.Kind switch
         {
             ArgumentKind.Toggle => [new("on", "activar"), new("off", "desactivar")],
-            ArgumentKind.Choice => argument.Choices.Select(choice => new CompletionItem(choice)),
+            ArgumentKind.Choice => argument.Choices.Select(choice => new CompletionItem(TerminalLanguage.Choice(choice))),
             ArgumentKind.Path => PathCompletion(prefix),
             _ => []
         };
@@ -225,9 +230,9 @@ public sealed class ProgramTerminal
             Run = context =>
             {
                 string filter = context.Optional("texto") ?? "";
-                if (filter == "borrar") { History.Clear(); context.Success("Historial de órdenes borrado."); return; }
+                if (filter is "borrar" or "clear") { History.Clear(); context.Success("Historial de órdenes borrado."); return; }
                 var entries = History.Entries.Select((entry, index) => (entry, index)).Where(item => filter.Length == 0 || CommandLine.Fold(item.entry).Contains(CommandLine.Fold(filter))).ToArray();
-                foreach (var (entry, index) in entries) context.Write($"{index + 1,4}  {entry}");
+                foreach (var (entry, index) in entries) context.Write(UiText.Format($"{index + 1,4}  {entry}"));
                 if (entries.Length == 0) context.Detail("No hay órdenes que coincidan.");
             }
         }
@@ -249,11 +254,11 @@ public sealed class ProgramTerminal
         var spec = all.FirstOrDefault(command => command.Answers(topic));
         if (spec == null)
         {
-            var group = all.Where(command => CommandLine.Fold(command.Group) == CommandLine.Fold(topic)).ToArray();
+            var group = all.Where(command => CommandLine.Fold(command.Group) == CommandLine.Fold(topic) || CommandLine.Fold(UiText.Get(command.Group)) == CommandLine.Fold(topic)).ToArray();
             if (group.Length == 0)
             {
                 var near = all.Where(command => CommandLine.Fold(command.Name).Contains(CommandLine.Fold(topic))).Take(8).ToArray();
-                if (near.Length == 0) throw new CommandFailure(CommandProblem.UnknownOrder, "No hay ayuda para " + topic + ".", "como " + topic + " busca por tema.");
+                if (near.Length == 0) throw new CommandFailure(CommandProblem.UnknownOrder, UiText.Get("No hay ayuda para ") + topic + ".", UiText.Get("como ") + topic + UiText.Get(" busca por tema."));
                 group = near;
             }
             context.Table([new("Orden"), new("Función", Flexible: true)], group.Select(command => new[] { command.Name, command.Summary }));
@@ -261,18 +266,18 @@ public sealed class ProgramTerminal
         }
         context.Heading(spec.Name + " · " + spec.Group);
         context.Write(spec.Summary);
-        context.Write("Uso: " + spec.Usage);
+        context.Write(UiText.Get("Uso: ") + spec.Usage);
         foreach (var argument in spec.Arguments.Where(argument => argument.Description.Length > 0 || argument.Choices.Count > 0))
-            context.Detail($"  {argument.Name}: {argument.Description}" + (argument.Choices.Count > 0 ? " Valores: " + string.Join(", ", argument.Choices) + "." : "")
-                + (argument.Kind == ArgumentKind.Number && argument.Min != int.MinValue ? $" De {argument.Min} a {argument.Max}." : "") + (argument.Optional ? " Opcional." : ""));
-        foreach (string example in spec.Examples) context.Write("Ejemplo: " + example);
-        if (spec.Aliases.Count > 0) context.Detail("También: " + string.Join(", ", spec.Aliases));
-        if (spec.Requires.Length > 0) context.Detail("Requiere: " + spec.Requires);
-        if (spec.Unavailable?.Invoke() is { } blocked) context.Warning("ahora no disponible: " + blocked.Message);
-        if (spec.Result.Length > 0) context.Detail("Resultado: " + spec.Result);
-        foreach (string error in spec.Errors) context.Detail("Puede fallar si " + error);
-        if (spec.Cancellation.Length > 0) context.Detail("Cancelar: " + spec.Cancellation);
-        if (spec.Planned != null) context.Warning("todavía sin recorrido por órdenes. " + spec.Planned);
+            context.Detail(UiText.Format($"  {UiText.Get(argument.Name)}: {UiText.Get(argument.Description)}") + (argument.Choices.Count > 0 ? UiText.Get(" Valores: ") + string.Join(", ", argument.Choices.Select(TerminalLanguage.Choice)) + "." : "")
+                + (argument.Kind == ArgumentKind.Number && argument.Min != int.MinValue ? UiText.Format($" De {argument.Min} a {argument.Max}.") : "") + (argument.Optional ? UiText.Get(" Opcional.") : ""));
+        foreach (string example in spec.Examples) context.Write(UiText.Get("Ejemplo: ") + TerminalLanguage.Example(example));
+        if (spec.Aliases.Count > 0) context.Detail(UiText.Get("También: ") + string.Join(", ", spec.Aliases));
+        if (spec.Requires.Length > 0) context.Detail(UiText.Get("Requiere: ") + spec.Requires);
+        if (spec.Unavailable?.Invoke() is { } blocked) context.Warning(UiText.Get("ahora no disponible: ") + blocked.Message);
+        if (spec.Result.Length > 0) context.Detail(UiText.Get("Resultado: ") + spec.Result);
+        foreach (string error in spec.Errors) context.Detail(UiText.Get("Puede fallar si ") + UiText.Get(error));
+        if (spec.Cancellation.Length > 0) context.Detail(UiText.Get("Cancelar: ") + spec.Cancellation);
+        if (spec.Planned != null) context.Warning(UiText.Get("todavía sin recorrido por órdenes. ") + spec.Planned);
     }
 
     private static int GroupOrder(string group) => Array.IndexOf<string>(["Biblioteca", "Partida", "Análisis", "Proyectos", "Tareas", "Sistema", "Consola"], group) is >= 0 and var order ? order : 99;
@@ -292,7 +297,7 @@ public sealed class ProgramTerminal
             found.AddRange(Capabilities(topic).Select(item => (Score: Score(item.Order + " " + item.Description, item.Order), item.Order, Summary: item.Description)).Where(item => item.Score > 0));
         var best = found.OrderByDescending(item => item.Score).ThenBy(item => item.Order, StringComparer.Ordinal).DistinctBy(item => item.Order).Take(10).ToArray();
         if (best.Length == 0)
-            throw new CommandFailure(CommandProblem.UnknownOrder, "No encontré funciones sobre " + topic + ".", "Probá con otra palabra, o mirá ayuda, acciones y opciones.");
+            throw new CommandFailure(CommandProblem.UnknownOrder, UiText.Get("No encontré funciones sobre ") + topic + ".", "Probá con otra palabra, o mirá ayuda, acciones y opciones.");
         context.Table([new("Orden"), new("Para qué sirve", Flexible: true)], best.Select(item => new[] { item.Order, item.Summary }));
     }
 }

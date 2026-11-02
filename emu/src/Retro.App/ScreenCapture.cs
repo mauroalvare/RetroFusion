@@ -29,7 +29,7 @@ public static class ScreenCapture
         string stem = SafeName(title) + "-" + now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture);
         for (int copy = 1; ; copy++)
         {
-            string path = Path.Combine(folder, stem + (copy == 1 ? "" : "-" + copy) + ".png");
+            string path = Path.Combine(folder, stem + (copy == 1 ? "" : "-" + copy) + UiText.Get(".png"));
             if (TryCreate(path, frame)) return path;
         }
     }

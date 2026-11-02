@@ -50,8 +50,8 @@ public sealed partial class HomeScreen
             string missing = string.Join(", ", game.Games.Where(slot => !_availableProfiles.Contains(slot.Profile))
                 .Select(slot => _profiles.GetValueOrDefault(slot.Profile)?.Name ?? slot.Profile));
             string machine = _profiles.GetValueOrDefault(game.Games.FirstOrDefault(slot => slot.Slot == game.BaseSlot)?.Profile ?? "")?.Machine ?? systems.FirstOrDefault() ?? "fusion";
-            cards.Add(new(FusionKey(game), game.Title, $"{(game.IsInspired ? "Con originales" : "Fusión")} · v{game.Version}",
-                missing.Length > 0 ? "Falta: " + missing : game.Pitch, machine, systems,
+            cards.Add(new(FusionKey(game), game.Title, UiText.Format($"{(game.IsInspired ? UiText.Get("Con originales") : UiText.Get("Fusión"))} · v{game.Version}"),
+                missing.Length > 0 ? UiText.Get("Falta: ") + missing : game.Pitch, machine, systems,
                 game.IsInspired ? LibraryGameKind.Inspired : LibraryGameKind.Fusion, missing.Length == 0,
                 () => playFusion(game.Id), () => StudioLibrary.PicturePath(game), null, missing.Length == 0 ? "Originales disponibles" : "Faltan originales"));
         }
@@ -88,18 +88,18 @@ public sealed partial class HomeScreen
 
     private void DrawFilteredGames()
     {
-        if (_section == "machine" && ImGui.CollapsingHeader("Formatos y compatibilidad")) ImGui.TextWrapped(_machine switch
+        if (_section == "machine" && ImGui.CollapsingHeader(UiText.Label("Formatos y compatibilidad"))) ImGui.TextWrapped(UiText.Get(_machine switch
         {
             "pcxt" => "FreeDOS y BIOS libres incluidos. Abrí un EXE, COM o ZIP para PC/XT, o un disquete IMG/IMA de 160 a 720 KB. Gráficos CGA.",
             "zx48" => "Cintas TAP/TZX e instantáneas Z80/SNA.",
             "c64" => "Programas PRG y cintas T64. Los discos D64 y cartuchos CRT siguen pendientes.",
             "nes" => "Cartuchos NES. La compatibilidad depende de la placa del cartucho.",
             _ => "ROMs de la placa arcade, en un archivo ZIP."
-        });
+        }));
         if (_section == "recent")
         {
             ImGui.BeginDisabled(_activity.Recents.Count == 0);
-            if (ImGui.SmallButton("Vaciar recientes")) _activity.ClearRecents();
+            if (ImGui.SmallButton(UiText.Label("Vaciar recientes"))) _activity.ClearRecents();
             ImGui.EndDisabled();
             if (ImGui.IsItemHovered()) UiTheme.Tooltip("Quita la lista; conserva tus juegos, favoritos y fichas.");
         }
@@ -120,14 +120,14 @@ public sealed partial class HomeScreen
     private bool LibraryCombo(string id, string control, ref int selected, string[] options)
     {
         int before = selected;
-        bool open = ImGui.BeginCombo(id, options[Math.Clamp(selected, 0, options.Length - 1)]);
+        bool open = ImGui.BeginCombo(UiText.Label(id), UiText.Get(options[Math.Clamp(selected, 0, options.Length - 1)]));
         TrackLibraryControl(control);
         if (open)
         {
             for (int index = 0; index < options.Length; index++)
             {
-                if (ImGui.Selectable(options[index] + "###option-" + index, selected == index)) selected = index;
-                TrackLibraryControl("Elegir " + control + ":" + options[index]);
+                if (ImGui.Selectable(UiText.Label(options[index] + UiText.Get("###option-") + index), selected == index)) selected = index;
+                TrackLibraryControl(UiText.Get("Elegir ") + control + ":" + options[index]);
                 if (selected == index) ImGui.SetItemDefaultFocus();
             }
             ImGui.EndCombo();
@@ -139,16 +139,16 @@ public sealed partial class HomeScreen
     {
         _ = Catalog;
         int active = (_filters with { Search = _search }).ActiveCount;
-        string label = active > 0 ? $"Filtros ({active})" : "Filtros";
-        float spacing = ImGui.GetStyle().ItemSpacing.X, button = ImGui.CalcTextSize(label).X + ImGui.GetStyle().FramePadding.X * 2;
+        string label = active > 0 ? UiText.Format($"Filtros ({active})") : "Filtros";
+        float spacing = ImGui.GetStyle().ItemSpacing.X, button = ImGui.CalcTextSize(UiText.Get(label)).X + ImGui.GetStyle().FramePadding.X * 2;
         // The order joins the row only while the search box keeps a useful width.
         bool inline = ImGui.GetContentRegionAvail().X < UiTheme.Px(640);
         float order = inline ? 0 : Math.Min(UiTheme.Px(220), ImGui.GetContentRegionAvail().X * 0.3f);
         ImGui.SetNextItemWidth(Math.Max(UiTheme.Px(80), ImGui.GetContentRegionAvail().X - button - spacing - (inline ? 0 : order + spacing)));
         if (_focusSearch) { ImGui.SetKeyboardFocusHere(); _focusSearch = false; }
-        ImGui.InputTextWithHint("##buscar", "Buscar nombre o género (Ctrl+F)", ref _search, 150);
+        ImGui.InputTextWithHint("##buscar", UiText.Get("Buscar nombre o género (Ctrl+F)"), ref _search, 150);
         ImGui.SameLine();
-        if (ImGui.Button(label + "###library-filters")) _filtersExpanded = !_filtersExpanded;
+        if (ImGui.Button(UiText.Label(label + UiText.Get("###library-filters")))) _filtersExpanded = !_filtersExpanded;
         TrackLibraryControl("Filtros");
         if (!inline)
         {
@@ -159,7 +159,7 @@ public sealed partial class HomeScreen
         }
         if (active > 0)
         {
-            if (ImGui.SmallButton("Quitar filtros"))
+            if (ImGui.SmallButton(UiText.Label("Quitar filtros")))
             { _search = ""; _filters = new() { Order = _section == "recent" ? LibraryOrder.LastPlayed : LibraryOrder.Name }; }
             TrackLibraryControl("Quitar filtros");
         }
@@ -167,7 +167,7 @@ public sealed partial class HomeScreen
         {
             ImGui.Spacing();
             bool table = ImGui.GetContentRegionAvail().X >= UiTheme.Px(620) && ImGui.BeginTable("library-filter-fields", 2, ImGuiTableFlags.SizingStretchSame);
-            void Field(string title) { if (table) ImGui.TableNextColumn(); ImGui.TextUnformatted(title); ImGui.SetNextItemWidth(-1); }
+            void Field(string title) { if (table) ImGui.TableNextColumn(); ImGui.TextUnformatted(UiText.Get(title)); ImGui.SetNextItemWidth(-1); }
             if (inline)
             {
                 Field("Orden"); int orderChoice = (int)_filters.Order;
@@ -217,11 +217,11 @@ public sealed partial class HomeScreen
             TrackLibraryControl("Actividad");
             if (ImGui.IsItemHovered()) UiTheme.Tooltip("Agregados cuenta desde que este catálogo registró el juego; no usa la fecha del archivo.");
             if (table) ImGui.EndTable();
-            if (ImGui.Button("Ver resultados")) _filtersExpanded = false;
+            if (ImGui.Button(UiText.Label("Ver resultados"))) _filtersExpanded = false;
             TrackLibraryControl("Ver resultados");
             UiTheme.SameLineIfFits("Identificación de juegos…");
-            if (ImGui.SmallButton("Identificación de juegos…")) actions?.MetadataSettings?.Invoke();
-            if (ImGui.IsItemHovered()) UiTheme.Tooltip(_identification.Status + ". Leé el origen de los datos en Ficha.");
+            if (ImGui.SmallButton(UiText.Label("Identificación de juegos…"))) actions?.MetadataSettings?.Invoke();
+            if (ImGui.IsItemHovered()) UiTheme.Tooltip(_identification.Status + UiText.Get(". Leé el origen de los datos en Ficha."));
             DrawFileActions(primary: false);
             UiTheme.Hint("Completá género y año desde Ficha, junto a Jugar. Los datos faltantes quedan sin clasificar.");
         }
@@ -229,7 +229,7 @@ public sealed partial class HomeScreen
         if (_metadata.Problem is { } storageProblem) UiTheme.Hint(storageProblem);
         if (_metadata.CanRecover)
         {
-            if (ImGui.Button("Recuperar fichas")) _metadata.Recover();
+            if (ImGui.Button(UiText.Label("Recuperar fichas"))) _metadata.Recover();
             if (ImGui.IsItemHovered()) UiTheme.Tooltip("Conserva el archivo anterior en un respaldo y guarda las fichas de esta sesión.");
         }
         if (_metadata.RecoveryPath is { } backup)
@@ -253,37 +253,37 @@ public sealed partial class HomeScreen
         ImGui.SetNextWindowSizeConstraints(Vector2.Min(UiTheme.Px(360, 220), available), available);
         ImGui.SetNextWindowSize(Vector2.Min(UiTheme.Px(620, 520), available), ImGuiCond.Appearing);
         bool open = true;
-        if (!ImGui.Begin("Ficha del juego###library-game-info", ref open, ImGuiWindowFlags.NoDocking))
+        if (!ImGui.Begin(UiText.Label("Ficha del juego###library-game-info"), ref open, ImGuiWindowFlags.NoDocking))
         { ImGui.End(); if (!open) _editing = null; return; }
         WorkspaceLayout.KeepOnScreen();
-        UiTheme.Heading(card.Title);
+        UiTheme.Heading(card.Title, localizeTitle: false);
         bool favorite = _activity.IsFavorite(card.Key);
-        if (ImGui.Checkbox("Favorito", ref favorite)) _activity.SetFavorite(card.Key, favorite);
+        if (ImGui.Checkbox(UiText.Label("Favorito"), ref favorite)) _activity.SetFavorite(card.Key, favorite);
         if (_identification.Get(card.Key) is { } detected)
         {
-            ImGui.TextWrapped("Detectado: " + string.Join(" · ", new[] { detected.ReleaseYear?.ToString(), string.Join(", ", detected.Genres), detected.Publisher }.Where(value => !string.IsNullOrWhiteSpace(value))));
+            ImGui.TextWrapped(UiText.Get(UiText.Get("Detectado: ") + string.Join(" · ", new[] { detected.ReleaseYear?.ToString(), string.Join(", ", detected.Genres), detected.Publisher }.Where(value => !string.IsNullOrWhiteSpace(value)))));
             UiTheme.Hint(detected.Method);
-            UiTheme.Hint("Fuente: " + detected.Source);
+            UiTheme.Hint(UiText.Get("Fuente: ") + detected.Source);
             if (detected.FirstReleaseYear is { } first && detected.ReleaseYear == null)
-                UiTheme.Hint($"Primera publicación de la obra: {first}. Año de esta plataforma sin determinar.");
+                UiTheme.Hint(UiText.Format($"Primera publicación de la obra: {first}. Año de esta plataforma sin determinar."));
         }
         bool ignored = _identification.Cache.Get(card.Key)?.Ignored ?? false;
-        if (ImGui.Checkbox("Omitir identificación automática de este juego", ref ignored)) _identification.Ignore(card.Key, ignored);
+        if (ImGui.Checkbox(UiText.Label("Omitir identificación automática de este juego"), ref ignored)) _identification.Ignore(card.Key, ignored);
         DrawCandidates(card);
-        ImGui.SeparatorText("Tu ficha personal");
-        ImGui.TextUnformatted("Géneros separados por coma");
+        ImGui.SeparatorText(UiText.Get("Tu ficha personal"));
+        ImGui.TextUnformatted(UiText.Get("Géneros separados por coma"));
         if (_focusEditor) { ImGui.SetKeyboardFocusHere(); _focusEditor = false; }
         ImGui.SetNextItemWidth(-1);
-        ImGui.InputTextWithHint("##generos-ficha", "Ej.: aventura, plataformas", ref _editGenres, 2048);
+        ImGui.InputTextWithHint("##generos-ficha", UiText.Get("Ej.: aventura, plataformas"), ref _editGenres, 2048);
         TrackLibraryControl("Géneros de la ficha");
         ImGui.SetNextItemWidth(-1);
-        if (ImGui.BeginCombo("##sugerencias-genero", "Elegir géneros…"))
+        if (ImGui.BeginCombo("##sugerencias-genero", UiText.Get("Elegir géneros…")))
         {
             foreach (string genre in SuggestedGenres)
             {
                 var current = ParseGenres(_editGenres).ToList(); bool selected = current.Any(value => LibraryMetadata.Normalize(value) == LibraryMetadata.Normalize(genre));
                 ImGui.BeginDisabled(!selected && current.Count >= LibraryMetadata.GenreLimit);
-                if (ImGui.Checkbox(genre, ref selected))
+                if (ImGui.Checkbox(UiText.Label(genre), ref selected))
                 {
                     if (!selected) current.RemoveAll(value => LibraryMetadata.Normalize(value) == LibraryMetadata.Normalize(genre));
                     else current.Add(genre);
@@ -293,14 +293,14 @@ public sealed partial class HomeScreen
             }
             ImGui.EndCombo();
         }
-        ImGui.Checkbox("Completar año de lanzamiento", ref _editHasYear);
+        ImGui.Checkbox(UiText.Label("Completar año de lanzamiento"), ref _editHasYear);
         TrackLibraryControl("Completar año");
         ImGui.BeginDisabled(!_editHasYear); ImGui.SetNextItemWidth(-1);
         ImGui.InputInt("##anio-ficha", ref _editYear); TrackLibraryControl("Año de la ficha"); ImGui.EndDisabled();
         var info = _metadata.Get(card.Key);
         UiTheme.Hint("Tus campos completos tienen prioridad. Un campo vacío usa el dato detectado, si existe. La ficha no cambia el juego.");
-        if (info.AddedAt is { } added) UiTheme.Hint("Registrado en este catálogo: " + added.ToLocalTime().ToString("dd/MM/yyyy"));
-        if (_activity.LastPlayed(card.Key) is { } played) UiTheme.Hint("Última partida: " + played.ToLocalTime().ToString("dd/MM/yyyy HH:mm"));
+        if (info.AddedAt is { } added) UiTheme.Hint(UiText.Get("Registrado en este catálogo: ") + added.ToLocalTime().ToString("dd/MM/yyyy"));
+        if (_activity.LastPlayed(card.Key) is { } played) UiTheme.Hint(UiText.Get("Última partida: ") + played.ToLocalTime().ToString("dd/MM/yyyy HH:mm"));
         if (_editProblem.Length > 0) UiTheme.Hint(_editProblem);
         if (UiTheme.PrimaryButton("Guardar ficha"))
         {
@@ -308,7 +308,7 @@ public sealed partial class HomeScreen
             else _editProblem = _metadata.Problem ?? "No se pudo actualizar la ficha.";
         }
         TrackLibraryControl("Guardar ficha"); UiTheme.SameLineIfFits("Cancelar");
-        if (ImGui.Button("Cancelar")) _editing = null;
+        if (ImGui.Button(UiText.Label("Cancelar"))) _editing = null;
         TrackLibraryControl("Cancelar ficha");
         ImGui.End();
         if (!open) _editing = null;
@@ -320,7 +320,7 @@ public sealed partial class HomeScreen
         if (actions?.OnlineLookups?.Invoke() != true) return;
         bool here = _identification.CandidateKey == card.Key;
         ImGui.BeginDisabled(_identification.SearchingCandidates);
-        if (ImGui.SmallButton(_identification.SearchingCandidates && here ? "Buscando…" : "Buscar candidatos en el catálogo"))
+        if (ImGui.SmallButton(UiText.Label(_identification.SearchingCandidates && here ? "Buscando…" : "Buscar candidatos en el catálogo")))
             _identification.SearchCandidates(card.Key, card.Title, card.Machine);
         ImGui.EndDisabled();
         TrackLibraryControl("Buscar candidatos");
@@ -329,12 +329,12 @@ public sealed partial class HomeScreen
         foreach (var candidate in _identification.Candidates.ToArray())
         {
             ImGui.PushID(candidate.Game.Source);
-            ImGui.TextWrapped(candidate.Game.Title + (candidate.Game.ReleaseYear is { } year ? " · " + year : candidate.Game.FirstReleaseYear is { } first ? $" · {first} (obra)" : "") + (candidate.Game.Publisher != null ? " · " + candidate.Game.Publisher : ""));
+            ImGui.TextWrapped(UiText.Get(candidate.Game.Title + (candidate.Game.ReleaseYear is { } year ? " · " + year : candidate.Game.FirstReleaseYear is { } first ? UiText.Format($" · {first} (obra)") : "") + (candidate.Game.Publisher != null ? " · " + candidate.Game.Publisher : "")));
             UiTheme.Hint(candidate.Reason);
-            if (ImGui.SmallButton("Es este")) _identification.Accept(card.Key, candidate);
+            if (ImGui.SmallButton(UiText.Label("Es este"))) _identification.Accept(card.Key, candidate);
             TrackLibraryControl("Aceptar candidato");
             ImGui.SameLine();
-            if (ImGui.SmallButton("No es")) _identification.Reject(card.Key, candidate);
+            if (ImGui.SmallButton(UiText.Label("No es"))) _identification.Reject(card.Key, candidate);
             TrackLibraryControl("Rechazar candidato");
             ImGui.PopID();
         }

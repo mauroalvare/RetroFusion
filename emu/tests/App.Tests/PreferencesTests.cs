@@ -51,7 +51,6 @@ public sealed class PreferencesTests
         Assert.That(Directory.GetFiles(_folder), Has.Length.EqualTo(1));
     }
 
-    [TestCase("{\"Version\":2,\"TextPercent\":100,\"C64Port\":2,\"SpectrumJoystick\":\"Kempston\"}")]
     [TestCase("{\"Version\":1,\"TextPercent\":100,\"C64Port\":2,\"SpectrumJoystick\":\"1\"}")]
     [TestCase("{\"Version\":1,\"TextPercent\":100,\"C64Port\":2,\"SpectrumJoystick\":\"Atari\"}")]
     [TestCase("{\"Version\":1,\"TextPercent\":100,\"C64Port\":2}")]
@@ -65,6 +64,37 @@ public sealed class PreferencesTests
         Assert.That((prefs.TextPercent, prefs.SpectrumJoystick, prefs.C64Port), Is.EqualTo((100, JoystickMode.Kempston, 2)));
         Assert.That(prefs.Save(), Is.False);
         Assert.That(File.ReadAllText(path), Is.EqualTo(json));
+    }
+
+    [Test]
+    public void LaterPreferencesUseKnownValuesAndKeepTheirOriginalUntilExplicitRecovery()
+    {
+        string path = PathOf("futuras.json");
+        const string json = """{"Version":3,"TextPercent":175,"C64Port":1,"SpectrumJoystick":"Cursor","Language":"en","FutureValue":{"keep":"all"}}""";
+        File.WriteAllText(path, json);
+        var prefs = new AppPreferences(path);
+        Assert.That((prefs.TextPercent, prefs.C64Port, prefs.SpectrumJoystick, prefs.Language), Is.EqualTo((175, 1, JoystickMode.Cursor, "en")));
+        Assert.That(prefs.Problem, Does.Contain("versión posterior"));
+        prefs.TextPercent = 125;
+        Assert.That(prefs.Save(), Is.False);
+        Assert.That(File.ReadAllText(path), Is.EqualTo(json));
+        Assert.That(prefs.Recover(), Is.True);
+        Assert.That(File.ReadAllText(prefs.RecoveryPath!), Is.EqualTo(json));
+        Assert.That(new AppPreferences(path).TextPercent, Is.EqualTo(125));
+    }
+
+    [Test]
+    public void LaterSoundOptionsPreserveUnknownFieldsUntilExplicitRecovery()
+    {
+        string path = PathOf("sonido-futuro.json");
+        const string json = """{"Version":2,"VolumePercent":37,"Muted":true,"MuteInBackground":true,"BufferFrames":4,"FutureValue":[1,2]}""";
+        File.WriteAllText(path, json);
+        var sound = new SoundSettings(path);
+        Assert.That((sound.VolumePercent, sound.Muted, sound.BufferFrames), Is.EqualTo((37, true, 4)));
+        Assert.That(sound.Save(), Is.False);
+        Assert.That(File.ReadAllText(path), Is.EqualTo(json));
+        Assert.That(sound.Recover(), Is.True);
+        Assert.That(File.ReadAllText(sound.RecoveryPath!), Is.EqualTo(json));
     }
 
     [Test]

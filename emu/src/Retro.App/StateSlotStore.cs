@@ -12,13 +12,13 @@ public sealed class StateSlotStore(string? folder = null)
 
     public static string GameKey(string machine, IEnumerable<string> mediaHashes, string firmware) =>
         ModificationHistory.Key(machine, mediaHashes, firmware) ??
-        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("system-only\0" + machine + "\0" + firmware)));
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(UiText.Get("system-only\0") + machine + "\0" + firmware)));
 
     public string PathFor(string key, int slot)
     {
         ValidateSlot(slot);
         if (key.Length != 64 || !key.All(char.IsAsciiHexDigit)) throw new ArgumentException("Identidad de partida inválida.");
-        return Path.Combine(_folder, key.ToUpperInvariant(), $"slot{slot}.rfstate");
+        return Path.Combine(_folder, key.ToUpperInvariant(), UiText.Format($"slot{slot}.rfstate"));
     }
 
     public string LegacyPath(string machine, int slot)
@@ -26,7 +26,7 @@ public sealed class StateSlotStore(string? folder = null)
         ValidateSlot(slot);
         if (string.IsNullOrWhiteSpace(machine) || machine.Length > 40 || !machine.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_'))
             throw new ArgumentException("Identidad de máquina inválida.");
-        return Path.Combine(_folder, $"{machine}_slot{slot}.rfstate");
+        return Path.Combine(_folder, UiText.Format($"{machine}_slot{slot}.rfstate"));
     }
 
     public IReadOnlyList<StateSlotInfo> List(string key) => Enumerable.Range(1, 5).Select(n => ReadDate(PathFor(key, n), n)).ToArray();

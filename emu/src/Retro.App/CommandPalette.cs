@@ -8,6 +8,9 @@ namespace Retro.App;
 public sealed record AppCommand(string Id, string Title, string Group, string Keywords, string Shortcut,
     Action Execute, Func<bool>? CanExecute = null, string Unavailable = "")
 {
+    private string _title = Title, _group = Group;
+    public string Title { get => UiText.Get(_title); init => _title = value; }
+    public string Group { get => UiText.Get(_group); init => _group = value; }
     public bool Enabled => CanExecute?.Invoke() ?? true;
 }
 
@@ -24,7 +27,7 @@ public sealed class CommandPalette
     {
         string[] words = Normalize(query).Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (words.Length == 0) return commands.ToList();
-        return commands.Where(command => words.All(word => Normalize(command.Title + " " + command.Group + " " + command.Keywords).Contains(word)))
+        return commands.Where(command => words.All(word => Normalize(command.Title + " " + UiText.Get(command.Group) + " " + UiText.Get(command.Keywords) + " " + command.Id).Contains(word)))
             .OrderByDescending(command => words.Length > 0 && Normalize(command.Title).StartsWith(string.Join(' ', words)))
             .ThenBy(command => command.Group, StringComparer.Ordinal).ThenBy(command => command.Title, StringComparer.Ordinal).ToList();
     }
@@ -35,11 +38,11 @@ public sealed class CommandPalette
     public void Draw(IReadOnlyList<AppCommand> commands)
     {
         const string title = "Buscar acción###acciones";
-        if (_request) { ImGui.OpenPopup(title); _request = false; _open = true; }
+        if (_request) { ImGui.OpenPopup(UiText.Label(title)); _request = false; _open = true; }
         var vp = ImGui.GetMainViewport();
         ImGui.SetNextWindowPos(vp.Pos + new Vector2(vp.Size.X*0.5f,12), ImGuiCond.Appearing, new Vector2(0.5f, 0));
         ImGui.SetNextWindowSize(new Vector2(Math.Min(UiTheme.Px(620), vp.Size.X - 24), Math.Min(UiTheme.Px(520), vp.Size.Y - UiTheme.StatusBarHeight - 24)), ImGuiCond.Appearing);
-        if (!ImGui.BeginPopupModal(title, ref _open, ImGuiWindowFlags.NoDocking)) return;
+        if (!ImGui.BeginPopupModal(UiText.Label(title), ref _open, ImGuiWindowFlags.NoDocking)) return;
         // A modal owns the dimmed navigation area too; reserving it can leave no result row at 200%.
         WorkspaceLayout.KeepOnScreen(modal:true);
         bool roomy = ImGui.GetWindowHeight() >= UiTheme.Px(400);
@@ -47,7 +50,7 @@ public sealed class CommandPalette
         if (_focus) { ImGui.SetKeyboardFocusHere(); _focus = false; }
         ImGui.SetNextItemWidth(-1);
         string before = _query;
-        bool submit = ImGui.InputTextWithHint("##buscar-accion", roomy ? "Buscar: volumen, guardar, crear, código…" : "Buscar acción…", ref _query, 120, ImGuiInputTextFlags.EnterReturnsTrue);
+        bool submit = ImGui.InputTextWithHint("##buscar-accion", UiText.Get(roomy ? "Buscar: volumen, guardar, crear, código…" : "Buscar acción…"), ref _query, 120, ImGuiInputTextFlags.EnterReturnsTrue);
         bool searchFocused = ImGui.IsItemActive() || ImGui.IsItemFocused();
         if (_query != before) _selected = 0;
         var matches = Search(commands, _query);
@@ -65,7 +68,7 @@ public sealed class CommandPalette
             var command = matches[i];
             ImGui.PushID(command.Id);
             ImGui.BeginDisabled(!command.Enabled);
-            if (ImGui.Selectable(UiTheme.Fit(command.Title, ImGui.GetContentRegionAvail().X) + "###command", i == _selected, ImGuiSelectableFlags.None, new Vector2(0, Math.Max(UiTheme.Px(30), ImGui.GetTextLineHeight())))) chosen = command;
+            if (ImGui.Selectable(UiText.Label(UiTheme.Fit(command.Title, ImGui.GetContentRegionAvail().X) + UiText.Get("###command")), i == _selected, ImGuiSelectableFlags.None, new Vector2(0, Math.Max(UiTheme.Px(30), ImGui.GetTextLineHeight())))) chosen = command;
             if (ImGui.IsItemFocused()) _selected = i;
             ImGui.EndDisabled();
             if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled)) UiTheme.Tooltip(command.Title + "\n" + command.Group +
@@ -76,7 +79,7 @@ public sealed class CommandPalette
         }
         ImGui.EndChild();
         if (roomy) UiTheme.Hint("Flechas: recorrer · Enter: elegir · Esc: cerrar");
-        if (roomy && ImGui.Button("Cerrar")) { _open = false; ImGui.CloseCurrentPopup(); }
+        if (roomy && ImGui.Button(UiText.Label("Cerrar"))) { _open = false; ImGui.CloseCurrentPopup(); }
         if (chosen != null) { _open = false; ImGui.CloseCurrentPopup(); }
         ImGui.EndPopup();
         chosen?.Execute();

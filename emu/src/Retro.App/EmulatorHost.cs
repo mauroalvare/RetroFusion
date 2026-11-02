@@ -46,7 +46,7 @@ public sealed partial class EmulatorHost
         FusionFocus = session.Slots[0].Id;
         Paused = false;
         _audio.Clear();
-        Status = $"{(session is Retro.Studio.StudioSession studio && studio.Game.IsInspired ? "Juego creado" : "Fusión")}: {session.Title}. {session.Description}";
+        Status = UiText.Format($"{(session is Retro.Studio.StudioSession studio && studio.Game.IsInspired ? UiText.Get("Juego creado") : UiText.Get("Fusión"))}: {UiText.Raw(session.Title)}. {session.Description}");
     }
 
     public void StopFusion()
@@ -69,7 +69,18 @@ public sealed partial class EmulatorHost
     public bool Paused { get; set; }
     public bool TurboWhileLoading { get; set; } = true;
     public bool Turbo { get; set; }
-    public string Status { get; set; } = "Arrastrá un juego a la ventana o usá Juego > Abrir.";
+    private string _status = "Arrastrá un juego a la ventana o usá Juego > Abrir.", _translatedStatus = "";
+    private string? _lastStatus;
+    public string Status
+    {
+        get
+        {
+            if (!UiText.English) return _status;
+            if (_lastStatus != _status) { _translatedStatus = UiText.Message(_status); _lastStatus = _status; }
+            return _translatedStatus;
+        }
+        set { _status = value; _lastStatus = null; }
+    }
     /// <summary>No sound output: nothing consumes the audio queue, so it must not pace the emulation.</summary>
     public bool SoundDeviceMissing { get; set; }
     public string? LastStopReason { get; private set; }
@@ -119,10 +130,10 @@ public sealed partial class EmulatorHost
             {
                 string rom = Path.Combine(romDirectory, info.RomFiles[0]);
                 if (!File.Exists(rom))
-                    throw new FileNotFoundException($"Falta la ROM {info.RomFiles[0]} en {romDirectory}.");
+                    throw new FileNotFoundException(UiText.Format($"Falta la ROM {info.RomFiles[0]} en {romDirectory}."));
                 var firmware = File.ReadAllBytes(rom);
                 SetMachine(new Spectrum48(firmware), info, Convert.ToHexString(SHA256.HashData(firmware)));
-                Status = $"{info.Name} encendido.";
+                Status = UiText.Format($"{UiText.Raw(info.Name)} encendido.");
                 break;
             }
             case "c64":
@@ -131,7 +142,7 @@ public sealed partial class EmulatorHost
                 var c64 = new C64(firmware);
                 SetMachine(c64, info, Convert.ToHexString(SHA256.HashData(
                     [.. firmware.Kernal, .. firmware.Basic, .. firmware.Chargen])));
-                Status = $"{info.Name} encendido ({c64.FirmwareDescription}).";
+                Status = UiText.Format($"{UiText.Raw(info.Name)} encendido ({c64.FirmwareDescription}).");
                 break;
             }
             case "pcxt":
@@ -142,7 +153,7 @@ public sealed partial class EmulatorHost
             case "invaders":
                 throw new InvalidOperationException("Space Invaders necesita la ROM del juego: abrí invaders.zip (MAME).");
             default:
-                throw new NotSupportedException($"{info.Name} todavía no está implementado.");
+                throw new NotSupportedException(UiText.Format($"{UiText.Raw(info.Name)} todavía no está implementado."));
         }
     }
 
@@ -154,7 +165,7 @@ public sealed partial class EmulatorHost
         LoadedMedia = file.Name;
         _loadedFiles = [file];
         LoadedProfile = ProfileLibrary.ForFiles([file]);
-        Status = $"{file.Name}: {cart.Describe()}. Mando: flechas, Z = B, X = A, Enter = Start, Shift derecho = Select.";
+        Status = UiText.Format($"{UiText.Raw(file.Name)}: {cart.Describe()}. Mando: flechas, Z = B, X = A, Enter = Start, Shift derecho = Select.");
     }
 
     public void StartPc(MachineInfo info, MediaFile file, string firmwareDirectory, IReadOnlyList<MediaFile>? files = null)
@@ -164,7 +175,7 @@ public sealed partial class EmulatorHost
         LoadedMedia = file.Name; _loadedFiles = [launched.Media]; LoadedProfile = ProfileLibrary.ForFiles([file]);
         _pcDosProgram = _pcDosBooting = file.Extension is ".exe" or ".com";
         _pcDosBootSeen = false; _pcDosBootStart = pc.FrameCount;
-        Status = (_pcDosBooting ? "Iniciando FreeDOS..." : launched.Description) + " F1–F10 llegan al PC. Atajos: Ctrl + tecla de función.";
+        Status = (_pcDosBooting ? "Iniciando FreeDOS..." : launched.Description) + UiText.Get(" F1–F10 llegan al PC. Atajos: Ctrl + tecla de función.");
     }
 
     /// <summary>Starts the Space Invaders board with the game ROM from the user's files.</summary>
@@ -182,7 +193,7 @@ public sealed partial class EmulatorHost
         LoadedMedia = "invaders";
         _loadedFiles = files.ToArray();
         LoadedProfile = ProfileLibrary.ForFiles(files);
-        Status = description + " Moneda: 5 o C, empezar: 1.";
+        Status = description + UiText.Get(" Moneda: 5 o C, empezar: 1.");
     }
 
     /// <summary>
@@ -195,7 +206,7 @@ public sealed partial class EmulatorHost
         Directory.CreateDirectory(target);
         foreach (var f in files.Where(f => f.Extension == ".wav"))
             File.WriteAllBytes(Path.Combine(target, Path.GetFileName(f.Name)), f.Data);
-        string msg = $"Guardé los sonidos grabados de Space Invaders en {target}.";
+        string msg = UiText.Format($"Guardé los sonidos grabados de Space Invaders en {target}.");
         if (Invaders is { } inv)
         {
             inv.Sound.LoadSamples(files);
@@ -242,7 +253,7 @@ public sealed partial class EmulatorHost
             LoadedProfile = profile;
             MediaRevision++;
             DiscardQuickState();
-            Status = $"{file.Name}: {r.Description}" + (r.Warnings.Count > 0 ? " (" + string.Join("; ", r.Warnings) + ")" : "");
+            Status = UiText.Format($"{UiText.Raw(file.Name)}: {r.Description}") + (r.Warnings.Count > 0 ? " (" + string.Join("; ", r.Warnings) + ")" : "");
             Paused = false;
             return;
         }
@@ -253,7 +264,7 @@ public sealed partial class EmulatorHost
         LoadedProfile = profile;
         MediaRevision++;
         DiscardQuickState();
-        Status = $"{file.Name}: {result.Description}" + (result.Warnings.Count > 0 ? " (" + string.Join("; ", result.Warnings) + ")" : "");
+        Status = UiText.Format($"{UiText.Raw(file.Name)}: {result.Description}") + (result.Warnings.Count > 0 ? " (" + string.Join("; ", result.Warnings) + ")" : "");
         if (result.Kind == SpectrumMediaKind.Tape && autoType)
         {
             // Fresh boot so the ROM is at the K cursor, then type LOAD "" like a user.
@@ -360,7 +371,7 @@ public sealed partial class EmulatorHost
         {
             _runToAddress = null;
             Debug.Temporary = null;
-            Pause($"Llegó a ${target:X4}");
+            Pause(UiText.Format($"Llegó a ${target:X4}"));
             return false;
         }
         _speedFrames++;
@@ -373,7 +384,7 @@ public sealed partial class EmulatorHost
         if (reason == RunStopReason.Breakpoint)
         {
             StopTimelineForDebug();
-            Pause($"Breakpoint en ${m.Cpu.ProgramCounter:X4}");
+            Pause(UiText.Format($"Breakpoint en ${m.Cpu.ProgramCounter:X4}"));
             return false;
         }
         return CompleteTimelineFrame(m);
@@ -465,7 +476,7 @@ public sealed partial class EmulatorHost
             return;
         _quickState = Machine!.SaveState();
         _quickPixels = Machine.Video.Pixels.ToArray();
-        Status = $"Estado guardado en memoria (F2). {(C64 != null ? "F4" : "F3")} para volver.";
+        Status = UiText.Format($"Estado guardado en memoria (F2). {(C64 != null ? UiText.Get("F4") : UiText.Get("F3"))} para volver.");
     }
 
     public void QuickLoad()
@@ -482,7 +493,7 @@ public sealed partial class EmulatorHost
             return;
         string fullPath = Path.GetFullPath(path);
         Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
-        string temporary = fullPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        string temporary = fullPath + "." + Guid.NewGuid().ToString("N") + UiText.Get(".tmp");
         try
         {
             File.WriteAllBytes(temporary, Machine!.SaveState());
@@ -494,7 +505,7 @@ public sealed partial class EmulatorHost
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
         }
-        Status = "Estado guardado: " + Path.GetFileName(path);
+        Status = UiText.Get("Estado guardado: ") + Path.GetFileName(path);
     }
 
     public void LoadStateFromFile(string path)
@@ -505,7 +516,7 @@ public sealed partial class EmulatorHost
         if (file.Length > 16 * 1024 * 1024) throw new InvalidDataException("El estado supera el máximo de 16 MB. Se conservó la partida actual.");
         byte[] state = new byte[(int)file.Length]; file.ReadExactly(state);
         RestoreState(state);
-        Status = "Estado cargado: " + Path.GetFileName(path);
+        Status = UiText.Get("Estado cargado: ") + Path.GetFileName(path);
     }
 
     private void DiscardQuickState() { _quickState = null; _quickPixels = null; }
@@ -576,6 +587,6 @@ public sealed partial class EmulatorHost
         if (setPc)
             m.Cpu.ProgramCounter = address;
         Paused = true;
-        Status = $"{data.Length} bytes cargados en ${address:X4}" + (setPc ? ", PC apunta ahí. Usá Paso o Continuar." : ".");
+        Status = UiText.Format($"{data.Length} bytes cargados en ${address:X4}") + (setPc ? ", PC apunta ahí. Usá Paso o Continuar." : ".");
     }
 }

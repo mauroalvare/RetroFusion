@@ -18,7 +18,7 @@ public static class LegacyResearchImport
         foreach (string id in availableProfiles.Distinct().Take(200))
         {
             if (string.IsNullOrWhiteSpace(id) || id.IndexOfAny(Path.GetInvalidFileNameChars())>=0 || id is "." or ".." || id.Contains('/') || id.Contains('\\')) continue;
-            var file=new FileInfo(Path.Combine(folder,id+".json"));
+            var file=new FileInfo(Path.Combine(folder,id+UiText.Get(".json")));
             if (!file.Exists || file.Length>1024*1024 || file.Attributes.HasFlag(FileAttributes.ReparsePoint)) continue;
             try
             {
@@ -42,7 +42,7 @@ public static class LegacyResearchImport
         return ideas.Values.Where(i=>i.Profiles.Count is >=2 and <=3).Take(8).Select(i=>
         {
             string goals=string.Join("\n\nOtro registro de la misma idea (revisar correspondencia):\n",i.Goals.Take(3));
-            if (goals.Length>7000) goals=goals[..6900]+"\n[Texto recortado: revisá también los registros de laboratorio originales.]";
+            if (goals.Length>7000) goals=goals[..6900]+UiText.Get("\n[Texto recortado: revisá también los registros de laboratorio originales.]");
             return new LegacyResearchIdea(i.Title,goals,i.Profiles);
         }).ToList();
     }

@@ -34,12 +34,12 @@ public sealed partial class RetroApp
         ImGui.Begin("##app-navigation",ImGuiWindowFlags.NoDecoration|ImGuiWindowFlags.NoMove|ImGuiWindowFlags.NoDocking|ImGuiWindowFlags.NoSavedSettings);
         using (UiTheme.Label())
         {
-            string[] labels=["Biblioteca","Jugar","Crear","Analizar","Herramientas","Ayuda"];
+            string[] labels=Array.ConvertAll(["Biblioteca","Jugar","Crear","Analizar","Herramientas","Ayuda"], UiText.Get);
             int selected=_home.IsOpen?0:_hub==HubPage.Create || _creator.IsOpen || _studio.IsOpen?2:_code.IsOpen || _debugMode?3:_hub==HubPage.Tools || _stateWindowOpen?4:_hub==HubPage.Help?5:1;
             bool resume=InterfaceWorkspace&&HasGame;
             const string resumeLabel="VOLVER A LA PARTIDA";
-            float resumeWidth=resume?ImGui.CalcTextSize(resumeLabel).X+ImGui.GetStyle().FramePadding.X*2+ImGui.GetStyle().ItemSpacing.X:0;
-            float required=labels.Select((label,i)=>$"{i+1:00} {label.ToUpperInvariant()}").Sum(label=>ImGui.CalcTextSize(label).X+ImGui.GetStyle().FramePadding.X*2+ImGui.GetStyle().ItemSpacing.X)+UiTheme.Px(285)+resumeWidth;
+            float resumeWidth=resume?ImGui.CalcTextSize(UiText.Get(resumeLabel)).X+ImGui.GetStyle().FramePadding.X*2+ImGui.GetStyle().ItemSpacing.X:0;
+            float required=labels.Select((label,i)=>UiText.Format($"{i+1:00} {label.ToUpperInvariant()}")).Sum(label=>ImGui.CalcTextSize(UiText.Get(label)).X+ImGui.GetStyle().FramePadding.X*2+ImGui.GetStyle().ItemSpacing.X)+UiTheme.Px(285)+resumeWidth;
             if (ImGui.GetContentRegionAvail().X<required)
             {
                 ImGui.SetNextItemWidth(Math.Max(UiTheme.Px(100),ImGui.GetContentRegionAvail().X-UiTheme.Px(106)-resumeWidth));
@@ -54,7 +54,7 @@ public sealed partial class RetroApp
                 {
                     if (i>0) ImGui.SameLine();
                     ImGui.PushID(i);
-                    if (RetroArt.ModeButton($"{i+1:00} {labels[i].ToUpperInvariant()}",selected==i)) Navigate(i);
+                    if (RetroArt.ModeButton(UiText.Format($"{i+1:00} {labels[i].ToUpperInvariant()}"),selected==i)) Navigate(i);
                     ImGui.PopID();
                 }
                 ImGui.SameLine(Math.Max(ImGui.GetCursorPosX(),ImGui.GetWindowWidth()-UiTheme.Px(106)-resumeWidth));
@@ -66,8 +66,8 @@ public sealed partial class RetroApp
                     ImGui.SameLine();
                 }
             }
-            if (ImGui.Button("Buscar…",new(UiTheme.Px(88),0))) _commands.Open();
-            if (ImGui.IsItemHovered()) UiTheme.Tooltip("Todas las acciones y sus atajos · "+ToolShortcut("P"));
+            if (ImGui.Button(UiText.Label("Buscar…"),new(UiTheme.Px(88),0))) _commands.Open();
+            if (ImGui.IsItemHovered()) UiTheme.Tooltip(UiText.Get("Todas las acciones y sus atajos · ")+ToolShortcut("P"));
         }
         ImGui.End(); ImGui.PopStyleVar(2);
 
@@ -108,9 +108,9 @@ public sealed partial class RetroApp
             ("Fusionar originales","Elegí un mundo base e incorporá reglas de otros juegos. La investigación comprueba los datos antes de construir.","fusion"),
             ("Crear con originales","Diseñá un juego nuevo a partir de las mecánicas y recursos disponibles en tus originales.","inspired")]);
         UiTheme.Section("Tus proyectos","Las creaciones terminadas están en Biblioteca. Los borradores y las investigaciones se retoman dentro de cada taller.");
-        if (ImGui.Button("Retomar una fusión")) { OpenFusionStudio(); _studio.ShowSavedWork(); }
+        if (ImGui.Button(UiText.Label("Retomar una fusión"))) { OpenFusionStudio(); _studio.ShowSavedWork(); }
         UiTheme.SameLineIfFits("Mis proyectos desde cero");
-        if (ImGui.Button("Mis proyectos desde cero")) { OpenCreator(); _creator.ShowSavedProjects(); }
+        if (ImGui.Button(UiText.Label("Mis proyectos desde cero"))) { OpenCreator(); _creator.ShowSavedProjects(); }
         UiTheme.Section("Prepará tu método de trabajo");
         ToolRows("creation-method",[("IA y modelos","Conectá una CLI, elegí el modelo y revisá el método de trabajo. También hay copiar y pegar y carpeta de agente.","ai")]);
     }
@@ -120,8 +120,8 @@ public sealed partial class RetroApp
         if (!UiTheme.CompactHeight) UiTheme.Eyebrow("MESA DE HERRAMIENTAS");
         UiTheme.Heading("Instrumental","Partidas, memoria, código y ajustes del equipo.");
         UiTheme.BeginCard("current-context");
-        ImGui.TextWrapped(HasGame?"En uso: "+(_host.LoadedMedia!=null?Path.GetFileNameWithoutExtension(_host.LoadedMedia):"Creación en ejecución"):"Abrí un original para trabajar sobre una partida. La configuración está disponible siempre.");
-        if (ImGui.Button(HasGame?"Volver a jugar":"Abrir un juego…")) { if (HasGame) OpenPlay(); else _browser.Open(); }
+        ImGui.TextWrapped(UiText.Get(HasGame?UiText.Get("En uso: ")+(_host.LoadedMedia!=null?Path.GetFileNameWithoutExtension(_host.LoadedMedia):"Creación en ejecución"):"Abrí un original para trabajar sobre una partida. La configuración está disponible siempre."));
+        if (ImGui.Button(UiText.Label(HasGame?"Volver a jugar":"Abrir un juego…"))) { if (HasGame) OpenPlay(); else _browser.Open(); }
         UiTheme.EndCard();
         UiTheme.Section("Investigar y modificar");
         ToolRows("analysis-tools",[("Investigación automática","El laboratorio juega secuencias y contrasta variables en una máquina privada; elegí el objetivo y el presupuesto.","auto-analysis"),
@@ -132,7 +132,7 @@ public sealed partial class RetroApp
         ToolRows("play-tools",[("Partidas guardadas","Ranuras separadas por juego y edición, con guardado y recuperación entre sesiones.","slots"),
             ("Rebobinado y entradas","Volvé a un momento anterior o grabá y reproducí las entradas de esta sesión.","replay-tools"),
             ("Capturar pantalla","Guardá la imagen del juego a su resolución original.","capture")]);
-        if (ImGui.CollapsingHeader("Rebobinado y grabación de entradas",_showReplayTools?ImGuiTreeNodeFlags.DefaultOpen:ImGuiTreeNodeFlags.None)) DrawReplayTools();
+        if (ImGui.CollapsingHeader(UiText.Label("Rebobinado y grabación de entradas"),_showReplayTools?ImGuiTreeNodeFlags.DefaultOpen:ImGuiTreeNodeFlags.None)) DrawReplayTools();
         UiTheme.Section("Configuración");
         ToolRows("settings-tools",[("Pantalla, controles y accesibilidad","Tamaño del texto, alto contraste, joystick, rendimiento y pantalla completa.","preferences"),
             ("Sonido","Volumen, silencio y ajustes de salida de audio.","sound"),
@@ -145,20 +145,20 @@ public sealed partial class RetroApp
     {
         ImGui.BeginDisabled(!_host.CanUseStates);
         bool rewind=_host.RewindEnabled;
-        if (ImGui.Checkbox("Conservar historial (hasta 64 MB)",ref rewind)) _host.SetRewindEnabled(rewind);
-        ImGui.TextWrapped($"Historial: {_host.RewindPoints} puntos · {_host.RewindBytes/(1024*1024.0):F1} MB");
+        if (ImGui.Checkbox(UiText.Label("Conservar historial (hasta 64 MB)"),ref rewind)) _host.SetRewindEnabled(rewind);
+        ImGui.TextWrapped(UiText.Get(UiText.Format($"Historial: {_host.RewindPoints} puntos · {_host.RewindBytes/(1024*1024.0):F1} MB")));
         ImGui.BeginDisabled(_host.RewindPoints==0 || _host.IsRecordingInputs || _host.IsReplayingInputs);
-        if (ImGui.Button("Retroceder cinco segundos")) TryStateAction(()=>_host.Rewind());
+        if (ImGui.Button(UiText.Label("Retroceder cinco segundos"))) TryStateAction(()=>_host.Rewind());
         ImGui.EndDisabled(); UiTheme.SameLineIfFits("Vaciar historial");
-        if (ImGui.Button("Vaciar historial")) _host.ClearRewind();
+        if (ImGui.Button(UiText.Label("Vaciar historial"))) _host.ClearRewind();
         ImGui.BeginDisabled(!_host.CanRecordInputs && !_host.IsRecordingInputs);
-        if (ImGui.Button(_host.IsRecordingInputs?"Terminar grabación":"Grabar entradas desde aquí"))
+        if (ImGui.Button(UiText.Label(_host.IsRecordingInputs?"Terminar grabación":"Grabar entradas desde aquí")))
         { if (_host.IsRecordingInputs) _host.StopInputRecording(); else TryStateAction(()=>_host.StartInputRecording()); }
         ImGui.EndDisabled(); UiTheme.SameLineIfFits("Reproducir última grabación");
         ImGui.BeginDisabled(!_host.CanReplayInputs && !_host.IsReplayingInputs);
-        if (ImGui.Button(_host.IsReplayingInputs?"Detener reproducción":"Reproducir última grabación"))
+        if (ImGui.Button(UiText.Label(_host.IsReplayingInputs?"Detener reproducción":"Reproducir última grabación")))
         { if (_host.IsReplayingInputs) _host.StopInputReplay(); else TryStateAction(()=>_host.StartInputReplay()); }
-        ImGui.EndDisabled(); ImGui.TextWrapped($"Grabación: {_host.RecordedFrames} cuadros · sólo esta sesión.");
+        ImGui.EndDisabled(); ImGui.TextWrapped(UiText.Get(UiText.Format($"Grabación: {_host.RecordedFrames} cuadros · sólo esta sesión.")));
         ImGui.EndDisabled();
         if (!_host.CanUseStates) UiTheme.Hint("Disponible al abrir un juego original.");
     }
@@ -167,35 +167,36 @@ public sealed partial class RetroApp
     {
         if (!UiTheme.CompactHeight) UiTheme.Eyebrow("AYUDA Y CONTROLES");
         UiTheme.Heading("Manual de operación","Controles, atajos y ayuda para los trabajos del taller.");
+        if (ImGui.Button(UiText.Label("Novedades de las últimas versiones…"))) OpenNews();
         UiTheme.BeginCard("console-help");
         UiTheme.Section("Tres formas de manejarlo");
-        foreach (var style in InterfaceStyles.All) ImGui.BulletText(style.ShortName+": "+style.Handling.ToLowerInvariant()+".");
-        if (ImGui.Button("Ver estilos y vistas previas…")) OpenInterfacePicker();
+        foreach (var style in InterfaceStyles.All) ImGui.BulletText(UiText.Get(style.ShortName+": "+style.Handling.ToLowerInvariant()+"."));
+        if (ImGui.Button(UiText.Label("Ver estilos y vistas previas…"))) OpenInterfacePicker();
         UiTheme.SameLineIfFits("Copiar diagnóstico");
-        if (ImGui.Button("Copiar diagnóstico")) { ImGui.SetClipboardText(DiagnosticReport()); _diagnosticCopied=true; }
+        if (ImGui.Button(UiText.Label("Copiar diagnóstico"))) { ImGui.SetClipboardText(DiagnosticReport()); _diagnosticCopied=true; }
         if (ImGui.IsItemHovered()) UiTheme.Tooltip("Lleva al portapapeles un resumen técnico sin títulos, rutas personales ni credenciales.");
         if (_diagnosticCopied) UiTheme.Hint("Diagnóstico copiado. Revisalo antes de compartirlo.");
         UiTheme.EndCard();
         UiTheme.BeginCard("play-help");
         UiTheme.Section("Abrir y jugar");
-        ImGui.TextWrapped("En Biblioteca elegí un sistema, buscá el archivo y pulsá Jugar. También podés abrir un archivo o arrastrarlo a la ventana. Jugar vuelve a la máquina actual.");
+        ImGui.TextWrapped(UiText.Get("En Biblioteca elegí un sistema, buscá el archivo y pulsá Jugar. También podés abrir un archivo o arrastrarlo a la ventana. Jugar vuelve a la máquina actual."));
         UiTheme.Section("Controles de la máquina actual");
         ImGui.PushTextWrapPos(0); DrawControlsHelp(); ImGui.PopTextWrapPos();
         UiTheme.EndCard();
         UiTheme.BeginCard("research-help");
         UiTheme.Section("Si una creación necesita más datos");
-        ImGui.TextWrapped("El taller guarda la idea y cada original investigado. En Trabajos guardados podés revisar los avances, jugar los originales y abrir el analizador. Las guías describen las pruebas pendientes; continuar vuelve a usar el proveedor que elijas.");
+        ImGui.TextWrapped(UiText.Get("El taller guarda la idea y cada original investigado. En Trabajos guardados podés revisar los avances, jugar los originales y abrir el analizador. Las guías describen las pruebas pendientes; continuar vuelve a usar el proveedor que elijas."));
         UiTheme.Hint("Identificar un archivo, arrancarlo, comprobar sus controles y tener datos listos para fusionar son pasos distintos.");
         UiTheme.EndCard();
         DrawInputCheck();
-        if (ImGui.CollapsingHeader("Atajos y navegación",ImGuiTreeNodeFlags.DefaultOpen))
+        if (ImGui.CollapsingHeader(UiText.Label("Atajos y navegación"),ImGuiTreeNodeFlags.DefaultOpen))
         {
-            ImGui.TextWrapped("Tab y flechas recorren la interfaz; Enter o Espacio activan controles y Esc vuelve. Select + Start abre la biblioteca desde un mando. En Jugar, el teclado y el mando controlan la máquina.");
+            ImGui.TextWrapped(UiText.Get("Tab y flechas recorren la interfaz; Enter o Espacio activan controles y Esc vuelve. Select + Start abre la biblioteca desde un mando. En Jugar, el teclado y el mando controlan la máquina."));
             DrawShortcutsHelp();
         }
-        if (ImGui.CollapsingHeader("Máquinas y formatos"))
+        if (ImGui.CollapsingHeader(UiText.Label("Máquinas y formatos")))
             foreach (var machine in Retro.Machines.MachineCatalog.All)
-            { ImGui.TextWrapped(machine.Name+" · "+machine.Cpu+(machine.Status==Retro.Machines.MachineStatus.Available?" · disponible":" · en desarrollo")); UiTheme.Hint(machine.Needs); }
+            { ImGui.TextWrapped(UiText.Get(machine.Name+" · "+machine.Cpu+(machine.Status==Retro.Machines.MachineStatus.Available?" · disponible":" · en desarrollo"))); UiTheme.Hint(machine.Needs); }
     }
 
     private void ToolRows(string id,(string Title,string Detail,string Command)[] items)
@@ -228,10 +229,10 @@ public sealed partial class RetroApp
                 ImGui.PopID();
                 continue;
             }
-            using(UiTheme.Display()) { ImGui.PushTextWrapPos(0); ImGui.TextUnformatted(item.Title); ImGui.PopTextWrapPos(); }
+            using(UiTheme.Display()) { ImGui.PushTextWrapPos(0); ImGui.TextUnformatted(UiText.Get(item.Title)); ImGui.PopTextWrapPos(); }
             if(command.Shortcut.Length>0)
             {
-                using(UiTheme.FixedWidth()) { UiTheme.SameLineIfFits(command.Shortcut); ImGui.TextDisabled(command.Shortcut); }
+                using(UiTheme.FixedWidth()) { UiTheme.SameLineIfFits(command.Shortcut); ImGui.TextDisabled(UiText.Get(command.Shortcut)); }
             }
             UiTheme.Hint(item.Detail);
             if (!command.Enabled) UiTheme.Hint(command.Unavailable);

@@ -10,7 +10,8 @@ public sealed class AppPreferences
         bool PowerSaving, bool ShowFps, string SpectrumJoystick, int C64Port, bool TypeLoad, bool TurboWhileLoading,
         bool PauseInBackground = false, string? LastFolder = null, string Interface = "retro", string? InterfaceOfferedVersion = null,
         bool OnlineGameInfo = false, string ConsoleCursor = "block", bool ConsoleBlink = true, bool ConsoleScanlines = false,
-        bool ConsoleHistory = true, string? LibraryFolder = null);   // optional v1 fields preserve older preferences
+        bool ConsoleHistory = true, string? LibraryFolder = null, string? LastStartedVersion = null,
+        string Language = "es");   // optional v1 fields preserve older preferences
     private readonly string _path;
     private readonly bool _persist;
     private bool _unreadable;
@@ -27,6 +28,8 @@ public sealed class AppPreferences
     public bool PauseInBackground { get; set; }
     public InterfaceStyle Interface { get; set; }
     public string? InterfaceOfferedVersion { get; set; }
+    public string? LastStartedVersion { get; set; }
+    public string Language { get; set; } = "es";
     public bool OnlineGameInfo { get; set; }
     public TerminalCursor ConsoleCursor { get; set; }
     public bool ConsoleBlink { get; set; } = true;
@@ -36,7 +39,8 @@ public sealed class AppPreferences
     public string? LastFolder { get; set; }
     /// <summary>The games folder chosen by the user; without one, the folder next to the program is found.</summary>
     public string? LibraryFolder { get; set; }
-    public string? Problem { get; private set; }
+    private string? _problem;
+    public string? Problem { get => _problem == null ? null : UiText.Get(_problem); private set => _problem = value; }
     public bool CanRecover => _persist && _unreadable;
     public string? RecoveryPath { get; private set; }
     public float TextScale => TextPercent / 100f;
@@ -51,7 +55,7 @@ public sealed class AppPreferences
             if (!File.Exists(_path)) return;
             if (new FileInfo(_path).Length > 16384) throw new InvalidDataException();
             var doc = JsonSerializer.Deserialize<Document>(File.ReadAllText(_path));
-            if (doc is not { Version: 1 } || !Valid(doc.TextPercent, doc.C64Port)
+            if (doc is not { Version: >= 1 } || !Valid(doc.TextPercent, doc.C64Port)
                 || !Enum.TryParse(doc.SpectrumJoystick, out JoystickMode joystick) || !Enum.IsDefined(joystick)
                 || doc.SpectrumJoystick != joystick.ToString()) throw new InvalidDataException();
             TextPercent = doc.TextPercent; HighContrast = doc.HighContrast; IntegerScale = doc.IntegerScale;
@@ -61,11 +65,18 @@ public sealed class AppPreferences
             // A future/removed style falls back to the principal interface without discarding other preferences.
             InterfaceStyles.TryParse(doc.Interface, out var selected); Interface = selected;
             InterfaceOfferedVersion = doc.InterfaceOfferedVersion is { Length: <= 32 } offered && System.Version.TryParse(offered, out _) ? offered : null;
+            LastStartedVersion = doc.LastStartedVersion is { Length: <= 32 } started && System.Version.TryParse(started, out _) ? started : null;
+            Language = doc.Language is "es" or "en" ? doc.Language : "es";
             OnlineGameInfo = doc.OnlineGameInfo;
             // An unknown cursor from a later version keeps the default and the rest of the file.
             ConsoleCursor = CursorNames.GetValueOrDefault(doc.ConsoleCursor ?? "", TerminalCursor.Block);
             ConsoleBlink = doc.ConsoleBlink; ConsoleScanlines = doc.ConsoleScanlines; ConsoleHistory = doc.ConsoleHistory;
             LibraryFolder = doc.LibraryFolder is { Length: > 0 and <= 1024 } library ? library : null;
+            if (doc.Version > 1)
+            {
+                _unreadable = true;
+                Problem = "Estas preferencias son de una versión posterior. Se leen los valores conocidos sin modificar el archivo. Recuperar archivo conserva una copia antes de guardar.";
+            }
         }
         catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException or JsonException)
         {
@@ -83,22 +94,23 @@ public sealed class AppPreferences
         TextPercent = 100; HighContrast = Fullscreen = ShowFps = false; IntegerScale = PowerSaving = true;
         SpectrumJoystick = JoystickMode.Kempston; C64Port = 2; TypeLoad = TurboWhileLoading = true; PauseInBackground = false;
         Interface = InterfaceStyle.Retro; OnlineGameInfo = false;
+        Language = "es";
         ConsoleCursor = TerminalCursor.Block; ConsoleBlink = ConsoleHistory = true; ConsoleScanlines = false;
     }
 
     public bool Save()
     {
-        if (!Valid(TextPercent, C64Port) || !Enum.IsDefined(SpectrumJoystick) || !Enum.IsDefined(Interface)) { Problem = "Las preferencias no son válidas."; return false; }
+        if (!Valid(TextPercent, C64Port) || !Enum.IsDefined(SpectrumJoystick) || !Enum.IsDefined(Interface) || Language is not ("es" or "en")) { Problem = "Las preferencias no son válidas."; return false; }
         if (!_persist) return true;
         if (_unreadable) return false;
-        string temporary = _path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        string temporary = _path + "." + Guid.NewGuid().ToString("N") + UiText.Get(".tmp");
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(_path))!);
             File.WriteAllText(temporary, JsonSerializer.Serialize(new Document(1, TextPercent, HighContrast, IntegerScale, Fullscreen,
                 PowerSaving, ShowFps, SpectrumJoystick.ToString(), C64Port, TypeLoad, TurboWhileLoading, PauseInBackground, LastFolder,
-                InterfaceStyles.Describe(Interface).Id, InterfaceOfferedVersion, OnlineGameInfo,
-                CursorNames.First(pair => pair.Value == ConsoleCursor).Key, ConsoleBlink, ConsoleScanlines, ConsoleHistory, LibraryFolder)));
+                Interface == InterfaceStyle.Hardcore ? "hardcore" : InterfaceStyles.Describe(Interface).Id, InterfaceOfferedVersion, OnlineGameInfo,
+                CursorNames.First(pair => pair.Value == ConsoleCursor).Key, ConsoleBlink, ConsoleScanlines, ConsoleHistory, LibraryFolder, LastStartedVersion, Language)));
             File.Move(temporary, _path, overwrite: true); Problem = null; return true;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
@@ -116,7 +128,7 @@ public sealed class AppPreferences
         if (!CanRecover) return Save();
         if (!Valid(TextPercent, C64Port) || !Enum.IsDefined(SpectrumJoystick))
         { Problem = "Las preferencias no son válidas."; return false; }
-        string backup = _path + ".respaldo-" + Guid.NewGuid().ToString("N");
+        string backup = _path + UiText.Get(".respaldo-") + Guid.NewGuid().ToString("N");
         try { File.Copy(_path, backup, overwrite: false); RecoveryPath = backup; }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         { Problem = "No pude conservar el archivo anterior. Los cambios siguen solo en esta sesión."; return false; }

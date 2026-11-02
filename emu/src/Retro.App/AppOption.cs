@@ -5,21 +5,29 @@ namespace Retro.App;
 public enum AppOptionKind { Toggle, Choice, Number }
 /// <summary>How far a change reaches, shown next to the setting.</summary>
 public enum OptionScope { Saved, Session }
-public sealed record OptionChoice(string Value, string Label);
+public sealed record OptionChoice(string Value, string Label)
+{
+    private string _label = Label;
+    public string Label { get => UiText.Get(_label); init => _label = value; }
+}
 
 /// <summary>One live setting contract for the graphical form and the internal terminal.</summary>
 public sealed record AppOption(string Id, string Title, string Group, string Description, AppOptionKind Kind,
     Func<string> Read, Func<string, string?> Write, IReadOnlyList<OptionChoice>? Choices = null, int Min = 0, int Max = 100)
 {
+    private string _title = Title, _group = Group, _description = Description;
+    public string Title { get => UiText.Get(_title); init => _title = value; }
+    public string Group { get => UiText.Get(_group); init => _group = value; }
+    public string Description { get => UiText.Get(_description); init => _description = value; }
     /// <summary>Value of a fresh installation; a setting without one depends on the equipment.</summary>
     public string? Default { get; init; }
     public OptionScope Scope { get; init; } = OptionScope.Saved;
-    public string ScopeName => Scope == OptionScope.Saved ? "se guarda para todos los estilos" : "solo esta sesión";
+    public string ScopeName => UiText.Get(Scope == OptionScope.Saved ? "se guarda para todos los estilos" : "solo esta sesión");
     public string Values => Kind switch
     {
         AppOptionKind.Toggle => "on, off",
-        AppOptionKind.Choice => string.Join(", ", Choices!.Select(choice => choice.Value)),
-        _ => $"{Min}..{Max}"
+        AppOptionKind.Choice => string.Join(", ", Choices!.Select(choice => TerminalLanguage.Choice(choice.Value))),
+        _ => UiText.Format($"{Min}..{Max}")
     };
     public bool Modified => Default != null && Read() != Default;
     public IEnumerable<CompletionItem> Completions()
@@ -30,7 +38,7 @@ public sealed record AppOption(string Id, string Title, string Group, string Des
             AppOptionKind.Choice => Choices!.Select(choice => new CompletionItem(choice.Value, choice.Label)),
             _ => []
         };
-        return Default == null ? values : values.Append(new("restablecer", "volver a " + Default));
+        return Default == null ? values : values.Append(new("restablecer", UiText.Get("volver a ") + Default));
     }
 
     public static AppOption Toggle(string id, string title, string group, string description, Func<bool> read, Action<bool> write) =>
@@ -44,13 +52,13 @@ public sealed record AppOption(string Id, string Title, string Group, string Des
         new(id, title, group, description, AppOptionKind.Choice, read, value =>
         {
             var choice = choices.FirstOrDefault(choice => choice.Value.Equals(value, StringComparison.OrdinalIgnoreCase));
-            if (choice == null) return "Valores: " + string.Join(", ", choices.Select(choice => choice.Value));
+            if (choice == null) return UiText.Get("Valores: ") + string.Join(", ", choices.Select(choice => choice.Value));
             write(choice.Value); return null;
         }, Array.AsReadOnly(choices));
     public static AppOption Number(string id, string title, string group, string description, Func<int> read, Action<int> write, int min, int max) =>
         new(id, title, group, description, AppOptionKind.Number, () => read().ToString(CultureInfo.InvariantCulture), value =>
         {
-            if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int number) || number < min || number > max) return $"Usá un número entre {min} y {max}.";
+            if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int number) || number < min || number > max) return UiText.Format($"Usá un número entre {min} y {max}.");
             write(number); return null;
         }, Min: min, Max: max);
 }

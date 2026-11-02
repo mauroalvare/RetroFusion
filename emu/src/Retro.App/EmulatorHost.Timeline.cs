@@ -85,7 +85,7 @@ public sealed partial class EmulatorHost
             { RewindEnabled = false; Status = "No se pudo conservar el estado dentro del límite de rebobinado."; }
         }
         catch (Exception ex) when (ex is IOException or InvalidOperationException or ArgumentException)
-        { RewindEnabled = false; _rewind.Clear(); Status = "No se pudo guardar el rebobinado: " + ex.Message; }
+        { RewindEnabled = false; _rewind.Clear(); Status = UiText.Get("No se pudo guardar el rebobinado: ") + ex.Message; }
     }
 
     public bool Rewind(double seconds = 5)
@@ -99,7 +99,7 @@ public sealed partial class EmulatorHost
         try { RestoreState(point.State, point.Pixels); }
         finally { _preserveRewind = false; }
         _rewind.TrimAfter(point.Frame); Paused = true;
-        Status = $"Partida rebobinada al cuadro {point.Frame}. Continuar para jugar desde ahí.";
+        Status = UiText.Format($"Partida rebobinada al cuadro {point.Frame}. Continuar para jugar desde ahí.");
         return true;
     }
 
@@ -131,7 +131,7 @@ public sealed partial class EmulatorHost
         _lastRecording = _recording.Frames.Count > 0 ? _recording : null;
         _recording = null; _pendingInputs.Clear();
         if (releaseKeys) ReleaseTimelineInput();
-        Status = _lastRecording == null ? "Grabación vacía descartada." : $"Grabación lista: {_lastRecording.Frames.Count} cuadros.";
+        Status = _lastRecording == null ? "Grabación vacía descartada." : UiText.Format($"Grabación lista: {_lastRecording.Frames.Count} cuadros.");
     }
 
     public bool StartInputReplay()
@@ -173,12 +173,12 @@ public sealed partial class EmulatorHost
             if (!CryptographicOperations.FixedTimeEquals(ScreenHash(machine), replay.Frames[_replayFrame].ScreenHash))
             {
                 int frame = _replayFrame + 1; StopInputReplay();
-                Status = $"La reproducción difiere en el cuadro {frame}; quedó pausada para revisar."; return false;
+                Status = UiText.Format($"La reproducción difiere en el cuadro {frame}; quedó pausada para revisar."); return false;
             }
             if (++_replayFrame == replay.Frames.Count)
             {
                 int count = replay.Frames.Count; StopInputReplay();
-                Status = $"Reproducción verificada: {count} cuadros coinciden."; return false;
+                Status = UiText.Format($"Reproducción verificada: {count} cuadros coinciden."); return false;
             }
         }
         CaptureRewind(machine); return true;

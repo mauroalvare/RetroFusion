@@ -32,10 +32,10 @@ public static class AiConnectionWindow
         ImGui.SetNextWindowSizeConstraints(Vector2.Min(UiTheme.Px(320, 240), maximum), maximum);
         ImGui.SetNextWindowSize(Vector2.Min(UiTheme.Px(670, 650), maximum), condition);
         ImGui.SetNextWindowPos(vp.GetCenter(), condition, new Vector2(.5f));
-        if (!ImGui.Begin("Conectar IA", ref s_open, ImGuiWindowFlags.NoCollapse)) { ImGui.End(); return; }
+        if (!ImGui.Begin(UiText.Label("Conectar IA"), ref s_open, ImGuiWindowFlags.NoCollapse)) { ImGui.End(); return; }
         AiPicker.PersistenceStatus(ai, "conexion");
         ImGui.SetNextItemWidth(-1);
-        if (ImGui.Combo("##herramienta", ref s_selected, Names, Names.Length)) s_error = "";
+        if (ImGui.Combo("##herramienta", ref s_selected, Names.Select(UiText.Get).ToArray(), Names.Length)) s_error = "";
         string id = Ids[s_selected];
         bool windows = OperatingSystem.IsWindows();
         var (url, install, login, note) = id switch
@@ -54,25 +54,25 @@ public static class AiConnectionWindow
         };
         ImGui.Spacing();
         bool installed = CliTools.ById(id) is { } tool && CliTools.Find(tool, ai.CliPaths.GetValueOrDefault(id)) != null;
-        ImGui.TextUnformatted(installed ? "1. Herramienta instalada" : "1. Instalá la herramienta");
-        bool expanded = installed && ImGui.TreeNode("Ver pasos de instalación");
+        ImGui.TextUnformatted(UiText.Get(installed ? "1. Herramienta instalada" : "1. Instalá la herramienta"));
+        bool expanded = installed && ImGui.TreeNode(UiText.Label("Ver pasos de instalación"));
         if (!installed || expanded)
         {
         AiPicker.Hint(id == "ollama" ? "Descargá Ollama para tu sistema y seguí su instalador."
             : windows ? "Abrí PowerShell desde Inicio y pegá este comando." : "Abrí una terminal y pegá este comando.");
-        if (ImGui.Button(id == "ollama" ? "Abrir descarga oficial" : "Abrir guía oficial"))
+        if (ImGui.Button(UiText.Label(id == "ollama" ? "Abrir descarga oficial" : "Abrir guía oficial")))
         {
             try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
             catch (Exception e) when (e is System.ComponentModel.Win32Exception or InvalidOperationException) { s_error = "No pude abrir el navegador. Copiá el enlace de la guía."; }
         }
         ImGui.SameLine();
-        if (ImGui.Button("Copiar enlace")) ImGui.SetClipboardText(url);
+        if (ImGui.Button(UiText.Label("Copiar enlace"))) ImGui.SetClipboardText(url);
         if (install.Length > 0) Command("instalar", install);
         if (expanded) ImGui.TreePop();
         }
 
         ImGui.Spacing();
-        ImGui.TextUnformatted(id == "ollama" ? "2. Abrí Ollama y agregá un modelo" : "2. Iniciá sesión");
+        ImGui.TextUnformatted(UiText.Get(id == "ollama" ? "2. Abrí Ollama y agregá un modelo" : "2. Iniciá sesión"));
         AiPicker.Hint(note);
         if (id != "ollama")
         {
@@ -83,24 +83,24 @@ public static class AiConnectionWindow
         }
 
         ImGui.Spacing();
-        ImGui.TextUnformatted("3. Elegí el modelo en RetroEmu");
+        ImGui.TextUnformatted(UiText.Get("3. Elegí el modelo en RetroEmu"));
         if (ai.Provider != id)
         {
-            if (ImGui.Button("Usar " + Names[s_selected])) { ai.Provider = id; ai.Save(); }
+            if (ImGui.Button(UiText.Label(UiText.Get("Usar ") + Names[s_selected]))) { ai.Provider = id; ai.Save(); }
         }
         else AiPicker.Settings(ai, "", setupLink: false);
         AiPicker.Hint("Actualizar modelos vuelve a detectar la herramienta y consulta sus opciones. Si acabás de instalarla y no aparece, reiniciá RetroEmu.");
         ImGui.Separator();
         AiPicker.Hint("RetroEmu no instala estas herramientas ni guarda tu acceso. Crear o fusionar usa los límites de la cuenta elegida.");
-        if (s_error.Length > 0) ImGui.TextWrapped(s_error);
+        if (s_error.Length > 0) ImGui.TextWrapped(UiText.Get(s_error));
         ImGui.End();
     }
 
     private static void Command(string id, string command)
     {
         ImGui.PushID(id);
-        if (ImGui.Button("Copiar comando")) ImGui.SetClipboardText(command);
-        ImGui.TextWrapped(command);
+        if (ImGui.Button(UiText.Label("Copiar comando"))) ImGui.SetClipboardText(command);
+        ImGui.TextWrapped(UiText.Get(command));
         ImGui.PopID();
     }
 }

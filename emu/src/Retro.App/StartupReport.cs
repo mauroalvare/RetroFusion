@@ -23,11 +23,18 @@ internal static partial class StartupReport
     {
         var text = new StringBuilder();
         text.AppendLine(DateTimeOffset.UtcNow.ToString("yyyy-MM-dd HH:mm:ss 'UTC'"));
-        text.AppendLine("RetroEmu " + typeof(StartupReport).Assembly.GetName().Version?.ToString(3));
+        text.AppendLine(UiText.Get("RetroEmu ") + typeof(StartupReport).Assembly.GetName().Version?.ToString(3));
         text.AppendLine(RuntimeInformation.OSDescription + " · " + RuntimeInformation.ProcessArchitecture);
-        text.AppendLine(message);
+        text.AppendLine(UiText.Message(message));
         if (error != null) text.AppendLine(error.ToString());
-        return RetroApp.Anonymize(text.ToString());
+        return Anonymize(text.ToString());
+    }
+
+    internal static string Anonymize(string text)
+    {
+        string profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (profile.Length > 0) text = text.Replace(profile, "%USERPROFILE%", StringComparison.OrdinalIgnoreCase);
+        return Environment.UserName.Length == 0 ? text : text.Replace(Environment.UserName, "<usuario>", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Largest window that fits a screen, leaving room for the title bar and the taskbar. All sizes are in pixels.</summary>
@@ -52,15 +59,21 @@ internal static partial class StartupReport
 
     public static void Fatal(string message, Exception? error = null)
     {
-        string saved = "";
+        string? path = Record(message, error);
+        string saved = path == null ? "" : UiText.Get("\n\nEl detalle quedó en ") + path;
+        if (OperatingSystem.IsWindows()) MessageBox(0, UiText.Message(message) + UiText.Get(saved), "RetroEmu", 0x10);
+        else Console.Error.WriteLine(message + saved);
+    }
+
+    internal static string? Record(string message, Exception? error = null)
+    {
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(LogPath)!);
             File.WriteAllText(LogPath, Describe(message, error));
-            saved = "\n\nEl detalle quedó en " + LogPath;
+            return LogPath;
         }
         catch (Exception problem) when (problem is IOException or UnauthorizedAccessException) { }
-        if (OperatingSystem.IsWindows()) MessageBox(0, message + saved, "RetroEmu", 0x10);
-        else Console.Error.WriteLine(message + saved);
+        return null;
     }
 }

@@ -18,18 +18,18 @@ public sealed partial class CodeWindow
     {
         if (_host.Fusion != null || _historyKey == null) return;
         bool remember = _rememberModifications;
-        if (ImGui.Checkbox("Conservar análisis y cambios de este juego", ref remember)) SetRememberModifications(remember);
-        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Guarda los hallazgos y hasta doce informes para esta edición del juego. Desmarcar borra su historial guardado.");
+        if (ImGui.Checkbox(UiText.Label("Conservar análisis y cambios de este juego"), ref remember)) SetRememberModifications(remember);
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip(UiText.Get("Guarda los hallazgos y hasta doce informes para esta edición del juego. Desmarcar borra su historial guardado."));
         if (_rememberModifications)
         {
             bool reapply = _reapplyModifications;
-            if (ImGui.Checkbox("Reaplicar cambios al reiniciar y volver a jugar", ref reapply)) SetReapplyModifications(reapply);
-            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Vuelve a escribir los valores elegidos y mantiene los congelados. Puede afectar el arranque. Desmarcar libera los congelados actuales.");
+            if (ImGui.Checkbox(UiText.Label("Reaplicar cambios al reiniciar y volver a jugar"), ref reapply)) SetReapplyModifications(reapply);
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip(UiText.Get("Vuelve a escribir los valores elegidos y mantiene los congelados. Puede afectar el arranque. Desmarcar libera los congelados actuales."));
         }
         if (_historyProblem.Length > 0)
         {
-            ImGui.TextWrapped(_historyProblem);
-            if (ImGui.SmallButton("Borrar historial guardado")) SetRememberModifications(false);
+            ImGui.TextWrapped(UiText.Get(_historyProblem));
+            if (ImGui.SmallButton(UiText.Label("Borrar historial guardado"))) SetRememberModifications(false);
         }
     }
 
@@ -154,23 +154,23 @@ public sealed partial class CodeWindow
 
     private void DrawAnalysisHistory()
     {
-        if (_reports.Count == 0 || !ImGui.CollapsingHeader($"Historial de análisis ({_reports.Count})")) return;
+        if (_reports.Count == 0 || !ImGui.CollapsingHeader(UiText.Label(UiText.Format($"Historial de análisis ({_reports.Count})")))) return;
         AiPicker.Hint(_rememberModifications ? "Guardado para esta edición. Elegir un informe no aplica sus cambios." : "Solo esta sesión. Activá Conservar análisis y cambios para recuperarlos después.");
         for (int index = _reports.Count - 1; index >= 0; index--)
         {
             var report = _reports[index];
             ImGui.PushID(index);
-            if (ImGui.Selectable($"{report.At.ToLocalTime():dd/MM HH:mm} · {report.Provider} · cuadro {report.Frame}")) SelectSavedReport(index);
+            if (ImGui.Selectable(UiText.Label(UiText.Format($"{report.At.ToLocalTime():dd/MM HH:mm} · {report.Provider} · cuadro {report.Frame}")))) SelectSavedReport(index);
             ImGui.PopID();
         }
     }
 
     private void DrawRememberedChanges()
     {
-        if (_rememberedChanges.Count == 0 || !ImGui.CollapsingHeader($"Cambios recordados ({_rememberedChanges.Count})")) return;
+        if (_rememberedChanges.Count == 0 || !ImGui.CollapsingHeader(UiText.Label(UiText.Format($"Cambios recordados ({_rememberedChanges.Count})")))) return;
         foreach (var edit in _rememberedChanges)
-            ImGui.TextWrapped($"{VariableLabel(edit.Variable)}: {edit.Value}" + (edit.Freeze ? " (congelado)" : ""));
-        if (ImGui.Button("Aplicar cambios recordados")) ApplyRememberedChanges();
+            ImGui.TextWrapped(UiText.Get(UiText.Format($"{VariableLabel(edit.Variable)}: {edit.Value}") + (edit.Freeze ? " (congelado)" : "")));
+        if (ImGui.Button(UiText.Label("Aplicar cambios recordados"))) ApplyRememberedChanges();
     }
 
     private void ApplyRememberedChanges()
@@ -182,6 +182,6 @@ public sealed partial class CodeWindow
             _status = "Cambios recordados aplicados. Podés deshacerlos como un único cambio.";
         }
         catch (Exception error) when (error is InvalidOperationException or IOException or NotSupportedException)
-        { _status = "No se reaplicaron los cambios: " + error.Message; }
+        { _status = UiText.Get("No se reaplicaron los cambios: ") + error.Message; }
     }
 }

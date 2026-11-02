@@ -33,7 +33,7 @@ internal static class RetroArt
         var p=ImGui.GetCursorScreenPos(); var draw=ImGui.GetWindowDrawList();
         ImGui.Dummy(UiTheme.Px(164,30));
         Chip(draw,p+UiTheme.Px(1,1),UiTheme.Px(28));
-        using(UiTheme.Display()) draw.AddText(p+UiTheme.Px(38,1),Ink,"RETROEMU");
+        using(UiTheme.Display()) draw.AddText(p+UiTheme.Px(38,1),Ink,UiText.Get("RETROEMU"));
     }
 
     private static void Chip(ImDrawListPtr draw,Vector2 origin,float size)
@@ -56,7 +56,7 @@ internal static class RetroArt
     public static bool ModeButton(string label,bool active)
     {
         ImGui.PushStyleColor(ImGuiCol.Button,active?ImGui.GetStyle().Colors[(int)ImGuiCol.Header]:UiTheme.Panel);
-        bool clicked=ImGui.Button(label);
+        bool clicked=ImGui.Button(UiText.Label(label));
         ImGui.PopStyleColor();
         var min=ImGui.GetItemRectMin();var max=ImGui.GetItemRectMax();var draw=ImGui.GetWindowDrawList();
         if(active)draw.AddRectFilled(new(min.X+UiTheme.Px(5),max.Y-UiTheme.Px(3)),new(max.X-UiTheme.Px(5),max.Y-UiTheme.Px(1)),Copper);
@@ -69,7 +69,7 @@ internal static class RetroArt
         bool art=width>=UiTheme.Px(780);
         if(art && !UiTheme.HighContrast && !UiTheme.Terminal) FrontPanel(ImGui.GetWindowDrawList(),origin+new Vector2(width-UiTheme.Px(305),0),UiTheme.Px(300,94),originals);
         UiTheme.Eyebrow("ARCHIVO / 8 Y 16 BITS");
-        UiTheme.Heading("Encendé una máquina.",$"{machines} sistemas · {originals} archivos originales en esta carpeta.");
+        UiTheme.Heading("Encendé una máquina.",UiText.Format($"{machines} sistemas · {originals} archivos originales en esta carpeta."));
         if(art)
         {
             float space=origin.Y+UiTheme.Px(96)-ImGui.GetCursorScreenPos().Y;

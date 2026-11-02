@@ -20,7 +20,7 @@ public sealed partial class RetroApp
     private uint TerminalAddress(uint address)
     {
         int bits = _host.Machine!.Memory.AddressBits;
-        if (bits < 32 && address >= 1u << bits) throw new CommandFailure(CommandProblem.InvalidArgument, $"La dirección está fuera de la memoria de esta máquina ({bits} bits).");
+        if (bits < 32 && address >= 1u << bits) throw new CommandFailure(CommandProblem.InvalidArgument, UiText.Format($"La dirección está fuera de la memoria de esta máquina ({bits} bits)."));
         return address;
     }
 
@@ -28,8 +28,8 @@ public sealed partial class RetroApp
     private string InspectionContext()
     {
         string media = _host.LoadedMedia != null ? Path.GetFileName(_host.LoadedMedia) : "sin juego";
-        string edition = _host.LoadedMediaHashes.FirstOrDefault() is { Length: >= 8 } hash ? " · edición " + hash[..8].ToLowerInvariant() : "";
-        return $"{_host.Machine!.DisplayName} · {media}{edition}";
+        string edition = _host.LoadedMediaHashes.FirstOrDefault() is { Length: >= 8 } hash ? UiText.Get(" · edición ") + hash[..8].ToLowerInvariant() : "";
+        return UiText.Format($"{_host.Machine!.DisplayName} · {media}{edition}");
     }
 
     private IEnumerable<CommandSpec> PlayOrders() =>
@@ -43,9 +43,9 @@ public sealed partial class RetroApp
             Run = context =>
             {
                 var game = FindGame(context.Text("juego"));
-                if (!game.Openable) throw new CommandFailure(CommandProblem.MissingResource, "No se puede abrir " + game.Title + ".", game.Hint is { Length: > 0 } hint ? hint : "ficha muestra qué falta.");
+                if (!game.Openable) throw new CommandFailure(CommandProblem.MissingResource, UiText.Get("No se puede abrir ") + game.Title + ".", game.Hint is { Length: > 0 } hint ? hint : "ficha muestra qué falta.");
                 game.Play();
-                if (_errorPopup == null && _pendingOpen == null) { LeaveTerminal(); context.Success("Abriendo: " + game.Title); }
+                if (_errorPopup == null && _pendingOpen == null) { LeaveTerminal(); context.Success(UiText.Get("Abriendo: ") + game.Title); }
                 else ReportOpenProblem(context);
             }
         },
@@ -58,9 +58,9 @@ public sealed partial class RetroApp
             Run = context =>
             {
                 string path = context.Text("ruta");
-                if (!File.Exists(path)) throw new CommandFailure(CommandProblem.MissingResource, "No existe ese archivo: " + path);
+                if (!File.Exists(path)) throw new CommandFailure(CommandProblem.MissingResource, UiText.Get("No existe ese archivo: ") + path);
                 OpenFile(path);
-                if (_errorPopup == null && _pendingOpen == null) { LeaveTerminal(); context.Success("Abriendo medio: " + Path.GetFileName(path)); }
+                if (_errorPopup == null && _pendingOpen == null) { LeaveTerminal(); context.Success(UiText.Get("Abriendo medio: ") + Path.GetFileName(path)); }
                 else ReportOpenProblem(context);
             }
         },
@@ -112,8 +112,8 @@ public sealed partial class RetroApp
                 int slot = context.Number("ranura");
                 RefreshStateSlots(); string path = _stateSlots.PathFor(_stateKey, slot);
                 if (File.Exists(path) && !context.Has("confirmar"))
-                    throw new CommandFailure(CommandProblem.InvalidArgument, "La ranura " + slot + " ya tiene una partida.", "Para reemplazarla: guardar " + slot + " reemplazar");
-                _host.SaveStateToFile(path); context.Success($"Ranura {slot} guardada.");
+                    throw new CommandFailure(CommandProblem.InvalidArgument, UiText.Get("La ranura ") + slot + UiText.Get(" ya tiene una partida."), UiText.Get("Para reemplazarla: guardar ") + slot + UiText.Get(" reemplazar"));
+                _host.SaveStateToFile(path); context.Success(UiText.Format($"Ranura {slot} guardada."));
             }
         },
         new()
@@ -126,8 +126,8 @@ public sealed partial class RetroApp
             {
                 int slot = context.Number("ranura");
                 RefreshStateSlots(); string path = _stateSlots.PathFor(_stateKey, slot);
-                if (!File.Exists(path)) throw new CommandFailure(CommandProblem.MissingResource, $"La ranura {slot} está vacía.", "ranuras muestra las ocupadas.");
-                _host.LoadStateFromFile(path); _host.Paused = true; context.Success($"Ranura {slot} cargada; continuar vuelve a jugar.");
+                if (!File.Exists(path)) throw new CommandFailure(CommandProblem.MissingResource, UiText.Format($"La ranura {slot} está vacía."), "ranuras muestra las ocupadas.");
+                _host.LoadStateFromFile(path); _host.Paused = true; context.Success(UiText.Format($"Ranura {slot} cargada; continuar vuelve a jugar."));
             }
         },
         new()
@@ -138,7 +138,7 @@ public sealed partial class RetroApp
             Examples = ["rebobinar on", "rebobinar 5", "rebobinar estado"],
             Run = context =>
             {
-                string action = context.Optional("accion") ?? "estado";
+                string action = TerminalLanguage.CanonicalChoice(context.Optional("accion") ?? "estado", ["estado", "on", "off", "vaciar"]);
                 if (action == "on") _host.SetRewindEnabled(true);
                 else if (action == "off") _host.SetRewindEnabled(false);
                 else if (action == "vaciar") _host.ClearRewind();
@@ -148,7 +148,7 @@ public sealed partial class RetroApp
                     _host.Rewind(seconds); _host.Paused = true;
                 }
                 else if (action != "estado") throw new CommandFailure(CommandProblem.InvalidArgument, "Usá on, off, vaciar, estado o una cantidad de segundos.");
-                context.Write($"Historial: {(_host.RewindEnabled ? "activado" : "desactivado")} · {_host.RewindPoints} puntos · {_host.RewindBytes / (1024 * 1024.0):F1} MB");
+                context.Write(UiText.Format($"Historial: {(_host.RewindEnabled ? UiText.Get("activado") : UiText.Get("desactivado"))} · {_host.RewindPoints} puntos · {_host.RewindBytes / (1024 * 1024.0):F1} MB"));
             }
         },
         new()
@@ -166,14 +166,14 @@ public sealed partial class RetroApp
                     case "reproducir": if (!_host.CanReplayInputs) throw new CommandFailure(CommandProblem.WrongContext, "No hay una grabación para reproducir.", "entradas grabar empieza una."); _host.StartInputReplay(); break;
                     case "detener": _host.StopInputReplay(); break;
                 }
-                context.Write($"Grabación: {_host.RecordedFrames} cuadros · {(_host.IsRecordingInputs ? "grabando" : _host.IsReplayingInputs ? "reproduciendo" : "detenida")}. Solo dura esta sesión.");
+                context.Write(UiText.Format($"Grabación: {_host.RecordedFrames} cuadros · {(_host.IsRecordingInputs ? UiText.Get("grabando") : _host.IsReplayingInputs ? UiText.Get("reproduciendo") : UiText.Get("detenida"))}. Solo dura esta sesión."));
             }
         },
         new()
         {
             Id = "play.turbo", Name = "turbo", Group = "Partida", Summary = "Acelera la emulación todo lo posible.", Keywords = "rapido velocidad", Unavailable = NeedMachine,
             Arguments = [new("marca", ArgumentKind.Toggle, "Sin indicar, invierte el estado.") { Optional = true }], Examples = ["turbo on"],
-            Run = context => { _host.Turbo = context.Has("marca") ? context.Toggle("marca") : !_host.Turbo; context.Success("Turbo: " + (_host.Turbo ? "activado" : "desactivado")); }
+            Run = context => { _host.Turbo = context.Has("marca") ? context.Toggle("marca") : !_host.Turbo; context.Success(UiText.Get("Turbo: ") + (_host.Turbo ? "activado" : "desactivado")); }
         },
         new()
         {
@@ -191,7 +191,7 @@ public sealed partial class RetroApp
                     case "expulsar": tape.Eject(); break;
                     case "load": zx.TypeLoadCommand(); break;
                 }
-                context.Write(!tape.IsLoaded ? "Sin cinta." : tape.IsPlaying ? $"Reproduciendo · {tape.Progress * 100:F0} %" : tape.AtEnd ? "Cinta al final." : "Cinta detenida.");
+                context.Write(!tape.IsLoaded ? "Sin cinta." : tape.IsPlaying ? UiText.Format($"Reproduciendo · {tape.Progress * 100:F0} %") : tape.AtEnd ? "Cinta al final." : "Cinta detenida.");
             }
         },
         new()
@@ -221,7 +221,7 @@ public sealed partial class RetroApp
                 var machine = MachineCatalog.All.FirstOrDefault(machine => machine.Id == id && machine.Status == MachineStatus.Available)
                     ?? throw new CommandFailure(CommandProblem.InvalidArgument, "Esa máquina no está disponible.", "maquinas lista las disponibles.");
                 if (_host.Machine != null) _input.ReleaseAll(_host.Machine);
-                _host.Start(machine, _romDir); _host.Paused = true; context.Success(machine.Name + " encendida · continuar le da el teclado.");
+                _host.Start(machine, _romDir); _host.Paused = true; context.Success(machine.Name + UiText.Get(" encendida · continuar le da el teclado."));
             }
         },
         new()
@@ -274,7 +274,7 @@ public sealed partial class RetroApp
                 {
                     var bytes = Enumerable.Range(0, (int)Math.Min(16UL, end - row)).Select(offset => machine.Memory.Peek((uint)(row + (uint)offset))).ToArray();
                     string text = new(bytes.Select(value => value is >= 32 and < 127 ? (char)value : '.').ToArray());
-                    context.Write($"{row:X4}  {string.Join(' ', bytes.Select(value => value.ToString("X2"))),-47}  {text}");
+                    context.Write(UiText.Format($"{row:X4}  {string.Join(' ', bytes.Select(value => value.ToString("X2"))),-47}  {text}"));
                 }
             }
         },
@@ -289,8 +289,8 @@ public sealed partial class RetroApp
                 if (value > 255) throw new CommandFailure(CommandProblem.InvalidArgument, "El valor debe ser un byte, de 00 a FF.");
                 byte before = _host.Machine!.Memory.Peek(address);
                 _host.Machine.Memory.Poke(address, (byte)value);
-                context.Success($"{address:X4}: {before:X2} -> {_host.Machine.Memory.Peek(address):X2}");
-                context.Detail("Válido para esta edición: " + InspectionContext());
+                context.Success(UiText.Format($"{address:X4}: {before:X2} -> {_host.Machine.Memory.Peek(address):X2}"));
+                context.Detail(UiText.Get("Válido para esta edición: ") + InspectionContext());
             }
         },
         new()
@@ -307,7 +307,7 @@ public sealed partial class RetroApp
                 {
                     var instruction = machine.Disassembler.Disassemble(machine.Memory.Peek, address);
                     string mark = _host.Debug.Breakpoints.Contains(address) ? "*" : address == pc ? ">" : " ";
-                    context.Write($"{mark} {address:X4}  {instruction.Text}", address == pc ? TerminalKind.Success : TerminalKind.Output);
+                    context.Write(UiText.Format($"{mark} {address:X4}  {instruction.Text}"), address == pc ? TerminalKind.Success : TerminalKind.Output);
                     address += (uint)Math.Max(1, instruction.Length);
                     if (machine.Memory.AddressBits < 32) address &= (1u << machine.Memory.AddressBits) - 1;
                 }
@@ -327,7 +327,7 @@ public sealed partial class RetroApp
                     case "saltar": _host.StepOver(); _awaitingStop = true; break;
                     default: _host.StepInto(); break;
                 }
-                context.Write($"PC = {_host.Machine!.Cpu.ProgramCounter:X4} · cuadro {_host.Machine.FrameCount}");
+                context.Write(UiText.Format($"PC = {_host.Machine!.Cpu.ProgramCounter:X4} · cuadro {_host.Machine.FrameCount}"));
             }
         },
         new()
@@ -351,13 +351,13 @@ public sealed partial class RetroApp
                 string action = context.Optional("accion") ?? "lista";
                 if (action is "agregar" or "quitar")
                 {
-                    if (!context.Has("direccion")) throw new CommandFailure(CommandProblem.InvalidArgument, "Falta la dirección.", "Ejemplo: bp " + action + " 8000");
+                    if (!context.Has("direccion")) throw new CommandFailure(CommandProblem.InvalidArgument, "Falta la dirección.", UiText.Get("Ejemplo: bp ") + action + " 8000");
                     uint address = TerminalAddress(context.Hex("direccion"));
                     if (action == "agregar") _host.Debug.Add(address); else _host.Debug.Remove(address);
                 }
                 else if (action == "limpiar") _host.Debug.Clear();
                 var points = _host.Debug.Breakpoints.Order().ToArray();
-                context.Write(points.Length == 0 ? "Sin breakpoints." : "Breakpoints: " + string.Join(", ", points.Select(point => point.ToString("X4"))));
+                context.Write(points.Length == 0 ? "Sin breakpoints." : UiText.Get("Breakpoints: ") + string.Join(", ", points.Select(point => point.ToString("X4"))));
             }
         },
         new()
@@ -373,7 +373,7 @@ public sealed partial class RetroApp
                 {
                     var (start, end) = CodeWindow.SearchRange(_host.Machine!.Id);
                     _terminalSearch = new(_host.Machine.Memory); _terminalSearch.Start(start, end);
-                    context.Success($"Búsqueda iniciada: {_terminalSearch.Count} direcciones. Jugá un poco y filtrá."); return;
+                    context.Success(UiText.Format($"Búsqueda iniciada: {_terminalSearch.Count} direcciones. Jugá un poco y filtrá.")); return;
                 }
                 var search = _terminalSearch ?? throw new CommandFailure(CommandProblem.WrongContext, "Todavía no empezaste una búsqueda.", "rastrear iniciar toma la primera foto de la memoria.");
                 if (action != "lista")
@@ -381,8 +381,8 @@ public sealed partial class RetroApp
                     if (action == "igual" && !context.Has("valor")) throw new CommandFailure(CommandProblem.InvalidArgument, "Falta el valor.", "Ejemplo: rastrear igual 3");
                     search.Filter(action switch { "igual" => SearchCondition.EqualTo, "cambio" => SearchCondition.Changed, "subio" => SearchCondition.Increased, "bajo" => SearchCondition.Decreased, _ => SearchCondition.Unchanged }, context.Number("valor", 0));
                 }
-                context.Write(search.Count + " direcciones candidatas.");
-                foreach (var (address, value) in search.Results(16)) context.Write($"{address:X4} = {value:X2} ({value})");
+                context.Write(search.Count + UiText.Get(" direcciones candidatas."));
+                foreach (var (address, value) in search.Results(16)) context.Write(UiText.Format($"{address:X4} = {value:X2} ({value})"));
                 if (search.Count > 16) context.Detail("Filtrá más para reducir la lista.");
             }
         },

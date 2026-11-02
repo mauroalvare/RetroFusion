@@ -8,7 +8,9 @@ public sealed partial class RetroApp
     private IReadOnlyList<AppOption>? _optionCatalog;
     private IReadOnlyList<AppOption> Options => _optionCatalog ??= BuildOptions();
     private IReadOnlyList<AppOption> BuildOptions() => [
-        AppOption.Choice("interfaz", "Estilo de interfaz", "Interfaz", "Retro es el diseño principal. Terminal verde conserva los botones; hardcore se maneja con comandos.",
+        AppOption.Choice("idioma", "Idioma / Language", "Interfaz", "Idioma de todos los menús, mensajes y órdenes de la terminal.",
+            () => _prefs.Language, SetLanguage, new("es", "Español"), new("en", "English")) with { Default = "es" },
+        AppOption.Choice("interfaz", "Estilo de interfaz", "Interfaz", "Retro es el diseño principal. Terminal verde conserva los botones; Terminal real se maneja con comandos.",
             () => InterfaceStyles.Describe(_prefs.Interface).Id, id => { InterfaceStyles.TryParse(id, out var style); SetInterface(style); },
             InterfaceStyles.All.Select(item => new OptionChoice(item.Id, item.Name)).ToArray()) with { Default = "retro" },
         AppOption.Choice("texto", "Tamaño del texto", "Lectura", "El tamaño se aplica a todos los estilos.",
@@ -24,21 +26,27 @@ public sealed partial class RetroApp
         AppOption.Choice("puerto-c64", "Joystick del C64", "Controles", "Puerto 2 en la mayoría de los juegos.", () => _prefs.C64Port.ToString(), value => SetC64Port(int.Parse(value)), new("1", C64Ports[0]), new("2", C64Ports[1])) with { Default = "2" },
         AppOption.Toggle("load-cintas", "Escribir LOAD \"\" al abrir cintas", "Cintas del Spectrum", "Carga automática de cintas compatibles.", () => _prefs.TypeLoad, value => { _prefs.TypeLoad = value; _prefs.Save(); }) with { Default = "on" },
         AppOption.Toggle("turbo-carga", "Acelerar durante la carga", "Cintas del Spectrum", "Vuelve a la velocidad normal al terminar la carga.", () => _prefs.TurboWhileLoading, SetTurboWhileLoading) with { Default = "on" },
-        AppOption.Toggle("ahorro", "Ahorrar energía sin partida", "Rendimiento", $"La interfaz usa hasta {FramePacing.Interface} cuadros por segundo; sin foco, {FramePacing.Background}. La partida conserva su frecuencia.", () => _prefs.PowerSaving, value => { _prefs.PowerSaving = value; _prefs.Save(); }) with { Default = "on" },
+        AppOption.Toggle("ahorro", "Ahorrar energía sin partida", "Rendimiento", UiText.Format($"La interfaz usa hasta {FramePacing.Interface} cuadros por segundo; sin foco, {FramePacing.Background}. La partida conserva su frecuencia."), () => _prefs.PowerSaving, value => { _prefs.PowerSaving = value; _prefs.Save(); }) with { Default = "on" },
         AppOption.Toggle("pausa-fondo", "Pausar al cambiar de ventana", "Rendimiento", "Al volver, continúa solo si la pausa fue automática.", () => _prefs.PauseInBackground, value => { _prefs.PauseInBackground = value; _prefs.Save(); }) with { Default = "off" },
-        AppOption.Choice("consola-cursor", "Cursor de la consola", "Consola", "Forma del cursor en Terminal hardcore.",
+        AppOption.Choice("consola-cursor", "Cursor de la consola", "Consola", "Forma del cursor en Terminal real.",
             () => AppPreferences.CursorNames.First(pair => pair.Value == _prefs.ConsoleCursor).Key, value => { _prefs.ConsoleCursor = AppPreferences.CursorNames[value]; _prefs.Save(); },
             new("block", "Bloque"), new("barra", "Barra"), new("subrayado", "Subrayado")) with { Default = "block" },
         AppOption.Toggle("consola-parpadeo", "Parpadeo del cursor", "Consola", "Desactivalo si el movimiento te molesta; el cursor queda fijo.", () => _prefs.ConsoleBlink, value => { _prefs.ConsoleBlink = value; _prefs.Save(); }) with { Default = "on" },
         AppOption.Toggle("consola-crt", "Líneas de monitor CRT", "Consola", "Dibuja líneas tenues sobre la consola. Reduce un poco la lectura.", () => _prefs.ConsoleScanlines, value => { _prefs.ConsoleScanlines = value; _prefs.Save(); }) with { Default = "off" },
         AppOption.Toggle("consola-historial", "Recordar las órdenes", "Consola", "Guarda las órdenes en este equipo para la próxima sesión. El diagnóstico nunca las incluye.",
             () => _prefs.ConsoleHistory, value => { _prefs.ConsoleHistory = value; _prefs.Save(); if (_terminal != null) { _terminal.History.Persist = value; _terminal.History.Save(); } }) with { Default = "on" },
-        AppOption.Number("volumen", "Volumen", "Sonido", "Porcentaje de salida, de 0 a 100.", () => _sound.VolumePercent, value => { _sound.VolumePercent = value; _sound.Save(); }, 0, 100),
-        AppOption.Toggle("silencio", "Silenciar", "Sonido", "Conserva el nivel de volumen elegido.", () => _sound.Muted, value => { _sound.Muted = value; _sound.Save(); }),
-        AppOption.Toggle("silencio-fondo", "Silenciar en segundo plano", "Sonido", "Silencia cuando otra ventana tiene el foco.", () => _sound.MuteInBackground, value => { _sound.MuteInBackground = value; _sound.Save(); }),
+        AppOption.Number("volumen", "Volumen", "Sonido", "Porcentaje de salida, de 0 a 100.", () => _sound.VolumePercent, value => { _sound.VolumePercent = value; _sound.Save(); }, 0, 100) with { Default = "100" },
+        AppOption.Toggle("silencio", "Silenciar", "Sonido", "Conserva el nivel de volumen elegido.", () => _sound.Muted, value => { _sound.Muted = value; _sound.Save(); }) with { Default = "off" },
+        AppOption.Toggle("silencio-fondo", "Silenciar en segundo plano", "Sonido", "Silencia cuando otra ventana tiene el foco.", () => _sound.MuteInBackground, value => { _sound.MuteInBackground = value; _sound.Save(); }) with { Default = "off" },
         AppOption.Choice("buffer-audio", "Margen de audio", "Sonido", "Más cuadros toleran mejor las variaciones de tiempo, con mayor demora.", () => _sound.BufferFrames.ToString(), value => { _sound.BufferFrames = int.Parse(value); _sound.Save(); },
-            new("1", "Corto · 1 cuadro"), new("2", "Equilibrado · 2 cuadros"), new("4", "Amplio · 4 cuadros"))
+            new("1", "Corto · 1 cuadro"), new("2", "Equilibrado · 2 cuadros"), new("4", "Amplio · 4 cuadros")) with { Default = "2" }
     ];
+
+    private void SetLanguage(string language)
+    {
+        _prefs.Language = language; UiText.Language = language; _prefs.Save();
+        _commandCatalog = null; _optionCatalog = null; _terminalCatalog = null;
+    }
 
     private void DrawSharedOptions(string? onlyGroup = null, string search = "")
     {
@@ -59,10 +67,10 @@ public sealed partial class RetroApp
                         break;
                     case AppOptionKind.Choice:
                         ImGui.TextUnformatted(option.Title); ImGui.SetNextItemWidth(-1);
-                        if (ImGui.BeginCombo("##value", option.Choices!.FirstOrDefault(choice => choice.Value == value)?.Label ?? value))
+                        if (ImGui.BeginCombo("##value", UiText.Get(option.Choices!.FirstOrDefault(choice => choice.Value == value)?.Label ?? value)))
                         {
                             foreach (var choice in option.Choices!)
-                                if (ImGui.Selectable(choice.Label, choice.Value == value)) option.Write(choice.Value);
+                                if (ImGui.Selectable(UiText.Label(choice.Label), choice.Value == value)) option.Write(choice.Value);
                             ImGui.EndCombo();
                         }
                         break;
@@ -75,14 +83,14 @@ public sealed partial class RetroApp
                 UiTheme.Hint(option.Description);
                 if (option.Modified)
                 {
-                    if (ImGui.SmallButton("Volver al valor inicial")) option.Write(option.Default!);
-                    if (ImGui.IsItemHovered()) UiTheme.Tooltip("Valor inicial: " + (option.Choices?.FirstOrDefault(choice => choice.Value == option.Default)?.Label ?? option.Default));
+                    if (ImGui.SmallButton(UiText.Label("Volver al valor inicial"))) option.Write(option.Default!);
+                    if (ImGui.IsItemHovered()) UiTheme.Tooltip(UiText.Get("Valor inicial: ") + (option.Choices?.FirstOrDefault(choice => choice.Value == option.Default)?.Label ?? option.Default));
                 }
-                if (option.Id == "interfaz" && ImGui.Button("Ver estilos y vistas previas…")) OpenInterfacePicker();
+                if (option.Id == "interfaz" && ImGui.Button(UiText.Label("Ver estilos y vistas previas…"))) OpenInterfacePicker();
                 if (option.Id == "consulta-fichas")
                 {
                     UiTheme.Hint(_gameMetadata.Status);
-                    if (ImGui.SmallButton("Reintentar catálogo en línea")) _gameMetadata.Retry();
+                    if (ImGui.SmallButton(UiText.Label("Reintentar catálogo en línea"))) _gameMetadata.Retry();
                     if (_gameMetadata.Problem is { } problem) UiTheme.Hint(problem);
                 }
                 ImGui.PopID();

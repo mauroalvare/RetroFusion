@@ -50,7 +50,7 @@ public sealed class FileBrowser
             _dir = _pathInput = full; _search = ""; _selected = null; Refresh(); return true;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException)
-        { _problem = "No se puede abrir esa carpeta: " + e.Message; return false; }
+        { _problem = UiText.Get("No se puede abrir esa carpeta: ") + e.Message; return false; }
     }
     private void Refresh()
     {
@@ -66,7 +66,7 @@ public sealed class FileBrowser
             _problem = "";
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-        { _items = []; _selected = null; _problem = "No se puede leer la carpeta: " + e.Message; }
+        { _items = []; _selected = null; _problem = UiText.Get("No se puede leer la carpeta: ") + e.Message; }
     }
     private Item[] VisibleItems()
     {
@@ -94,10 +94,10 @@ public sealed class FileBrowser
         if (!_open) return;
         if (DateTime.UtcNow >= _refreshAt) Refresh();
         ImGui.SetNextWindowSize(UiTheme.Px(760, 540), ImGuiCond.FirstUseEver);
-        if (!ImGui.Begin("Abrir archivo", ref _open, ImGuiWindowFlags.NoDocking)) { ImGui.End(); return; }
+        if (!ImGui.Begin(UiText.Label("Abrir archivo"), ref _open, ImGuiWindowFlags.NoDocking)) { ImGui.End(); return; }
         WorkspaceLayout.KeepOnScreen();
         ImGui.SetNextItemWidth(-UiTheme.Px(90));
-        if (ImGui.InputTextWithHint("##path", "Carpeta o archivo", ref _pathInput, 2048, ImGuiInputTextFlags.EnterReturnsTrue))
+        if (ImGui.InputTextWithHint("##path", UiText.Get("Carpeta o archivo"), ref _pathInput, 2048, ImGuiInputTextFlags.EnterReturnsTrue))
         {
             if (File.Exists(_pathInput)) { _selected = Path.GetFullPath(_pathInput); OpenSelected(onPick); }
             else Navigate(_pathInput);
@@ -106,24 +106,24 @@ public sealed class FileBrowser
         ImGui.SameLine();
         var parent = Directory.GetParent(_dir);
         ImGui.BeginDisabled(parent == null);
-        if (ImGui.Button("Subir", new(UiTheme.Px(80), 0))) Navigate(parent!.FullName);
+        if (ImGui.Button(UiText.Label("Subir"), new(UiTheme.Px(80), 0))) Navigate(parent!.FullName);
         ImGui.EndDisabled();
         if (ImGui.IsItemHovered()) UiTheme.Tooltip("Ir a la carpeta superior.");
         ImGui.SetNextItemWidth(-1);
-        if (ImGui.InputTextWithHint("##filtro", "Buscar en esta carpeta", ref _search, 150)) _selected = null;
-        if (ImGui.Checkbox("Todos los archivos", ref _showAll)) _selected = null;
+        if (ImGui.InputTextWithHint("##filtro", UiText.Get("Buscar en esta carpeta"), ref _search, 150)) _selected = null;
+        if (ImGui.Checkbox(UiText.Label("Todos los archivos"), ref _showAll)) _selected = null;
         foreach (string drive in _drives)
         {
             if (ImGui.GetContentRegionAvail().X > 80) ImGui.SameLine();
-            if (ImGui.SmallButton(drive)) Navigate(drive);
+            if (ImGui.SmallButton(UiText.Label(drive))) Navigate(drive);
         }
-        if (_problem.Length > 0) ImGui.TextWrapped(_problem);
+        if (_problem.Length > 0) ImGui.TextWrapped(UiText.Get(_problem));
         var shown = VisibleItems();
         if (ImGui.BeginTable("archivos", 2, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY | ImGuiTableFlags.BordersInnerH,
             new(0, Math.Max(UiTheme.Px(60), ImGui.GetContentRegionAvail().Y - UiTheme.Px(100)))))
         {
-            ImGui.TableSetupColumn("Nombre", ImGuiTableColumnFlags.WidthStretch);
-            ImGui.TableSetupColumn("Tamaño", ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(85)); ImGui.TableHeadersRow();
+            ImGui.TableSetupColumn(UiText.Get("Nombre"), ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn(UiText.Get("Tamaño"), ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(85)); ImGui.TableHeadersRow();
             var clipper = new ImGuiListClipperPtr(ImGuiNative.ImGuiListClipper_ImGuiListClipper());
             try
             {
@@ -141,17 +141,17 @@ public sealed class FileBrowser
                         if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left)) { OpenSelected(onPick); ImGui.PopID(); break; }
                     }
                     if (ImGui.IsItemHovered()) UiTheme.Tooltip(item.Path);
-                    ImGui.TableNextColumn(); ImGui.TextDisabled(item.Directory ? "Carpeta" : item.Size >= 1024 * 1024
-                        ? $"{item.Size / (1024.0 * 1024):F1} MB" : $"{item.Size / 1024.0:F1} KB");
+                    ImGui.TableNextColumn(); ImGui.TextDisabled(UiText.Get(item.Directory ? "Carpeta" : item.Size >= 1024 * 1024
+                        ? UiText.Format($"{item.Size / (1024.0 * 1024):F1} MB") : UiText.Format($"{item.Size / 1024.0:F1} KB")));
                     ImGui.PopID();
                 }
                 clipper.End();
             }
             finally { ImGuiNative.ImGuiListClipper_destroy(clipper.NativePtr); }
-            if (shown.Length == 0) { ImGui.TableNextRow(); ImGui.TableNextColumn(); ImGui.TextDisabled("No hay archivos para mostrar."); }
+            if (shown.Length == 0) { ImGui.TableNextRow(); ImGui.TableNextColumn(); ImGui.TextDisabled(UiText.Get("No hay archivos para mostrar.")); }
             ImGui.EndTable();
         }
-        ImGui.TextUnformatted(UiTheme.Fit(_selected == null ? "Seleccioná un archivo para abrirlo." : Path.GetFileName(_selected), ImGui.GetContentRegionAvail().X));
+        ImGui.TextUnformatted(UiTheme.Fit(_selected == null ? UiText.Get("Seleccioná un archivo para abrirlo.") : Path.GetFileName(_selected), ImGui.GetContentRegionAvail().X));
         if (_folderChoice is { } choice)
         {
             if (UiTheme.PrimaryButton("Usar esta carpeta")) { _open = false; _folderChoice = null; choice(_dir); }
@@ -163,8 +163,8 @@ public sealed class FileBrowser
             ImGui.EndDisabled();
         }
         UiTheme.SameLineIfFits(UiTheme.Px(110));
-        if (ImGui.Button("Cancelar", new(UiTheme.Px(110), 0))) _open = false;
-        UiTheme.SameLineIfFits(ImGui.CalcTextSize($"{shown.Length} elementos").X); ImGui.TextDisabled($"{shown.Length} elementos");
+        if (ImGui.Button(UiText.Label("Cancelar"), new(UiTheme.Px(110), 0))) _open = false;
+        UiTheme.SameLineIfFits(ImGui.CalcTextSize(UiText.Get(UiText.Format($"{shown.Length} elementos"))).X); ImGui.TextDisabled(UiText.Get(UiText.Format($"{shown.Length} elementos")));
         if (ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows))
         {
             if (ImGui.IsKeyPressed(ImGuiKey.Escape)) _open = false;

@@ -69,7 +69,7 @@ public sealed class CommandHistory
     public void Save()
     {
         if (_path == null || !Persist) return;
-        string temporary = _path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        string temporary = _path + "." + Guid.NewGuid().ToString("N") + UiText.Get(".tmp");
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(_path))!);
