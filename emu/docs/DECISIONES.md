@@ -2253,3 +2253,49 @@ de control distinto. Favoritos y partidas siguen por identidad. El clipper revel
 elegida y virtualiza la grilla, sin confundir nombres iguales o copias idénticas. La prueba
 de 6000 archivos incluye deliberadamente contenidos repetidos y retorno a uno lejano.
 AppOption.Scope distingue los ajustes compartidos, de sesión y de esta interfaz.
+
+## D-133 — Requisitos y reparación oficial con dos decisiones
+
+El paquete autocontenido no requiere instalar SDK, Python ni herramientas de IA para jugar.
+El informe previo a gráficos distingue presencia de archivos, inicialización comprobada y
+requisitos del sistema. No acredita compatibilidad universal: paquetes Windows/Linux x64,
+versiones admitidas por .NET 10, escritorio y controlador OpenGL 3.3.
+
+La reparación no deduce componentes a partir del texto de una excepción o un aviso de audio.
+En Windows lee las importaciones PE de raylib/cimgui, sin ejecutarlas, y comprueba las DLL
+Visual C++ en el paquete y System32. Sólo ante una falta comprobada ofrece el redistribuible
+x64 del catálogo fijo Microsoft. El usuario decide primero si descargar y después si
+ejecutar; entre ambas decisiones se exige Authenticode y firmante Microsoft Corporation.
+HTTPS, redirecciones acotadas a servidores Microsoft y tamaño máximo de 64 MiB. La firma
+usa sólo certificados almacenados y falla cerrada si no se puede verificar. El instalador
+oficial muestra su licencia/UAC y no reinicia automáticamente. No se mata una instalación
+elevada al vencer el tiempo de descarga. Los tests inyectan transporte y ejecución ficticios.
+
+La recuperación de arranque y Ayuda comparten esta reparación. Los modos automáticos no
+ofrecen diálogos ni red. En Linux se ofrece documentación oficial; no se modifica el gestor
+de paquetes ni se ejecutan instaladores Windows. Archivos corruptos del programa requieren
+reparar/actualizar el paquete; controladores corresponden al SO o al fabricante.
+
+Las bibliotecas gráficas Linux enlazadas actualmente requieren GLIBC_2.38. El lanzador
+POSIX RetroEmu.sh comprueba x64, glibc, archivos, permisos, dependencias enlazadas y DISPLAY
+antes de cargar .NET. --check no ejecuta el programa; ldd se interpreta con LC_ALL=C y
+un fallo del comprobador no equivale a éxito. El tar.gz conserva LF y modo 755 del script.
+La lógica se prueba con sustitutos de uname/getconf/ldd y un ejecutable ficticio; no se
+presenta como una validación del escritorio Linux, OpenGL ni las cargas ICU/OpenSSL.
+No se instala glibc aisladamente en un SO incompatible ni se cambia su gestor de paquetes.
+
+## D-134 — Desenlaces observados de trabajos
+
+AppTaskCenter.Track no interpreta la desaparición de un informe como éxito: su desenlace
+predeterminado es parcial sin confirmación. Los talleres entregan WorkSnapshot con el
+informe actual y el desenlace/detalle del trabajo anterior; leerlo descarta una conclusión
+antigua para la nueva etapa. Los getters de Work no modifican el estado.
+
+Errores, cancelación y pruebas rechazadas conservan su estado al cerrar una tarea o cambiar
+de tipo. La lista y la terminal reciben el detalle de resultado/error del mismo taller.
+Los archivos parciales y la continuación de los talleres siguen en sus instrumentos.
+Una explicación sólo anuncia anotaciones guardadas cuando CodeAnnotations no informa un
+problema; si falla, mantiene las notas en sesión y la respuesta manual disponible.
+Cancelar antes de consumir una respuesta también evita publicarla o abrirla aunque el
+worker haya alcanzado a terminar. Reintentar la prueba del creador usa la variante con
+token y progreso de CreatedGames.TryAgain; una prueba cancelada no reescribe el juego.

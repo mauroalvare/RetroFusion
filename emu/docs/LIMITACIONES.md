@@ -6,6 +6,16 @@ se trata de una limitación deducida que todavía necesita una prueba específic
 
 ## Recuperación de archivos y alcance de las comprobaciones
 
+- Los paquetes actuales son x64 para Windows y Linux; no prueban todas las versiones del
+  sistema ni todos los controladores. El runtime incluido no reemplaza las bibliotecas
+  nativas de Linux. Las gráficas incluidas requieren glibc 2.38 o posterior y X11/XWayland;
+  el comprobador POSIX no sustituye una prueba de escritorio ni verifica ICU/OpenSSL.
+  La reparación automática consentida cubre sólo Visual C++ x64 cuando
+  falta una importación comprobada en Windows. No instala SDK, firmware ni controladores,
+  no modifica repositorios Linux y no alcanza un runtime administrado que ya no arranca.
+  La firma Microsoft se verifica con certificados en caché; si falla, no se ejecuta el
+  instalador. Ver [requisitos y recuperación](ARRANQUE-Y-RECUPERACION.md).
+
 - La identificación combina fichas personales, listas locales, indicios del nombre y
   Wikidata opcional. El catálogo público tiene cobertura incompleta; exige título/alias
   exacto y plataforma, sin elegir entre coincidencias ambiguas. No certifica la edición

@@ -12,6 +12,36 @@ Use Sound > Find audio output to enable it explicitly in the same session.
 sound, settings and AI are loaded. It does not test the OpenGL driver; a present DLL
 does not certify that it loads. The executable and its managed runtime must already run.
 
+Help > Requirements > Check requirements and repairs, or `do requirements`, opens the
+requirements window. Normal play does not require administrator rights. A missing program
+file requires a complete package or program update; installing the SDK cannot replace it.
+The official system guide explains the supported OS versions. Windows and Linux packages
+target x64; Linux also needs its distribution's native libraries and a compatible desktop.
+There is no promise of universal OS or driver compatibility.
+
+On Windows, repair is offered only if raylib or cimgui imports a Visual C++ library absent
+from both the package and System32. First you must allow downloading the official Microsoft
+redistributable. Its Authenticode signature and Microsoft publisher are verified before
+a separate prompt asks permission to run it. Windows may show UAC; the official installer
+shows its license and cannot restart Windows automatically. Refusing either prompt does
+not install anything. Signature verification uses cached Windows certificates and fails
+closed if the signer cannot be verified. Audio warnings alone never trigger an installer.
+Quitting during a repair asks for confirmation and cancels a pending download. An elevated
+installer that has already started remains under Windows control and is never forcibly killed.
+Linux links to its official requirements guide and does not run a Windows installer or
+change package repositories. See [Microsoft's official requirements](https://learn.microsoft.com/en-us/dotnet/core/install/).
+
+The bundled Linux graphics libraries require **glibc 2.38 or later**, libstdc++ and
+X11 (XWayland on Wayland), plus an OpenGL 3.3 driver. This is stricter than the general
+.NET minimum. Do not replace glibc separately on an older distribution.
+Run `sh RetroEmu.sh --check --language en` to check architecture, glibc, package files,
+execute permission, linked dependencies and the X11 session before loading .NET.
+It exits with code 2 when a requirement is missing and never downloads or installs.
+Without `--check`, it starts the local executable and preserves its arguments.
+It does not verify dynamically loaded ICU/OpenSSL, HTTPS certificates or the graphics
+driver. These are supplied through official distribution packages. An actual Linux
+desktop run remains unverified on the current Windows development machine.
+
 ## Language and interface
 
 Choose Options > Preferences > Language > English. The selection is saved across restarts

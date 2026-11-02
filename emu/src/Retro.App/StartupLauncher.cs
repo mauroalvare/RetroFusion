@@ -69,6 +69,7 @@ internal static partial class StartupRecovery
     {
         StartupReport.Record(detail ?? problem);
         if (!OperatingSystem.IsWindows()) { Console.Error.WriteLine(problem + UiText.Get("\nUsá --repair en Windows para buscar una actualización sin abrir la interfaz.")); return 2; }
+        if (await RepairRequirementsAsync(AppContext.BaseDirectory)) return 2;
         if (!allowUpdate) { MessageBox(0, problem + UiText.Get("\n\nLa búsqueda de actualizaciones está desactivada para este inicio."), "RetroEmu · Recuperación", 0x10); return 2; }
         try
         {
@@ -87,6 +88,43 @@ internal static partial class StartupRecovery
             StartupReport.Record(problem, error);
             MessageBox(0, UiText.Get("No se pudo completar la actualización: ") + error.Message + UiText.Get("\n\nPodés volver a abrir RetroEmu con --repair para reintentar. Tus juegos y partidas se conservan.\n\nDetalle: ") + StartupReport.LogPath, "RetroEmu · Recuperación", 0x10);
             return 2;
+        }
+    }
+
+    /// <summary>Called only by an interactive recovery or an explicit requirements action, never by a test startup.</summary>
+    internal static async Task<bool> RepairRequirementsAsync(string root, nint owner = default, CancellationToken cancellation = default)
+    {
+        if (!OperatingSystem.IsWindows()) return false;
+        var missing = OfficialComponent.MissingVisualCpp(root);
+        if (missing.Count == 0) return false;
+        try
+        {
+            using var http = OfficialComponent.CreateClient();
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+            timeout.CancelAfter(TimeSpan.FromMinutes(5));
+            var result = await OfficialComponent.InstallVisualCppAsync(
+                () => !cancellation.IsCancellationRequested && MessageBox(owner, UiText.Get("Falta Microsoft Visual C++ x64, requerido por una biblioteca del programa:\n") + string.Join(", ", missing)
+                    + UiText.Get("\n\n¿Permitís descargar el instalador oficial desde Microsoft? Todavía no se instalará nada.\n\nFuente: ") + OfficialComponent.VisualCppSource,
+                    "RetroEmu · Requisitos", 0x24) == 6,
+                () => !cancellation.IsCancellationRequested && MessageBox(owner, UiText.Get("La firma de Microsoft del instalador es válida.\n\n¿Permitís ejecutarlo para instalar Visual C++ x64? Windows puede pedir permiso de administrador. El instalador oficial muestra su licencia; no se reiniciará automáticamente."),
+                    "RetroEmu · Requisitos", 0x24) == 6, http, cancellation: timeout.Token);
+            if (result == ComponentInstallResult.Declined) return false;
+            if (cancellation.IsCancellationRequested) return true;
+            bool present = OfficialComponent.MissingVisualCpp(root).Count == 0;
+            string message = result == ComponentInstallResult.RestartRequired
+                ? "El instalador indicó que hace falta reiniciar Windows. Guardá tu trabajo y reiniciá cuando puedas."
+                : present ? "El componente ya está disponible. Volvé a abrir RetroEmu para comprobar el arranque."
+                : "El instalador terminó, pero la biblioteca sigue sin estar disponible. No se comprobó una reparación. Revisá el paquete y la guía oficial.";
+            MessageBox(owner, UiText.Get(message), "RetroEmu · Requisitos", present ? 0x40u : 0x30u);
+            return true;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or HttpRequestException or OperationCanceledException or System.ComponentModel.Win32Exception)
+        {
+            StartupReport.Record("Official component repair", error);
+            if (cancellation.IsCancellationRequested) return false;
+            MessageBox(owner, UiText.Get("No se pudo completar la reparación del componente: ") + error.Message
+                + "\n\n" + OfficialComponent.VisualCppGuide, "RetroEmu · Requisitos", 0x10);
+            return false;
         }
     }
 }

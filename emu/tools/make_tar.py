@@ -17,7 +17,7 @@ def main(folder, output):
         name = os.path.basename(info.name)
         if info.isdir():
             info.mode = 0o755
-        elif "." not in name or name.endswith((".so", ".dylib")) or ".so." in name:
+        elif "." not in name or name.endswith((".so", ".dylib", ".sh")) or ".so." in name:
             info.mode = 0o755
         else:
             info.mode = 0o644

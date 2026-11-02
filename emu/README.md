@@ -13,6 +13,9 @@ La entrega pública vigente sigue siendo 0.3.7.
 ## Empezar
 
 1. Abrí **RetroEmu.exe** en Windows o **RetroEmu** en Linux.
+   En Linux x64 las bibliotecas gráficas incluidas necesitan glibc 2.38 o posterior y
+   X11/XWayland; `sh RetroEmu.sh --check` revisa los requisitos antes de abrir el programa.
+   El paquete Windows incluye .NET; no necesitás instalar el SDK ni herramientas de IA para jugar.
 2. Elegí una máquina o **Todos los juegos**, buscá un título y pulsá **Jugar**.
 3. Para agregar uno, usá **Abrir archivo** o arrastralo a la ventana.
 

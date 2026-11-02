@@ -169,8 +169,11 @@ public sealed partial class RetroApp
         if (ImGui.IsItemHovered()) UiTheme.Tooltip("Lleva al portapapeles un resumen técnico sin títulos, rutas personales ni credenciales.");
         if (_diagnosticCopied) UiTheme.Hint("Diagnóstico copiado. Revisalo antes de compartirlo.");
         if (ImGui.CollapsingHeader(UiText.Label("Requisitos para abrir y jugar")))
+        {
             foreach (var check in StartupRequirements.Inspect(AppContext.BaseDirectory, Raylib_cs.Raylib.IsWindowReady(), _audioDisabled))
             { ImGui.Bullet(); ImGui.TextWrapped(StartupRequirements.StatusName(check.Status) + " · " + check.Detail); }
+            if (ImGui.Button(UiText.Label("Revisar requisitos y reparaciones…"))) _requirementsOpen = true;
+        }
         UiTheme.EndCard();
         UiTheme.BeginCard("play-help");
         UiTheme.Section("Abrir y jugar");

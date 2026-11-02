@@ -84,7 +84,7 @@ public sealed class IntegralReviewTests
         Assert.That(session.Error, Is.Null);
     }
 
-    [TestCase("_preferencesOpen"), TestCase("_soundWindowOpen"), TestCase("ai")]
+    [TestCase("_preferencesOpen"), TestCase("_soundWindowOpen"), TestCase("_requirementsOpen"), TestCase("ai")]
     public void ConfigurationWindowsOwnKeyboardAndGamepadNavigationWhileTheGameRuns(string window)
     {
         nint context = ImGui.CreateContext();

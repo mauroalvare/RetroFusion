@@ -300,7 +300,7 @@ public sealed partial class RetroApp
         _updates.Dispose();
         foreach (var task in _tasks.Active) task.Cancel();
         _terminal?.History.Save();
-        var pending = Task.WhenAll(_studio.CancelWork(), _creator.CancelWork(), _code.CancelWork(), AiPicker.CancelWork());
+        var pending = Task.WhenAll(_studio.CancelWork(), _creator.CancelWork(), _code.CancelWork(), AiPicker.CancelWork(), CancelComponentRepair());
         try { pending.Wait(TimeSpan.FromSeconds(2)); }
         catch (AggregateException) { /* Cancellation and provider errors are already retained by the jobs. */ }
         _code.Dispose();
@@ -413,6 +413,7 @@ public sealed partial class RetroApp
         DrawSoundWindow();
         DrawPreferencesWindow();
         DrawPaletteEditor();
+        DrawRequirements();
         AiConnectionWindow.Draw(_ai);
         _commands.Draw(_commands.IsOpen ? CommandPalette.WithOrders(Commands, Terminal.Commands, PrepareConsoleOrder) : Commands);
         DrawTerminal();
@@ -503,6 +504,7 @@ public sealed partial class RetroApp
     public void RequestQuit()
     {
         _quitNotice = QuitGuard.Notice(_studio.IsWorking, _creator.IsWorking, _code.IsWorking, _tasks.Active.Count(task => !task.Tracked));
+        if (ComponentRepairActive) _quitNotice = (_quitNotice == null ? "" : _quitNotice + "\n\n") + UiText.Get("Hay una reparación de componentes en curso. Salir cancela la descarga pendiente; si el instalador de Windows ya empezó, seguirá bajo su control. No se termina por la fuerza una instalación del sistema.");
         if (_quitNotice == null) QuitRequested = true;
     }
 
@@ -1243,6 +1245,7 @@ public sealed partial class RetroApp
 
     private void RevealCurrentWork()
     {
+        if (ComponentRepairActive) { _requirementsOpen = true; return; }
         CloseEditors(); _home.Close();
         if (_studio.IsWorking) _studio.ShowWork();
         else if (_creator.IsWorking) _creator.ShowWork();

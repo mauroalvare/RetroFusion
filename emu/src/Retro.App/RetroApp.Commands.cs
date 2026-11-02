@@ -34,6 +34,7 @@ public sealed partial class RetroApp
         new("create-hub", "Abrir el taller de creación", "Crear", "inicio proyectos", "", () => OpenHub(HubPage.Create)),
         new("tools-hub", "Ver todas las herramientas", "Herramientas", "inicio opciones mesa", "", () => OpenHub(HubPage.Tools)),
         new("help-hub", "Ver ayuda y controles", "Ayuda", "instrucciones teclado mando", "", () => OpenHub(HubPage.Help)),
+        new("requirements", "Requisitos para abrir y jugar", "Ayuda", "sistema componentes instalar oficial reparar", "", () => _requirementsOpen = true),
         new("play", "Volver a jugar", "Partida", "original continuar", "", OpenPlay),
         new("replay-tools", "Rebobinado y grabación de entradas", "Partida", "replay historial", "", () => { OpenHub(HubPage.Tools); _showReplayTools=true; }),
         new("library", "Ir a la biblioteca", "Biblioteca", "inicio juegos", ToolShortcut("L"), () => { CloseEditors(); _home.Open(); }),

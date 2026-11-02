@@ -46,6 +46,11 @@ foreach ($rid in $Runtimes) {
     Copy-Item -LiteralPath (Join-Path $root 'docs/paquete/PCXT.txt') -Destination (Join-Path $pcFirmware 'LEEME.txt')
     Copy-Item -LiteralPath (Join-Path $root 'docs/paquete/ACTUALIZAR.txt') -Destination (Join-Path $out 'ACTUALIZAR.txt')
     Copy-Item (Join-Path $root "README.md") (Join-Path $out "README.md")
+    if ($rid -eq 'linux-x64') {
+        # Keep POSIX newlines even when the checkout converts text to CRLF on Windows.
+        $launcher = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'RetroEmu.sh')).Replace("`r`n", "`n")
+        [IO.File]::WriteAllText((Join-Path $out 'RetroEmu.sh'), $launcher, [Text.UTF8Encoding]::new($false))
+    }
     $playerDocs = Join-Path $out "docs"
     New-Item -ItemType Directory -Force $playerDocs | Out-Null
     Copy-Item (Join-Path $root "docs/MODIFICACIONES.md") (Join-Path $playerDocs "MODIFICACIONES.md")

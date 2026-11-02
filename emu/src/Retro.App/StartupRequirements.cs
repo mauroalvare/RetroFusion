@@ -19,6 +19,8 @@ internal static class StartupRequirements
             Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar), windows ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
         return
         [
+            new("system", windows || OperatingSystem.IsLinux() ? "ok" : "missing",
+                UiText.Get("Hay paquetes para Windows x64 y Linux x64. El soporte de cada versión del sistema depende de .NET 10 y del controlador gráfico; consultá la guía oficial.")),
             new("architecture", RuntimeInformation.ProcessArchitecture == Architecture.X64 ? "ok" : "missing",
                 UiText.Format($"Proceso: {RuntimeInformation.ProcessArchitecture}. Los paquetes se preparan para x64.")),
             new("runtime", "ok", bundled ? UiText.Get(".NET incluido en esta carpeta; no necesitás instalar el SDK.")
@@ -30,6 +32,9 @@ internal static class StartupRequirements
             new("graphics", graphicsReady ? "ok" : "needs-check", UiText.Get(graphicsReady
                 ? "Ventana gráfica inicializada. Se necesita un controlador con OpenGL 3.3."
                 : "Se necesita un controlador con OpenGL 3.3. Este informe sin ventana no comprueba el controlador.")),
+            new("system-libraries", windows && OfficialComponent.MissingVisualCpp(root).Count > 0 ? "missing" : windows ? "ok" : "needs-check",
+                UiText.Get(windows ? "Visual C++ sólo se ofrece si una biblioteca del paquete lo requiere y falta en el sistema. No se instala por un aviso de audio."
+                    : "Estas bibliotecas gráficas de Linux x64 requieren glibc 2.38 o posterior y X11/XWayland. El runtime incluido no reemplaza ICU, OpenSSL ni las bibliotecas del sistema. RetroEmu.sh --check permite revisar el paquete antes del runtime.")),
             new("audio", "optional", UiText.Get(audioDisabled ? "Audio desactivado para este inicio (--no-audio). Podés activarlo buscando la salida desde Sonido."
                 : "La salida de audio es opcional. --no-audio evita inicializar el dispositivo; --mute solo silencia.")),
             new("tools", "optional", UiText.Get("Para abrir y jugar no se necesitan Python, SDK, cuenta de IA ni herramientas de IA.")),

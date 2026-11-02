@@ -9,7 +9,7 @@ public sealed partial class RetroApp
     private bool _preferencesOpen;
     private string _preferencesGroup = "";
     private string _preferencesSearch = "";
-    private bool ConfigurationOpen => _preferencesOpen || _soundWindowOpen || _newsOpen || _paletteEditorOpen || AiConnectionWindow.IsOpen;
+    private bool ConfigurationOpen => _preferencesOpen || _soundWindowOpen || _newsOpen || _paletteEditorOpen || _requirementsOpen || AiConnectionWindow.IsOpen;
     private static readonly string[] JoystickNames = ["Kempston (Alt = disparo)", "Cursor (5 6 7 8 0)", "Sinclair 1 (6 7 8 9 0)"];
     private static readonly string[] C64Ports = ["Puerto 1", "Puerto 2 (la mayoría de los juegos)"];
 
