@@ -8,7 +8,7 @@ using Retro.Studio;
 
 namespace Retro.App;
 
-public sealed record HomeActions(Action Create, Action Fuse, Action FindAction, Action? MetadataSettings = null);
+public sealed record HomeActions(Action Create, Action Fuse, Action FindAction, Action? MetadataSettings = null, Func<bool>? OnlineLookups = null);
 
 /// <summary>The main browser replaces the play area; it is never a floating window.</summary>
 public sealed partial class HomeScreen(GameLibrary library, Action<string> playOriginal, Action<string> playFusion,
@@ -39,7 +39,7 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
 
     public void Open()
     {
-        if (!_open) { _open = true; visibility(true); }
+        if (!_open) { _open = true; visibility(true); RevealSelection(); }
         Refresh();
     }
 
@@ -55,6 +55,9 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
         Select("machine", id);
         Open();
     }
+
+    /// <summary>Back from a game the list shows the game that was being played.</summary>
+    public void RevealSelection() => _scrollToSelection = _selectedKey != null;
 
     public void ShowOriginals() { Select("originals"); Open(); }
     public void ShowFusions() { Select("fusions"); Open(); }
@@ -177,21 +180,64 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
             ImGui.SameLine();
         }
         ImGui.BeginChild("contenido", new Vector2(0, 0));
-        string title = SectionTitle();
+        if (_section == "home")
+        {
+            RetroArt.LibraryMasthead(Machines.Count(), library.Entries.Count);
+            DrawFileActions(primary: true);
+            ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
+            DrawLibraryNotices();
+            if (library.Entries.Count == 0 && !library.Scanning)
+                UiTheme.EmptyState("Todavía no hay juegos en esta carpeta", "Abrí un archivo, arrastralo a la ventana o elegí la carpeta donde guardás tus juegos.");
+            DrawMachines(); DrawCreativeActions();
+        }
+        else
+        {
+            DrawListHeader(compact);
+            DrawLibraryNotices();
+            DrawLibraryFilters();
+            DrawFilteredGames();
+        }
+        ImGui.EndChild();
+        ImGui.End();
+        ImGui.PopStyleVar(shortList ? 3 : 1);
+        DrawMetadataEditor();
+    }
+
+    private void DrawFileActions(bool primary)
+    {
+        if (primary ? UiTheme.PrimaryButton("Abrir archivo…") : ImGui.SmallButton("Abrir archivo…")) browse();
+        LibraryControlBounds?.Invoke("Abrir archivo", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
+        UiTheme.SameLineIfFits("Actualizar biblioteca");
+        ImGui.BeginDisabled(library.Scanning);
+        string label = library.Scanning ? "Buscando…" : "Actualizar biblioteca";
+        if (primary ? ImGui.Button(label) : ImGui.SmallButton(label)) { library.Rescan(library.Folder); Refresh(); }
+        ImGui.EndDisabled();
+    }
+
+    /// <summary>One row for the section's name and its counts: the list starts as high as possible.</summary>
+    private void DrawListHeader(bool compact)
+    {
+        var cards = FilteredCards();
+        var section = Catalog.Where(InSection);
+        if (_section is "favorites" or "recent") section = section.DistinctBy(card => card.Key);
+        int total = section.Count();
+        string count = cards.Count == total ? $"{total} {(total == 1 ? "juego" : "juegos")}" : $"{cards.Count} de {total} juegos";
+        if (library.Scanning) count += " · actualizando";
         if (!compact)
         {
-            if (_section=="home") RetroArt.LibraryMasthead(Machines.Count(),library.Entries.Count);
-            else UiTheme.Heading(title);
+            using (UiTheme.Display()) ImGui.TextUnformatted(SectionTitle());
+            ImGui.SameLine(); ImGui.SetCursorPosY(ImGui.GetCursorPosY() + UiTheme.Px(8)); ImGui.TextDisabled(count);
+            float actions = ImGui.CalcTextSize("Abrir archivo…Actualizar biblioteca").X + ImGui.GetStyle().FramePadding.X * 4 + ImGui.GetStyle().ItemSpacing.X * 2;
+            if (ImGui.GetContentRegionAvail().X > actions + UiTheme.Px(40))
+            {
+                ImGui.SameLine(ImGui.GetCursorPosX() + ImGui.GetContentRegionAvail().X - actions);
+                DrawFileActions(primary: false);
+            }
         }
-        if (!shortList)
-        {
-            if (UiTheme.PrimaryButton("Abrir archivo…")) browse();
-            UiTheme.SameLineIfFits("Actualizar biblioteca");
-            ImGui.BeginDisabled(library.Scanning);
-            if (ImGui.Button(library.Scanning ? "Buscando…" : "Actualizar biblioteca")) { library.Rescan(library.Folder); Refresh(); }
-            ImGui.EndDisabled();
-            ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
-        }
+    }
+
+    private void DrawLibraryNotices()
+    {
         if (_activity.Problem is { } activityProblem) ImGui.TextWrapped(activityProblem);
         if (_problem.Length > 0) ImGui.TextWrapped(_problem);
         if (library.OrganizationError != null) ImGui.TextWrapped(library.OrganizationError);
@@ -201,27 +247,6 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
                 (library.UnclassifiedCount > 0 ? $" · Sin clasificar: {library.UnclassifiedCount}" : ""));
             if (ImGui.IsItemHovered()) UiTheme.Tooltip("Los archivos cuyo sistema no se puede identificar quedan en ROMs.");
         }
-        if (_section == "home") { if(compact) RetroArt.LibraryMasthead(Machines.Count(),library.Entries.Count); DrawMachines(); DrawCreativeActions(); }
-        else
-        {
-            int active = (_filters with { Search = _search }).ActiveCount;
-            float controls = shortList ? ImGui.CalcTextSize(active > 0 ? $"Filtros ({active})" : "Filtros").X + ImGui.GetStyle().FramePadding.X * 2 + ImGui.GetStyle().ItemSpacing.X : UiTheme.Px(92);
-            ImGui.SetNextItemWidth(Math.Max(UiTheme.Px(80), ImGui.GetContentRegionAvail().X - controls));
-            if (_focusSearch) { ImGui.SetKeyboardFocusHere(); _focusSearch = false; }
-            ImGui.InputTextWithHint("##buscar", "Buscar nombre o género (Ctrl+F)", ref _search, 150);
-            if (!shortList)
-            {
-                ImGui.SameLine(); ImGui.BeginDisabled(_search.Length == 0);
-                if (ImGui.Button("Limpiar", new(UiTheme.Px(82), 0))) _search = "";
-                ImGui.EndDisabled(); ImGui.Spacing();
-            }
-            DrawLibraryFilters(shortList);
-            DrawFilteredGames();
-        }
-        ImGui.EndChild();
-        ImGui.End();
-        ImGui.PopStyleVar(shortList ? 3 : 1);
-        DrawMetadataEditor();
     }
 
     private string SectionTitle() => _section switch
@@ -233,7 +258,9 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
 
     private void DrawCompactNavigation()
     {
-        ImGui.SetNextItemWidth(canReturn() ? Math.Max(UiTheme.Px(150), ImGui.GetContentRegionAvail().X - UiTheme.Px(168)) : -1);
+        // With a list on screen the section shares its row with the search box, which leaves room for one more game.
+        bool shared = _section != "home" && UiTheme.CompactHeight;
+        ImGui.SetNextItemWidth(shared ? ImGui.GetContentRegionAvail().X * 0.34f : canReturn() ? Math.Max(UiTheme.Px(150), ImGui.GetContentRegionAvail().X - UiTheme.Px(168)) : -1);
         if (ImGui.BeginCombo("##seccion-biblioteca", _section == "home" ? "Inicio" : SectionTitle()))
         {
             Choice("Inicio", "home"); Choice("Todos los juegos", "all");
@@ -243,8 +270,8 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
             ImGui.Separator(); Choice("Fusionados", "fusions"); Choice("Creados", "created");
             ImGui.EndCombo();
         }
-        if (canReturn()) { ImGui.SameLine(); if (ImGui.Button("Volver al juego", new(UiTheme.Px(158), 0))) Close(); }
-        ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
+        if (shared) ImGui.SameLine();
+        else if (canReturn()) { ImGui.SameLine(); if (ImGui.Button("Volver al juego", new(UiTheme.Px(158), 0))) Close(); }
         void Choice(string label, string section, string machine = "")
         {
             if (ImGui.Selectable(label, _section == section && _machine == machine)) Select(section, machine);
@@ -342,94 +369,6 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
     }
 
     public void RecordFusion(StudioGame game) => _activity.Played(FusionKey(game));
-
-    private bool BeginList()
-    {
-        _compactRows = ImGui.GetContentRegionAvail().X < UiTheme.Px(640);
-        float minimum = ImGui.GetFrameHeightWithSpacing() * 2 + ImGui.GetTextLineHeightWithSpacing() + ImGui.GetStyle().CellPadding.Y * 4;
-        if (!ImGui.BeginTable("juegos", _compactRows ? 3 : 4, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY | ImGuiTableFlags.BordersInnerH,
-            new Vector2(0, Math.Max(minimum, ImGui.GetContentRegionAvail().Y - (UiTheme.CompactHeight ? 0 : UiTheme.Px(30)))))) return false;
-        ImGui.TableSetupColumn("Juego", ImGuiTableColumnFlags.WidthStretch);
-        if (!_compactRows) ImGui.TableSetupColumn("Sistema", ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(156));
-        ImGui.TableSetupColumn("Fav.", ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(32));
-        ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, UiTheme.Px(75));
-        ImGui.TableHeadersRow();
-        return true;
-    }
-
-    private void Row(string id, string title, string detail, string? hint, Action play, bool playable, string machine, Func<string?> picture)
-    {
-        ImGui.TableNextRow();
-        ImGui.PushID(ImGui.TableGetRowIndex());
-        ImGui.PushID(id);
-        ImGui.TableNextColumn();
-        var position = ImGui.GetCursorScreenPos();
-        var size = UiTheme.Px(58, 42);
-        ImGui.Dummy(size);
-        if (ImGui.IsItemVisible())
-        {
-            var draw = ImGui.GetWindowDrawList();
-            draw.AddRectFilled(position, position + size, ImGui.GetColorU32(ImGuiCol.FrameBg), 3);
-            if (_thumbnails.TryGet(id, picture, out var texture))
-            {
-                float scale = Math.Min(size.X / texture.Width, size.Y / texture.Height);
-                var fitted = new Vector2(texture.Width, texture.Height) * scale;
-                var at = position + (size - fitted) / 2;
-                draw.AddImage((nint)texture.Id, at, at + fitted);
-            }
-            else HardwareArt.Draw(draw, machine, position + UiTheme.Px(2, 1), size - UiTheme.Px(4, 2));
-        }
-        ImGui.SameLine(); ImGui.BeginGroup();
-        float textWidth = Math.Max(20, ImGui.GetContentRegionAvail().X);
-        ImGui.TextWrapped(UiTheme.Fit(title, textWidth * 2));
-        if (ImGui.IsItemHovered()) UiTheme.Tooltip(title + (string.IsNullOrWhiteSpace(hint) ? "" : "\n" + hint));
-        if (ImGui.IsItemVisible())
-        {
-            var info = EffectiveInfo(id);
-            if (info.Genres.Count > 0 || info.ReleaseYear != null)
-                UiTheme.Hint(UiTheme.Fit(string.Join(" · ", info.Genres.Concat(info.ReleaseYear != null ? [info.YearLabel] : [])), textWidth));
-            if (info.WorkYear && ImGui.IsItemHovered()) UiTheme.Tooltip("Primera publicación de la obra. La fuente no determina el año de esta plataforma; Ficha muestra la procedencia.");
-        }
-        if (_compactRows) ImGui.TextDisabled(UiTheme.Fit(detail, textWidth));
-        if (!playable)
-        {
-            ImGui.PushStyleColor(ImGuiCol.Text, UiTheme.Warning);
-            ImGui.TextWrapped(UiTheme.Fit(hint ?? "Formato sin confirmar", textWidth * 2));
-            ImGui.PopStyleColor();
-            if (ImGui.IsItemHovered()) UiTheme.Tooltip(hint ?? "Todavía no se puede abrir este formato.");
-        }
-        ImGui.EndGroup();
-        if (!_compactRows)
-        {
-            ImGui.TableNextColumn(); ImGui.TextUnformatted(UiTheme.Fit(detail, ImGui.GetContentRegionAvail().X));
-            if (ImGui.IsItemHovered()) UiTheme.Tooltip(detail);
-        }
-        ImGui.TableNextColumn();
-        bool favorite = _activity.IsFavorite(id);
-        if (ImGui.Button("##favorito", UiTheme.Px(28, 24))) _activity.SetFavorite(id, !favorite);
-        LibraryControlBounds?.Invoke("Favorito:" + id, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
-        var center = (ImGui.GetItemRectMin() + ImGui.GetItemRectMax()) / 2;
-        Span<Vector2> star = stackalloc Vector2[10];
-        for (int i = 0; i < star.Length; i++)
-        {
-            float angle = -MathF.PI / 2 + i * MathF.PI / 5, radius = UiTheme.Px((i & 1) == 0 ? 9 : 4);
-            star[i] = center + new Vector2(MathF.Cos(angle), MathF.Sin(angle)) * radius;
-        }
-        var starDraw = ImGui.GetWindowDrawList();
-        uint color = favorite ? ImGui.ColorConvertFloat4ToU32(new Vector4(1, 0.78f, 0.25f, 1)) : ImGui.GetColorU32(ImGuiCol.TextDisabled);
-        for (int i = 0; i < star.Length; i++) starDraw.AddLine(star[i], star[(i + 1) % star.Length], color, favorite ? 2 : 1);
-        if (ImGui.IsItemHovered()) UiTheme.Tooltip(favorite ? "Quitar de favoritos" : "Agregar a favoritos");
-        ImGui.TableNextColumn();
-        ImGui.BeginDisabled(!playable || library.Scanning);
-        if (UiTheme.PrimaryButton("Jugar", new Vector2(-1, 0))) { Close(); play(); }
-        LibraryControlBounds?.Invoke("Jugar:" + id, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
-        ImGui.EndDisabled();
-        if (!playable && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-            UiTheme.Tooltip(hint ?? "Este formato todavía no se puede abrir.");
-        if (ImGui.Button("Ficha", new Vector2(-1, 0))) OpenMetadata(id);
-        LibraryControlBounds?.Invoke("Ficha:" + id, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
-        ImGui.PopID(); ImGui.PopID();
-    }
 
     public void Dispose() => _thumbnails.Dispose();
 }

@@ -116,9 +116,13 @@ internal static class RetroArt
         {
             case "new": case "code":
                 Chip(draw,origin+new Vector2(size*0.13f),size*0.74f);break;
-            case "fusion": case "inspired":
+            case "fusion":
                 Box(2,4,15,19);Box(31,4,15,19);Box(15,31,18,13);
                 Line(9,23,9,27);Line(39,23,39,27);Line(9,27,24,27);Line(39,27,24,27);Line(24,27,24,31);break;
+            case "inspired":
+                Box(4,14,18,24);Line(9,20,17,20);Line(9,26,17,26);Line(9,32,14,32);
+                Line(26,26,32,26);Line(29,23,32,26);Line(29,29,32,26);
+                draw.AddCircle(P(39,26),size*0.13f,Copper,16,UiTheme.Px(1.3f));Line(39,12,39,16);Line(39,36,39,40);Line(47,26,50,26);break;
             case "sound":
                 Box(6,17,9,14);Line(15,17,26,8);Line(26,8,26,40);Line(26,40,15,31);
                 Line(33,16,38,21);Line(38,21,38,27);Line(38,27,33,32);break;

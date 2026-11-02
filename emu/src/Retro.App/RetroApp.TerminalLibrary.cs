@@ -163,6 +163,35 @@ public sealed partial class RetroApp
         },
         new()
         {
+            Id = "library.candidates", Name = "candidatos", Group = "Biblioteca", Summary = "Pide al catálogo posibles identidades de un juego, para revisarlas.",
+            Keywords = "coincidencia dudosa revisar identificar wikidata", Arguments = [GameArgument()], Examples = ["candidatos 1", "candidato 1 aceptar"],
+            Requires = "la consulta en línea activada", Cancellation = "Termina sola en doce segundos.", Result = "Muestra por qué se propone cada una. Ninguna se aplica sola.",
+            Unavailable = () => _prefs.OnlineGameInfo ? null : new(CommandProblem.WrongContext, "La consulta en línea está desactivada.", "identificar on la activa; solo envía el título limpio."),
+            Run = context =>
+            {
+                var game = FindGame(context.Text("juego"));
+                _gameMetadata.SearchCandidates(game.Key, game.Title, game.Systems.Split(',')[0]);
+                _candidatesFor = game.Title; context.Success("Consultando el catálogo en segundo plano.");
+            }
+        },
+        new()
+        {
+            Id = "library.candidate", Name = "candidato", Group = "Biblioteca", Summary = "Acepta o rechaza un candidato de la última búsqueda.",
+            Keywords = "elegir coincidencia aceptar rechazar",
+            Arguments = [new("numero", ArgumentKind.Number, "Número de candidatos.") { Min = 1, Max = 6 }, new("accion", ArgumentKind.Choice, "Qué hacer.") { Choices = ["aceptar", "rechazar"] }],
+            Examples = ["candidato 1 aceptar", "candidato 2 rechazar"], Result = "La decisión se guarda por identidad del juego y una actualización del catálogo no la deshace.",
+            Run = context =>
+            {
+                int number = context.Number("numero");
+                var found = _gameMetadata.Candidates;
+                if (_gameMetadata.CandidateKey is not { } key || number > found.Count) throw new CommandFailure(CommandProblem.WrongContext, "No hay un candidato con ese número.", "candidatos <juego> vuelve a buscar.");
+                var candidate = found[number - 1];
+                if (context.Text("accion") == "aceptar") _gameMetadata.Accept(key, candidate); else _gameMetadata.Reject(key, candidate);
+                context.Success((context.Text("accion") == "aceptar" ? "Aceptado: " : "Rechazado: ") + candidate.Game.Title);
+            }
+        },
+        new()
+        {
             Id = "library.folder", Name = "carpeta", Group = "Biblioteca", Summary = "Muestra o cambia la carpeta de juegos.",
             Aliases = ["roms"], Keywords = "importar agregar carpeta directorio ubicacion",
             Arguments = [new("ruta", ArgumentKind.Path, "Carpeta con tus juegos; entre comillas si tiene espacios.") { Optional = true, Rest = true }],
@@ -185,6 +214,21 @@ public sealed partial class RetroApp
             Run = context => { _library.Rescan(_library.Folder); _home.TerminalRefresh(); context.Success("Revisando la carpeta en segundo plano; tareas muestra el avance."); }
         }
     ];
+
+    private string? _candidatesFor;
+
+    /// <summary>The console's answer when a candidate search ends.</summary>
+    private void ReportCandidates()
+    {
+        if (_terminal == null || _candidatesFor == null) return;
+        var buffer = _terminal; string title = _candidatesFor; _candidatesFor = null;
+        buffer.Write("Candidatos para " + title + ": " + _gameMetadata.CandidateStatus, TerminalKind.Heading);
+        var found = _gameMetadata.Candidates;
+        foreach (var (text, kind) in TextTable.Layout([new("#", Right: true), new("Título", Flexible: true), new("Año"), new("Por qué", Flexible: true, Optional: true)],
+            found.Select((candidate, index) => (IReadOnlyList<string>)[(index + 1).ToString(), candidate.Game.Title, (candidate.Game.ReleaseYear ?? candidate.Game.FirstReleaseYear)?.ToString() ?? "?", candidate.Reason]).ToList(), buffer.Output.Columns))
+            if (found.Count > 0) buffer.Write(text, kind);
+        if (found.Count > 0) buffer.Write("candidato <n> aceptar · candidato <n> rechazar", TerminalKind.Detail);
+    }
 
     private void GoTo(CommandContext context, string section)
     {

@@ -40,10 +40,10 @@ public sealed partial class HomeScreen
             cards.Add(new(OriginalKey(game), _identification.Get(game.Identity)?.Title ?? game.Name, Name(game.Machine),
                 string.Join(" · ", new[] { game.Name, game.NotYet }.OfType<string>()), game.Machine.Id, [game.Machine.Id],
                 LibraryGameKind.Original, game.NotYet == null && game.Confidence >= 50, () => playOriginal(game.Path), () => ThumbnailFiles.Beside(game.Path), game.Path,
-                game.ProfileId != null && _profiles.ContainsKey(game.ProfileId) ? "Preparación: perfil registrado para esta edición." : "Preparación: sin perfil comprobado; preparar <juego> intenta crearlo."));
+                game.ProfileId != null && _profiles.ContainsKey(game.ProfileId) ? "Preparación: perfil registrado para esta edición" : "Preparación: sin comprobar para fusiones"));
         foreach (var game in _created)
             cards.Add(new(CreatedKey(game), game.Title, game.MachineName, game.Pitch, game.Machine, [game.Machine],
-                LibraryGameKind.Created, Ready(game), () => playOriginal(game.ProgramPath), () => game.PicturePath, game.ProgramPath, game.Passed ? "Prueba automática aprobada." : "Prueba automática pendiente o fallida."));
+                LibraryGameKind.Created, Ready(game), () => playOriginal(game.ProgramPath), () => game.PicturePath, game.ProgramPath, game.Passed ? "Prueba automática aprobada" : "Prueba automática pendiente o fallida"));
         foreach (var game in _fusions.Concat(_inspired))
         {
             string[] systems = game.Games.Select(slot => _profiles.GetValueOrDefault(slot.Profile)?.Machine).OfType<string>().Distinct().ToArray();
@@ -53,7 +53,7 @@ public sealed partial class HomeScreen
             cards.Add(new(FusionKey(game), game.Title, $"{(game.IsInspired ? "Con originales" : "Fusión")} · v{game.Version}",
                 missing.Length > 0 ? "Falta: " + missing : game.Pitch, machine, systems,
                 game.IsInspired ? LibraryGameKind.Inspired : LibraryGameKind.Fusion, missing.Length == 0,
-                () => playFusion(game.Id), () => StudioLibrary.PicturePath(game), null, missing.Length == 0 ? "Originales disponibles." : "Faltan originales."));
+                () => playFusion(game.Id), () => StudioLibrary.PicturePath(game), null, missing.Length == 0 ? "Originales disponibles" : "Faltan originales"));
         }
         _metadata.Observe(cards.Select(card => card.Key));
         return cards;
@@ -104,14 +104,6 @@ public sealed partial class HomeScreen
             if (ImGui.IsItemHovered()) UiTheme.Tooltip("Quita la lista; conserva tus juegos, favoritos y fichas.");
         }
         var cards = FilteredCards();
-        var section = Catalog.Where(InSection);
-        if (_section is "favorites" or "recent") section = section.DistinctBy(card => card.Key);
-        int total = section.Count();
-        UiTheme.Hint($"{cards.Count} de {total} juegos" + (library.Scanning ? " · Actualizando…" : ""));
-        string infoLabel = UiTheme.CompactHeight ? "Datos…" : "Identificación de juegos…";
-        UiTheme.SameLineIfFits(infoLabel);
-        if (ImGui.SmallButton(infoLabel)) actions?.MetadataSettings?.Invoke();
-        if (ImGui.IsItemHovered()) UiTheme.Tooltip(_identification.Status + ". Leé el origen de los datos en Ficha.");
         if (cards.Count == 0)
         {
             UiTheme.EmptyState("No hay juegos para mostrar", _filters.ActiveCount > 0 || _search.Trim().Length > 0
@@ -120,10 +112,7 @@ public sealed partial class HomeScreen
                 : _section == "recent" ? "Acá aparecen los juegos que abriste." : "Abrí un archivo o agregalo a la biblioteca.");
             return;
         }
-        if (!BeginList()) return;
-        foreach (var card in cards)
-            Row(card.Key, card.Title, card.Detail, card.Hint, card.Play, card.Openable, card.Machine, card.Picture);
-        ImGui.EndTable();
+        DrawGameList(cards);
     }
 
     private void TrackLibraryControl(string name) => LibraryControlBounds?.Invoke(name, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
@@ -146,21 +135,26 @@ public sealed partial class HomeScreen
         return before != selected;
     }
 
-    private void DrawLibraryFilters(bool inline)
+    private void DrawLibraryFilters()
     {
         _ = Catalog;
         int active = (_filters with { Search = _search }).ActiveCount;
         string label = active > 0 ? $"Filtros ({active})" : "Filtros";
-        float width = ImGui.CalcTextSize(label).X + ImGui.GetStyle().FramePadding.X * 2;
-        float available = ImGui.GetContentRegionAvail().X;
-        if (inline) ImGui.SameLine();
+        float spacing = ImGui.GetStyle().ItemSpacing.X, button = ImGui.CalcTextSize(label).X + ImGui.GetStyle().FramePadding.X * 2;
+        // The order joins the row only while the search box keeps a useful width.
+        bool inline = ImGui.GetContentRegionAvail().X < UiTheme.Px(640);
+        float order = inline ? 0 : Math.Min(UiTheme.Px(220), ImGui.GetContentRegionAvail().X * 0.3f);
+        ImGui.SetNextItemWidth(Math.Max(UiTheme.Px(80), ImGui.GetContentRegionAvail().X - button - spacing - (inline ? 0 : order + spacing)));
+        if (_focusSearch) { ImGui.SetKeyboardFocusHere(); _focusSearch = false; }
+        ImGui.InputTextWithHint("##buscar", "Buscar nombre o género (Ctrl+F)", ref _search, 150);
+        ImGui.SameLine();
         if (ImGui.Button(label + "###library-filters")) _filtersExpanded = !_filtersExpanded;
         TrackLibraryControl("Filtros");
         if (!inline)
         {
-            ImGui.SameLine(); ImGui.SetNextItemWidth(Math.Max(UiTheme.Px(90), available - width - ImGui.GetStyle().ItemSpacing.X));
-            int order = (int)_filters.Order;
-            if (LibraryCombo("##orden-biblioteca", "Orden", ref order, Orders)) _filters = _filters with { Order = (LibraryOrder)order };
+            ImGui.SameLine(); ImGui.SetNextItemWidth(order);
+            int selected = (int)_filters.Order;
+            if (LibraryCombo("##orden-biblioteca", "Orden", ref selected, Orders)) _filters = _filters with { Order = (LibraryOrder)selected };
             if (ImGui.IsItemHovered()) UiTheme.Tooltip("Ordenar la lista. Los años desconocidos quedan al final.");
         }
         if (active > 0)
@@ -176,8 +170,8 @@ public sealed partial class HomeScreen
             void Field(string title) { if (table) ImGui.TableNextColumn(); ImGui.TextUnformatted(title); ImGui.SetNextItemWidth(-1); }
             if (inline)
             {
-                Field("Orden"); int order = (int)_filters.Order;
-                if (LibraryCombo("##orden-biblioteca", "Orden", ref order, Orders)) _filters = _filters with { Order = (LibraryOrder)order };
+                Field("Orden"); int orderChoice = (int)_filters.Order;
+                if (LibraryCombo("##orden-biblioteca", "Orden", ref orderChoice, Orders)) _filters = _filters with { Order = (LibraryOrder)orderChoice };
             }
             if (_section != "machine")
             {
@@ -225,13 +219,10 @@ public sealed partial class HomeScreen
             if (table) ImGui.EndTable();
             if (ImGui.Button("Ver resultados")) _filtersExpanded = false;
             TrackLibraryControl("Ver resultados");
-            if (inline)
-            {
-                if (ImGui.SmallButton("Abrir archivo…")) browse();
-                UiTheme.SameLineIfFits("Actualizar biblioteca"); ImGui.BeginDisabled(library.Scanning);
-                if (ImGui.SmallButton("Actualizar biblioteca")) { library.Rescan(library.Folder); Refresh(); }
-                ImGui.EndDisabled();
-            }
+            UiTheme.SameLineIfFits("Identificación de juegos…");
+            if (ImGui.SmallButton("Identificación de juegos…")) actions?.MetadataSettings?.Invoke();
+            if (ImGui.IsItemHovered()) UiTheme.Tooltip(_identification.Status + ". Leé el origen de los datos en Ficha.");
+            DrawFileActions(primary: false);
             UiTheme.Hint("Completá género y año desde Ficha, junto a Jugar. Los datos faltantes quedan sin clasificar.");
         }
         if (_filters.Problem is { } problem) UiTheme.Hint(problem);
@@ -266,6 +257,8 @@ public sealed partial class HomeScreen
         { ImGui.End(); if (!open) _editing = null; return; }
         WorkspaceLayout.KeepOnScreen();
         UiTheme.Heading(card.Title);
+        bool favorite = _activity.IsFavorite(card.Key);
+        if (ImGui.Checkbox("Favorito", ref favorite)) _activity.SetFavorite(card.Key, favorite);
         if (_identification.Get(card.Key) is { } detected)
         {
             ImGui.TextWrapped("Detectado: " + string.Join(" · ", new[] { detected.ReleaseYear?.ToString(), string.Join(", ", detected.Genres), detected.Publisher }.Where(value => !string.IsNullOrWhiteSpace(value))));
@@ -276,6 +269,7 @@ public sealed partial class HomeScreen
         }
         bool ignored = _identification.Cache.Get(card.Key)?.Ignored ?? false;
         if (ImGui.Checkbox("Omitir identificación automática de este juego", ref ignored)) _identification.Ignore(card.Key, ignored);
+        DrawCandidates(card);
         ImGui.SeparatorText("Tu ficha personal");
         ImGui.TextUnformatted("Géneros separados por coma");
         if (_focusEditor) { ImGui.SetKeyboardFocusHere(); _focusEditor = false; }
@@ -318,6 +312,32 @@ public sealed partial class HomeScreen
         TrackLibraryControl("Cancelar ficha");
         ImGui.End();
         if (!open) _editing = null;
+    }
+
+    /// <summary>Asking for candidates is explicit and needs the online lookup enabled; nothing is applied without a choice.</summary>
+    private void DrawCandidates(LibraryCard card)
+    {
+        if (actions?.OnlineLookups?.Invoke() != true) return;
+        bool here = _identification.CandidateKey == card.Key;
+        ImGui.BeginDisabled(_identification.SearchingCandidates);
+        if (ImGui.SmallButton(_identification.SearchingCandidates && here ? "Buscando…" : "Buscar candidatos en el catálogo"))
+            _identification.SearchCandidates(card.Key, card.Title, card.Machine);
+        ImGui.EndDisabled();
+        TrackLibraryControl("Buscar candidatos");
+        if (!here) return;
+        if (_identification.CandidateStatus.Length > 0) UiTheme.Hint(_identification.CandidateStatus);
+        foreach (var candidate in _identification.Candidates.ToArray())
+        {
+            ImGui.PushID(candidate.Game.Source);
+            ImGui.TextWrapped(candidate.Game.Title + (candidate.Game.ReleaseYear is { } year ? " · " + year : candidate.Game.FirstReleaseYear is { } first ? $" · {first} (obra)" : "") + (candidate.Game.Publisher != null ? " · " + candidate.Game.Publisher : ""));
+            UiTheme.Hint(candidate.Reason);
+            if (ImGui.SmallButton("Es este")) _identification.Accept(card.Key, candidate);
+            TrackLibraryControl("Aceptar candidato");
+            ImGui.SameLine();
+            if (ImGui.SmallButton("No es")) _identification.Reject(card.Key, candidate);
+            TrackLibraryControl("Rechazar candidato");
+            ImGui.PopID();
+        }
     }
 
     private static string[] ParseGenres(string text) => text.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);

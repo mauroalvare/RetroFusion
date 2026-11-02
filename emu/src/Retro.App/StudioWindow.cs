@@ -394,7 +394,7 @@ public sealed partial class StudioWindow
         ImGui.SetNextItemWidth(-1);
         ImGui.InputTextWithHint("##buscar-juego", "Buscar por nombre o máquina", ref _gameSearch, 150);
         var matches = _games.Where(g => _labels.GetValueOrDefault(g.Profile.Id, g.Profile.Name).Contains(_gameSearch.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
-        float listHeight = Math.Min(Math.Clamp(ImGui.GetWindowHeight() * 0.28f, UiTheme.Px(110), UiTheme.Px(200)),
+        float listHeight = Math.Min(Math.Clamp(WorkspaceLayout.Size.Y * 0.42f, UiTheme.Px(110), UiTheme.Px(420)),
             Math.Max(UiTheme.Px(74), matches.Count * ImGui.GetFrameHeightWithSpacing() + 2 * ImGui.GetStyle().WindowPadding.Y));
         ImGui.BeginChild("elegir-juegos", new Vector2(0, listHeight), ImGuiChildFlags.Borders);
         if (matches.Count == 0) ImGui.TextWrapped("No encontré juegos con ese nombre. Probá otra búsqueda.");

@@ -36,12 +36,16 @@ public sealed partial class RetroApp
         {
             string[] labels=["Biblioteca","Jugar","Crear","Analizar","Herramientas","Ayuda"];
             int selected=_home.IsOpen?0:_hub==HubPage.Create || _creator.IsOpen || _studio.IsOpen?2:_code.IsOpen || _debugMode?3:_hub==HubPage.Tools || _stateWindowOpen?4:_hub==HubPage.Help?5:1;
-            float required=labels.Select((label,i)=>$"{i+1:00} {label.ToUpperInvariant()}").Sum(label=>ImGui.CalcTextSize(label).X+ImGui.GetStyle().FramePadding.X*2+ImGui.GetStyle().ItemSpacing.X)+UiTheme.Px(285);
+            bool resume=InterfaceWorkspace&&HasGame;
+            const string resumeLabel="VOLVER A LA PARTIDA";
+            float resumeWidth=resume?ImGui.CalcTextSize(resumeLabel).X+ImGui.GetStyle().FramePadding.X*2+ImGui.GetStyle().ItemSpacing.X:0;
+            float required=labels.Select((label,i)=>$"{i+1:00} {label.ToUpperInvariant()}").Sum(label=>ImGui.CalcTextSize(label).X+ImGui.GetStyle().FramePadding.X*2+ImGui.GetStyle().ItemSpacing.X)+UiTheme.Px(285)+resumeWidth;
             if (ImGui.GetContentRegionAvail().X<required)
             {
-                ImGui.SetNextItemWidth(Math.Max(UiTheme.Px(100),ImGui.GetContentRegionAvail().X-UiTheme.Px(106)));
+                ImGui.SetNextItemWidth(Math.Max(UiTheme.Px(100),ImGui.GetContentRegionAvail().X-UiTheme.Px(106)-resumeWidth));
                 if (ImGui.Combo("##workspace",ref selected,labels,labels.Length)) Navigate(selected);
                 ImGui.SameLine();
+                if (resume) { if (UiTheme.PrimaryButton(resumeLabel)) OpenPlay(); ImGui.SameLine(); }
             }
             else
             {
@@ -53,7 +57,14 @@ public sealed partial class RetroApp
                     if (RetroArt.ModeButton($"{i+1:00} {labels[i].ToUpperInvariant()}",selected==i)) Navigate(i);
                     ImGui.PopID();
                 }
-                ImGui.SameLine(Math.Max(ImGui.GetCursorPosX(),ImGui.GetWindowWidth()-UiTheme.Px(106)));
+                ImGui.SameLine(Math.Max(ImGui.GetCursorPosX(),ImGui.GetWindowWidth()-UiTheme.Px(106)-resumeWidth));
+                if (resume)
+                {
+                    if (UiTheme.PrimaryButton(resumeLabel)) OpenPlay();
+                    InterfaceControlBounds?.Invoke("Volver a la partida",ImGui.GetItemRectMin(),ImGui.GetItemRectMax());
+                    if (ImGui.IsItemHovered()) UiTheme.Tooltip((_host.Fusion?.Title??Path.GetFileNameWithoutExtension(_host.LoadedMedia)??"Partida")+(_host.Paused?" · en pausa":""));
+                    ImGui.SameLine();
+                }
             }
             if (ImGui.Button("Buscar…",new(UiTheme.Px(88),0))) _commands.Open();
             if (ImGui.IsItemHovered()) UiTheme.Tooltip("Todas las acciones y sus atajos · "+ToolShortcut("P"));
@@ -129,7 +140,7 @@ public sealed partial class RetroApp
             ("Actualizaciones","Consultá la versión instalada y las entregas disponibles.","updates")]);
     }
 
-    private bool _showReplayTools;
+    private bool _showReplayTools, _diagnosticCopied;
     private void DrawReplayTools()
     {
         ImGui.BeginDisabled(!_host.CanUseStates);
@@ -156,6 +167,15 @@ public sealed partial class RetroApp
     {
         if (!UiTheme.CompactHeight) UiTheme.Eyebrow("AYUDA Y CONTROLES");
         UiTheme.Heading("Manual de operación","Controles, atajos y ayuda para los trabajos del taller.");
+        UiTheme.BeginCard("console-help");
+        UiTheme.Section("Tres formas de manejarlo");
+        foreach (var style in InterfaceStyles.All) ImGui.BulletText(style.ShortName+": "+style.Handling.ToLowerInvariant()+".");
+        if (ImGui.Button("Ver estilos y vistas previas…")) OpenInterfacePicker();
+        UiTheme.SameLineIfFits("Copiar diagnóstico");
+        if (ImGui.Button("Copiar diagnóstico")) { ImGui.SetClipboardText(DiagnosticReport()); _diagnosticCopied=true; }
+        if (ImGui.IsItemHovered()) UiTheme.Tooltip("Lleva al portapapeles un resumen técnico sin títulos, rutas personales ni credenciales.");
+        if (_diagnosticCopied) UiTheme.Hint("Diagnóstico copiado. Revisalo antes de compartirlo.");
+        UiTheme.EndCard();
         UiTheme.BeginCard("play-help");
         UiTheme.Section("Abrir y jugar");
         ImGui.TextWrapped("En Biblioteca elegí un sistema, buscá el archivo y pulsá Jugar. También podés abrir un archivo o arrastrarlo a la ventana. Jugar vuelve a la máquina actual.");
@@ -197,8 +217,18 @@ public sealed partial class RetroApp
                 RetroArt.Tool(ImGui.GetWindowDrawList(),item.Command,ImGui.GetCursorScreenPos(),UiTheme.Px(44));
                 ImGui.Dummy(UiTheme.Px(44,48)); ImGui.TableNextColumn();
             }
-            using(UiTheme.Display()) { ImGui.PushTextWrapPos(0); ImGui.TextUnformatted(item.Title); ImGui.PopTextWrapPos(); }
             var command=Commands.Single(c=>c.Id==item.Command);
+            if (compact && UiTheme.CompactHeight)
+            {
+                ImGui.BeginDisabled(!command.Enabled);
+                if (UiTheme.PrimaryButton(item.Title,new(-1,0))) command.Execute();
+                ImGui.EndDisabled();
+                if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled)) UiTheme.Tooltip(command.Enabled?item.Detail:command.Unavailable);
+                InterfaceControlBounds?.Invoke("Herramienta:"+item.Command,ImGui.GetItemRectMin(),ImGui.GetItemRectMax());
+                ImGui.PopID();
+                continue;
+            }
+            using(UiTheme.Display()) { ImGui.PushTextWrapPos(0); ImGui.TextUnformatted(item.Title); ImGui.PopTextWrapPos(); }
             if(command.Shortcut.Length>0)
             {
                 using(UiTheme.FixedWidth()) { UiTheme.SameLineIfFits(command.Shortcut); ImGui.TextDisabled(command.Shortcut); }

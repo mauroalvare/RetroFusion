@@ -121,6 +121,7 @@ public sealed partial class RetroApp
         _tasks.Track("biblioteca", _library.Scanning ? new("búsqueda de juegos", Path.GetFileName(Path.TrimEndingDirectorySeparator(_library.Folder)), "Revisando la carpeta") : null);
         _tasks.Track("identificacion", _gameMetadata.Pending > 0 ? new("identificación", "catálogo en línea", _gameMetadata.Status, AppTaskState.WaitingProvider,
             _gameMetadata.Asked, _gameMetadata.Asked + _gameMetadata.Pending, "juegos") : null);
+        _tasks.Track("candidatos", _gameMetadata.SearchingCandidates ? new("candidatos", "catálogo en línea", _gameMetadata.CandidateStatus, AppTaskState.WaitingProvider, Cancel: _gameMetadata.StopCandidates) : null);
         _tasks.Track("estudio", _studio.Work);
         _tasks.Track("creador", _creator.Work);
         _tasks.Track("analisis", _code.Work);

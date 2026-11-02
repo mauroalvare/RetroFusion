@@ -3,51 +3,53 @@ using ImGuiNET;
 
 namespace Retro.App;
 
-/// <summary>A bounded, scrollable choice with a fixed footer, including at 200% text.</summary>
+/// <summary>
+/// Choosing a style. Looking is free: only the apply button changes anything. The footer stays visible at
+/// any text size, and the preview can fill the window when there is little room to read it.
+/// </summary>
 internal sealed class InterfacePicker
 {
     public bool IsOpen { get; private set; }
     public InterfaceStyle Selected { get; private set; }
     private string? _updatedVersion;
-    private bool _focus;
+    private bool _focus, _expanded;
     private InterfaceStyle _current;
     internal Action<string, Vector2, Vector2>? ControlBounds { get; set; }
 
     public void Open(InterfaceStyle current, string? updatedVersion = null)
-    { Selected = _current = current; _updatedVersion = updatedVersion; IsOpen = true; _focus = true; }
+    { Selected = _current = current; _updatedVersion = updatedVersion; IsOpen = true; _focus = true; _expanded = false; }
 
     public void Draw(Action<InterfaceStyle, string?> finish)
     {
         if (!IsOpen) return;
         var viewport = ImGui.GetMainViewport();
-        var size = Vector2.Min(UiTheme.Px(740, 680), viewport.Size - new Vector2(16));
+        var size = Vector2.Min(UiTheme.Px(920, 760), viewport.Size - new Vector2(16));
         ImGui.SetNextWindowPos(viewport.Pos + (viewport.Size - size) / 2, ImGuiCond.Appearing);
         ImGui.SetNextWindowSize(size);
         if (_focus) { ImGui.SetNextWindowFocus(); _focus = false; }
         bool compact = UiTheme.CompactHeight;
-        string title = compact && _updatedVersion != null ? $"Interfaz · versión {_updatedVersion}" : "Elegí tu interfaz";
+        string title = _updatedVersion != null ? $"Interfaz · versión {_updatedVersion} instalada" : "Elegí tu interfaz";
         ImGui.Begin(title + "###interface-picker", ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse);
-        string useLabel = compact ? "Usar estilo" : "Usar este estilo", keepLabel = compact ? "Conservar" : "Conservar el actual";
-        float buttonsWidth = ImGui.CalcTextSize(useLabel).X + ImGui.CalcTextSize(keepLabel).X + ImGui.GetStyle().FramePadding.X * 4 + ImGui.GetStyle().ItemSpacing.X;
-        float footer = ImGui.GetFrameHeightWithSpacing() * (buttonsWidth > ImGui.GetContentRegionAvail().X ? 2 : 1) + UiTheme.Px(12);
-        if (_updatedVersion != null && !compact) UiTheme.Hint($"Versión {_updatedVersion} instalada.");
-        ImGui.SetNextItemWidth(-1);
-        bool choosing = ImGui.BeginCombo("##style", InterfaceStyles.Describe(Selected).Name.Split('·')[0].Trim());
-        Track("Estilo");
-        if (choosing)
-        {
-            foreach (var choice in InterfaceStyles.All)
-            {
-                if (ImGui.Selectable(choice.Name.Split('·')[0].Trim() + "###style-" + choice.Id, Selected == choice.Style)) Selected = choice.Style;
-                Track("Elegir " + choice.Id);
-            }
-            ImGui.EndCombo();
-        }
+        string useLabel = compact ? "Usar estilo" : "Usar este estilo", keepLabel = compact ? "Conservar" : "Conservar el actual", largeLabel = _expanded ? "Reducir" : "Ampliar";
+        var style = ImGui.GetStyle();
+        float buttonsWidth = ImGui.CalcTextSize(useLabel + keepLabel + largeLabel).X + style.FramePadding.X * 6 + style.ItemSpacing.X * 2;
+        float footer = ImGui.GetFrameHeightWithSpacing() * (buttonsWidth > ImGui.GetContentRegionAvail().X ? 2 : 1) + UiTheme.Px(10);
         ImGui.BeginChild("choices", new(0, -footer));
-        DrawPreview(Selected, new(ImGui.GetContentRegionAvail().X, Math.Clamp(ImGui.GetContentRegionAvail().Y * 0.65f, 70, UiTheme.Px(168))));
-        UiTheme.Section(InterfaceStyles.Describe(Selected).Name);
-        UiTheme.Hint(InterfaceStyles.Describe(Selected).Description);
-        UiTheme.Hint("Vista previa ilustrativa. Podés cambiar de estilo en cualquier momento; tus datos se conservan.");
+        if (_expanded) InterfaceScene.Draw(ImGui.GetWindowDrawList(), Selected, ImGui.GetCursorScreenPos(), ImGui.GetContentRegionAvail());
+        else
+        {
+            DrawChoices(compact);
+            var description = InterfaceStyles.Describe(Selected);
+            float room = ImGui.GetContentRegionAvail().Y;
+            var preview = new Vector2(ImGui.GetContentRegionAvail().X, Math.Clamp(room * 0.66f, UiTheme.Px(90), UiTheme.Px(400)));
+            var at = ImGui.GetCursorScreenPos();
+            ImGui.Dummy(preview);
+            InterfaceScene.Draw(ImGui.GetWindowDrawList(), Selected, at, preview);
+            ImGui.TextUnformatted(description.ShortName + (Selected == _current ? " · estilo actual" : " · vista previa, todavía sin aplicar"));
+            UiTheme.Hint(description.Description);
+            foreach (string feature in description.Features) ImGui.BulletText(feature);
+            UiTheme.Hint("Podés cambiar de estilo cuando quieras. Tus juegos, partidas y ajustes se conservan.");
+        }
         ImGui.EndChild();
         ImGui.Separator();
         if (UiTheme.PrimaryButton(useLabel)) Complete(Selected, finish);
@@ -55,7 +57,49 @@ internal sealed class InterfacePicker
         UiTheme.SameLineIfFits(keepLabel);
         if (ImGui.Button(keepLabel)) Complete(null, finish);
         Track("Conservar el actual");
+        UiTheme.SameLineIfFits(largeLabel);
+        if (ImGui.Button(largeLabel + "###ampliar")) _expanded = !_expanded;
+        Track("Ampliar");
+        if (ImGui.IsKeyPressed(ImGuiKey.Escape, false)) { if (_expanded) _expanded = false; else Complete(null, finish); }
         ImGui.End();
+    }
+
+    private void DrawChoices(bool compact)
+    {
+        float width = ImGui.GetContentRegionAvail().X;
+        if (compact || width < UiTheme.Px(620))
+        {
+            ImGui.SetNextItemWidth(-1);
+            bool choosing = ImGui.BeginCombo("##style", InterfaceStyles.Describe(Selected).ShortName);
+            Track("Estilo");
+            if (choosing)
+            {
+                foreach (var choice in InterfaceStyles.All)
+                {
+                    if (ImGui.Selectable(choice.ShortName + "###style-" + choice.Id, Selected == choice.Style)) Selected = choice.Style;
+                    Track("Elegir " + choice.Id);
+                }
+                ImGui.EndCombo();
+            }
+            return;
+        }
+        float card = (width - ImGui.GetStyle().ItemSpacing.X * 2) / 3;
+        foreach (var choice in InterfaceStyles.All)
+        {
+            ImGui.PushID(choice.Id);
+            if (choice.Style != InterfaceStyles.All[0].Style) ImGui.SameLine();
+            ImGui.PushStyleColor(ImGuiCol.Button, Selected == choice.Style ? ImGui.GetStyle().Colors[(int)ImGuiCol.Header] : UiTheme.Panel);
+            var size = new Vector2(card, ImGui.GetTextLineHeight() * 2 + UiTheme.Px(14));
+            if (ImGui.Button("##elegir", size)) Selected = choice.Style;
+            ImGui.PopStyleColor();
+            var at = ImGui.GetItemRectMin(); var draw = ImGui.GetWindowDrawList();
+            Track("Elegir " + choice.Id);
+            draw.AddText(at + UiTheme.Px(10, 6), ImGui.GetColorU32(ImGuiCol.Text), UiTheme.Fit(choice.ShortName + (choice.Style == _current ? " · actual" : ""), card - UiTheme.Px(20)));
+            draw.AddText(at + new Vector2(UiTheme.Px(10), UiTheme.Px(8) + ImGui.GetTextLineHeight()), ImGui.ColorConvertFloat4ToU32(UiTheme.Muted), UiTheme.Fit(choice.Handling, card - UiTheme.Px(20)));
+            if (Selected == choice.Style) draw.AddRect(at, ImGui.GetItemRectMax(), ImGui.ColorConvertFloat4ToU32(UiTheme.Accent), 0, ImDrawFlags.None, UiTheme.Px(2));
+            ImGui.PopID();
+        }
+        ImGui.Spacing();
     }
 
     private void Complete(InterfaceStyle? choice, Action<InterfaceStyle, string?> finish)
@@ -65,36 +109,4 @@ internal sealed class InterfacePicker
         finish(choice ?? _current, _updatedVersion);
     }
     private void Track(string name) => ControlBounds?.Invoke(name, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
-
-    internal static void DrawPreview(InterfaceStyle style, Vector2 size)
-    {
-        var at = ImGui.GetCursorScreenPos(); var draw = ImGui.GetWindowDrawList();
-        ImGui.Dummy(size);
-        uint bg = style == InterfaceStyle.Retro ? 0xFF172019u : 0xFF050905u;
-        uint ink = style == InterfaceStyle.Retro ? 0xFFD0E0E6u : 0xFF81EF9Bu;
-        uint accent = style == InterfaceStyle.Retro ? 0xFF5BABDFu : 0xFF81EF9Bu;
-        draw.AddRectFilled(at, at + size, bg, 2);
-        draw.AddRect(at, at + size, accent, 2);
-        float unit = Math.Min(UiTheme.Scale, Math.Min(size.X / 400, size.Y / 168));
-        Vector2 P(float x, float y) => at + new Vector2(x, y) * unit;
-        float font = Math.Min(ImGui.GetFontSize(), 18 * unit);
-        void Text(float x, float y, string value, uint color) => draw.AddText(ImGui.GetFont(), font, P(x, y), color, value);
-        Text(12, 10, style == InterfaceStyle.Retro ? "RETROEMU / ARCHIVO" : "RETROEMU SYSTEM / READY", accent);
-        draw.AddLine(P(12, 34), at + new Vector2(size.X - 12 * unit, 34 * unit), accent);
-        if (style == InterfaceStyle.Hardcore)
-        {
-            Text(12, 46, "retro:/biblioteca> juegos", ink);
-            Text(12, 72, "01  Demo de plataformas · 1986", ink);
-            Text(12, 98, "retro:/biblioteca> jugar 1", ink);
-            Text(12, 128, "Cargando máquina… _", accent);
-        }
-        else
-        {
-            Text(12, 46, "BIBLIOTECA  /  HERRAMIENTAS", ink);
-            Text(12, 78, "Demo de plataformas · 1986", ink);
-            draw.AddRectFilled(P(12, 115), P(94, 147), accent, 1);
-            Text(23, 119, "Jugar", bg);
-            Text(112, 119, "Ficha   /   Filtros", ink);
-        }
-    }
 }

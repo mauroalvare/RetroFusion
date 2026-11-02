@@ -168,7 +168,7 @@ public sealed class LibraryInteractionTests
                 Vector2 scrollPoint = (bounds.ClipMin + bounds.ClipMax) / 2;
                 io.AddMousePosEvent(scrollPoint.X, scrollPoint.Y); io.AddMouseWheelEvent(0, bounds.Max.Y > bounds.ClipMax.Y ? -0.5f : 0.5f); Frame();
             }
-            Assert.Fail("Control outside the reachable area: " + label);
+            Assert.Fail("Control outside the reachable area: " + label + (_bounds.TryGetValue(label, out var last) ? $" min={last.Min} max={last.Max} clip={last.ClipMin}..{last.ClipMax}" : " (not drawn; drawn: " + string.Join(", ", _bounds.Keys.Select(key => key.Length > 14 ? key[..14] : key)) + ")"));
         }
 
         public void Type(string label, string text)

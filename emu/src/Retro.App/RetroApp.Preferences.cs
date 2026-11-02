@@ -1,3 +1,4 @@
+using System.Numerics;
 using ImGuiNET;
 using Raylib_cs;
 
@@ -6,6 +7,8 @@ namespace Retro.App;
 public sealed partial class RetroApp
 {
     private bool _preferencesOpen;
+    private string _preferencesGroup = "";
+    private string _preferencesSearch = "";
     private bool ConfigurationOpen => _preferencesOpen || _soundWindowOpen || AiConnectionWindow.IsOpen;
     private static readonly string[] JoystickNames = ["Kempston (Alt = disparo)", "Cursor (5 6 7 8 0)", "Sinclair 1 (6 7 8 9 0)"];
     private static readonly string[] C64Ports = ["Puerto 1", "Puerto 2 (la mayoría de los juegos)"];
@@ -16,43 +19,90 @@ public sealed partial class RetroApp
     private void SetC64Port(int port) { _input.C64Port = _prefs.C64Port = port; _prefs.Save(); }
     private void SetTurboWhileLoading(bool on) { _host.TurboWhileLoading = _prefs.TurboWhileLoading = on; _prefs.Save(); }
 
+    /// <summary>Settings by group, with the fixed footer always in reach. The list comes entirely from the shared catalog.</summary>
     private void DrawPreferencesWindow()
     {
         if (!_preferencesOpen) return;
-        ImGui.SetNextWindowSize(UiTheme.Px(620, 0), ImGuiCond.FirstUseEver);
-        WorkspaceLayout.LimitNextWindow();
-        if (!ImGui.Begin("Preferencias", ref _preferencesOpen, ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoDocking))
-        { ImGui.End(); return; }
-        WorkspaceLayout.KeepOnScreen();
-        ImGui.PushTextWrapPos(0);
-
-        DrawSharedOptions();
-
-        ImGui.Spacing();
-        if (ImGui.Button("Restablecer valores"))
+        var available = WorkspaceLayout.Available();
+        // In a short window the settings come first: title and margins would leave them no room at large text sizes.
+        bool compact = UiTheme.CompactHeight;
+        if (compact)
         {
-            SetInterface(InterfaceStyle.Retro);
-            bool wasFullscreen = Raylib.IsWindowFullscreen();
-            _prefs.Defaults();
-            if (wasFullscreen) Raylib.ToggleFullscreen();
-            _input.Joystick = _prefs.SpectrumJoystick; _input.C64Port = _prefs.C64Port;
-            _host.TurboWhileLoading = _prefs.TurboWhileLoading;
-            _sound.Defaults(); _sound.Save();
-            _prefs.Save(); _themeChanged = true;
+            ImGui.SetNextWindowPos(WorkspaceLayout.Origin); ImGui.SetNextWindowSize(WorkspaceLayout.Size);
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, UiTheme.Px(8, 6));
         }
-        UiTheme.SameLineIfFits("Sonido…");
-        if (ImGui.Button("Sonido...")) _soundWindowOpen = true;
-        UiTheme.SameLineIfFits("Cerrar");
-        if (ImGui.Button("Cerrar")) _preferencesOpen = false;
-        if (_prefs.Problem is { } problem) ImGui.TextWrapped(problem);
+        else
+        {
+            ImGui.SetNextWindowSize(Vector2.Min(UiTheme.Px(820, 620), available), ImGuiCond.Appearing);
+            ImGui.SetNextWindowSizeConstraints(Vector2.Min(UiTheme.Px(360, 240), available), available);
+        }
+        bool shown = compact ? ImGui.Begin("Preferencias###preferencias", WorkspaceLayout.EditorFlags | ImGuiWindowFlags.NoScrollbar)
+            : ImGui.Begin("Preferencias###preferencias", ref _preferencesOpen, ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar);
+        if (compact) ImGui.PopStyleVar();
+        if (!shown) { ImGui.End(); return; }
+        if (!compact) WorkspaceLayout.KeepOnScreen();
+        string[] groups = Options.Select(option => option.Group).Distinct().ToArray();
+        if (!groups.Contains(_preferencesGroup)) _preferencesGroup = groups[0];
+        float footer = ImGui.GetFrameHeightWithSpacing() + (compact ? UiTheme.Px(6) : ImGui.GetTextLineHeightWithSpacing() + UiTheme.Px(14));
+        if (ImGui.GetContentRegionAvail().X < UiTheme.Px(620))
+        {
+            ImGui.SetNextItemWidth(-1);
+            if (ImGui.BeginCombo("##grupo-preferencias", _preferencesGroup))
+            {
+                foreach (string group in groups) if (ImGui.Selectable(group, group == _preferencesGroup)) _preferencesGroup = group;
+                ImGui.EndCombo();
+            }
+        }
+        else
+        {
+            ImGui.BeginChild("grupos-preferencias", new(UiTheme.Px(190), -footer));
+            ImGui.SetNextItemWidth(-1);
+            ImGui.InputTextWithHint("##buscar-ajuste", "Buscar ajuste", ref _preferencesSearch, 60);
+            ImGui.Spacing();
+            foreach (string group in groups)
+                if (ImGui.Selectable(group, group == _preferencesGroup && _preferencesSearch.Length == 0)) { _preferencesGroup = group; _preferencesSearch = ""; }
+            ImGui.EndChild();
+            ImGui.SameLine();
+        }
+        ImGui.BeginChild("ajustes", new(0, -footer));
+        ImGui.PushTextWrapPos(0);
+        if (_preferencesSearch.Trim().Length > 0) DrawSharedOptions(search: _preferencesSearch);
+        else DrawSharedOptions(_preferencesGroup);
+        ImGui.PopTextWrapPos();
+        ImGui.EndChild();
+        ImGui.Separator();
+        // Settings apply as they change: the footer says what happened to them instead of asking for a save.
+        string? problem = _prefs.Problem ?? _sound.Problem;
+        if (!compact || problem != null) UiTheme.Hint(UiTheme.Fit(problem ?? "Los cambios se aplican y se guardan al instante, para los tres estilos.", ImGui.GetContentRegionAvail().X));
+        if (ImGui.Button("Restablecer todo")) ResetPreferences();
+        InterfaceControlBounds?.Invoke("Restablecer todo", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
+        if (ImGui.IsItemHovered()) UiTheme.Tooltip("Vuelve a los valores iniciales de pantalla, sonido, controles y consola. No cambia tus juegos, partidas ni fichas.");
         if (_prefs.CanRecover)
         {
-            UiTheme.Hint("Podés conservar el archivo anterior y guardar los valores de esta sesión en uno nuevo.");
+            UiTheme.SameLineIfFits("Recuperar archivo");
             if (ImGui.Button("Recuperar archivo")) _prefs.Recover();
+            if (ImGui.IsItemHovered()) UiTheme.Tooltip("Conserva el archivo anterior y guarda los valores de esta sesión en uno nuevo.");
         }
         if (_prefs.RecoveryPath is { } backup)
-        { UiTheme.Hint("Se conservó un respaldo del archivo anterior."); if (ImGui.IsItemHovered()) UiTheme.Tooltip(backup); }
-        ImGui.PopTextWrapPos();
+        { UiTheme.SameLineIfFits("Respaldo"); ImGui.TextDisabled("Respaldo"); if (ImGui.IsItemHovered()) UiTheme.Tooltip(backup); }
+        float close = ImGui.CalcTextSize("Cerrar").X + ImGui.GetStyle().FramePadding.X * 2;
+        float right = ImGui.GetCursorPosX() + ImGui.GetContentRegionAvail().X - close;
+        ImGui.SameLine();
+        ImGui.SetCursorPosX(Math.Max(ImGui.GetCursorPosX(), right));
+        if (ImGui.Button("Cerrar")) _preferencesOpen = false;
+        InterfaceControlBounds?.Invoke("Cerrar preferencias", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
         ImGui.End();
+    }
+
+    private void ResetPreferences()
+    {
+        SetInterface(InterfaceStyle.Retro);
+        bool wasFullscreen = Raylib.IsWindowFullscreen();
+        _prefs.Defaults();
+        if (wasFullscreen) Raylib.ToggleFullscreen();
+        _input.Joystick = _prefs.SpectrumJoystick; _input.C64Port = _prefs.C64Port;
+        _host.TurboWhileLoading = _prefs.TurboWhileLoading;
+        _sound.Defaults(); _sound.Save();
+        _prefs.Save(); _themeChanged = true;
     }
 }

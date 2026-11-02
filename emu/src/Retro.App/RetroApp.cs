@@ -79,6 +79,7 @@ public sealed partial class RetroApp
         _host.InputReset += _input.ForgetKeys;
         _prefs = new AppPreferences(persist: !args.Contains("--autotest"));
         _gameMetadata = new(new GameIdentificationCache(persist: !args.Contains("--autotest")));
+        _gameMetadata.CandidatesReady += ReportCandidates;
         int interfaceArg = Array.IndexOf(args, "--interface");
         if (interfaceArg >= 0 && interfaceArg + 1 < args.Length && InterfaceStyles.TryParse(args[interfaceArg + 1], out var appearance)) _prefs.Interface = appearance;
         // --text-size 150 and --high-contrast change this session, as --mute does with the sound.
@@ -115,7 +116,7 @@ public sealed partial class RetroApp
                 else _host.Paused = _pausedBeforeLibrary;
             }, () => _host.LoadedMedia != null || _host.Fusion != null,
             args.Contains("--autotest") ? new LibraryActivity(persist: false) : null,
-            new HomeActions(OpenCreator, OpenFusionStudio, _commands.Open, () => _preferencesOpen = true),
+            new HomeActions(OpenCreator, OpenFusionStudio, _commands.Open, () => _preferencesOpen = true, () => _prefs.OnlineGameInfo),
             args.Contains("--autotest") ? new LibraryMetadata(persist: false) : null, identification: _gameMetadata);
         _studio.GameStarted += game => _home.RecordFusion(game);
         _monitorRate = Raylib.GetMonitorRefreshRate(Raylib.GetCurrentMonitor());
@@ -688,7 +689,6 @@ public sealed partial class RetroApp
                     _host.Start(c.Machine, _romDir);
                 _host.Load(c.File, _prefs.TypeLoad);
             }
-            _host.Status = $"{c.Machine.Name} (CPU {c.Machine.Cpu}), {c.Reason}  |  {_host.Status}";
             return true;
         }
         catch (Exception e)

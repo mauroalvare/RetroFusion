@@ -115,6 +115,48 @@ public sealed class GameIdentificationTests
         Assert.That(await new WikidataGameLookup(http).FindAsync("Faro", "nes"), Is.Null); Assert.That(handler.Requests, Has.Count.EqualTo(2));
     }
 
+    [Test]
+    public async Task CandidatesExplainThemselvesAndAmbiguityIsOfferedForReviewInsteadOfGuessed()
+    {
+        var entities = new List<object> { Entity("Q1", ["Q172742"]), Entity("Q2", ["Q172742"]), Entity("Q3", ["Q99775"]), Entity("Q4", ["Q172742"], "Faro 2") };
+        using var handler = new Handler(Search(), Details(entities), Related(), Related(), Related(), Related());
+        using var http = new HttpClient(handler);
+        var found = await new WikidataGameLookup(http).CandidatesAsync("Faro", "nes");
+        Assert.That(found.Select(candidate => candidate.Game.Source.Split('/').Last()), Is.EqualTo(new[] { "Q1", "Q2", "Q3", "Q4" }), "The most plausible come first.");
+        Assert.That(found[0].Reason, Does.Contain("Título exacto y misma plataforma"));
+        Assert.That(found[2].Reason, Does.Contain("otra plataforma"));
+        Assert.That(found[3].Reason, Does.Contain("parecido"));
+        Assert.That(found[0].Game.Method, Does.Contain("Elegido por vos"));
+    }
+
+    [Test]
+    public void PersonalDecisionsAboutAMatchSurviveTheCatalog()
+    {
+        string path = Path.Combine(_folder, "decisiones.json"), key = LibraryKey.Original("nes", [new MediaFile("a.nes", [1], "a.nes")]);
+        var now = new DateTimeOffset(2026, 11, 1, 0, 0, 0, TimeSpan.Zero);
+        IdentifiedGame Game(string source) => new("Faro", [], 1986, null, source, "m");
+        var cache = new GameIdentificationCache(path);
+        cache.Put(key, Game("https://x/Q1"), "nes:Faro", now);
+        cache.Reject(key, "https://x/Q1", now);
+        Assert.That(cache.Detected(key), Is.Null, "Rejecting the current match removes it.");
+        cache.Put(key, Game("https://x/Q1"), "nes:Faro", now.AddDays(100));
+        Assert.That(cache.Detected(key), Is.Null, "The same answer later does not come back.");
+        cache.Confirm(key, Game("https://x/Q2"), now);
+        Assert.That(cache.IsFresh(key, "nes:otra", now.AddYears(5)), Is.True, "A confirmed match never needs another lookup.");
+        cache.Put(key, Game("https://x/Q9"), "nes:Faro", now.AddDays(200));
+        var reopened = new GameIdentificationCache(path);
+        Assert.That(reopened.Detected(key)!.Source, Is.EqualTo("https://x/Q2"), "A later catalog answer does not undo the decision, also after restarting.");
+    }
+
+    [Test]
+    public void OlderCacheFilesStayReadable()
+    {
+        string path = Path.Combine(_folder, "anterior.json"), key = LibraryKey.Original("nes", [new MediaFile("b.nes", [2], "b.nes")]);
+        File.WriteAllText(path, "{\"version\":1,\"games\":{\"" + key + "\":{\"game\":null,\"query\":\"nes:Faro\",\"checkedAt\":\"2026-10-01T00:00:00+00:00\",\"ignored\":true}}}");
+        var cache = new GameIdentificationCache(path);
+        Assert.That(cache.Problem, Is.Null); Assert.That(cache.Get(key)!.Ignored, Is.True); Assert.That(cache.Get(key)!.Confirmed, Is.False);
+    }
+
     [TestCase(false), TestCase(true)]
     public async Task SinglePlatformOrQualifiedReleaseDatesCanSupplyThePlatformYear(bool qualifier)
     {

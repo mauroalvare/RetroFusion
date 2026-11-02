@@ -29,6 +29,49 @@ public sealed class GameMetadataService : IDisposable
     public GameMetadataService(GameIdentificationCache? cache = null, HttpClient? http = null)
     { Cache = cache ?? new(); _ownsHttp = http == null; _http = http ?? new HttpClient(); }
 
+    // ---- candidates a person asked to review
+    private Task<IReadOnlyList<GameCandidate>>? _candidateTask;
+    private CancellationTokenSource? _candidateCancel;
+    public string? CandidateKey { get; private set; }
+    public bool SearchingCandidates => _candidateTask != null;
+    public IReadOnlyList<GameCandidate> Candidates { get; private set; } = [];
+    public string CandidateStatus { get; private set; } = "";
+    /// <summary>Raised once when a search ends, on the interface thread.</summary>
+    public event Action? CandidatesReady;
+
+    /// <summary>Only runs when asked for, and the caller has already checked that online lookups are enabled.</summary>
+    public void SearchCandidates(string key, string name, string machine)
+    {
+        StopCandidates();
+        CandidateKey = key; Candidates = []; CandidateStatus = "Buscando candidatos en el catálogo…";
+        _candidateCancel = new CancellationTokenSource(TimeSpan.FromSeconds(12));
+        _candidateTask = new WikidataGameLookup(_http).CandidatesAsync(name, machine, _candidateCancel.Token);
+    }
+
+    public void StopCandidates()
+    {
+        _candidateCancel?.Cancel(); _candidateCancel?.Dispose(); _candidateCancel = null;
+        if (_candidateTask is { } pending) _ = pending.ContinueWith(task => _ = task.Exception, TaskContinuationOptions.OnlyOnFaulted);
+        _candidateTask = null;
+    }
+
+    private void PollCandidates()
+    {
+        if (_candidateTask is not { IsCompleted: true } finished) return;
+        _candidateTask = null; _candidateCancel?.Dispose(); _candidateCancel = null;
+        if (finished.IsCompletedSuccessfully)
+        {
+            var rejected = Cache.Get(CandidateKey ?? "")?.Rejected ?? [];
+            Candidates = finished.Result.Where(candidate => !rejected.Contains(candidate.Game.Source)).ToArray();
+            CandidateStatus = Candidates.Count == 0 ? "El catálogo no ofrece candidatos para este título." : $"{Candidates.Count} candidatos. Ninguno se aplica sin que lo elijas.";
+        }
+        else { _ = finished.Exception; CandidateStatus = "El catálogo no respondió. Tus datos no cambiaron; podés reintentar."; }
+        CandidatesReady?.Invoke();
+    }
+
+    public void Accept(string key, GameCandidate candidate) { Cache.Confirm(key, candidate.Game, DateTimeOffset.UtcNow); Candidates = Candidates.Where(item => item != candidate).ToArray(); _localRevision++; }
+    public void Reject(string key, GameCandidate candidate) { Cache.Reject(key, candidate.Game.Source, DateTimeOffset.UtcNow); Candidates = Candidates.Where(item => item != candidate).ToArray(); _localRevision++; }
+
     public IdentifiedGame? Get(string key)
     {
         if (Cache.Get(key) is { Ignored: true }) return null;
@@ -73,6 +116,7 @@ public sealed class GameMetadataService : IDisposable
     public void Poll(IReadOnlyList<LibraryEntry> games, string folder, int revision, bool online)
     {
         UpdateLocal(games, folder, revision);
+        PollCandidates();
         if (!online)
         {
             if (_online || _task != null) { Stop(); _queue.Clear(); }
@@ -118,5 +162,5 @@ public sealed class GameMetadataService : IDisposable
         if (_task is { } pending) _ = pending.ContinueWith(task => _ = task.Exception, TaskContinuationOptions.OnlyOnFaulted);
         _task = null; _current = null;
     }
-    public void Dispose() { Stop(); if (_ownsHttp) _http.Dispose(); }
+    public void Dispose() { Stop(); StopCandidates(); if (_ownsHttp) _http.Dispose(); }
 }

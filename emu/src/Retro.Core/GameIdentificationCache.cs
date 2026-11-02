@@ -5,7 +5,9 @@ namespace Retro.Core;
 /// <summary>Disposable lookup data, separate from the user's personal catalog.</summary>
 public sealed class GameIdentificationCache
 {
-    public sealed record Entry(IdentifiedGame? Game, string Query, DateTimeOffset CheckedAt, bool Ignored = false);
+    /// <param name="Confirmed">A person chose this match: later automatic passes keep it.</param>
+    /// <param name="Rejected">Sources a person rejected; they are not accepted again automatically.</param>
+    public sealed record Entry(IdentifiedGame? Game, string Query, DateTimeOffset CheckedAt, bool Ignored = false, bool Confirmed = false, string[]? Rejected = null);
     private sealed record Document(int Version, Dictionary<string, Entry> Games);
     private readonly Dictionary<string, Entry> _games = new(StringComparer.Ordinal);
     private readonly string _path;
@@ -34,11 +36,14 @@ public sealed class GameIdentificationCache
 
     public Entry? Get(string key) => _games.TryGetValue(key, out var value) ? Copy(value) : null;
     public IdentifiedGame? Detected(string key) => Get(key) is { Ignored: false } entry ? entry.Game : null;
-    public bool IsFresh(string key, string query, DateTimeOffset now) => Get(key) is { } entry && (entry.Ignored || entry.Query == query && now >= entry.CheckedAt && now - entry.CheckedAt < TimeSpan.FromDays(entry.Game == null ? 7 : 90));
+    public bool IsFresh(string key, string query, DateTimeOffset now) => Get(key) is { } entry && (entry.Ignored || entry.Confirmed || entry.Query == query && now >= entry.CheckedAt && now - entry.CheckedAt < TimeSpan.FromDays(entry.Game == null ? 7 : 90));
 
     public void Put(string key, IdentifiedGame? game, string query, DateTimeOffset now)
     {
-        var entry = new Entry(game, query, now, Get(key)?.Ignored ?? false);
+        var previous = Get(key);
+        // A personal decision outlives what the catalog says later.
+        if (previous is { Confirmed: true } || game != null && previous?.Rejected?.Contains(game.Source) == true) return;
+        var entry = new Entry(game, query, now, previous?.Ignored ?? false, false, previous?.Rejected);
         if (!LibraryKey.Valid(key) || !Valid(entry) || !_games.ContainsKey(key) && _games.Count >= 16384) return;
         _games[key] = Copy(entry); Revision++; Save();
     }
@@ -48,8 +53,25 @@ public sealed class GameIdentificationCache
         _games[key] = entry with { Ignored = ignore }; Revision++; Save();
     }
 
+    /// <summary>A reviewed candidate. It also lifts a previous omission: choosing an identity is the opposite of rejecting one.</summary>
+    public void Confirm(string key, IdentifiedGame game, DateTimeOffset now)
+    {
+        var entry = new Entry(game, Get(key)?.Query ?? "", now, false, true, Get(key)?.Rejected);
+        if (!LibraryKey.Valid(key) || !Valid(entry) || !_games.ContainsKey(key) && _games.Count >= 16384) return;
+        _games[key] = Copy(entry); Revision++; Save();
+    }
+
+    public void Reject(string key, string source, DateTimeOffset now)
+    {
+        var entry = Get(key) ?? new(null, "", now);
+        string[] rejected = (entry.Rejected ?? []).Append(source).Distinct().TakeLast(16).ToArray();
+        var updated = entry with { Rejected = rejected, Game = entry.Game?.Source == source ? null : entry.Game, Confirmed = entry.Confirmed && entry.Game?.Source != source };
+        if (!LibraryKey.Valid(key) || !Valid(updated)) return;
+        _games[key] = Copy(updated); Revision++; Save();
+    }
+
     private static Entry Copy(Entry entry) => entry with { Game = entry.Game is { } game ? game with { Genres = game.Genres.ToArray() } : null };
-    private static bool Valid(Entry? entry) => entry != null && entry.Query is { Length: <= 200 } && (entry.Game == null ||
+    private static bool Valid(Entry? entry) => entry != null && entry.Query is { Length: <= 200 } && (entry.Rejected == null || entry.Rejected.Length <= 16 && entry.Rejected.All(source => source is { Length: > 0 and <= 300 })) && (entry.Game == null ||
         entry.Game is { Title.Length: > 0 and <= 160, Genres.Length: <= 8, Source.Length: > 0 and <= 300, Method.Length: > 0 and <= 160 } game &&
         game.Genres.All(genre => genre is { Length: > 0 and <= 40 }) && (game.ReleaseYear == null || game.ReleaseYear is >= 1900 and <= 2100) &&
         (game.FirstReleaseYear == null || game.FirstReleaseYear is >= 1900 and <= 2100) && (game.Publisher == null || game.Publisher.Length <= 160));

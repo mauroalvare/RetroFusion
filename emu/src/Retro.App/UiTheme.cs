@@ -32,10 +32,30 @@ internal static class UiTheme
     private static ImFontPtr _codeFont;
     private static ImFontPtr _titleFont;
     private static ImFontPtr _labelFont;
+    private static ImFontPtr _retroFont;
     private static ImGuiStyle? _baseStyle;
     // Atlas configurations retain this pointer for future rebuilds. One range table per process.
     private static readonly GCHandle Ranges = GCHandle.Alloc(new ushort[] { 0x20, 0xFF, 0x2000, 0x206F, 0x2190, 0x2199, 0x2260, 0x2265, 0x2500, 0x25FF, 0x2605, 0x2606, 0x2713, 0x2717, 0 }, GCHandleType.Pinned);
     private static readonly GCHandle SymbolRanges = GCHandle.Alloc(new ushort[] { 0x2190, 0x2199, 0x2260, 0x2265, 0x2500, 0x25FF, 0x2605, 0x2606, 0x2713, 0x2717, 0 }, GCHandleType.Pinned);
+
+    /// <summary>The colors that define a style. The theme and the previews read the same values.</summary>
+    public readonly record struct StylePalette(Vector4 Window, Vector4 Panel, Vector4 Frame, Vector4 Button, Vector4 Header, Vector4 Border,
+        Vector4 Text, Vector4 Bright, Vector4 Muted, Vector4 Accent, Vector4 OnAccent, bool Rounded);
+
+    private static readonly StylePalette RetroPalette = new(new(0.065f, 0.080f, 0.070f, 1), new(0.09f, 0.115f, 0.10f, 1), new(0.115f, 0.145f, 0.12f, 1),
+        new(0.17f, 0.20f, 0.16f, 1), new(0.30f, 0.25f, 0.16f, 1), new(0.29f, 0.32f, 0.27f, 1), new(0.91f, 0.89f, 0.82f, 1), new(1, 0.97f, 0.9f, 1),
+        new(0.67f, 0.69f, 0.63f, 1), new(0.88f, 0.67f, 0.36f, 1), new(0.065f, 0.08f, 0.07f, 1), true);
+    private static readonly StylePalette TerminalPalette = new(new(0.008f, 0.018f, 0.01f, 1), new(0.015f, 0.035f, 0.02f, 1), new(0.025f, 0.10f, 0.04f, 1),
+        new(0.025f, 0.10f, 0.04f, 1), new(0.07f, 0.24f, 0.10f, 1), new(0.18f, 0.42f, 0.22f, 1), new(0.57f, 0.94f, 0.61f, 1), new(0.80f, 1, 0.82f, 1),
+        new(0.43f, 0.68f, 0.46f, 1), new(0.45f, 1, 0.53f, 1), new(0.01f, 0.035f, 0.015f, 1), false);
+    public static StylePalette PaletteOf(InterfaceStyle style) => style == InterfaceStyle.Retro ? RetroPalette : TerminalPalette;
+    public static ImFontPtr PreviewFont(InterfaceStyle style) => style == InterfaceStyle.Retro ? _retroFont : _codeFont;
+    public static ImFontPtr PreviewLabelFont(InterfaceStyle style) => style == InterfaceStyle.Retro && !Terminal ? _labelFont : _codeFont;
+    public static ImFontPtr PreviewTitleFont(InterfaceStyle style) => style == InterfaceStyle.Retro && !Terminal ? _titleFont : style == InterfaceStyle.Retro ? _retroFont : _codeFont;
+
+    /// <summary>The faces the interface writes with, for the glyph audit.</summary>
+    internal static IEnumerable<(string Name, ImFontPtr Font)> Fonts =>
+        [("cuerpo", ImGui.GetFont()), ("ancho fijo", _codeFont), ("títulos", _titleFont), ("rótulos", _labelFont)];
 
     public static float Px(float value) => value * Scale;
     public static Vector2 Px(float x, float y) => new(x * Scale, y * Scale);
@@ -82,18 +102,18 @@ internal static class UiTheme
         }
         else
         {
-            colors[(int)ImGuiCol.Text] = new(0.91f, 0.89f, 0.82f, 1);
-            colors[(int)ImGuiCol.WindowBg] = new(0.065f, 0.080f, 0.070f, 1);
-            colors[(int)ImGuiCol.PopupBg] = new(0.09f, 0.115f, 0.10f, 1);
-            colors[(int)ImGuiCol.Border] = new(0.29f, 0.32f, 0.27f, 1);
+            colors[(int)ImGuiCol.Text] = RetroPalette.Text;
+            colors[(int)ImGuiCol.WindowBg] = RetroPalette.Window;
+            colors[(int)ImGuiCol.PopupBg] = RetroPalette.Panel;
+            colors[(int)ImGuiCol.Border] = RetroPalette.Border;
             colors[(int)ImGuiCol.Separator] = new(0.27f, 0.30f, 0.25f, 1);
-            colors[(int)ImGuiCol.FrameBg] = new(0.115f, 0.145f, 0.12f, 1);
+            colors[(int)ImGuiCol.FrameBg] = RetroPalette.Frame;
             colors[(int)ImGuiCol.FrameBgHovered] = new(0.18f, 0.21f, 0.17f, 1);
             colors[(int)ImGuiCol.FrameBgActive] = new(0.22f, 0.25f, 0.19f, 1);
-            colors[(int)ImGuiCol.Button] = new(0.17f, 0.20f, 0.16f, 1);
+            colors[(int)ImGuiCol.Button] = RetroPalette.Button;
             colors[(int)ImGuiCol.ButtonHovered] = new(0.26f, 0.29f, 0.22f, 1);
             colors[(int)ImGuiCol.ButtonActive] = new(0.34f, 0.31f, 0.22f, 1);
-            colors[(int)ImGuiCol.Header] = new(0.30f, 0.25f, 0.16f, 1);
+            colors[(int)ImGuiCol.Header] = RetroPalette.Header;
             colors[(int)ImGuiCol.HeaderHovered] = new(0.37f, 0.31f, 0.20f, 1);
             colors[(int)ImGuiCol.HeaderActive] = new(0.43f, 0.35f, 0.22f, 1);
             colors[(int)ImGuiCol.TitleBg] = new(0.10f, 0.12f, 0.10f, 1);
@@ -110,11 +130,11 @@ internal static class UiTheme
             if (Enum.TryParse<ImGuiCol>(name,out var key)) colors[(int)key]=highContrast?new(0,0.27f,0.55f,1):new(0.33f,0.28f,0.18f,1);
         if (Terminal && !HighContrast)
         {
-            colors[(int)ImGuiCol.Text] = new(0.57f, 0.94f, 0.61f, 1);
-            foreach (var key in new[] { ImGuiCol.WindowBg, ImGuiCol.PopupBg, ImGuiCol.MenuBarBg, ImGuiCol.TitleBg, ImGuiCol.ScrollbarBg }) colors[(int)key] = new(0.008f, 0.018f, 0.01f, 1);
-            foreach (var key in new[] { ImGuiCol.Button, ImGuiCol.FrameBg, ImGuiCol.Header, ImGuiCol.TitleBgActive }) colors[(int)key] = new(0.025f, 0.10f, 0.04f, 1);
+            colors[(int)ImGuiCol.Text] = TerminalPalette.Text;
+            foreach (var key in new[] { ImGuiCol.WindowBg, ImGuiCol.PopupBg, ImGuiCol.MenuBarBg, ImGuiCol.TitleBg, ImGuiCol.ScrollbarBg }) colors[(int)key] = TerminalPalette.Window;
+            foreach (var key in new[] { ImGuiCol.Button, ImGuiCol.FrameBg, ImGuiCol.Header, ImGuiCol.TitleBgActive }) colors[(int)key] = TerminalPalette.Button;
             foreach (var key in new[] { ImGuiCol.ButtonHovered, ImGuiCol.ButtonActive, ImGuiCol.FrameBgHovered, ImGuiCol.FrameBgActive, ImGuiCol.HeaderHovered, ImGuiCol.HeaderActive, ImGuiCol.ScrollbarGrab }) colors[(int)key] = new(0.07f, 0.24f, 0.10f, 1);
-            colors[(int)ImGuiCol.Border] = colors[(int)ImGuiCol.Separator] = new(0.18f, 0.42f, 0.22f, 1);
+            colors[(int)ImGuiCol.Border] = colors[(int)ImGuiCol.Separator] = TerminalPalette.Border;
             colors[(int)ImGuiCol.CheckMark] = colors[(int)ImGuiCol.NavCursor] = Accent;
             colors[(int)ImGuiCol.TableHeaderBg] = new(0.025f, 0.09f, 0.035f, 1);
             colors[(int)ImGuiCol.TextSelectedBg] = new(0.12f, 0.40f, 0.17f, 0.8f);
@@ -149,15 +169,21 @@ internal static class UiTheme
             var fontPtr = font == null ? ImGui.GetIO().Fonts.AddFontDefault(config)
                 : ImGui.GetIO().Fonts.AddFontFromFileTTF(font, size, config, Ranges.AddrOfPinnedObject());
             string? symbols = SymbolCandidates().FirstOrDefault(File.Exists);
+            string? fallback = FontCandidates(false).Skip(OperatingSystem.IsWindows() ? 2 : 1).Concat(FontCandidates(false)).FirstOrDefault(File.Exists);
             void MergeSymbols(float fontSize)
             {
-                if (symbols == null) return;
                 config.MergeMode = true;
-                ImGui.GetIO().Fonts.AddFontFromFileTTF(symbols, fontSize, config, SymbolRanges.AddrOfPinnedObject());
+                // Merging only fills glyphs the font lacks; display and label faces miss common punctuation.
+                if (fallback != null) ImGui.GetIO().Fonts.AddFontFromFileTTF(fallback, fontSize, config, Ranges.AddrOfPinnedObject());
+                if (symbols != null) ImGui.GetIO().Fonts.AddFontFromFileTTF(symbols, fontSize, config, SymbolRanges.AddrOfPinnedObject());
                 config.MergeMode = false;
             }
             MergeSymbols(size);
             ImGui.GetIO().NativePtr->FontDefault = fontPtr.NativePtr;
+            // Previews of the principal style need its body face while another style is active.
+            string? retroBody = FontCandidates(false).FirstOrDefault(File.Exists);
+            _retroFont = !Terminal || retroBody == null ? fontPtr : ImGui.GetIO().Fonts.AddFontFromFileTTF(retroBody, size, config, Ranges.AddrOfPinnedObject());
+            if (Terminal && retroBody != null) MergeSymbols(size);
             _codeFont = codeFont == null ? fontPtr
                 : ImGui.GetIO().Fonts.AddFontFromFileTTF(codeFont, MathF.Round(16 * Scale), config, Ranges.AddrOfPinnedObject());
             if (codeFont != null) MergeSymbols(MathF.Round(16 * Scale));
@@ -295,6 +321,15 @@ internal static class UiTheme
         if (!HighContrast && !Terminal) RetroArt.Screw(ImGui.GetWindowDrawList(),ImGui.GetWindowPos()+new Vector2(ImGui.GetWindowWidth()-UiTheme.Px(7),UiTheme.Px(7)));
     }
     public static void EndCard() => ImGui.EndChild();
+
+    /// <summary>A fixed area with the look of a card, for content that scrolls inside it.</summary>
+    public static void BeginPanel(string id, Vector2 size)
+    {
+        ImGui.PushStyleColor(ImGuiCol.ChildBg, Panel);
+        ImGui.BeginChild(id, size, ImGuiChildFlags.Borders);
+        ImGui.PopStyleColor();
+    }
+    public static void EndPanel() => ImGui.EndChild();
 
     /// <summary>Keeps the next button on this row only if it fits, so rows of buttons wrap at large text sizes.</summary>
     public static void SameLineIfFits(string buttonLabel) =>

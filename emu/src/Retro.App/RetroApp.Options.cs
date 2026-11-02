@@ -40,11 +40,13 @@ public sealed partial class RetroApp
             new("1", "Corto · 1 cuadro"), new("2", "Equilibrado · 2 cuadros"), new("4", "Amplio · 4 cuadros"))
     ];
 
-    private void DrawSharedOptions(string? onlyGroup = null)
+    private void DrawSharedOptions(string? onlyGroup = null, string search = "")
     {
-        foreach (var group in Options.Where(option => onlyGroup == null || option.Group == onlyGroup).GroupBy(option => option.Group))
+        string wanted = CommandLine.Fold(search.Trim());
+        foreach (var group in Options.Where(option => (onlyGroup == null || option.Group == onlyGroup)
+            && (wanted.Length == 0 || CommandLine.Fold(option.Id + " " + option.Title + " " + option.Group + " " + option.Description).Contains(wanted))).GroupBy(option => option.Group))
         {
-            ImGui.SeparatorText(group.Key);
+            UiTheme.Section(group.Key);
             foreach (var option in group)
             {
                 ImGui.PushID(option.Id);
@@ -71,6 +73,11 @@ public sealed partial class RetroApp
                 }
                 InterfaceControlBounds?.Invoke("Opción:" + option.Id, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
                 UiTheme.Hint(option.Description);
+                if (option.Modified)
+                {
+                    if (ImGui.SmallButton("Volver al valor inicial")) option.Write(option.Default!);
+                    if (ImGui.IsItemHovered()) UiTheme.Tooltip("Valor inicial: " + (option.Choices?.FirstOrDefault(choice => choice.Value == option.Default)?.Label ?? option.Default));
+                }
                 if (option.Id == "interfaz" && ImGui.Button("Ver estilos y vistas previas…")) OpenInterfacePicker();
                 if (option.Id == "consulta-fichas")
                 {

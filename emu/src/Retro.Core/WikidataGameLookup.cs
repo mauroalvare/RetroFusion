@@ -4,6 +4,9 @@ using System.Text.RegularExpressions;
 
 namespace Retro.Core;
 
+/// <summary>A possible identity offered for review, with what makes it plausible. It is never applied by itself.</summary>
+public sealed record GameCandidate(IdentifiedGame Game, string Reason);
+
 /// <summary>Read-only CC0 metadata. Sends a cleaned title, never media, hashes or local paths.</summary>
 public sealed partial class WikidataGameLookup(HttpClient client)
 {
@@ -35,7 +38,40 @@ public sealed partial class WikidataGameLookup(HttpClient client)
             Values(item, "P400").Any(value => platforms.Contains(ItemId(value)))).ToArray();
         // Two editions sharing a title are an ambiguity, not a reason to pick the first result.
         if (matches.Length != 1) return null;
-        var game = matches[0];
+        return await Describe(matches[0], title, platforms, "Catálogo: título exacto o alias + plataforma; copia sin verificar", cancellation);
+    }
+
+    /// <summary>What a person can review when no automatic match is safe. Asked for explicitly, one game at a time.</summary>
+    public async Task<IReadOnlyList<GameCandidate>> CandidatesAsync(string name, string machine, CancellationToken cancellation = default)
+    {
+        if (!Platforms.TryGetValue(machine, out var platforms)) return [];
+        string title = GameIdentification.TitleFromName(name);
+        if (title.Length < 2) return [];
+        using var search = await Fetch("action=wbsearchentities&language=en&uselang=es&type=item&limit=8&search=" + Uri.EscapeDataString(title), cancellation);
+        if (!search.RootElement.TryGetProperty("search", out var hits) || hits.ValueKind != JsonValueKind.Array) return [];
+        string[] ids = hits.EnumerateArray().Select(hit => hit.TryGetProperty("id", out var id) ? id.GetString() : null)
+            .OfType<string>().Where(id => EntityId().IsMatch(id)).Distinct().Take(8).ToArray();
+        if (ids.Length == 0) return [];
+        using var details = await Entities(ids, "labels|aliases|claims", cancellation);
+        string wanted = GameIdentification.MatchTitle(title);
+        var found = new List<(int Rank, GameCandidate Candidate)>();
+        foreach (var item in Items(details))
+        {
+            // Only things with a platform are games; a film or a band can share the name.
+            var listed = Values(item, "P400").Select(ItemId).ToArray();
+            if (listed.Length == 0) continue;
+            bool exact = Names(item).Any(label => GameIdentification.MatchTitle(label) == wanted), platform = listed.Any(id => platforms.Contains(id));
+            if (!exact && !platform) continue;
+            string reason = exact && platform ? "Título exacto y misma plataforma; hay más de una entrada así"
+                : exact ? "Título exacto, pero figura en otra plataforma" : "Misma plataforma, título solo parecido";
+            if (await Describe(item, title, platforms, "Elegido por vos entre los candidatos del catálogo; copia sin verificar", cancellation) is { } game)
+                found.Add((exact && platform ? 0 : exact ? 1 : 2, new(game, reason)));
+        }
+        return found.OrderBy(item => item.Rank).Select(item => item.Candidate).Take(6).ToArray();
+    }
+
+    private async Task<IdentifiedGame?> Describe(JsonElement game, string title, string[] platforms, string method, CancellationToken cancellation)
+    {
         var genres = Values(game, "P136").Select(ItemId).OfType<string>().Where(id => EntityId().IsMatch(id)).Distinct().Take(8).ToArray();
         var publishers = Values(game, "P123").Select(ItemId).OfType<string>().Where(id => EntityId().IsMatch(id)).Distinct().Take(3).ToArray();
         string[] related = genres.Concat(publishers).Distinct().ToArray();
@@ -56,7 +92,7 @@ public sealed partial class WikidataGameLookup(HttpClient client)
         if (!EntityId().IsMatch(idText)) return null;
         return new(Label(game) ?? title, GameIdentification.NormalizeGenres(genres.Select(id => labels.GetValueOrDefault(id)).OfType<string>()),
             release, publishers.Select(id => labels.GetValueOrDefault(id)).OfType<string>().FirstOrDefault(),
-            "https://www.wikidata.org/wiki/" + idText, "Catálogo: título exacto o alias + plataforma; copia sin verificar", first);
+            "https://www.wikidata.org/wiki/" + idText, method, first);
     }
 
     private Task<JsonDocument> Entities(string[] ids, string properties, CancellationToken cancellation) =>

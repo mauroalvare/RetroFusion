@@ -22,6 +22,52 @@ public sealed class InterfaceCaptureTests
         ui.Enter("registros"); ui.Enter("jugra 1"); ui.Type("op"); ui.Key(ImGuiKey.Tab); ui.Capture(name + "-completar");
     }
 
+    [Explicit(Reason)]
+    [TestCase("retro"), TestCase("terminal"), TestCase("hardcore")]
+    public unsafe void EveryCharacterTheProgramWritesExistsInEveryFont(string style)
+    {
+        using var ui = new NativeHarness(1280, 840, 100, style);
+        var used = new SortedSet<char>();
+        string source = Path.GetFullPath(Path.Combine(TestContext.CurrentContext.TestDirectory, "..", "..", "..", "..", "..", "src", "Retro.App"));
+        foreach (string file in Directory.GetFiles(source, "*.cs", SearchOption.AllDirectories))
+            foreach (System.Text.RegularExpressions.Match literal in System.Text.RegularExpressions.Regex.Matches(File.ReadAllText(file), "\"(?:[^\"\\\n]|\\.)*\""))
+                foreach (char c in literal.Value) if (c > 126 && !char.IsSurrogate(c)) used.Add(c);
+        Assert.That(used, Has.Count.GreaterThan(20), "The scan must have read the interface texts.");
+        foreach (var (name, font) in UiTheme.Fonts)
+        {
+            var missing = used.Where(c => font.NativePtr->FallbackGlyph != null && (nint)ImGuiNative.ImFont_FindGlyphNoFallback(font.NativePtr, c) == 0).ToArray();
+            Assert.That(new string(missing), Is.Empty, "Glyphs missing in the " + name + " font of style " + style);
+        }
+    }
+
+    [Explicit(Reason)]
+    [TestCase("retro", 1280, 840, 100), TestCase("retro", 640, 480, 200), TestCase("retro", 1024, 700, 150), TestCase("terminal", 640, 480, 200)]
+    public void TheEssentialControlsCanBeReachedAtEverySize(string style, int width, int height, int text)
+    {
+        using var ui = new NativeHarness(width, height, text, style);
+        var home = (HomeScreen)ui.Get("_home");
+        var bounds = new Dictionary<string, (bool Visible, System.Numerics.Vector2 Min, System.Numerics.Vector2 Max)>();
+        home.LibraryControlBounds = (name, min, max) =>
+        {
+            var clipMin = ImGui.GetWindowDrawList().GetClipRectMin(); var clipMax = ImGui.GetWindowDrawList().GetClipRectMax();
+            bounds[name] = (min.X >= clipMin.X && max.X <= clipMax.X && min.Y >= clipMin.Y && max.Y <= clipMax.Y, min, max);
+        };
+        home.ShowOriginals(); ui.Frames(6);
+        var visible = bounds.Where(pair => pair.Value.Visible).Select(pair => pair.Key).ToArray();
+        int rows = visible.Count(name => name.StartsWith("Jugar:", StringComparison.Ordinal));
+        TestContext.Out.WriteLine($"{style} {width}x{height} {text}%: {rows} filas con Jugar visible");
+        Assert.That(rows, Is.GreaterThanOrEqualTo(2), "The list must show several games, not just its headers.");
+        Assert.That(visible.Any(name => name.StartsWith("Ficha:", StringComparison.Ordinal)), Is.True);
+        Assert.That(visible, Has.Member("Filtros"));
+        ui.Set("_preferencesOpen", true); ui.Frames(6);
+        Assert.That(ui.Bounds.TryGetValue("Cerrar preferencias", out var close) && close.Visible, Is.True, "Close must be reachable without scrolling.");
+        Assert.That(ui.Bounds["Restablecer todo"].Visible, Is.True);
+        ui.Capture($"preferencias-{style}-{width}x{height}-{text}");
+        ui.Click("Cerrar preferencias"); Assert.That((bool)ui.Get("_preferencesOpen"), Is.False);
+        ui.Call("OpenInterfacePicker"); ui.Frames(6);
+        ui.Capture($"selector-{style}-{width}x{height}-{text}");
+    }
+
     private static readonly string[] Pages = ["inicio", "originales", "partida", "crear", "herramientas", "ayuda", "preferencias", "creador", "estudio", "codigo", "depurador", "partidas", "acciones"];
 
     [Explicit("Requiere gráficos nativos; escribe capturas en RETROEMU_QA_SHOTS.")]
