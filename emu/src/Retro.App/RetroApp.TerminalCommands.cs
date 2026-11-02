@@ -28,6 +28,7 @@ public sealed partial class RetroApp
                 context.Write("Biblioteca: " + _home.GameCount + " juegos · " + (_library.Scanning ? "actualizando" : "al día"));
                 context.Write("Identificación: " + _gameMetadata.Status);
                 context.Write("Interfaz: " + InterfaceStyles.Describe(_prefs.Interface).Name + $" · texto {_prefs.TextPercent} %");
+                if (_host.SoundDeviceMissing) context.Warning("no hay salida de audio: los juegos corren sin sonido, a su velocidad. hacer audio-retry la vuelve a buscar.");
                 var active = _tasks.Active;
                 context.Write(active.Count == 0 ? "Tareas: ninguna en curso" : $"Tareas: {active.Count} en curso · usá tareas");
                 if (_host.Status.Length > 0) context.Detail(_host.Status);
@@ -132,7 +133,7 @@ public sealed partial class RetroApp
         new()
         {
             Id = "system.diagnostics", Name = "diagnostico", Group = "Sistema", Summary = "Muestra un resumen técnico sin datos personales; copiarlo es una acción explícita.",
-            Aliases = ["diagnóstico"], Keywords = "error informe soporte problema reporte registro",
+            Keywords = "error informe soporte problema reporte registro",
             Arguments = [new("accion", ArgumentKind.Choice, "copiar lo lleva al portapapeles.") { Optional = true, Choices = ["ver", "copiar"] }],
             Examples = ["diagnostico", "diagnostico copiar"], Result = "No incluye rutas personales, títulos, credenciales ni tu historial de órdenes.",
             Run = context =>

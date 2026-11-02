@@ -20,6 +20,10 @@ public sealed class InterfaceCaptureTests
         ui.Enter("ficha 1"); ui.Enter("ayuda jugar"); ui.Capture(name + "-ayuda");
         ui.Enter("ayuda"); ui.Capture(name + "-indice");
         ui.Enter("registros"); ui.Enter("jugra 1"); ui.Type("op"); ui.Key(ImGuiKey.Tab); ui.Capture(name + "-completar");
+        ui.Key(ImGuiKey.Escape); ui.Key(ImGuiKey.Escape);
+        ((TerminalInput)ui.Get("_terminalInput")).Paste("juegos\nficha 1\njugar 1"); ui.Frames(3); ui.Capture(name + "-pegado");
+        ui.Key(ImGuiKey.Escape); ui.Enter("jugar 1"); ui.Frames(4); ui.Capture(name + "-partida");
+        ui.Click(((TerminalView)ui.Get("_terminalView")).InputBounds.Min + new System.Numerics.Vector2(30, 6)); ui.Type("estado"); ui.Capture(name + "-barra");
     }
 
     [Explicit(Reason)]

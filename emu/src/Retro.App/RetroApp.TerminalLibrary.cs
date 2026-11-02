@@ -192,7 +192,7 @@ public sealed partial class RetroApp
         },
         new()
         {
-            Id = "library.folder", Name = "carpeta", Group = "Biblioteca", Summary = "Muestra o cambia la carpeta de juegos.",
+            Id = "library.folder", Name = "carpeta", Group = "Biblioteca", Summary = "Muestra o cambia la carpeta de juegos, y la recuerda.",
             Aliases = ["roms"], Keywords = "importar agregar carpeta directorio ubicacion",
             Arguments = [new("ruta", ArgumentKind.Path, "Carpeta con tus juegos; entre comillas si tiene espacios.") { Optional = true, Rest = true }],
             Examples = ["carpeta", "carpeta \"C:\\Mis juegos\""], Errors = ["la carpeta no existe"], Result = "Busca en segundo plano; tus archivos no se mueven al cambiar de carpeta.",
@@ -201,7 +201,7 @@ public sealed partial class RetroApp
                 if (context.Optional("ruta") is { } path)
                 {
                     if (!Directory.Exists(path)) throw new CommandFailure(CommandProblem.MissingResource, "No existe la carpeta " + path + ".");
-                    _library.Rescan(Path.GetFullPath(path)); _home.TerminalRefresh();
+                    UseLibraryFolder(path);
                 }
                 context.Write("Carpeta: " + _library.Folder);
                 context.Detail(_library.Scanning ? "Buscando juegos en segundo plano." : _library.Entries.Count + " archivos reconocidos.");

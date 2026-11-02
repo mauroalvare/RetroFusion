@@ -23,13 +23,25 @@ if (ready == null && UpdateRunner.RecoverBeforeStart()) return;
 // Raylib provides the window, audio and input on Windows, Linux and macOS;
 // Dear ImGui draws the menus and the debugger panels.
 
+if (!args.Contains("--autotest"))
+    AppDomain.CurrentDomain.UnhandledException += (_, failure) =>
+        StartupReport.Fatal("RetroEmu se cerró por un error inesperado. Tus juegos y partidas guardadas no se modificaron.", failure.ExceptionObject as Exception);
+
 Raylib.SetTraceLogLevel(TraceLogLevel.Warning);
 var flags = ConfigFlags.ResizableWindow | ConfigFlags.VSyncHint | ConfigFlags.HighDpiWindow;
 if (args.Contains("--hidden"))
     flags |= ConfigFlags.HiddenWindow;   // automatic tests: no window pops up on the user's screen
 Raylib.SetConfigFlags(flags);
 Raylib.InitWindow(1280, 840, "RetroEmu");
+if (!Raylib.IsWindowReady())
+{
+    // Every later call needs the graphics context: without one the program would just vanish.
+    StartupReport.Fatal(StartupReport.NoGraphics);
+    Environment.ExitCode = 2;
+    return;
+}
 Raylib.SetWindowMinSize(640, 480);
+StartupReport.FitWindowToMonitor();
 // Deterministic layout checks use an isolated hidden instance, never the user's desktop size.
 int sizeIndex = Array.IndexOf(args, "--ui-size");
 if (args.Contains("--autotest") && args.Contains("--hidden") && sizeIndex >= 0 && sizeIndex + 1 < args.Length)
@@ -39,6 +51,7 @@ if (args.Contains("--autotest") && args.Contains("--hidden") && sizeIndex >= 0 &
         Raylib.SetWindowSize(Math.Clamp(width, 640, 3840), Math.Clamp(height, 480, 2160));
 }
 Raylib.SetExitKey(KeyboardKey.Null);
+// A computer without sound output carries on: the app detects it and runs in silence.
 Raylib.InitAudioDevice();
 rlImGui.Setup(true, true);
 if (args.Contains("--autotest"))

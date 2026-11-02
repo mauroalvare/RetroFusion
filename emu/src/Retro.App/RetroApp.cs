@@ -100,7 +100,8 @@ public sealed partial class RetroApp
         _library = new GameLibrary { AutoOrganize = !args.Contains("--no-organize"), InUse = _host.UsesMedia };
         int gamesArgument = Array.IndexOf(args, "--games-folder");
         string games = gamesArgument >= 0 && gamesArgument + 1 < args.Length && Directory.Exists(args[gamesArgument + 1])
-            ? Path.GetFullPath(args[gamesArgument + 1]) : FindGamesFolder() ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            ? Path.GetFullPath(args[gamesArgument + 1])
+            : _prefs.LibraryFolder is { } chosen && Directory.Exists(chosen) ? chosen : FindGamesFolder() ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         _library.Rescan(games);
         Retro.Studio.StudioLibrary.ExportBuiltIns();
         _browser = new FileBrowser(_prefs.LastFolder is { } last && Directory.Exists(last) ? last : games);
@@ -116,7 +117,7 @@ public sealed partial class RetroApp
                 else _host.Paused = _pausedBeforeLibrary;
             }, () => _host.LoadedMedia != null || _host.Fusion != null,
             args.Contains("--autotest") ? new LibraryActivity(persist: false) : null,
-            new HomeActions(OpenCreator, OpenFusionStudio, _commands.Open, () => _preferencesOpen = true, () => _prefs.OnlineGameInfo),
+            new HomeActions(OpenCreator, OpenFusionStudio, _commands.Open, () => _preferencesOpen = true, () => _prefs.OnlineGameInfo, () => _browser.OpenFolder(UseLibraryFolder)),
             args.Contains("--autotest") ? new LibraryMetadata(persist: false) : null, identification: _gameMetadata);
         _studio.GameStarted += game => _home.RecordFusion(game);
         _monitorRate = Raylib.GetMonitorRefreshRate(Raylib.GetCurrentMonitor());
@@ -124,16 +125,10 @@ public sealed partial class RetroApp
         Raylib.SetTargetFPS(_targetFps);
         // The audio device pulls samples through a callback on its own thread, so the
         // emulator can pace itself on the real consumption rate.
-        Raylib.SetAudioStreamBufferSizeDefault(512);
-        _stream = Raylib.LoadAudioStream(44100, 16, 1);
         s_queue = _host.Audio;
         s_forceMute = args.Contains("--mute"); s_mute = _sound.Muted;
         s_volume = _sound.VolumePercent / 100f; s_output.Reset();
-        unsafe
-        {
-            Raylib.SetAudioStreamCallback(_stream, &AudioCallback);
-        }
-        Raylib.PlayAudioStream(_stream);
+        StartAudioStream();
         try
         {
             _host.Start(MachineCatalog.Get("zx48"), _romDir);
@@ -204,6 +199,28 @@ public sealed partial class RetroApp
         _updates = new UpdateWindow(args);
         if (Hardcore) OpenTerminal();
         if (args.Contains("--interface-picker")) OpenInterfacePicker();
+    }
+
+    /// <summary>Without a sound device everything else keeps working: games run silent, at their real speed.</summary>
+    private unsafe void StartAudioStream()
+    {
+        Raylib.SetAudioStreamBufferSizeDefault(512);
+        _stream = Raylib.LoadAudioStream(44100, 16, 1);
+        Raylib.SetAudioStreamCallback(_stream, &AudioCallback);
+        Raylib.PlayAudioStream(_stream);
+        _host.SoundDeviceMissing = !AudioReady;
+        _audioRetried = false;
+    }
+
+    private bool AudioReady => Raylib.IsAudioDeviceReady() && Raylib.IsAudioStreamValid(_stream);
+    private bool _audioRetried;
+
+    /// <summary>A device plugged in later is picked up without restarting the program.</summary>
+    private void RetryAudio()
+    {
+        if (AudioReady) return;
+        if (!Raylib.IsAudioDeviceReady()) Raylib.InitAudioDevice();
+        if (Raylib.IsAudioDeviceReady()) StartAudioStream(); else _audioRetried = true;
     }
 
     /// <summary>The user's game folder ("ROMs", exact case: "roms" holds the firmware).</summary>
@@ -784,6 +801,15 @@ public sealed partial class RetroApp
         else zx.Tape.Play(zx.Z80.T);
     }
 
+    /// <summary>Scans another folder in the background. The files stay where they are and the choice is remembered.</summary>
+    private void UseLibraryFolder(string folder)
+    {
+        string full = Path.GetFullPath(folder);
+        _prefs.LibraryFolder = full; _prefs.Save();
+        _library.Rescan(full); _home.TerminalRefresh();
+        _studio.NotifyLibraryChanged(full);
+    }
+
     private void PickFromBrowser(string path)
     {
         if (_browser.Folder != _prefs.LastFolder) { _prefs.LastFolder = _browser.Folder; _prefs.Save(); }
@@ -1196,6 +1222,7 @@ public sealed partial class RetroApp
             string extra = _host.Zx is { } zx ? !zx.Tape.IsLoaded ? " · Sin cinta" : zx.Tape.IsPlaying
                 ? $" · Cargando cinta ({zx.Tape.Progress * 100:F0}%)" : zx.Tape.AtEnd ? " · Cinta al final" : " · Cinta detenida" : "";
             if (_host.C64 is { OpenRoms: true } c64 && c64.UnhandledKernalCalls.Count > 0) extra = " · Requiere revisar el firmware";
+            if (_host.SoundDeviceMissing) extra += " · Sin salida de audio";
             string title = _host.Fusion?.Title ?? _host.Info?.Name ?? "Sin máquina";
             status = $"{title} · {speed}{extra} · {_host.Status}";
             if (_host.Fusion is Retro.Studio.StudioSession session)
@@ -1291,13 +1318,21 @@ public sealed partial class RetroApp
                 float height = Math.Clamp(ImGui.CalcTextSize(_errorPopup, false, ImGui.GetContentRegionAvail().X).Y + UiTheme.Px(12),
                     minimum, Math.Max(minimum, area.Y - UiTheme.Px(160)));
                 ImGui.BeginChild("mensaje-aviso", new(0, height)); ImGui.TextWrapped(_errorPopup); ImGui.EndChild();
-                if (ImGui.Button("Copiar mensaje")) ImGui.SetClipboardText(_errorPopup);
-                ImGui.SameLine();
-                if (ImGui.Button("Aceptar"))
+                UiTheme.Hint("Tus juegos y partidas no cambiaron.");
+                if (UiTheme.PrimaryButton("Aceptar"))
                 {
                     _errorPopup = null;
                     ImGui.CloseCurrentPopup();
                 }
+                UiTheme.SameLineIfFits("Ir a la biblioteca");
+                if (ImGui.Button("Ir a la biblioteca"))
+                {
+                    _errorPopup = null;
+                    ImGui.CloseCurrentPopup();
+                    if (Hardcore) OpenTerminal(); else { CloseEditors(); _home.Open(); }
+                }
+                UiTheme.SameLineIfFits("Copiar mensaje");
+                if (_errorPopup != null && ImGui.Button("Copiar mensaje")) ImGui.SetClipboardText(Anonymize(_errorPopup));
                 ImGui.EndPopup();
             }
             if (!open)

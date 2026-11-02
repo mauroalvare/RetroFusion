@@ -91,6 +91,11 @@ pendiente), cerrar la ventana o **Juego > Salir** pregunta antes. **Volver** sig
 trabajo, **Ver el trabajo** lo muestra y **Salir y cancelar** lo detiene. Lo que ya
 estaba guardado se conserva. Sin trabajos en curso, el programa sale como siempre.
 
+## Consola
+
+Cursor, parpadeo, líneas de monitor e historial de órdenes de Terminal hardcore. Están en el grupo
+**Consola**; la [guía de la consola](CONSOLA.md) explica cada uno.
+
 ## Dónde se guardan
 
 Las preferencias se guardan en preferencias.json dentro de la carpeta de datos de

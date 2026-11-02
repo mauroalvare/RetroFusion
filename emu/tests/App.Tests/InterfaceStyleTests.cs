@@ -24,6 +24,46 @@ public sealed class InterfaceStyleTests
     }
 
     [Test]
+    public void ConsoleSettingsAndTheChosenFolderSurviveAndOlderOrFutureFilesStayReadable()
+    {
+        string path = Path.Combine(Path.GetTempPath(), "retro-preferences-" + Guid.NewGuid().ToString("N") + ".json");
+        try
+        {
+            var saved = new AppPreferences(path) { ConsoleCursor = TerminalCursor.Underline, ConsoleBlink = false, ConsoleScanlines = true, ConsoleHistory = false, LibraryFolder = "C:\\Mis juegos" };
+            Assert.That(saved.Save(), Is.True);
+            var read = new AppPreferences(path);
+            Assert.That(read.ConsoleCursor, Is.EqualTo(TerminalCursor.Underline)); Assert.That(read.ConsoleBlink, Is.False);
+            Assert.That(read.ConsoleScanlines, Is.True); Assert.That(read.ConsoleHistory, Is.False); Assert.That(read.LibraryFolder, Is.EqualTo("C:\\Mis juegos"));
+            // A file written before these settings existed.
+            File.WriteAllText(path, "{\"Version\":1,\"TextPercent\":150,\"HighContrast\":false,\"IntegerScale\":true,\"Fullscreen\":false,\"PowerSaving\":true,\"ShowFps\":false,\"SpectrumJoystick\":\"Kempston\",\"C64Port\":2,\"TypeLoad\":true,\"TurboWhileLoading\":true}");
+            var older = new AppPreferences(path);
+            Assert.That(older.Problem, Is.Null); Assert.That(older.TextPercent, Is.EqualTo(150));
+            Assert.That(older.ConsoleCursor, Is.EqualTo(TerminalCursor.Block)); Assert.That(older.ConsoleBlink, Is.True); Assert.That(older.LibraryFolder, Is.Null);
+            // A cursor from a later version keeps the rest of the file.
+            File.WriteAllText(path, File.ReadAllText(path).TrimEnd('}') + ",\"ConsoleCursor\":\"holograma\",\"ConsoleHistory\":false}");
+            var future = new AppPreferences(path);
+            Assert.That(future.Problem, Is.Null); Assert.That(future.ConsoleCursor, Is.EqualTo(TerminalCursor.Block));
+            Assert.That(future.ConsoleHistory, Is.False); Assert.That(future.TextPercent, Is.EqualTo(150));
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Test]
+    public void OptionContractsSayTheirDefaultValuesAndScope()
+    {
+        int volume = 40; bool flag = true;
+        var number = AppOption.Number("volumen", "Volumen", "Sonido", "d", () => volume, value => volume = value, 0, 100) with { Default = "60" };
+        var toggle = AppOption.Toggle("marca", "Marca", "G", "d", () => flag, value => flag = value) with { Default = "on" };
+        var choice = AppOption.Choice("modo", "Modo", "G", "d", () => "a", _ => { }, new("a", "Uno"), new("b", "Dos"));
+        Assert.That(number.Modified, Is.True); Assert.That(number.Values, Is.EqualTo("0..100")); Assert.That(number.Write(number.Default!), Is.Null); Assert.That(number.Modified, Is.False);
+        Assert.That(toggle.Modified, Is.False); Assert.That(toggle.Values, Is.EqualTo("on, off"));
+        Assert.That(toggle.Completions().Select(item => item.Value), Is.EqualTo(new[] { "on", "off", "restablecer" }));
+        Assert.That(choice.Modified, Is.False, "Without a known default nothing claims to be modified.");
+        Assert.That(choice.Completions().Select(item => item.Detail), Is.EqualTo(new[] { "Uno", "Dos" }));
+        Assert.That(choice.ScopeName, Does.Contain("todos los estilos"));
+    }
+
+    [Test]
     public void OlderSettingsKeepThePrincipalStyleAndUnknownFutureStylesDoNotDiscardSettings()
     {
         string path = Path.Combine(Path.GetTempPath(), "retro-legacy-style-" + Guid.NewGuid().ToString("N") + ".json");

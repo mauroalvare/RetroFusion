@@ -8,7 +8,7 @@ using Retro.Studio;
 
 namespace Retro.App;
 
-public sealed record HomeActions(Action Create, Action Fuse, Action FindAction, Action? MetadataSettings = null, Func<bool>? OnlineLookups = null);
+public sealed record HomeActions(Action Create, Action Fuse, Action FindAction, Action? MetadataSettings = null, Func<bool>? OnlineLookups = null, Action? ChooseFolder = null);
 
 /// <summary>The main browser replaces the play area; it is never a floating window.</summary>
 public sealed partial class HomeScreen(GameLibrary library, Action<string> playOriginal, Action<string> playFusion,
@@ -152,8 +152,10 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
         ImGui.Begin("##inicio", ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoDocking
             | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoBringToFrontOnFocus);
         bool compact = viewport.WorkSize.X < UiTheme.Px(800);
-        if (compact) DrawCompactNavigation();
-        else
+        // With a list on screen the section shares its row with the search box, inside the content area.
+        bool sharedRow = compact && shortList;
+        if (compact && !sharedRow) DrawCompactNavigation();
+        else if (!compact)
         {
             ImGui.BeginChild("navegacion", new Vector2(Math.Clamp(viewport.WorkSize.X * 0.22f, UiTheme.Px(156), UiTheme.Px(210)), 0));
             UiTheme.Eyebrow("CATÁLOGO");
@@ -194,6 +196,7 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
         {
             DrawListHeader(compact);
             DrawLibraryNotices();
+            if (sharedRow) DrawCompactNavigation();
             DrawLibraryFilters();
             DrawFilteredGames();
         }
@@ -212,6 +215,12 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
         string label = library.Scanning ? "Buscando…" : "Actualizar biblioteca";
         if (primary ? ImGui.Button(label) : ImGui.SmallButton(label)) { library.Rescan(library.Folder); Refresh(); }
         ImGui.EndDisabled();
+        if (actions?.ChooseFolder is { } choose && primary)
+        {
+            UiTheme.SameLineIfFits("Elegir carpeta…");
+            if (ImGui.Button("Elegir carpeta…")) choose();
+            if (ImGui.IsItemHovered()) UiTheme.Tooltip(library.Folder);
+        }
     }
 
     /// <summary>One row for the section's name and its counts: the list starts as high as possible.</summary>
@@ -258,7 +267,6 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
 
     private void DrawCompactNavigation()
     {
-        // With a list on screen the section shares its row with the search box, which leaves room for one more game.
         bool shared = _section != "home" && UiTheme.CompactHeight;
         ImGui.SetNextItemWidth(shared ? ImGui.GetContentRegionAvail().X * 0.34f : canReturn() ? Math.Max(UiTheme.Px(150), ImGui.GetContentRegionAvail().X - UiTheme.Px(168)) : -1);
         if (ImGui.BeginCombo("##seccion-biblioteca", _section == "home" ? "Inicio" : SectionTitle()))

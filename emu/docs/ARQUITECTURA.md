@@ -967,3 +967,23 @@ depende solo de FrameCount: también detecta restauraciones y ediciones pausadas
 StepOver usa FlowKind.Call/CallIf para todas las CPUs, incluidos 2A03 y8086, y conserva
 los casos de bucles/repetición. Los editores rechazan registros/PC fuera del ancho
 expuesto, sin truncar ni acceder al bus. No cambia las instrucciones ni sus ciclos.
+
+## Consola y tareas
+
+```text
+TerminalView  (ImGui: grilla, mouse, teclas a acciones)
+    └─ TerminalInput  (edición, Tab, Ctrl+R, pegado, Ctrl+C)
+         ├─ LineEditor, CommandHistory, TerminalSelection
+         └─ ProgramTerminal  (despacho, validación, ayuda, autocompletado)
+              ├─ CommandLine, CommandSpec, TextTable
+              ├─ TerminalBuffer  (salida acotada, envoltura, copia)
+              └─ RetroApp.Terminal*.cs  (órdenes sobre los servicios reales)
+```
+
+Las órdenes se ejecutan en el hilo de interfaz y deben ser rápidas. Lo que tarda va a
+`AppTaskCenter.Run`, cuyo cuerpo informa y nunca toca la interfaz. `Track` sigue los trabajos de los
+talleres a partir del `WorkReport` que publican. `SyncTasks` corre una vez por cuadro.
+
+`NativeHarness` conduce el programa real desde App.Tests con eventos de ImGui, en una ventana
+oculta por proceso: crear de nuevo la ventana y el audio dentro del mismo proceso puede bloquear los
+controladores nativos.

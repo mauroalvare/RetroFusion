@@ -1998,3 +1998,79 @@ la explicación permite desplazamiento. Cambiar estilo conserva datos y configur
 El acceso a datos comparte fila con el contador cuando entra; en poca altura se abrevia
 a Datos. No agrega una barra completa encima del listado. El par Jugar/Ficha se comprueba
 también con las fuentes nativas terminales al 200%, después del desplazamiento del panel.
+
+## D-114 — Consola como terminal, con órdenes definidas por contrato
+
+**Problema.** La primera consola concentraba el intérprete, la edición y el dibujo en un
+`InputText` de ImGui y una lista de cadenas. No permitía selección, búsqueda en el historial,
+pegado revisado ni salida larga, y los errores no distinguían sus causas.
+
+**Decisión.** `Retro.App/Terminal/` separa búfer, tokenizador, definiciones (`CommandSpec`),
+editor de línea, historial, teclado (`TerminalInput`) y dibujo (`TerminalView`). Todo salvo la
+vista es independiente de ImGui y se prueba sin gráficos. La vista dibuja una grilla propia con
+desplazamiento por filas: el prompt sigue a la salida, como en una terminal real. Sintaxis,
+validación, autocompletado y ayuda salen de la definición de cada orden. Las órdenes anteriores
+se conservan, con alias. La consola no invoca intérpretes del sistema.
+
+Ctrl+C nunca cancela una tarea: copia, deja de seguir o abandona la línea. Pegar nunca ejecuta:
+varias líneas esperan revisión y se detienen en el primer fallo. Una tarea cancelada por error
+puede perder trabajo; un Ctrl+C sobre texto no.
+
+## D-115 — Modelo común de tareas sin porcentajes inventados
+
+`AppTaskCenter` registra toda operación larga con estado, etapa, conteo real si existe, última
+actividad, resultados, errores y archivos. Las tareas propias corren fuera del hilo de interfaz y
+entregan su final en `Poll`. Los talleres no se reescribieron: publican un `WorkReport` por cuadro
+y el centro lo sigue, por lo que el mismo trabajo aparece en la lista gráfica y en la consola.
+Repetir el mismo informe no cuenta como actividad, y esperar a una persona nunca se considera
+falta de actividad. Las tareas no se interrumpen solas.
+
+## D-116 — Foco: la máquina no recibe lo que ejecutó la orden
+
+El Enter que ejecuta `jugar` seguía apretado cuando la máquina tomaba el teclado: en NES equivalía a
+Start. `HoldKeyboardUntilReleased` deja sorda a la máquina hasta soltarlo. `ToolChordHeld` suma T y
+se aplica a todas las máquinas: Ctrl+Shift+T era tilt en arcade. La consola decide por sí misma si
+tiene el teclado (`ConsoleOwnsKeyboard`), cede ante diálogos y vuelve a soltarlo al abrir un panel.
+AltGr llega como Ctrl+Alt y escribe `@` o `\` en teclados en español: no se toma como atajo.
+
+## D-117 — Biblioteca densa con filas uniformes
+
+La lista dibujaba cada fila en cada cuadro y dejaba cuatro juegos visibles a 1280×840, ninguno a
+200 % en 640×480. Ahora usa filas de altura uniforme con clipper, una sola fila para búsqueda,
+filtros y orden, y un panel de detalle en ventanas anchas. Medido con 6000 juegos: 4,8 ms por cuadro.
+La selección se conserva al volver de una partida. La carpeta de juegos elegida se guarda en
+`preferencias.json` como campo opcional: tiene prioridad sobre la detección y `--games-folder`
+sobre ella, sin mover archivos.
+
+## D-118 — Previews con los componentes reales y fuentes sin huecos
+
+`InterfaceScene` dibuja una escena comparable con `StylePalette`, las fuentes, `HardwareArt` y
+`TextTable` reales. La paleta pasó a ser un valor que también lee `UiTheme.Apply`, así que un cambio
+de color alcanza a la preview sin duplicarla. Las previews no leen el estado del programa.
+
+Toda fuente completa los caracteres que le faltan desde una familia amplia: los rótulos mostraban
+`?` en lugar de `·`. La auditoría revisa cada literal de `Retro.App` contra cada fuente y estilo.
+
+## D-121 — Fallos de arranque explicados y sin consola de fondo
+
+RetroEmu es un programa gráfico: `WinExe` quita la ventana negra que lo acompañaba, y `retro-cli`
+sigue siendo de consola. Lo que se perdía en esa ventana lo cubre `StartupReport`: sin OpenGL 3.3, o
+ante un error no previsto, muestra un mensaje y deja `fallo.txt` en `%LOCALAPPDATA%/RetroEmu`, sin
+rutas personales. La ventana inicial se ajusta al monitor. El paquete sigue autónomo y sus bibliotecas
+nativas solo dependen de DLL del sistema.
+
+## D-120 — Un equipo sin salida de audio conserva la velocidad
+
+Sin dispositivo, raylib no crea el canal y la devolución de llamada nunca corre, así que nada vacía
+la cola de audio. El ajuste fino la leía como llena y restaba 25 % de velocidad de manera permanente.
+`EmulatorHost.SoundDeviceMissing` saca la cola del cálculo: la partida corre con el reloj real. El
+programa lo informa en la barra de estado, en Sonido, en `estado` y en el diagnóstico, y puede
+volver a buscar la salida sin reiniciar. Los tres avisos que raylib escribe en la consola son una
+sola causa: los dos últimos resultan de intentar crear el canal sin dispositivo.
+
+## D-119 — Candidatos revisables y decisiones personales que perduran
+
+Dos coincidencias siguen sin asignarse automáticamente, pero una persona puede pedir candidatos.
+Cada uno dice por qué se propone. `GameIdentificationCache.Entry` agrega `Confirmed` y `Rejected`,
+opcionales y compatibles con archivos anteriores: una decisión personal gana a cualquier respuesta
+posterior del catálogo.

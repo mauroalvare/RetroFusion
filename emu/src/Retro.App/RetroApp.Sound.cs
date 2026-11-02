@@ -16,6 +16,16 @@ public sealed partial class RetroApp
         if (!ImGui.Begin("Sonido", ref _soundWindowOpen, ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoDocking))
         { ImGui.End(); return; }
         WorkspaceLayout.KeepOnScreen();
+        if (_host.SoundDeviceMissing)
+        {
+            ImGui.PushStyleColor(ImGuiCol.Text, UiTheme.Warning);
+            ImGui.TextWrapped("No se encontró una salida de audio. Los juegos funcionan sin sonido y a su velocidad normal.");
+            ImGui.PopStyleColor();
+            UiTheme.Hint(_audioRetried ? "Sigue sin aparecer. Revisá que Windows tenga un dispositivo de salida activo y que ningún programa lo use en modo exclusivo."
+                : "Conectá unos auriculares o parlantes, o activá la salida en la configuración de sonido del equipo.");
+            if (ImGui.Button("Buscar la salida de audio")) RetryAudio();
+            ImGui.Spacing();
+        }
         DrawSharedOptions("Sonido");
         ImGui.Spacing();
         if (ImGui.Button("Restablecer valores")) { _sound.Defaults(); _sound.Save(); }

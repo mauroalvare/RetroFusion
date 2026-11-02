@@ -15,9 +15,10 @@ los prueba y quedan como un `.prg` o un `.tap` que corre en cualquier emulador.
 
 ## Fusiones incluidas
 
-[Versión 0.3.6](https://github.com/mauroalvare/RetroFusion/releases/tag/v0.3.6): interfaz
-retro renovada, investigación recuperable, recorridos dirigidos y correcciones de CPU,
-audio y controles. [Novedades y alcance](emu/docs/NOVEDADES-0.3.6.md).
+[Versión 0.3.7](https://github.com/mauroalvare/RetroFusion/releases/tag/v0.3.7): funciona
+en más equipos, terminal completa por órdenes, tareas en segundo plano y biblioteca renovada.
+[Novedades y alcance](emu/docs/NOVEDADES-0.3.7.md). Requiere Windows 10 o posterior de 64 bits,
+o Linux x64, con gráficos compatibles con OpenGL 3.3; no hace falta instalar .NET.
 
 Los originales corren en sus máquinas emuladas. Podés conservar los mapas, gráficos,
 interfaz y reglas de un **juego base** e incorporar personajes o mecánicas de los demás.

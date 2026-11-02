@@ -35,8 +35,10 @@ internal static class UiTheme
     private static ImFontPtr _retroFont;
     private static ImGuiStyle? _baseStyle;
     // Atlas configurations retain this pointer for future rebuilds. One range table per process.
-    private static readonly GCHandle Ranges = GCHandle.Alloc(new ushort[] { 0x20, 0xFF, 0x2000, 0x206F, 0x2190, 0x2199, 0x2260, 0x2265, 0x2500, 0x25FF, 0x2605, 0x2606, 0x2713, 0x2717, 0 }, GCHandleType.Pinned);
-    private static readonly GCHandle SymbolRanges = GCHandle.Alloc(new ushort[] { 0x2190, 0x2199, 0x2260, 0x2265, 0x2500, 0x25FF, 0x2605, 0x2606, 0x2713, 0x2717, 0 }, GCHandleType.Pinned);
+    private static readonly GCHandle Ranges = GCHandle.Alloc(new ushort[] { 0x20, 0xFF, 0x2000, 0x206F, 0x2190, 0x2199, 0x2260, 0x2265, 0x25A0, 0x25FF, 0x2605, 0x2606, 0x2713, 0x2717, 0 }, GCHandleType.Pinned);
+    private static readonly GCHandle SymbolRanges = GCHandle.Alloc(new ushort[] { 0x2190, 0x2199, 0x2260, 0x2265, 0x25A0, 0x25FF, 0x2605, 0x2606, 0x2713, 0x2717, 0 }, GCHandleType.Pinned);
+    // The console grid also draws table rules. Only it pays for them: older graphics hardware limits the atlas.
+    private static readonly GCHandle ConsoleRanges = GCHandle.Alloc(new ushort[] { 0x20, 0xFF, 0x2000, 0x206F, 0x2190, 0x2199, 0x2260, 0x2265, 0x2500, 0x25FF, 0x2605, 0x2606, 0x2713, 0x2717, 0 }, GCHandleType.Pinned);
 
     /// <summary>The colors that define a style. The theme and the previews read the same values.</summary>
     public readonly record struct StylePalette(Vector4 Window, Vector4 Panel, Vector4 Frame, Vector4 Button, Vector4 Header, Vector4 Border,
@@ -185,7 +187,7 @@ internal static class UiTheme
             _retroFont = !Terminal || retroBody == null ? fontPtr : ImGui.GetIO().Fonts.AddFontFromFileTTF(retroBody, size, config, Ranges.AddrOfPinnedObject());
             if (Terminal && retroBody != null) MergeSymbols(size);
             _codeFont = codeFont == null ? fontPtr
-                : ImGui.GetIO().Fonts.AddFontFromFileTTF(codeFont, MathF.Round(16 * Scale), config, Ranges.AddrOfPinnedObject());
+                : ImGui.GetIO().Fonts.AddFontFromFileTTF(codeFont, MathF.Round(16 * Scale), config, ConsoleRanges.AddrOfPinnedObject());
             if (codeFont != null) MergeSymbols(MathF.Round(16 * Scale));
             string? titleFont = (Terminal ? FontCandidates(true) : DisplayCandidates()).FirstOrDefault(File.Exists);
             _titleFont = titleFont!=null ? ImGui.GetIO().Fonts.AddFontFromFileTTF(titleFont, MathF.Round(32 * Scale), config, Ranges.AddrOfPinnedObject()) : fontPtr;

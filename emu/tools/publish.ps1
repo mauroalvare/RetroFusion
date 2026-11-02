@@ -5,7 +5,7 @@ param(
     [ValidatePattern('^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$')]
     [string[]]$Runtimes = @("win-x64", "linux-x64"),
     [ValidatePattern('^\d+\.\d+\.\d+$')]
-    [string]$Version = "0.3.6"
+    [string]$Version = "0.3.7"
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
@@ -55,7 +55,7 @@ foreach ($rid in $Runtimes) {
     Copy-Item (Join-Path $root "docs/NOVEDADES-0.3.3.md") (Join-Path $playerDocs "NOVEDADES-0.3.3.md")
     Copy-Item (Join-Path $root "docs/NOVEDADES-0.3.4.md") (Join-Path $playerDocs "NOVEDADES-0.3.4.md")
     Copy-Item (Join-Path $root "docs/NOVEDADES-0.3.5.md") (Join-Path $playerDocs "NOVEDADES-0.3.5.md")
-    foreach ($doc in "NOVEDADES-0.3.6.md", "ANALISIS-AUTOMATICO.md", "DISENO-INTERFAZ.md", "LIMITACIONES.md", "NES-DMA.md", "NESTEST.md", "CREACION-Y-RECUPERACION.md") {
+    foreach ($doc in "NOVEDADES-0.3.6.md", "NOVEDADES-0.3.7.md", "CONSOLA.md", "INTERFACES-Y-DATOS.md", "ANALISIS-AUTOMATICO.md", "DISENO-INTERFAZ.md", "LIMITACIONES.md", "NES-DMA.md", "NESTEST.md", "CREACION-Y-RECUPERACION.md") {
         Copy-Item -LiteralPath (Join-Path $root "docs/$doc") -Destination (Join-Path $playerDocs $doc)
     }
     Copy-Item (Join-Path $root "docs/PRECISION-CPU.md") (Join-Path $playerDocs "PRECISION-CPU.md")

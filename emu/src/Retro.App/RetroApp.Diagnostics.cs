@@ -18,6 +18,7 @@ public sealed partial class RetroApp
         text.AppendLine($"Ventana: {Raylib.GetScreenWidth()}x{Raylib.GetScreenHeight()} · escala {Raylib.GetWindowScaleDPI().X:F2} · texto {_prefs.TextPercent} %");
         text.AppendLine($"Interfaz: {InterfaceStyles.Describe(_prefs.Interface).Id} · contraste {(_prefs.HighContrast ? "alto" : "normal")}");
         text.AppendLine($"Máquina: {_host.Machine?.Id ?? "ninguna"} · {(_host.Paused ? "en pausa" : "en ejecución")} · medio {(_host.LoadedMedia != null ? "cargado" : "sin cargar")}");
+        text.AppendLine("Audio: " + (AudioReady ? "salida activa" : Raylib.IsAudioDeviceReady() ? "dispositivo sin canal de salida" : "sin dispositivo"));
         text.AppendLine($"Biblioteca: {_library.Entries.Count} archivos · {(_library.Scanning ? "actualizando" : "al día")}");
         text.AppendLine($"Memoria administrada: {GC.GetTotalMemory(false) / (1024 * 1024)} MB");
         foreach (var task in _tasks.Active) text.AppendLine($"Tarea: {task.Kind} · {AppTaskCenter.StateName(task.State)} · {AppTaskCenter.Duration(task.Elapsed)}");
@@ -31,6 +32,7 @@ public sealed partial class RetroApp
     {
         string profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         if (profile.Length > 0) text = text.Replace(profile, "%USERPROFILE%", StringComparison.OrdinalIgnoreCase);
-        return text.Replace(Environment.UserName, "<usuario>", StringComparison.OrdinalIgnoreCase);
+        // A service account can have no name, and replacing an empty text is an error.
+        return Environment.UserName.Length == 0 ? text : text.Replace(Environment.UserName, "<usuario>", StringComparison.OrdinalIgnoreCase);
     }
 }

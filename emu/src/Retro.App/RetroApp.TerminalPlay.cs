@@ -206,13 +206,13 @@ public sealed partial class RetroApp
         },
         new()
         {
-            Id = "play.machines", Name = "maquinas", Group = "Partida", Summary = "Lista los sistemas y su estado real de implementación.", Aliases = ["máquinas", "sistemas"], Keywords = "hardware compatibilidad",
+            Id = "play.machines", Name = "maquinas", Group = "Partida", Summary = "Lista los sistemas y su estado real de implementación.", Aliases = ["sistemas"], Keywords = "hardware compatibilidad",
             Run = context => context.Table([new("Id"), new("Sistema", Flexible: true), new("Estado")], MachineCatalog.All.Select(machine => new[] { machine.Id, machine.Name, machine.Status == MachineStatus.Available ? "disponible" : "en desarrollo" }))
         },
         new()
         {
             Id = "play.machine", Name = "maquina", Group = "Partida", Summary = "Enciende una máquina implementada con su firmware local; no descarga nada.",
-            Aliases = ["máquina"], Keywords = "encender sin juego basic",
+            Keywords = "encender sin juego basic",
             Arguments = [new("id", ArgumentKind.Word, "Identificador de maquinas.") { Complete = _ => MachineCatalog.All.Where(machine => machine.Status == MachineStatus.Available).Select(machine => new CompletionItem(machine.Id, machine.Name)) }],
             Examples = ["maquina zx48"], Errors = ["falta su firmware"],
             Run = context =>
@@ -295,7 +295,7 @@ public sealed partial class RetroApp
         },
         new()
         {
-            Id = "analysis.code", Name = "codigo", Group = "Análisis", Summary = "Desensambla instrucciones sin modificar la máquina.", Aliases = ["código", "dis", "u"], Keywords = "ensamblador rutina instrucciones", Unavailable = NeedMachine,
+            Id = "analysis.code", Name = "codigo", Group = "Análisis", Summary = "Desensambla instrucciones sin modificar la máquina.", Aliases = ["dis", "u"], Keywords = "ensamblador rutina instrucciones", Unavailable = NeedMachine,
             Arguments = [new("direccion", ArgumentKind.Hex, "Por defecto, el PC actual.") { Optional = true }, new("cantidad", ArgumentKind.Number, "Instrucciones.") { Optional = true, Min = 1, Max = 256 }],
             Examples = ["codigo", "codigo 8000 32"],
             Run = context =>

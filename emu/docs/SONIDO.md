@@ -24,3 +24,11 @@ acumulado. El ajuste de salida no amplía las capacidades de sonido de la máqui
 Las preferencias se guardan separadas de juegos y partidas, en sonido.json dentro de
 la carpeta de datos de RetroEmu de tu cuenta. Si no se pueden leer o guardar, el panel
 lo indica y conserva los cambios de la sesión.
+
+## Si no hay salida de audio
+
+Sin un dispositivo de salida utilizable los juegos funcionan en silencio y a su velocidad normal.
+La barra de estado muestra **Sin salida de audio**. Puede pasar si no hay parlantes ni auriculares
+activos, si el servicio de audio del sistema está detenido, si otro programa usa el dispositivo en
+modo exclusivo, en un escritorio remoto o en una máquina virtual. Después de resolverlo, **Opciones >
+Sonido > Buscar la salida de audio** o `hacer audio-retry` la toman sin reiniciar.

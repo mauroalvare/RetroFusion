@@ -17,9 +17,36 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   no prueba que nunca se haya abierto ese juego.
 - La terminal hardcore es interna y navega con órdenes. Los editores avanzados conservan
   sus paneles visuales, abiertos mediante `hacer`; no se duplican como editores de texto.
-  Las opciones y acciones usan los catálogos comunes de los estilos gráficos. Los
-  metadatos no se consultan en línea hasta habilitarlo; las pruebas usan respuestas
-  simuladas, no certifican disponibilidad permanente del proveedor.
+  La [matriz de cobertura](CONSOLA.md#cobertura-por-órdenes) dice qué recorridos se
+  completan escribiendo y cuáles son parciales: crear, fusionar, conectar la IA, editar
+  variables, anotar rutinas y exportar siguen en sus instrumentos. Las opciones y acciones
+  usan los catálogos comunes de los estilos gráficos. Los metadatos no se consultan en línea
+  hasta habilitarlo; las pruebas usan respuestas simuladas, no certifican disponibilidad
+  permanente del proveedor.
+- Los contratos de orden, acción y ajuste son tres definiciones: `CommandSpec` describe
+  argumentos, ejemplos y errores; `AppCommand` y `AppOption` son más simples. El buscador
+  gráfico lista acciones, no órdenes de consola, y una orden sin acción equivalente solo se
+  descubre desde la consola.
+- La consola dibuja una grilla de ancho fijo. Un carácter fuera de las fuentes instaladas se
+  ve como signo de pregunta, aunque se conserva al copiarlo: los emojis y la escritura de
+  derecha a izquierda no tienen soporte. Las fuentes dependen del sistema: la auditoría de
+  caracteres se comprobó con las fuentes de Windows, no en Linux ni macOS.
+- `tareas` conoce el avance que cada proceso informa. Una espera de IA por copiar y pegar o por
+  carpeta de agente figura como esperando tu respuesta y no se cancela desde la lista, sino
+  en su taller. `retomar` solo vale para tareas que dejaron cómo reintentarse; las de los
+  talleres se continúan desde **Trabajos guardados**. Una tarea sin avances no se interrumpe
+  sola: se marca sin actividad y la decisión es tuya.
+- Requiere Windows 10 o posterior de 64 bits, o Linux x64, y OpenGL 3.3. Sin esos gráficos no
+  puede abrir su ventana y lo explica; no incluye un dibujo por software. El ejecutable no está
+  firmado, así que Windows puede advertir la primera vez. No se comprobó en Linux real ni en
+  Windows 10; las pruebas nativas corren en Windows 11 con una ventana oculta.
+- Sin una salida de audio utilizable el programa funciona en silencio, a la velocidad normal, y la
+  barra de estado lo indica. **Opciones > Sonido** o `hacer audio-retry` la vuelven a buscar. Si el
+  dispositivo desaparece con el programa abierto, esa situación todavía no se detecta.
+- El historial de órdenes se guarda en claro en la cuenta del usuario; las rutas escritas en una
+  orden quedan ahí. `historial borrar` lo vacía y `consola-historial` lo desactiva.
+- Un favorito o un reciente cuyo archivo ya no está deja de listarse hasta que el archivo
+  vuelve: el dato se conserva, pero no hay una entrada para archivos desaparecidos.
 
 - Rechazar una cabecera inválida, bytes sobrantes o valores fuera de rango no detecta
   toda alteración posible de RAM en un estado. Varios formatos anteriores no tienen

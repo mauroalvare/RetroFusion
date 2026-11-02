@@ -21,11 +21,15 @@ y actividad, con orden por nombre o fechas. **Ficha**, junto a Jugar, permite co
 los datos personales sin cambiar originales ni perfiles de emulación. Detalle en
 [Filtrar y ordenar la biblioteca](FILTROS-BIBLIOTECA.md).
 La [identificación y los tres estilos](INTERFACES-Y-DATOS.md) detalla las fuentes de
-datos, la terminal interna por comandos, las opciones compartidas y la elección tras actualizar.
+datos, las opciones compartidas y la elección tras actualizar. La [guía de la consola](CONSOLA.md)
+describe órdenes, teclas, tareas y la matriz de cobertura por órdenes.
+`Retro.App/Terminal/` separa búfer, tokenizador, definiciones, editor de línea, historial, teclado
+y dibujo; `RetroApp.Terminal*.cs` define las órdenes y `AppTasks.cs` el modelo común de tareas.
 `--interface retro|terminal|hardcore` elige el estilo al iniciar; `--interface-picker`
-abre sus vistas previas. Para comprobar el teclado nativo de la consola con datos propios,
-seleccioná explícitamente `TerminalNativeTests` en App.Tests; sus dos casos son ocultos,
-silenciados y prueban texto al 100/200%. No se ejecutan por la selección general de categorías.
+abre sus vistas previas. Los recorridos nativos con datos propios se seleccionan a mano en
+App.Tests: `TerminalNativeTests`, `ProductFlowNativeTests` e `InterfaceCaptureTests`. Son ocultos y
+silenciados, comparten una ventana por proceso (`NativeHarness`) y no corren con la selección
+general. Con `RETROEMU_QA_SHOTS=<carpeta>` escriben capturas y `rendimiento.txt`.
 
 La navegación permanente ofrece **Biblioteca, Jugar, Crear, Analizar, Herramientas y Ayuda**,
 con un selector equivalente al reducir el ancho. Los talleres usan el área completa y Jugar

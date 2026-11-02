@@ -70,6 +70,8 @@ public sealed partial class EmulatorHost
     public bool TurboWhileLoading { get; set; } = true;
     public bool Turbo { get; set; }
     public string Status { get; set; } = "Arrastrá un juego a la ventana o usá Juego > Abrir.";
+    /// <summary>No sound output: nothing consumes the audio queue, so it must not pace the emulation.</summary>
+    public bool SoundDeviceMissing { get; set; }
     public string? LastStopReason { get; private set; }
     public string? LoadedMedia { get; private set; }
     public string? LoadedMediaSource => _loadedFiles.FirstOrDefault()?.Source;
@@ -280,6 +282,7 @@ public sealed partial class EmulatorHost
                 fusion.Update(1.0 / 60);
             }
             int n = fusion.DrainAudio(_frameAudio);
+            if (SoundDeviceMissing) return;
             _audio.Push(_frameAudio.AsSpan(0, n));
             int keep = 44100 / 60 * (AudioBufferFrames + 2);
             if (_audio.Count > Math.Max(44100 / 5, keep * 2)) _audio.Discard(keep);
@@ -315,15 +318,18 @@ public sealed partial class EmulatorHost
         // monitor refresh rate (a fixed step per host frame stalled 240 Hz screens).
         double step = Math.Min(dt, 0.1);
         _accumulator += step;
-        int queued = _audio.Count;
-        int perFrame = (int)(44100 / m.FramesPerSecond);
-        int target = perFrame * AudioBufferFrames;
-        if (queued < Math.Max(perFrame / 2, target - perFrame))
-            _accumulator += step * 0.25;
-        else if (queued > target + perFrame)
-            _accumulator -= step * 0.25;
-        if (queued > Math.Max(perFrame * 8, target * 4))
-            _audio.Discard(Math.Max(perFrame * 3, target));
+        if (!SoundDeviceMissing)
+        {
+            int queued = _audio.Count;
+            int perFrame = (int)(44100 / m.FramesPerSecond);
+            int target = perFrame * AudioBufferFrames;
+            if (queued < Math.Max(perFrame / 2, target - perFrame))
+                _accumulator += step * 0.25;
+            else if (queued > target + perFrame)
+                _accumulator -= step * 0.25;
+            if (queued > Math.Max(perFrame * 8, target * 4))
+                _audio.Discard(Math.Max(perFrame * 3, target));
+        }
         int guard = 0;
         while (_accumulator >= frameTime && guard++ < 5 && !Paused)
         {
@@ -331,7 +337,7 @@ public sealed partial class EmulatorHost
             if (!RunOneFrame(m))
                 break;
             int n = m.DrainAudio(_frameAudio);
-            _audio.Push(_frameAudio.AsSpan(0, n));
+            if (!SoundDeviceMissing) _audio.Push(_frameAudio.AsSpan(0, n));
         }
     }
 

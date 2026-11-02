@@ -26,6 +26,13 @@ verde, con los mismos controles gráficos, y Terminal hardcore, con una consola 
 Los ajustes, acciones y biblioteca son comunes; las vistas previas y la oferta después
 de una actualización confirmada se explican en [Interfaces y datos](INTERFACES-Y-DATOS.md).
 
+## Biblioteca
+
+Filas de altura uniforme, con Jugar y Ficha en la misma línea. En ventanas anchas un panel muestra
+la selección con su procedencia; doble clic o Enter sobre la selección juegan. Un dato desconocido
+se muestra como desconocido. En listas muy angostas Jugar y Ficha se abrevian a `▶` e `i`, con su
+nombre al pasar el mouse, para que el título se pueda leer.
+
 ## Navegación y espacios de trabajo
 
 La barra superior mantiene **Biblioteca, Jugar, Crear, Analizar, Herramientas y Ayuda**.
@@ -43,6 +50,9 @@ cuando hay ancho suficiente y desplazamiento vertical cuando hace falta. **Jugar
 a la máquina actual; ocultar un taller no cancela la IA. Mientras la interfaz ocupa ese
 espacio, teclado y mando no envían acciones a la máquina y el sonido del juego se silencia.
 La biblioteca conserva su comportamiento de pausa y restaura la pausa anterior al salir.
+
+Con una partida abierta, **Volver a la partida** queda a la vista desde cualquier herramienta. La
+barra de estado muestra las tareas en curso: su lista dice qué espera cada una y cómo cancelarla.
 
 ## Encontrar una acción
 

@@ -10,7 +10,7 @@ public sealed class AppPreferences
         bool PowerSaving, bool ShowFps, string SpectrumJoystick, int C64Port, bool TypeLoad, bool TurboWhileLoading,
         bool PauseInBackground = false, string? LastFolder = null, string Interface = "retro", string? InterfaceOfferedVersion = null,
         bool OnlineGameInfo = false, string ConsoleCursor = "block", bool ConsoleBlink = true, bool ConsoleScanlines = false,
-        bool ConsoleHistory = true);   // optional v1 fields preserve older preferences
+        bool ConsoleHistory = true, string? LibraryFolder = null);   // optional v1 fields preserve older preferences
     private readonly string _path;
     private readonly bool _persist;
     private bool _unreadable;
@@ -34,6 +34,8 @@ public sealed class AppPreferences
     public bool ConsoleHistory { get; set; } = true;
     /// <summary>Last folder of the file picker; only used again while it exists.</summary>
     public string? LastFolder { get; set; }
+    /// <summary>The games folder chosen by the user; without one, the folder next to the program is found.</summary>
+    public string? LibraryFolder { get; set; }
     public string? Problem { get; private set; }
     public bool CanRecover => _persist && _unreadable;
     public string? RecoveryPath { get; private set; }
@@ -63,6 +65,7 @@ public sealed class AppPreferences
             // An unknown cursor from a later version keeps the default and the rest of the file.
             ConsoleCursor = CursorNames.GetValueOrDefault(doc.ConsoleCursor ?? "", TerminalCursor.Block);
             ConsoleBlink = doc.ConsoleBlink; ConsoleScanlines = doc.ConsoleScanlines; ConsoleHistory = doc.ConsoleHistory;
+            LibraryFolder = doc.LibraryFolder is { Length: > 0 and <= 1024 } library ? library : null;
         }
         catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException or JsonException)
         {
@@ -95,7 +98,7 @@ public sealed class AppPreferences
             File.WriteAllText(temporary, JsonSerializer.Serialize(new Document(1, TextPercent, HighContrast, IntegerScale, Fullscreen,
                 PowerSaving, ShowFps, SpectrumJoystick.ToString(), C64Port, TypeLoad, TurboWhileLoading, PauseInBackground, LastFolder,
                 InterfaceStyles.Describe(Interface).Id, InterfaceOfferedVersion, OnlineGameInfo,
-                CursorNames.First(pair => pair.Value == ConsoleCursor).Key, ConsoleBlink, ConsoleScanlines, ConsoleHistory)));
+                CursorNames.First(pair => pair.Value == ConsoleCursor).Key, ConsoleBlink, ConsoleScanlines, ConsoleHistory, LibraryFolder)));
             File.Move(temporary, _path, overwrite: true); Problem = null; return true;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)

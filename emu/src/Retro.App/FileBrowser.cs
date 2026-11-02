@@ -19,13 +19,18 @@ public sealed class FileBrowser
     private Item[]? _visible;
     private string _filter = "";
     private bool _filterAll;
+    private Action<string>? _folderChoice;
     public bool IsOpen => _open;
     /// <summary>The folder shown; the app remembers it for the next session.</summary>
     public string Folder => _dir;
 
     public FileBrowser(string startDir) { _dir = startDir; _pathInput = startDir; }
+    /// <summary>The same browser, for choosing the folder being shown rather than a file in it.</summary>
+    public void OpenFolder(Action<string> chosen) { Open(); _folderChoice = chosen; }
+
     public void Open()
     {
+        _folderChoice = null;
         _open = true; _pathInput = _dir; _selected = null; _search = "";
         Refresh();
         var drives = new List<string>();
@@ -147,15 +152,23 @@ public sealed class FileBrowser
             ImGui.EndTable();
         }
         ImGui.TextUnformatted(UiTheme.Fit(_selected == null ? "Seleccioná un archivo para abrirlo." : Path.GetFileName(_selected), ImGui.GetContentRegionAvail().X));
-        ImGui.BeginDisabled(_selected == null);
-        if (UiTheme.PrimaryButton("Abrir", new(UiTheme.Px(110), 0))) OpenSelected(onPick);
-        ImGui.EndDisabled(); UiTheme.SameLineIfFits(UiTheme.Px(110));
+        if (_folderChoice is { } choice)
+        {
+            if (UiTheme.PrimaryButton("Usar esta carpeta")) { _open = false; _folderChoice = null; choice(_dir); }
+        }
+        else
+        {
+            ImGui.BeginDisabled(_selected == null);
+            if (UiTheme.PrimaryButton("Abrir", new(UiTheme.Px(110), 0))) OpenSelected(onPick);
+            ImGui.EndDisabled();
+        }
+        UiTheme.SameLineIfFits(UiTheme.Px(110));
         if (ImGui.Button("Cancelar", new(UiTheme.Px(110), 0))) _open = false;
         UiTheme.SameLineIfFits(ImGui.CalcTextSize($"{shown.Length} elementos").X); ImGui.TextDisabled($"{shown.Length} elementos");
         if (ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows))
         {
             if (ImGui.IsKeyPressed(ImGuiKey.Escape)) _open = false;
-            else if (!ImGui.GetIO().WantTextInput && ImGui.IsKeyPressed(ImGuiKey.Enter)) OpenSelected(onPick);
+            else if (_folderChoice == null && !ImGui.GetIO().WantTextInput && ImGui.IsKeyPressed(ImGuiKey.Enter)) OpenSelected(onPick);
         }
         ImGui.End();
     }

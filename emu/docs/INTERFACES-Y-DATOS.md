@@ -19,8 +19,10 @@ Alto contraste puede reemplazar el verde por la paleta accesible.
 Las preferencias gráficas, el panel Sonido y la orden `opcion` leen el mismo catálogo
 `AppOption`: definición, valores permitidos, lectura y aplicación. El buscador de
 acciones y `acciones`/`hacer` usan `AppCommand`, incluidos requisitos y disponibilidad.
-Agregar una opción o acción a esos catálogos la incorpora a ambos accesos. No hay
-configuraciones separadas por tema. Los filtros y las acciones de juego de la consola
+Agregar una opción o acción a esos catálogos la incorpora a todos sus accesos. Cada
+ajuste declara su valor inicial, sus valores permitidos y su alcance, de donde salen el
+botón **Volver al valor inicial** y `opcion <id> restablecer`. No hay configuraciones
+separadas por tema. Los filtros y las acciones de juego de la consola
 provienen del mismo catálogo que dibuja la biblioteca.
 
 ## Después de actualizar
@@ -33,8 +35,11 @@ Se conserva el estilo actual seleccionado; mirar otra vista previa no lo aplica.
 La versión respondida se recuerda para no repetir la pregunta por esa entrega.
 Elegir un estilo no demora la confirmación ni la limpieza de la actualización.
 
-En ventanas chicas se compactan los rótulos a **Usar estilo** y **Conservar**. El selector
-y el pie permanecen visibles; la vista previa y la explicación permiten desplazamiento.
+Las vistas previas dibujan una misma escena con datos inventados, usando la paleta, las
+fuentes, las ilustraciones y el diseño de tablas reales de cada estilo: una mejora de esos
+componentes llega sola a la vista previa. **Ampliar** la lleva a toda la ventana. Mirar no
+aplica nada y no toca el programa en ejecución. En ventanas chicas se compactan los rótulos
+a **Usar estilo** y **Conservar**; el selector y el pie permanecen visibles.
 La partida queda en pausa mientras se elige y recupera su estado previo al conservar
 un estilo gráfico. La consola mantiene la pausa hasta `continuar`.
 
@@ -68,6 +73,17 @@ Un campo personal vacío permite usar el detectado. Para rechazar una coincidenc
 marcá **Omitir identificación automática de este juego**. No borra tu ficha personal.
 Sin evidencia suficiente se conserva **Sin clasificar** o **Sin año**.
 
+### Candidatos para revisar
+
+Cuando no hay una coincidencia automática segura, la ficha ofrece **Buscar candidatos en el
+catálogo** y la consola `candidatos <juego>`. Hace falta tener activada la consulta en línea
+y se pide juego por juego. Cada candidato dice por qué se propone: título exacto y misma
+plataforma, título exacto en otra plataforma, o misma plataforma con título parecido.
+**Es este** lo acepta y **No es** lo rechaza. Ninguno se aplica sin tu elección, y las
+decisiones se conservan por identidad del juego: una actualización del catálogo no deshace
+una aceptación ni repite una coincidencia rechazada. Aceptar un candidato identifica la
+obra para vos; no verifica la edición por hash.
+
 La consulta en línea está desactivada inicialmente. Solo envía el título limpio y usa
 la plataforma para contrastar la respuesta; nunca sube ROMs, hashes ni rutas. No usa
 IA, claves ni un servicio pago. Se hacen consultas seriales, con plazo de ocho segundos
@@ -87,41 +103,7 @@ abreviados. Reconocer un título por nombre y sistema no verifica una edición p
 
 ## Usar la terminal hardcore
 
-Escribí `ayuda` o `ayuda opcion`. Enter ejecuta, ↑/↓ recorren hasta cien órdenes y Tab
-completa órdenes e identificadores de opciones/acciones. El registro conserva hasta
-600 líneas; `limpiar` lo vacía y `copiar` lo lleva al portapapeles.
-
-```text
-juegos
-filtrar genero Plataformas
-filtrar año 1980:1989
-juegos
-ficha 1
-favorito 1 on
-jugar 1
-```
-
-**Ctrl+Shift+T** vuelve de una partida a la consola y la pausa. Escribir órdenes no
-envía teclas al juego. `continuar` le devuelve el teclado. Los números corresponden
-a la última lista; se vuelven a resolver por identidad para no abrir otra fila tras
-un cambio de la biblioteca. También se puede usar una clave inequívoca de `ficha`.
-
-| Órdenes | Función |
-| --- | --- |
-| `cd favoritos`, `cd recientes`, `cd originales`, `cd creados`, `cd fusiones`, `ls` | Navegar secciones virtuales; no carpetas del sistema. |
-| `buscar texto`, `filtrar`, `filtrar quitar` | Búsqueda y filtros compartidos por sistema, tipo, género, año, actividad, orden y disponibilidad. |
-| `abrir "C:\Juegos\archivo.nes"` | Abrir un medio admitido; las rutas con espacios van entre comillas. |
-| `opciones`, `opcion texto 150`, `opcion volumen 60` | Leer y cambiar las mismas preferencias del menú. Valores inválidos se rechazan. |
-| `interfaz retro`, `interfaz terminal`, `interfaz hardcore`, `interfaz preview` | Cambiar de estilo o abrir las vistas previas. Siempre se puede salir de la consola. |
-| `acciones`, `hacer id` | Descubrir y abrir las funciones del programa con sus requisitos actuales. |
-| `guardar 1`, `cargar 1`, `ranuras` | Partidas del original y edición actuales. Una ranura ocupada exige `guardar 1 reemplazar`. |
-| `estado`, `pausa`, `reiniciar`, `captura` | Control de la partida. |
-| `registros`, `memoria 8000 32`, `codigo 8000`, `paso cuadro` | Inspección de la máquina; las direcciones se escriben en hexadecimal. |
-| `maquinas`, `maquina id` | Consultar los sistemas y encender uno implementado con firmware local. |
-| `actualizar`, `salir` | Actualizador y cierre con protección de trabajos pendientes. |
-
-Los editores de fusión, creación, código y conexión de IA conservan sus instrumentos
-visuales: se abren por `hacer` y la consola queda abajo. La navegación principal del
-modo hardcore se hace con órdenes; no reimplementa esos editores como lenguajes de
-texto. Abrirlos no inicia por sí solo una consulta a la IA. Las órdenes nunca se
-delegan a PowerShell, cmd, bash ni otro intérprete del equipo.
+La [guía de la consola](CONSOLA.md) explica las órdenes, las teclas, las tareas en segundo
+plano y qué recorridos se completan por órdenes. Empezá con `ayuda` o `como <tema>`.
+**Ctrl+Shift+T** alterna entre la partida y la consola; `continuar` devuelve el teclado al
+juego. Las órdenes nunca se delegan a PowerShell, cmd, bash ni otro intérprete del equipo.

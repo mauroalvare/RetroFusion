@@ -28,6 +28,7 @@ public sealed partial class RetroApp
             _terminal = new(() => TerminalCatalog, history: new CommandHistory(history) { Persist = _prefs.ConsoleHistory });
             _terminal.PromptDetail = ConsolePromptDetail;
             RegisterConsoleCapabilities(_terminal);
+            _tasks.TaskFinished += AnnounceTask;
             _terminalInput = new(_terminal, () => ImGui.GetClipboardText() ?? "", ImGui.SetClipboardText)
             {
                 RunningTasks = () => _tasks.Active.Count,
