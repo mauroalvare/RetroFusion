@@ -35,6 +35,7 @@ public sealed partial class EmulatorHost
 
     public void StartFusion(Retro.Fusion.IFusionRun session)
     {
+        EnsureBatteryPreserved();
         TimelineStateChanged(newMedia: true);
         SessionChanging?.Invoke();
         MediaRevision++;
@@ -222,12 +223,14 @@ public sealed partial class EmulatorHost
 
     private void SetMachine(IMachine m, MachineInfo info, string firmware = "")
     {
+        EnsureBatteryPreserved();
         TimelineStateChanged(newMedia: true);
         SessionChanging?.Invoke();
         MediaRevision++;
         DiscardQuickState();
         Fusion = null;
         m.ExecutedMap = new bool[1 << Math.Clamp(m.Memory.AddressBits, 1, 20)];   // the code view sees everything the game ran
+        AttachBattery(m);
         Machine = m;
         _pcDosProgram = _pcDosBooting = _pcDosBootSeen = false;
         FirmwareIdentity = firmware;
@@ -466,7 +469,8 @@ public sealed partial class EmulatorHost
         _fusionClock = 0;
         StateRestored();
         _pcDosBooting = Fusion == null && _pcDosProgram; _pcDosBootSeen = false; _pcDosBootStart = Machine?.FrameCount ?? 0;
-        Status = Fusion != null ? "Juego reiniciado desde el principio." : hard ? "Reinicio total (memoria borrada)." : "Reinicio.";
+        Status = Fusion != null ? "Juego reiniciado desde el principio." : hard && Nes?.Cartridge.HasBattery == true
+            ? "Reinicio total. La batería del cartucho se conservó." : hard ? "Reinicio total (memoria borrada)." : "Reinicio.";
     }
 
     // -- save states -------------------------------------------------------------

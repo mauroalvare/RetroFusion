@@ -56,6 +56,7 @@ public sealed partial class RetroApp
         new("save", "Guardar estado rápido", "Partida", "partida progreso", Shortcut("F2"), _host.QuickSave, () => _host.CanUseStates, "Disponible en un original cargado."),
         new("load", "Cargar estado rápido", "Partida", "partida progreso", "", _host.QuickLoad, () => _host.CanUseStates, "Disponible en un original cargado."),
         new("slots", "Abrir partidas guardadas…", "Partida", "ranuras estados", "", OpenStateWindow, () => _host.CanUseStates, "Disponible en un original cargado."),
+        new("battery", "Batería del cartucho", "Partida", "progreso ram respaldo", "", OpenBatteryWindow, () => _host.Battery != null, "No hay una batería NES disponible."),
         new("capture", "Guardar captura de pantalla", "Partida", "imagen foto png", ToolShortcut("S"), SaveCapture, () => _host.CurrentVideo != null, "Encendé una máquina."),
         new("rewind", "Retroceder cinco segundos", "Partida", "rebobinar historial", "", () => TryStateAction(() => _host.Rewind()),
             () => _host.RewindPoints > 0 && !_host.IsRecordingInputs && !_host.IsReplayingInputs, "Activá el historial en Juego > Rebobinado y entradas."),

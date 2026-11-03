@@ -20,6 +20,7 @@ internal sealed class NativeHarness : IDisposable
     private readonly string? _previousProfiles = Environment.GetEnvironmentVariable("RETROEMU_PROFILES");
     // Creating the window and the audio device again inside one process can block the native backends.
     private static bool s_windowReady;
+    private readonly string[] _appArguments;
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nint ClipboardReader(nint context);
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate void ClipboardWriter(nint context, nint text);
     private static nint s_clipboard;
@@ -62,6 +63,7 @@ internal sealed class NativeHarness : IDisposable
         WriteClipboard(0, 0);
         string[] all = ["--autotest", "100000", Path.Combine(Folder, "unused.png"), "--hidden", "--mute", "--no-update", "--no-organize",
             "--interface", style, "--text-size", textPercent.ToString(), "--games-folder", Games, .. arguments];
+        _appArguments = all;
         App = new RetroApp(all);
         var library = (GameLibrary)Get("_library");
         Assert.That(SpinWait.SpinUntil(() => { library.Poll(); return !library.Scanning; }, TimeSpan.FromSeconds(10)), Is.True, "The demo library did not finish scanning.");
@@ -106,6 +108,15 @@ internal sealed class NativeHarness : IDisposable
     public object? Call(string method, params object[] parameters) => App.GetType().GetMethod(method, Private)!.Invoke(App, parameters);
 
     public void Frames(int count = 1) { for (int i = 0; i < count; i++) App.Frame(1f / 60); }
+    /// <summary>A fresh app session over the same own folders, keeping one native context in this process.</summary>
+    public void RestartApp()
+    {
+        var controls = App.InterfaceControlBounds;
+        App.Shutdown(); App = new RetroApp(_appArguments);
+        App.InterfaceControlBounds = controls;
+        ((HomeScreen)Get("_home")).LibraryControlBounds = controls;
+        Bounds.Clear(); Frames(5);
+    }
     public void Key(ImGuiKey key, bool ctrl = false, bool shift = false)
     {
         var io = ImGui.GetIO();

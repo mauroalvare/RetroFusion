@@ -9,6 +9,8 @@ El [bus8080](I8080.md) detalla su modo temporizado, READY y alcance de las prueb
 Las [esperas 6502/6510 y DMA NES](NES-DMA.md) describen el reloj durante RDY,
 el arbitraje OAM/DMC y los estados NES7 compatibles con NES2–6.
 El [contraste nestest](NESTEST.md) compara estados y ciclos por CLI, con corpus externo opcional.
+La [batería NES](BATERIA-NES.md) explica el guardado entre sesiones, las copias y la
+recuperación sin sobrescribir progreso de otra instancia.
 La [guía de interfaz y herramientas](DISENO-INTERFAZ.md) describe el buscador de acciones,
 la adaptación de paneles y las referencias de rutinas por edición.
 La [investigación automática](ANALISIS-AUTOMATICO.md) explica objetivos, presupuestos,

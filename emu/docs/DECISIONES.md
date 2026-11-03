@@ -2299,3 +2299,34 @@ problema; si falla, mantiene las notas en sesión y la respuesta manual disponib
 Cancelar antes de consumir una respuesta también evita publicarla o abrirla aunque el
 worker haya alcanzado a terminar. Reintentar la prueba del creador usa la variante con
 token y progreso de CreatedGames.TryAgain; una prueba cancelada no reescribe el juego.
+
+## D-135 — Batería NES independiente y conservación al salir
+
+El núcleo transfiere PRG NVRAM mediante Nes.SaveBattery/LoadBattery, sin mezclarla con
+el estado de CPU/PPU ni cambiar NES7. Reset(true) conserva la PRG RAM cuando el cartucho
+declara batería. El guardado independiente se limita al banco de 8 KB ya modelado:
+iNES con batería y un banco, o NES 2.0 con byte 10 = 0x70 y sin CHR NVRAM. Las variantes
+distintas avisan y continúan con estados; no se silencian pérdidas de CHR o RAM mixta.
+
+EmulatorHost recibe NesBatteryStore de forma optativa; RetroApp lo habilita sólo para
+su partida. El constructor sin almacén no toca persistencia, para aislar ensayos,
+investigaciones y sesiones privadas de fusiones. --autotest usa su directorio de trabajo.
+La identidad es el SHA-256 del cartucho completo, independiente del idioma y la ruta.
+El archivo .rfbattery/1 incluye firma, versión, identidad, SHA-256 del contenido y 8 KB;
+el esquema exacto está en BATERIA-NES.md. No se importa .sav sin validación de edición.
+
+Las escrituras se excluyen con un .lock estable y comparan el archivo con el leído al
+abrir/guardar; no basta la fecha. Antes de reemplazar se sincroniza un temporal y se
+conserva .previous. Los archivos inválidos o de versión desconocida bloquean el guardado
+automático sin modificarse. Recuperar exige una decisión explícita, valida primero la
+copia y conserva tanto la RAM actual distinta como el archivo de disco anterior. Si
+no se pueden preservar, no cambia la partida. No se carga automáticamente un temporal
+incompleto; los errores controlados retiran su temporal propio.
+
+Se consulta cada dos segundos, incluso pausado; se conserva antes de cambiar de medio,
+iniciar una fusión, salir y lanzar un ayudante de actualización. UpdateWindow.beforeInstall
+se ejecuta antes de invocar ese ayudante. El cambio de juego se detiene si falla y no
+hay una exportación actual verificable. El cierre permite volver o descartar de forma
+explícita; los botones quedan fuera del texto desplazable. Una exportación alterada,
+eliminada o anterior a cambios nuevos no autoriza descartar la memoria. Recuperar usa
+la invalidación de sesión/entradas/historial del host y deja la partida pausada.

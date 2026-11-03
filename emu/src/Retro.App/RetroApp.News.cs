@@ -55,7 +55,8 @@ internal static class ReleaseNotes
             "La reparación de Visual C++ sólo se ofrece si falta una dependencia; pide permiso para descargar y para ejecutar el instalador firmado por Microsoft.",
             "El paquete Linux incluye una comprobación previa al runtime, con requisitos de glibc y bibliotecas del sistema.",
             "Los talleres distinguen errores, cancelaciones y resultados parciales; un fallo al guardar anotaciones conserva la respuesta en la sesión.",
-            "La falta del firmware de una máquina no bloquea la biblioteca ni los cartuchos de otros sistemas."
+            "La falta del firmware de una máquina no bloquea la biblioteca ni los cartuchos de otros sistemas.",
+            "Los cartuchos NES con batería de 8 KB conservan el progreso entre sesiones y al reiniciar; se pueden exportar y recuperar copias desde Juego o la terminal."
         ]),
         new("0.3.7", [
             "Consola interna con ayuda, historial, autocompletado y tareas cancelables en segundo plano.",

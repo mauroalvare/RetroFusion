@@ -11,7 +11,7 @@ namespace Retro.App;
 /// <summary>Main window: play mode (just the screen) and debugger mode (panels).</summary>
 public sealed partial class RetroApp
 {
-    private readonly EmulatorHost _host = new();
+    private readonly EmulatorHost _host;
     private readonly InputMapper _input = new();
     private readonly string _romDir;
     private readonly FileBrowser _browser;
@@ -77,6 +77,8 @@ public sealed partial class RetroApp
 
     public RetroApp(string[] args)
     {
+        _host = new(new NesBatteryStore(args.Contains("--autotest")
+            ? Path.Combine(Environment.CurrentDirectory, "out", "autotest-battery") : null));
         _audioDisabled = !StartupRequirements.WantsAudio(args);
         _ai = args.Contains("--autotest") || args.Contains("--no-ai")
             ? new Retro.Ai.AiSettings { Provider = "manual", ProvidersDisabled = true } : Retro.Ai.AiSettings.Load();
@@ -198,7 +200,7 @@ public sealed partial class RetroApp
         }
         if (!openedFile && !args.Any(a => a is "--studio" or "--preparar" or "--crear-window" or "--studio-window" or "--code" or "--mods-window" or "--states-window" or "--sound-window" or "--preferences-window" or "--debug" or "--create-hub" or "--tools-hub" or "--help-hub" or "--research-window" or "--auto-analysis-window"))
             _home.Open();
-        _updates = new UpdateWindow(args);
+        _updates = new UpdateWindow(args, beforeInstall: _host.EnsureBatteryPreserved);
         _updates.ControlBounds = (name, min, max) => InterfaceControlBounds?.Invoke(name, min, max);
         if (Hardcore) OpenTerminal();
         if (args.Contains("--interface-picker")) OpenInterfacePicker();
@@ -298,6 +300,8 @@ public sealed partial class RetroApp
 
     public void Shutdown()
     {
+        // Normal quit and updates check this before closing. Retry once for a last storage failure.
+        if (!_host.TryPreserveBattery()) Console.Error.WriteLine(UiText.Message(_host.BatteryProblem ?? ""));
         _updates.Dispose();
         foreach (var task in _tasks.Active) task.Cancel();
         _terminal?.History.Save();
@@ -318,13 +322,19 @@ public sealed partial class RetroApp
     {
         var io = ImGui.GetIO();
         // The focused debugger screen is itself an ImGui window, but owns game input.
-        return io.WantTextInput || ConsoleOwnsKeyboard || InterfaceWorkspace || ConfigurationOpen || _interfacePicker.IsOpen || _commands.IsOpen || _pendingOpen != null || _browser.IsOpen
+        return io.WantTextInput || ConsoleOwnsKeyboard || InterfaceWorkspace || ConfigurationOpen || _batteryWindow || _interfacePicker.IsOpen || _commands.IsOpen || _pendingOpen != null || _browser.IsOpen
             || (io.WantCaptureKeyboard && !(_debugMode && _screenFocused));
     }
 
     // ------------------------------------------------------------------ frame
     public void Frame(float dt)
     {
+        _host.PollBattery(dt);
+        if (_quitNotice == null && _host.BatteryProblem is { } batteryProblem && batteryProblem != _lastBatteryProblem)
+        {
+            _errorPopup = UiText.Format($"Batería NES: {UiText.Raw(UiText.Message(batteryProblem))}") + "\n\n" + UiText.Get("La partida sigue en memoria. Abrí Juego > Batería del cartucho para guardar una copia o recuperar otra.");
+        }
+        _lastBatteryProblem = _host.BatteryProblem;
         _updates.Poll();
         if (_updates.RestartRequested) QuitRequested = true;
         if (!_updates.Blocking && _pendingOpen == null && !_browser.IsOpen) HandleDroppedFiles();
@@ -505,7 +515,10 @@ public sealed partial class RetroApp
     /// <summary>Window close button and Juego > Salir: asks first when AI work would be cancelled.</summary>
     public void RequestQuit()
     {
+        bool preserved = _host.TryPreserveBattery();
+        _quitBatteryPending = !preserved;
         _quitNotice = QuitGuard.Notice(_studio.IsWorking, _creator.IsWorking, _code.IsWorking, _tasks.Active.Count(task => !task.Tracked));
+        if (!preserved) _quitNotice = (_quitNotice == null ? "" : _quitNotice + "\n\n") + UiText.Get("La batería NES todavía no se pudo guardar. Volvé para exportar una copia desde Juego > Batería del cartucho. Salir ahora pierde los cambios que sólo están en memoria.");
         if (ComponentRepairActive) _quitNotice = (_quitNotice == null ? "" : _quitNotice + "\n\n") + UiText.Get("Hay una reparación de componentes en curso. Salir cancela la descarga pendiente; si el instalador de Windows ya empezó, seguirá bajo su control. No se termina por la fuerza una instalación del sistema.");
         if (_quitNotice == null) QuitRequested = true;
     }
@@ -728,7 +741,7 @@ public sealed partial class RetroApp
         if (_host.Fusion is Retro.Studio.StudioSession { Game.IsInspired: true }) OpenInspiredCreator();
         else OpenFusionStudio();
     }
-    private void CloseEditors() { _hub=HubPage.None; _stateWindowOpen = false; _studio.Close(); _creator.Close(); _code.Close(); }
+    private void CloseEditors() { _hub=HubPage.None; _stateWindowOpen = false; _batteryWindow = false; _studio.Close(); _creator.Close(); _code.Close(); }
     private void OpenFusionStudio() { CloseEditors(); _home.Close(); _studio.Open(); }
     private void OpenCreator() { CloseEditors(); _home.Close(); _creator.Open(); }
     private void OpenInspiredCreator() { CloseEditors(); _home.Close(); _studio.Open(inspired: true); }
@@ -950,6 +963,7 @@ public sealed partial class RetroApp
             if (ImGui.MenuItem(UiText.Label("Guardar estado rápido"), Shortcut("F2"), false, _host.CanUseStates)) _host.QuickSave();
             if (ImGui.MenuItem(UiText.Label("Cargar estado rápido"), _host.Pc != null ? Shortcut("F4") : _host.C64 != null ? "F4" : "F3", false, _host.CanUseStates)) _host.QuickLoad();
             if (ImGui.MenuItem(UiText.Label("Partidas guardadas..."), "", false, _host.CanUseStates)) OpenStateWindow();
+            if (ImGui.MenuItem(UiText.Label("Batería del cartucho"), "", false, _host.Battery != null)) OpenBatteryWindow();
             if (ImGui.BeginMenu(UiText.Label("Rebobinado y entradas"), _host.CanUseStates))
             {
                 bool rewind = _host.RewindEnabled;
@@ -976,7 +990,7 @@ public sealed partial class RetroApp
             if (ImGui.MenuItem(UiText.Label(_host.Paused ? "Continuar" : "Pausa"), Shortcut("F9"), false, !_home.IsOpen))
             { if (_host.Paused) _host.Continue(); else _host.Pause("Pausa"); }
             if (ImGui.MenuItem(UiText.Label(_host.Fusion != null ? "Reiniciar fusión o creación" : "Reiniciar"), Shortcut("F5"))) _host.Reset(false);
-            if (ImGui.MenuItem(UiText.Label("Reinicio total (borra RAM)"), Shortcut("Shift+F5"), false, _host.Fusion == null)) _host.Reset(true);
+            if (ImGui.MenuItem(UiText.Label(_host.Nes?.Cartridge.HasBattery == true ? "Reinicio total (conserva batería)" : "Reinicio total (borra RAM)"), Shortcut("Shift+F5"), false, _host.Fusion == null)) _host.Reset(true);
             bool turbo = _host.Turbo;
             if (ImGui.MenuItem(UiText.Label("Turbo"), Shortcut("F8"), ref turbo)) _host.Turbo = turbo;
             if (ImGui.MenuItem(UiText.Label("Detener fusión o creación"), "", false, _host.Fusion != null)) _host.StopFusion();
@@ -1334,25 +1348,32 @@ public sealed partial class RetroApp
 
     private void DrawPopups()
     {
+        DrawBatteryWindow();
         if (_quitNotice is { } notice)
         {
             const string title = "Salir de RetroEmu";
             ImGui.OpenPopup(UiText.Label(title));
             var viewport = ImGui.GetMainViewport();
-            ImGui.SetNextWindowSize(new(Math.Min(UiTheme.Px(520), viewport.WorkSize.X - 24), 0), ImGuiCond.Appearing);
+            var quitSize = Vector2.Min(UiTheme.Px(560, 340), viewport.WorkSize - new Vector2(24));
+            ImGui.SetNextWindowSizeConstraints(Vector2.Min(UiTheme.Px(360, 220), quitSize), viewport.WorkSize - new Vector2(24));
+            ImGui.SetNextWindowSize(quitSize, ImGuiCond.Appearing);
             ImGui.SetNextWindowPos(viewport.GetCenter(), ImGuiCond.Appearing, new(0.5f));
             bool open = true;
-            if (ImGui.BeginPopupModal(UiText.Label(title), ref open, ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoDocking))
+            if (ImGui.BeginPopupModal(UiText.Label(title), ref open, ImGuiWindowFlags.NoDocking))
             {
-                ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + Math.Min(UiTheme.Px(490), viewport.WorkSize.X - 60));
+                ImGui.BeginChild("quit-notice", new(0, -3 * ImGui.GetFrameHeightWithSpacing() - UiTheme.Px(8)));
                 ImGui.TextWrapped(UiText.Get(notice));
-                ImGui.PopTextWrapPos();
-                ImGui.Spacing();
-                if (ImGui.Button(UiText.Label("Volver"))) { _quitNotice = null; ImGui.CloseCurrentPopup(); }
-                ImGui.SameLine();
-                if (ImGui.Button(UiText.Label("Ver el trabajo"))) { _quitNotice = null; ImGui.CloseCurrentPopup(); RevealCurrentWork(); }
-                ImGui.SameLine();
-                if (ImGui.Button(UiText.Label("Salir y cancelar"))) { _quitNotice = null; ImGui.CloseCurrentPopup(); QuitRequested = true; }
+                ImGui.EndChild(); ImGui.Separator();
+                if (ImGui.Button(UiText.Label("Volver"), new(-1, 0))) { _quitNotice = null; ImGui.CloseCurrentPopup(); }
+                InterfaceControlBounds?.Invoke("Volver al programa", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
+                if (ImGui.Button(UiText.Label(_quitBatteryPending ? "Ver batería" : "Ver el trabajo"), new(-1, 0)))
+                {
+                    _quitNotice = null; ImGui.CloseCurrentPopup();
+                    if (_quitBatteryPending) OpenBatteryWindow(); else RevealCurrentWork();
+                }
+                InterfaceControlBounds?.Invoke("Ver antes de salir", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
+                if (ImGui.Button(UiText.Label(_quitBatteryPending ? "Salir sin guardar" : "Salir y cancelar"), new(-1, 0))) { _quitNotice = null; ImGui.CloseCurrentPopup(); QuitRequested = true; }
+                InterfaceControlBounds?.Invoke("Confirmar salida", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
                 if (ImGui.IsKeyPressed(ImGuiKey.Escape)) { _quitNotice = null; ImGui.CloseCurrentPopup(); }
                 ImGui.EndPopup();
             }

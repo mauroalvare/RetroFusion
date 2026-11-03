@@ -8,7 +8,7 @@ public sealed partial class RetroApp
     private IReadOnlyList<CommandSpec>? _terminalCatalog;
     private IReadOnlyList<CommandSpec> TerminalCatalog
     {
-        get => _terminalCatalog ??= [.. LibraryOrders(), .. PlayOrders(), .. AnalysisOrders(), .. ProjectOrders(), .. TaskOrders(), .. SystemOrders(), .. PaletteOrders()];
+        get => _terminalCatalog ??= [.. LibraryOrders(), .. PlayOrders(), .. BatteryOrders(), .. AnalysisOrders(), .. ProjectOrders(), .. TaskOrders(), .. SystemOrders(), .. PaletteOrders()];
         set => _terminalCatalog = value;
     }
 

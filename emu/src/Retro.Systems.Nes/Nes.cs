@@ -59,6 +59,20 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
     public M6502 Cpu2A03 => _cpu;
     public byte[] Ram => _ram;
 
+    /// <summary>Only the cartridge's supported PRG NVRAM, without CPU, mapper or volatile memory state.</summary>
+    public byte[] SaveBattery()
+    {
+        if (!Cartridge.SupportsBatterySave) throw new InvalidOperationException("Este cartucho no admite archivos de batería de 8 KB.");
+        return _prgRam.ToArray();
+    }
+
+    public void LoadBattery(ReadOnlySpan<byte> data)
+    {
+        if (!Cartridge.SupportsBatterySave || data.Length != _prgRam.Length)
+            throw new InvalidDataException("La batería no corresponde a la RAM de este cartucho.");
+        data.CopyTo(_prgRam);
+    }
+
     // ------------------------------------------------------------------ IMachine basics
     public string Id => "nes";
     public string DisplayName => "Nintendo NES";
@@ -90,7 +104,7 @@ public sealed class Nes : IMachine, IM6502Bus, IMemoryView, IWriteWatch, ICodePa
         if (hard)
         {
             Array.Clear(_ram);
-            Array.Clear(_prgRam);
+            if (!Cartridge.HasBattery) Array.Clear(_prgRam);
         }
         if (hard) Cartridge.ResetBanks();
         Ppu.Reset();

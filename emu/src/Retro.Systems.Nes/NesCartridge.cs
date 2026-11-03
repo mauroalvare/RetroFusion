@@ -23,6 +23,8 @@ public sealed partial class NesCartridge
     public int Mapper { get; }
     public NesMirroring Mirroring { get; private set; }
     public bool HasBattery { get; }
+    /// <summary>The currently modelled 8 KB PRG NVRAM layout. Other layouts must not be silently saved as this one.</summary>
+    public bool SupportsBatterySave { get; private init; }
     public bool ChrIsRam { get; }
     public bool PrgRamEnabled => Mapper switch { 1 => (_mmc1Prg & 0x10) == 0, 4 => (_mmc3Ram & 0x80) != 0, _ => true };
     public bool PrgRamWritable => PrgRamEnabled && (Mapper != 4 || (_mmc3Ram & 0x40) == 0);
@@ -100,8 +102,15 @@ public sealed partial class NesCartridge
         var h = ReadHeader(data);
         var prg = data.AsSpan(h.Offset, h.PrgSize).ToArray();
         var chr = h.ChrSize == 0 ? new byte[ChrUnit] : data.AsSpan(h.Offset + h.PrgSize, h.ChrSize).ToArray();
+        bool nes2 = (data[7] & 0x0C) == 0x08;
+        bool junkTail = !nes2 && (data[12] | data[13] | data[14] | data[15]) != 0;
         return new NesCartridge(prg, chr, h.ChrSize == 0, h.Mapper, h.Mirroring, h.Battery)
-        { Identity = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(data)) };
+        {
+            Identity = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(data)),
+            SupportsBatterySave = h.Battery && (nes2
+                ? data[10] == 0x70 && (data[11] >> 4) == 0
+                : junkTail || data[8] <= 1)
+        };
     }
 
     /// <summary>CPU read in $8000-$FFFF (16 KB of PRG appears twice).</summary>

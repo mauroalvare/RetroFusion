@@ -81,7 +81,7 @@ public sealed partial class RetroApp
         {
             Id = "play.reset", Name = "reiniciar", Group = "Partida", Summary = "Reinicia la partida o fusión; duro también limpia la memoria del original.",
             Aliases = ["reset"], Keywords = "empezar de nuevo", Unavailable = NeedMachine,
-            Arguments = [new("modo", ArgumentKind.Choice, "duro borra la RAM.") { Optional = true, Choices = ["duro"] }],
+            Arguments = [new("modo", ArgumentKind.Choice, "duro borra la RAM volátil y conserva la batería del cartucho.") { Optional = true, Choices = ["duro"] }],
             Examples = ["reiniciar", "reiniciar duro"],
             Run = context => { _host.Reset(context.Has("modo")); _host.Paused = true; context.Success("Partida reiniciada; usá continuar para jugar."); }
         },

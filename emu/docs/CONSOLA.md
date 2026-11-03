@@ -25,6 +25,10 @@ querés hacer: `como guardar`, `como subir el volumen`. `ayuda <orden>` explica 
 
 ## Colores y paletas
 
+Para progreso de cartuchos con batería, `bateria` consulta el archivo; `bateria guardar`
+lo guarda ahora y `bateria abrir` abre el panel de copias. En inglés: `battery`,
+`battery save`, `battery open`. [Guía y recuperación](BATERIA-NES.md).
+
 Cada interfaz conserva sus propios colores al cambiar de diseño y reiniciar. En **Preferencias >
 Interfaz**, elegí una paleta o abrí **Personalizar colores**. Hay fósforo verde, ámbar,
 hielo y papel claro, además de **Seguir el estilo** y una paleta personalizada.
@@ -221,6 +225,7 @@ que coincida. `ayuda <orden>` agrega argumentos, ejemplos y errores.
 | `controles` | Muestra cómo se juega en la máquina actual. |
 | `maquinas` (`sistemas`) | Lista los sistemas y su estado real de implementación. |
 | `maquina <id>` | Enciende una máquina implementada con su firmware local; no descarga nada. |
+| `bateria [estado\|abrir\|guardar\|exportar\|recuperar] [ruta] [reemplazar]` (`battery`) | Consulta, guarda, exporta o recupera la batería del cartucho NES actual. |
 
 ### Análisis
 

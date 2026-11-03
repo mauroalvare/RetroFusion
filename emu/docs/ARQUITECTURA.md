@@ -291,6 +291,17 @@ bus) y la suite funcional de Klaus Dormann.
 
 ## Nintendo NES (NTSC)
 
+`Nes.SaveBattery/LoadBattery` transfieren únicamente la PRG NVRAM soportada de 8 KB,
+sin restaurar CPU ni RAM volátil. Un reinicio completo conserva PRG RAM si el cartucho
+declara batería. El formato de estados NES7 no cambia.
+
+`NesBatteryStore` es optativo en EmulatorHost y sólo lo habilita el host de partida de
+RetroApp. Ensayos, investigaciones, CLI y copias de fusiones quedan aislados. Los
+modos --autotest usan una carpeta propia bajo su directorio de trabajo. Se consulta cada
+dos segundos, incluso en pausa, y antes de cambiar de máquina, fusionar, salir o lanzar
+el ayudante de actualización. D-135 describe el archivo, la exclusión y la recuperación;
+[BATERIA-NES.md](BATERIA-NES.md) explica el uso y los límites.
+
 - **Cuadro:** 262 líneas de 341 puntos; la PPU da tres puntos por ciclo de CPU
   (1.789.773 Hz, unos 29.780 ciclos por cuadro, 60,1 Hz). La CPU marca el paso: cada
   acceso al bus avanza tres pasos de la PPU. El cuadro termina al acabar la última línea

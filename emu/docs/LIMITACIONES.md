@@ -449,8 +449,13 @@ en el programa nuevo no promete lectura de formatos nuevos en programas anterior
   independiente del dibujo por línea; los accesos del depurador no generan IRQ.
   El filtro aproxima tres flancos M2 con diez puntos PPU: no reproduce la fase exacta
   CPU/PPU ni la revisión MMC3A. MMC6 y las placas con RAM ampliada se rechazan.
-- La RAM de cartuchos con batería se conserva en estados guardados, sin archivo de
-  batería independiente entre sesiones todavía.
+- La app guarda la batería PRG de 8 KB entre sesiones y la conserva al reiniciar.
+  Soporta iNES con un banco y NES 2.0 con 8 KB PRG NVRAM, sin PRG RAM volátil ni CHR
+  NVRAM. Otras variantes muestran un aviso y siguen necesitando estados guardados.
+  Fusiones, ensayos y CLI no comparten este archivo. No importa archivos .sav de otros
+  emuladores. Ante un cierre abrupto se pueden perder los últimos dos segundos; errores
+  de almacenamiento y conflictos entre instancias impiden el reemplazo silencioso.
+  [Guardado, copias y recuperación](BATERIA-NES.md).
 - Sin segundo jugador en la app (el mando 2 existe para el CLI y las fusiones) ni Zapper.
 - La sonda automática no sustituye un guion de arranque curado para intros, selección
   de controles u otros menús del cartucho.

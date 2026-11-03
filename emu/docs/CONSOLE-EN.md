@@ -50,6 +50,7 @@ Use help <command> for examples, requirements and errors.
 | `controls` | Shows how to play on the current machine. |
 | `machines` (`sistemas`) | Lists systems and their actual implementation status. |
 | `machine <id>` | Powers on an implemented machine with its local firmware; downloads nothing. |
+| `battery [status\|open\|save\|export\|restore] [path] [replace]` | Inspect, save, export or recover the current NES cartridge's battery. |
 
 ### Projects
 

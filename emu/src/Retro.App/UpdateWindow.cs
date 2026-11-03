@@ -12,6 +12,7 @@ public sealed class UpdateWindow : IDisposable
     private readonly HttpClient _http;
     private readonly bool _ownsHttp;
     private readonly Action<UpdatePlan> _install;
+    private readonly Action? _beforeInstall;
     private readonly ConcurrentQueue<UpdateProgress> _messages = new();
     private readonly UpdatePreferences _preferences;
     private readonly bool _packaged;
@@ -28,13 +29,14 @@ public sealed class UpdateWindow : IDisposable
     public string Summary => !_packaged ? "Esta copia no es un paquete instalado: el actualizador no está disponible." :
         _ready != null ? UiText.Format($"RetroEmu {_ready.ToVersion} está listo; actualizar abrir lo instala.") : _status.Length > 0 ? _status : "Sin consultar en esta sesión; actualizar abrir busca la última entrega.";
 
-    public UpdateWindow(string[] args, HttpClient? http = null, string? root = null, string? settings = null, Action<UpdatePlan>? install = null)
+    public UpdateWindow(string[] args, HttpClient? http = null, string? root = null, string? settings = null, Action<UpdatePlan>? install = null, Action? beforeInstall = null)
     {
         _root = Path.GetFullPath(root ?? AppContext.BaseDirectory).TrimEnd(Path.DirectorySeparatorChar);
         _settings = settings ?? UpdatePreferences.Folder;
         _preferences = UpdatePreferences.Load(_settings);
         _ownsHttp = http == null; _http = http ?? new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
         _install = install ?? UpdateRunner.StartHelper;
+        _beforeInstall = beforeInstall;
         _packaged = ReleaseClient.Runtime != null && File.Exists(Path.Combine(_root, PackageManifest.FileName))
             && !Path.GetFullPath(_root).Split(Path.DirectorySeparatorChar).Contains(".retroemu-updates");
         bool testing = args.Any(a => a is "--hidden" or "--autotest" or "--no-update" or "--update-ready");
@@ -94,7 +96,7 @@ public sealed class UpdateWindow : IDisposable
     private void Install()
     {
         if (_ready == null) return;
-        try { _install(_ready); RestartRequested = true; _status = "Cerrando para instalar y volver a abrir..."; }
+        try { _beforeInstall?.Invoke(); _install(_ready); RestartRequested = true; _status = "Cerrando para instalar y volver a abrir..."; }
         catch (Exception error) { _status = "No se pudo iniciar la actualización."; _error = error.Message; _startup = false; }
     }
 

@@ -5,7 +5,7 @@ internal static class TerminalLanguage
 {
     private static readonly IReadOnlyDictionary<string, string> Names = new Dictionary<string, string>(StringComparer.Ordinal)
     {
-        ["ayuda"]="help", ["como"]="how", ["limpiar"]="clear", ["historial"]="history", ["requisitos"]="requirements", ["paleta"]="palette",
+        ["ayuda"]="help", ["como"]="how", ["limpiar"]="clear", ["historial"]="history", ["requisitos"]="requirements", ["paleta"]="palette", ["bateria"]="battery",
         ["proyectos"]="projects", ["proyecto"]="project", ["validar"]="validate", ["retomar-trabajo"]="resume-work", ["preparar"]="prepare",
         ["tareas"]="tasks", ["tarea"]="task", ["seguir"]="follow", ["cancelar"]="cancel", ["retomar"]="resume-task",
         ["jugar"]="play", ["abrir"]="open", ["continuar"]="continue", ["pausa"]="pause", ["reiniciar"]="reset",
@@ -35,7 +35,7 @@ internal static class TerminalLanguage
         ["nombre-desc"]="name-desc", ["año-desc"]="year-desc", ["agregados"]="added", ["buscar"]="search", ["vaciar"]="clear",
         ["creado"]="created", ["inspirado"]="inspired", ["sin"]="unknown", ["nunca"]="never", ["agregados7"]="added7", ["agregados30"]="added30",
         ["fusiones"]="fusions", ["herramientas"]="tools", ["opciones"]="options", ["ayuda"]="help", ["barra"]="bar", ["subrayado"]="underline",
-        ["usar"]="use", ["editar"]="edit"
+        ["usar"]="use", ["editar"]="edit", ["guardar"]="save", ["exportar"]="export", ["recuperar"]="restore"
     };
     private static readonly IReadOnlyDictionary<string, string> Options = new Dictionary<string, string>(StringComparer.Ordinal)
     {
