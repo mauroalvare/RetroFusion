@@ -23,6 +23,8 @@
     <Compile Include="..\..\src\Retro.App\ThumbnailFiles.cs" Link="App\ThumbnailFiles.cs" />
     <Compile Include="..\..\src\Retro.App\EmulatorHost.cs" Link="App\EmulatorHost.cs" />
     <Compile Include="..\..\src\Retro.App\EmulatorHost.Timeline.cs" Link="App\EmulatorHost.Timeline.cs" />
+    <Compile Include="..\..\src\Retro.App\EmulatorHost.Battery.cs" Link="App\EmulatorHost.Battery.cs" />
+    <Compile Include="..\..\src\Retro.App\NesBatteryStore.cs" Link="App\NesBatteryStore.cs" />
     <Compile Include="..\..\src\Retro.App\SessionTimeline.cs" Link="App\SessionTimeline.cs" />
     <Compile Include="..\..\src\Retro.App\AudioQueue.cs" Link="App\AudioQueue.cs" />
   </ItemGroup>

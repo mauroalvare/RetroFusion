@@ -1,4 +1,5 @@
 using Retro.Systems.Nes;
+using Retro.Core;
 
 namespace Retro.App;
 
