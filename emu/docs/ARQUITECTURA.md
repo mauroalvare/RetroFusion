@@ -705,7 +705,7 @@ escrito un borrador parcial. Los archivos temporales propios de respuesta y esqu
 se eliminan también al cancelar o agotar el tiempo. Las pruebas usan procesos
 simulados para cubrir éxito, error y cancelación.
 
-`AntigravityProtocol` (D-138, posterior a 0.4.0) distingue avances de un único resultado
+`AntigravityProtocol` (D-138, desde 0.4.1) distingue avances de un único resultado
 terminal. No aplica texto parcial, JSON incompleto ni resultados duplicados. El esquema
 lo lee el CLI desde su archivo propio, no una herramienta del agente. La entrada completa
 evita los límites de la línea de comandos de Windows y la lectura de consignas por comando.
@@ -713,7 +713,7 @@ Se solicita modo plan sin modificar permisos globales. Un rechazo headless produ
 ES/EN accionable y no dispara un reintento con permisos más amplios. Los contadores finales
 son acumulativos: no se suman eventos intermedios ni se vuelve a agregar thinking/cache.
 
-D-139 (local posterior a 0.4.0) extiende la validación final a todos los proveedores.
+D-139 (desde 0.4.1) extiende la validación final a todos los proveedores.
 Codex exige un turno completado y su archivo final; Claude Code y Gemini CLI requieren
 su envelope de resultado. Las API exigen un motivo/estado final válido y texto no vacío.
 `JsonApi` acota el cuerpo HTTP a 16 MiB y aplica cancelación/plazo también tras los headers;

@@ -167,20 +167,20 @@ They describe capabilities and limits without requiring a specific AI provider.
 
 ## CLI
 
-The Antigravity integration developed after 0.4.0 sends the full prompt through stream-json
+Since 0.4.1, the Antigravity integration sends the full prompt through stream-json
 stdin, so long prompts do not require an agent tool to read a temporary file. It requests
 plan mode and keeps your global permissions unchanged. If a tool is denied in headless mode,
 review the specific action with /permissions in an interactive agy session, or use manual mode.
-This fix is local and is not part of the published 0.4.0. Tests use simulated processes;
+This fix is included in 0.4.1 and is not part of 0.4.0. Tests use simulated processes;
 no real AI generation was run. See the [official protocol](https://antigravity.google/docs/cli/headless/).
 
-Further local checks cover Claude Code, Codex, legacy Gemini CLI, Claude/OpenAI/Gemini APIs
+Further checks in 0.4.1 cover Claude Code, Codex, legacy Gemini CLI, Claude/OpenAI/Gemini APIs
 and Ollama. An incomplete response, invalid JSON or progress text is rejected instead of
 being used as the final answer. Time limits cover response reading as well as sending the
 request. Temporary file locks in an agent workspace leave the response pending. Advisors
 attach screenshots only when the integration declares support for them.
 
-These changes are not in the published 0.4.0. Verification uses simulated HTTP responses
+These changes are included in 0.4.1. Verification uses simulated HTTP responses
 and local test processes, without real AI calls or changes to your global permissions.
 HTTP response bodies are limited to 16 MiB; CLI output to 16 Mi characters per channel.
 Windows .cmd launchers reject ambiguous argument characters (quotes, %, ! and control

@@ -45,13 +45,16 @@ public sealed partial class RetroApp
     {
         if (!_newsOpen || _interfacePicker.IsOpen) return;
         PauseForNews();
-        var room = WorkspaceLayout.Available();
+        bool fullHeight = UiTheme.CompactHeight;
+        var room = fullHeight
+            ? System.Numerics.Vector2.Max(new(100, 80), ImGui.GetMainViewport().Size - new System.Numerics.Vector2(16))
+            : WorkspaceLayout.Available();
         ImGui.SetNextWindowSize(System.Numerics.Vector2.Min(UiTheme.Px(760, 600), room), ImGuiCond.Appearing);
         ImGui.SetNextWindowSizeConstraints(System.Numerics.Vector2.Min(UiTheme.Px(360, 260), room), room);
         bool open = true;
         if (ImGui.Begin(UiText.Label("Novedades###release-notes"), ref open, ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
         {
-            WorkspaceLayout.KeepOnScreen();
+            WorkspaceLayout.KeepOnScreen(modal: fullHeight, coverStatusBar: fullHeight);
             // Reserve exactly the rows needed by the footer; only the news body scrolls.
             string language = UiText.English ? "Español" : "English";
             string history = NewsText(_newsHistory ? "Lo nuevo" : "Historial", _newsHistory ? "New only" : "History");
@@ -66,8 +69,9 @@ public sealed partial class RetroApp
                 if (used > 0 && used + gap + width > available) { rows++; used = 0; }
                 used += (used > 0 ? gap : 0) + width;
             }
-            float footer = ImGui.GetFrameHeightWithSpacing() * rows + ImGui.GetStyle().ItemSpacing.Y * 2 + 1;
+            float footer = ImGui.GetFrameHeightWithSpacing() * rows + ImGui.GetStyle().ItemSpacing.Y + 1;
             ImGui.BeginChild("release-notes-body", new(0, -footer));
+            InterfaceControlBounds?.Invoke("Cuerpo novedades", ImGui.GetWindowPos(), ImGui.GetWindowPos() + ImGui.GetWindowSize());
             ImGui.PushTextWrapPos(0);
             ImGui.TextWrapped(NewsText("Novedades de RetroEmu", "What's new in RetroEmu"));
             string? from = ReleaseNotes.ValidVersion(_newsFromVersion);

@@ -44,7 +44,7 @@ Si todavía usás Gemini CLI, podés iniciar sesión ejecutando `gemini` y usar 
 modelo predeterminado. El listado integrado de modelos requiere Antigravity CLI.
 [Guía oficial](https://codelabs.developers.google.com/antigravity-cli-hands-on).
 
-En el desarrollo posterior a 0.4.0, RetroEmu envía la consigna completa por entrada estándar
+Desde 0.4.1, RetroEmu envía la consigna completa por entrada estándar
 con `--input-format stream-json --output-format stream-json`. Así las consignas largas no
 necesitan que el agente ejecute un comando para leer un archivo temporal. El esquema se
 pasa como archivo al propio CLI y se elimina al terminar, también si falla o se cancela.
@@ -56,8 +56,8 @@ Si aparece «command permission … headless … auto-denied», se bloqueó una 
 no podía pedir permiso sin una terminal interactiva. Revisá `/permissions` al abrir `agy`
 interactivamente y autorizá solo la acción concreta que quieras usar, o elegí el modo manual
 de RetroEmu. No hace falta habilitar todos los comandos para enviar una consigna.
-La versión 0.4.0 publicada todavía usaba archivos para consignas largas; esta corrección
-queda local hasta una nueva publicación. No se ejecutó una generación real para verificarla.
+La versión 0.4.0 todavía usaba archivos para consignas largas; esta corrección se incorpora
+en 0.4.1. Se verificó con procesos simulados, sin ejecutar una generación real.
 
 ## Ollama, en tu PC
 
@@ -101,7 +101,7 @@ del mensaje. Recuperar o cambiar estos ajustes no envía un pedido de generació
 
 ## Si una respuesta falla o queda incompleta
 
-La revisión local posterior a 0.4.0 comprueba que la herramienta haya terminado la respuesta
+Desde 0.4.1 se comprueba que la herramienta haya terminado la respuesta
 antes de aceptarla. Un avance, una salida cortada o un JSON dañado muestran un aviso y no se
 aplican como resultado. También se limita la espera si el proceso termina pero deja abierto
 un canal de salida. No se amplían permisos automáticamente al encontrar un error.
@@ -109,7 +109,7 @@ un canal de salida. No se amplían permisos automáticamente al encontrar un err
 Podés corregir la conexión o continuar copiando y pegando. Si trabajás con una carpeta de
 agente, esperar mientras guarda el archivo ya no convierte ese bloqueo temporal en un fallo
 de lectura. Las capturas se adjuntan solo a integraciones que declaran admitirlas.
-Estos cambios siguen locales y no están en la release 0.4.0.
+Estos cambios se incorporan en 0.4.1 y no están en la release 0.4.0.
 
 La [matriz de integraciones](INTEGRACIONES-IA.md) describe los casos comprobados con procesos
 y respuestas simulados. No hubo generaciones reales: una prueba de protocolo no confirma

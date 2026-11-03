@@ -12,8 +12,9 @@ public sealed class ReleaseNewsTests
     [Test]
     public void SkippingFrom026CollectsEveryPublishedIntermediateReleaseInVersionOrder()
     {
-        Assert.That(ReleaseNotes.Since("0.2.6", "0.4.0").Select(note => note.Version), Is.EqualTo(new[]
-            { "0.4.0", "0.3.7", "0.3.6", "0.3.5", "0.3.4", "0.3.3", "0.3.2", "0.3.1", "0.3.0", "0.2.9", "0.2.8", "0.2.7" }));
+        Assert.That(ReleaseNotes.Since("0.2.6", "0.4.1").Select(note => note.Version), Is.EqualTo(new[]
+            { "0.4.1", "0.4.0", "0.3.7", "0.3.6", "0.3.5", "0.3.4", "0.3.3", "0.3.2", "0.3.1", "0.3.0", "0.2.9", "0.2.8", "0.2.7" }));
+        Assert.That(ReleaseNotes.Since("0.4.0", "0.4.1").Select(note => note.Version), Is.EqualTo(new[] { "0.4.1" }));
         Assert.That(ReleaseNotes.Since("0.2.8", "0.2.9").Select(note => note.Version), Is.EqualTo(new[] { "0.2.9" }));
         Assert.That(ReleaseNotes.Since("bad", "bad"), Is.Empty);
         Assert.That(ReleaseNotes.Since("0.4.0", "0.3.7").Select(note => note.Version), Is.EqualTo(new[] { "0.3.7" }));
@@ -22,8 +23,9 @@ public sealed class ReleaseNewsTests
     [Test]
     public void FirstInstallationHasTheCompleteOfflineBilingualHistoryWithoutFutureVersions()
     {
-        var notes = ReleaseNotes.Since(null, "0.4.0");
-        Assert.That(notes, Has.Count.EqualTo(28));
+        var notes = ReleaseNotes.Since(null, "0.4.1");
+        Assert.That(notes, Has.Count.EqualTo(29));
+        Assert.That(ReleaseNotes.Since(null, "0.4.0").Any(note => note.Version == "0.4.1"), Is.False);
         Assert.That(notes.Select(note => note.Version), Is.Unique);
         Assert.That(ReleaseNotes.Since(null, "0.3.7").Any(note => note.Version == "0.4.0"), Is.False);
         foreach (var item in notes.SelectMany(note => note.Items))

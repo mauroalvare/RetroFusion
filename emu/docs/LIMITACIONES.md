@@ -624,16 +624,16 @@ en el programa nuevo no promete lectura de formatos nuevos en programas anterior
   Ollama informa modelos instalados, sin niveles de esfuerzo en ese listado. Un catálogo
   no certifica cuota ni una generación exitosa. No se instalan herramientas ni se inicia
   sesión automáticamente. Ver `CONECTAR-IA.md`.
-  La integración de Antigravity posterior a 0.4.0 requiere entrada/salida stream-json,
+  La integración de Antigravity desde 0.4.1 requiere entrada/salida stream-json,
   envía el pedido por stdin y solicita modo plan. No habilita comandos ni cambia permisos
   globales: una herramienta que requiera confirmación todavía puede ser rechazada en headless.
   Ese caso explica cómo revisar una acción concreta o usar modo manual. Contraste local con
-  ayuda 1.4.12 y procesos simulados; generación real no ejecutada. La release 0.4.0 aún no
+  ayuda 1.4.12 y procesos simulados; generación real no ejecutada. La release 0.4.0 no
   contiene este cambio. No se reintenta automáticamente con permisos generales.
   Probar conexión se puede cancelar; también se solicita cancelación al cambiar de
   proveedor o cerrar la app. Un envío terminado al proceso local no confirma recepción
   del servidor ni una respuesta. Un plazo agotado sin métricas deja el consumo desconocido.
-  La revisión local D-139 exige respuesta final confirmada en todas las integraciones y
+  Desde 0.4.1, D-139 exige respuesta final confirmada en todas las integraciones y
   cubre transporte interrumpido, JSON inválido y cancelación con simulaciones. No certifica
   cuentas, modelos, cuotas ni generaciones reales. Las API declaran solo texto; los asesores
   omiten capturas incompatibles. Ver [matriz y contratos](INTEGRACIONES-IA.md).

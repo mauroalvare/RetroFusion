@@ -5,7 +5,7 @@ param(
     [ValidatePattern('^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$')]
     [string[]]$Runtimes = @("win-x64", "linux-x64"),
     [ValidatePattern('^\d+\.\d+\.\d+$')]
-    [string]$Version = "0.4.0",
+    [string]$Version = "0.4.1",
     # Use only the installed SDK and package cache; a missing dependency fails instead of downloading.
     [switch]$Offline
 )
@@ -73,7 +73,7 @@ foreach ($rid in $Runtimes) {
     foreach ($doc in "NOVEDADES-0.3.6.md", "NOVEDADES-0.3.7.md", "CONSOLA.md", "INTERFACES-Y-DATOS.md", "ANALISIS-AUTOMATICO.md", "DISENO-INTERFAZ.md", "LIMITACIONES.md", "NES-DMA.md", "NESTEST.md", "CREACION-Y-RECUPERACION.md") {
         Copy-Item -LiteralPath (Join-Path $root "docs/$doc") -Destination (Join-Path $playerDocs $doc)
     }
-    foreach ($doc in "USER-GUIDE-EN.md", "CONSOLE-EN.md", "ARRANQUE-Y-RECUPERACION.md", "NOVEDADES-0.4.0.md", "BATERIA-NES.md", "ANOTACIONES.md") {
+    foreach ($doc in "USER-GUIDE-EN.md", "CONSOLE-EN.md", "ARRANQUE-Y-RECUPERACION.md", "NOVEDADES-0.4.0.md", "NOVEDADES-0.4.1.md", "INTEGRACIONES-IA.md", "BATERIA-NES.md", "ANOTACIONES.md") {
         Copy-Item -LiteralPath (Join-Path $root "docs/$doc") -Destination (Join-Path $playerDocs $doc)
     }
     Copy-Item (Join-Path $root "docs/PRECISION-CPU.md") (Join-Path $playerDocs "PRECISION-CPU.md")

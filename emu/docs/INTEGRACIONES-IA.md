@@ -1,7 +1,7 @@
 # Integraciones de IA: comprobaciones y límites
 
-Revisión local del 2026-11-03, posterior a la publicación 0.4.0. Estos cambios todavía
-no forman parte de esa entrega. Las pruebas no generan respuestas con una IA real,
+Revisión del 2026-11-03, incorporada en 0.4.1. Estos cambios no están en la entrega 0.4.0.
+Las pruebas no generan respuestas con una IA real,
 no instalan herramientas ni cambian cuentas, modelos o permisos globales.
 
 ## Qué se comprueba

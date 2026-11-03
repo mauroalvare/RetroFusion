@@ -20,6 +20,13 @@ internal sealed class NativeHarness : IDisposable
     private readonly string? _previousProfiles = Environment.GetEnvironmentVariable("RETROEMU_PROFILES");
     // Creating the window and the audio device again inside one process can block the native backends.
     private static bool s_windowReady;
+    [StructLayout(LayoutKind.Sequential)] private struct WindowRect { public int Left, Top, Right, Bottom; }
+    [DllImport("user32.dll", SetLastError = true)] [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetWindowRect(nint window, out WindowRect rect);
+    [DllImport("user32.dll", SetLastError = true)] [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetClientRect(nint window, out WindowRect rect);
+    [DllImport("user32.dll", SetLastError = true)] [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetWindowPos(nint window, nint after, int x, int y, int width, int height, uint flags);
     private readonly string[] _appArguments;
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nint ClipboardReader(nint context);
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate void ClipboardWriter(nint context, nint text);
@@ -54,6 +61,16 @@ internal sealed class NativeHarness : IDisposable
             rlImGui.Setup(true, true); s_windowReady = true;
             unsafe { ImGui.GetIO().NativePtr->IniFilename = null; }
 
+        }
+        else if (OperatingSystem.IsWindows())
+        {
+            // Resize only our hidden HWND through WM_SIZE, keeping raylib's high-DPI dimensions consistent.
+            nint window;
+            unsafe { window = (nint)Raylib.GetWindowHandle(); }
+            if (!GetWindowRect(window, out var outer) || !GetClientRect(window, out var client)
+                || !SetWindowPos(window, 0, 0, 0, width + outer.Right - outer.Left - client.Right,
+                    height + outer.Bottom - outer.Top - client.Bottom, 0x0016)) // no move, no z-order change, no activation
+                throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
         }
         else Raylib.SetWindowSize(width, height);
         // All UI copy/paste paths, including workshop buttons, stay inside this test process.
@@ -129,8 +146,12 @@ internal sealed class NativeHarness : IDisposable
     }
     public void Type(string text) { ImGui.GetIO().AddInputCharactersUTF8(text); Frames(2); }
     public void Enter(string text) { Type(text); Key(ImGuiKey.Enter); }
-    /// <summary>The backend reads the position from raylib every frame. A hidden window has no focus, so the real cursor stays where it is.</summary>
-    public void MoveMouse(Vector2 at) => Raylib.SetMousePosition((int)at.X, (int)at.Y);
+    /// <summary>Control bounds are logical pixels; Windows raylib's high-DPI input setter takes physical pixels.</summary>
+    public void MoveMouse(Vector2 at)
+    {
+        var scale = OperatingSystem.IsWindows() ? Raylib.GetWindowScaleDPI() : Vector2.One;
+        Raylib.SetMousePosition((int)MathF.Round(at.X * scale.X), (int)MathF.Round(at.Y * scale.Y));
+    }
     public void Click(Vector2 at)
     {
         var io = ImGui.GetIO();
