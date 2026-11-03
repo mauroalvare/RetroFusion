@@ -99,7 +99,7 @@ internal sealed class InterfacePicker
             var at = ImGui.GetItemRectMin(); var draw = ImGui.GetWindowDrawList();
             Track("Elegir " + choice.Id);
             draw.AddText(at + UiTheme.Px(10, 6), ImGui.GetColorU32(ImGuiCol.Text), UiTheme.Fit(choice.ShortName + (choice.Style == _current ? UiText.Get(" · actual") : ""), card - UiTheme.Px(20)));
-            draw.AddText(at + new Vector2(UiTheme.Px(10), UiTheme.Px(8) + ImGui.GetTextLineHeight()), ImGui.ColorConvertFloat4ToU32(UiTheme.Muted), UiText.Get(UiTheme.Fit(choice.Handling, card - UiTheme.Px(20))));
+            draw.AddText(at + new Vector2(UiTheme.Px(10), UiTheme.Px(8) + ImGui.GetTextLineHeight()), ImGui.ColorConvertFloat4ToU32(UiTheme.Muted), UiTheme.Fit(UiText.Get(choice.Handling), card - UiTheme.Px(20)));
             if (Selected == choice.Style) draw.AddRect(at, ImGui.GetItemRectMax(), ImGui.ColorConvertFloat4ToU32(UiTheme.Accent), 0, ImDrawFlags.None, UiTheme.Px(2));
             ImGui.PopID();
         }

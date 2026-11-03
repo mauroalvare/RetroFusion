@@ -320,14 +320,14 @@ public sealed partial class HomeScreen(GameLibrary library, Action<string> playO
                 float artWidth=Math.Min(UiTheme.Px(144),size.X*0.29f);
                 HardwareArt.Draw(draw,machine.Id,min+UiTheme.Px(8,12),new(artWidth,UiTheme.Px(80)));
                 float textX=artWidth+UiTheme.Px(22),width=size.X-textX-UiTheme.Px(12);
-                draw.AddText(min+new Vector2(textX,UiTheme.Px(18)),ImGui.GetColorU32(ImGuiCol.Text),UiText.Get(UiTheme.Fit(Name(machine),width)));
+                draw.AddText(min+new Vector2(textX,UiTheme.Px(18)),ImGui.GetColorU32(ImGuiCol.Text),UiTheme.Fit(UiText.Get(Name(machine)),width));
                 string formats=machine.Id switch {"zx48"=>"TAP / TZX / Z80 / SNA","c64"=>"PRG / T64","nes"=>"CARTUCHOS NES","pcxt"=>"EXE / COM / ZIP / IMG",_=>"ROM DE PLACA ARCADE"};
                 using(UiTheme.Label()) draw.AddText(min+new Vector2(textX,UiTheme.Px(46)),ImGui.GetColorU32(ImGuiCol.TextDisabled),UiTheme.Fit(UiText.Get(formats),width));
                 draw.AddText(min+new Vector2(textX,UiTheme.Px(72)),ImGui.GetColorU32(ImGuiCol.TextDisabled),UiTheme.Fit(UiText.Get(Summary(machine.Id)),width));
                 draw.AddLine(min+UiTheme.Px(14,96),new(max.X-UiTheme.Px(14),min.Y+UiTheme.Px(96)),ImGui.GetColorU32(ImGuiCol.Border));
                 using(UiTheme.Label())
                 {
-                    draw.AddText(min+UiTheme.Px(14,102),accent,UiText.Get(UiTheme.Fit(UiText.Format($"{index:00} / {machine.Cpu}"),size.X-UiTheme.Px(108))));
+                    draw.AddText(min+UiTheme.Px(14,102),accent,UiTheme.Fit(UiText.Format($"{index:00} / {machine.Cpu}"),size.X-UiTheme.Px(108)));
                     draw.AddText(new(max.X-UiTheme.Px(78),min.Y+UiTheme.Px(102)),ImGui.GetColorU32(ImGuiCol.Text),UiText.Get("ABRIR >"));
                 }
                 if(!UiTheme.HighContrast) RetroArt.Screw(draw,new(max.X-UiTheme.Px(8),min.Y+UiTheme.Px(12)));

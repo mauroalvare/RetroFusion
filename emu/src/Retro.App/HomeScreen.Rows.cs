@@ -115,7 +115,7 @@ public sealed partial class HomeScreen
         {
             ImGui.TableNextColumn();
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + (height - line) / 2);
-            ImGui.TextUnformatted(UiText.Get(UiTheme.Fit(card.Detail, ImGui.GetContentRegionAvail().X)));
+            ImGui.TextUnformatted(UiTheme.Fit(UiText.Get(card.Detail), ImGui.GetContentRegionAvail().X));
         }
         ImGui.TableNextColumn();
         float buttonY = ImGui.GetCursorPosY() + (height - ImGui.GetFrameHeight()) / 2;
