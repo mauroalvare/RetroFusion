@@ -12,6 +12,19 @@ public sealed class LocalizationTests
     [TearDown] public void SpanishAgain() => UiText.Language = "es";
 
     [Test]
+    public void TheCompactPromptUsesEnglishWithoutChangingItsInternalLocation()
+    {
+        UiText.Language = "en";
+        var terminal = new ProgramTerminal(() => []);
+        Assert.That(terminal.PromptForColumns(30), Is.EqualTo("/library>"));
+        Assert.That(terminal.Location, Is.EqualTo("biblioteca"));
+        terminal.Location = "favoritos";
+        Assert.That(terminal.PromptForColumns(30), Is.EqualTo("/favorites>"));
+        UiText.Language = "es";
+        Assert.That(terminal.PromptForColumns(30), Is.EqualTo("/favoritos>"));
+    }
+
+    [Test]
     public void EnglishChangesLabelsAndKeepsUserTextAndNumericFormats()
     {
         UiText.Language = "en";

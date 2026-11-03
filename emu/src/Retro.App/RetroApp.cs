@@ -1294,7 +1294,7 @@ public sealed partial class RetroApp
         float buttonWidth = ImGui.CalcTextSize(UiText.Get(workLabel)).X + ImGui.GetStyle().FramePadding.X * 2;
         // The console's status line uses its cells: at large text sizes the proportional font leaves room for very little.
         if (Hardcore) ImGui.PushFont(UiTheme.ConsoleFont);
-        ImGui.TextUnformatted(UiText.Get(UiTheme.Fit(status, ImGui.GetContentRegionAvail().X - (work ? buttonWidth + UiTheme.Px(12) : 0))));
+        ImGui.TextUnformatted(UiTheme.Fit(UiText.Get(status), ImGui.GetContentRegionAvail().X - (work ? buttonWidth + UiTheme.Px(12) : 0)));
         if (Hardcore) ImGui.PopFont();
         if (ImGui.IsItemHovered()) UiTheme.Tooltip(status);
         if (work)

@@ -81,7 +81,7 @@ internal sealed class TerminalView(ProgramTerminal terminal, TerminalInput input
         if (input.ClearViewRequested) { input.ClearViewRequested = false; _floor = output.RowCount; _follow = true; }
         _floor = Math.Min(_floor, output.RowCount);
         string prompt = input.Searching ? UiText.Format($"(buscar{(input.SearchFailed ? UiText.Get(", sin resultado") : UiText.Get(""))} «{input.SearchText}») ")
-            : (columns < 48 ? "/" + terminal.Location + ">" : terminal.Prompt) + " ";
+            : terminal.PromptForColumns(columns) + " ";
         string line = prompt + input.Editor.Text;
         int cursor = prompt.Length + input.Editor.Cursor;
         int inputRows = Math.Max(1, (line.Length + columns) / columns);

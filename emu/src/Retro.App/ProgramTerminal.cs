@@ -15,6 +15,7 @@ public sealed class ProgramTerminal
     public string Location { get; set; } = "biblioteca";
     /// <summary>Extra state shown in the prompt, such as the loaded machine; empty when there is nothing to say.</summary>
     public Func<string>? PromptDetail { get; set; }
+    internal string PromptForColumns(int columns) => columns < 48 ? "/" + TerminalLanguage.Choice(Location) + ">" : Prompt;
     /// <summary>More places where a capability can be discovered, such as options and actions.</summary>
     public Func<string, IEnumerable<(string Order, string Description)>>? Capabilities { get; set; }
     public string Prompt
