@@ -5,10 +5,11 @@ Jugá tus juegos originales, combiná sus reglas o creá un juego de 8 bits.
 English: [user guide](docs/USER-GUIDE-EN.md) · [command reference](docs/CONSOLE-EN.md).
 Choose English in Preferences or start with --language en.
 
-Los cambios locales posteriores a 0.3.7 incorporan idioma inglés, **Terminal real**,
-**Ayuda > Novedades**, selección de interfaz después de actualizar y
+La [versión 0.4.0](docs/NOVEDADES-0.4.0.md) incorpora español e inglés, cuatro interfaces
+con distribución propia, colores personalizables, **Terminal real**, baterías NES y
+anotaciones compartidas con el editor. **Ayuda > Novedades** también aparece al empezar
+y después de actualizar, reuniendo los cambios si salteaste versiones. Incluye
 [recuperación del arranque](docs/ARRANQUE-Y-RECUPERACION.md) mediante --repair.
-La entrega pública vigente sigue siendo 0.3.7.
 
 ## Empezar
 

@@ -345,7 +345,7 @@ public sealed partial class RetroApp
         _lastBatteryProblem = _host.BatteryProblem;
         _updates.Poll();
         if (_updates.RestartRequested) QuitRequested = true;
-        if (!_updates.Blocking && _pendingOpen == null && !_browser.IsOpen) HandleDroppedFiles();
+        if (!_updates.Blocking && !_newsOpen && _pendingOpen == null && !_browser.IsOpen) HandleDroppedFiles();
         _library.Poll();
         WatchAudioDevice();
         _gameMetadata.Poll(_library.Entries, _library.Folder, _library.Revision, _prefs.OnlineGameInfo && _autotestSeconds < 0);
@@ -356,12 +356,13 @@ public sealed partial class RetroApp
             _studio.NotifyLibraryChanged(_library.Folder);
         }
         bool imguiKeyboard = CaptureGuiKeyboard();
-        if (!_updates.Blocking && !_interfacePicker.IsOpen && _pendingOpen == null && !_browser.IsOpen) HandleHotkeys(ImGui.GetIO().WantTextInput);
-        if (!_updates.Blocking && !_interfacePicker.IsOpen && _pendingOpen == null && !_browser.IsOpen) HandleGamepadShortcut();
+        if (!_updates.Blocking && !_newsOpen && !_interfacePicker.IsOpen && _pendingOpen == null && !_browser.IsOpen) HandleHotkeys(ImGui.GetIO().WantTextInput);
+        if (!_updates.Blocking && !_newsOpen && !_interfacePicker.IsOpen && _pendingOpen == null && !_browser.IsOpen) HandleGamepadShortcut();
         imguiKeyboard = CaptureGuiKeyboard();
         _code.Update();
         _studio.Update(); _creator.Update();
         if (_home.IsOpen || _quitNotice != null) _host.Paused = true;
+        PauseForNews();
         var m = _host.Machine;
         PauseInBackground(m);
         if (m != null && !_updates.Blocking)
@@ -413,7 +414,7 @@ public sealed partial class RetroApp
         if (!InterfaceWorkspace && !_debugMode && _texW != 0)
             DrawPlayScreen();
         rlImGui.Begin(dt);
-        ImGui.BeginDisabled(_updates.Blocking || _interfacePicker.IsOpen);
+        ImGui.BeginDisabled(_updates.Blocking || _interfacePicker.IsOpen || _newsOpen);
         if (!Hardcore) { if (_prefs.Interface != InterfaceStyle.Amber) DrawMenu(); DrawNavigation(); }
         if (_debugMode && !InterfaceWorkspace)
             DrawDebugger();

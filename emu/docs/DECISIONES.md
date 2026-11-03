@@ -2368,3 +2368,29 @@ El aviso de salida pausa y permite restaurar la pausa anterior. Descartar no dis
 otro guardado al cerrar. Menús, atajos, depurador, buscador y arranque/detención del taller
 presentan una conservación rechazada como aviso, manteniendo la aplicación abierta.
 Un refresco de perfil conserva las notas pendientes si su identidad de contenido no cambió.
+
+## D-137 — Novedades acumulativas bilingües y lectura explícita
+
+2026-11-03. T-138. Autorización nueva del usuario: implementar primero Novedades y
+publicar después la 0.4.0 con todo el trabajo local. No autoriza descargas de herramientas,
+IA real ni reemplazar su instalación.
+
+ReleaseNotes incluye solo versiones realmente publicadas y la entrega en preparación,
+con títulos, explicación y categoría en ES/EN, disponible sin red. Since selecciona
+versiones mayores al origen y hasta el destino, ordenadas de más reciente a más antigua.
+Un origen desconocido ofrece todo el historial; reinstalar permite volver a ver el destino.
+El catálogo se amplía antes de cada publicación.
+
+AppPreferences v1 incorpora campos opcionales LastNewsVersion, PendingNewsVersion y
+PendingNewsFromVersion. El origen vacío significa instalación nueva u origen desconocido;
+null sin destino significa ninguna entrega pendiente. Elegir interfaz o cerrar el proceso
+no marca lectura. Solo cerrar explícitamente Novedades confirma el destino. Reiniciar o
+actualizar otra vez conserva el origen pendiente más antiguo; bajar de versión no borra
+una entrega futura pendiente. Las preferencias ilegibles o futuras conservan su protección.
+
+ConfirmStartup mantiene las firmas existentes y agrega una sobrecarga con out previousVersion.
+El origen se devuelve únicamente después de validar ruta, versión, estado y publicar ready.
+AppStartup lo entrega al recorrido de bienvenida antes de limpiar el trabajo. El selector
+de interfaz sigue ofreciéndose tras cada actualización confirmada, incluso al reinstalar.
+El cartel permite cambiar idioma, consultar todo el historial y pausar sin enviar entradas
+a la partida; cuerpo desplazable y cierre fuera del desplazamiento para texto grande.

@@ -55,19 +55,25 @@ public sealed partial class RetroApp
     }
 
     /// <summary>Every validated update asks again, including a reinstallation of the same version.</summary>
-    public bool OfferInterfaceAfterUpdate(string version)
+    public bool OfferInterfaceAfterUpdate(string version, string? previousVersion = null)
     {
         if (!System.Version.TryParse(version, out _)) return false;
+        QueueNews(version, previousVersion ?? _prefs.LastStartedVersion, force: true);
         _prefs.LastStartedVersion = version;
-        _newsOpen = true;
+        _prefs.Save();
         ShowInterfacePicker(version); return true;
     }
 
     /// <summary>Also detects manual updates, which have no updater receipt. The choice is saved only after answering.</summary>
     public bool OfferInterfaceOnStartup(string version)
     {
-        if (!System.Version.TryParse(version, out _) || _prefs.LastStartedVersion == version) return false;
-        return OfferInterfaceAfterUpdate(version);
+        if (!System.Version.TryParse(version, out _)) return false;
+        bool offer = _prefs.LastStartedVersion != version || _prefs.InterfaceOfferedVersion != version;
+        QueueNews(version, _prefs.LastStartedVersion, force: false);
+        _prefs.LastStartedVersion = version;
+        _prefs.Save();
+        if (offer) ShowInterfacePicker(version);
+        return offer;
     }
 
     private void FinishInterfaceChoice(InterfaceStyle style, string? version)

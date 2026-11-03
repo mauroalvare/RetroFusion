@@ -12,7 +12,8 @@ public sealed class AppPreferences
         bool OnlineGameInfo = false, string ConsoleCursor = "block", bool ConsoleBlink = true, bool ConsoleScanlines = false,
         bool ConsoleHistory = true, string? LibraryFolder = null, string? LastStartedVersion = null,
         string Language = "es", string ConsolePalette = "auto", TerminalColors? ConsoleColors = null,
-        Dictionary<string, InterfacePalette>? InterfacePalettes = null);   // optional v1 fields preserve older preferences
+        Dictionary<string, InterfacePalette>? InterfacePalettes = null,
+        string? LastNewsVersion = null, string? PendingNewsVersion = null, string? PendingNewsFromVersion = null);   // optional v1 fields preserve older preferences
     private readonly string _path;
     private readonly bool _persist;
     private bool _unreadable;
@@ -30,6 +31,10 @@ public sealed class AppPreferences
     public InterfaceStyle Interface { get; set; }
     public string? InterfaceOfferedVersion { get; set; }
     public string? LastStartedVersion { get; set; }
+    public string? LastNewsVersion { get; set; }
+    public string? PendingNewsVersion { get; set; }
+    // Empty means a first installation (or an unknown previous version); null means no pending delivery.
+    public string? PendingNewsFromVersion { get; set; }
     public string Language { get; set; } = "es";
     public bool OnlineGameInfo { get; set; }
     public TerminalCursor ConsoleCursor { get; set; }
@@ -82,6 +87,9 @@ public sealed class AppPreferences
             InterfaceStyles.TryParse(doc.Interface, out var selected); Interface = selected;
             InterfaceOfferedVersion = doc.InterfaceOfferedVersion is { Length: <= 32 } offered && System.Version.TryParse(offered, out _) ? offered : null;
             LastStartedVersion = doc.LastStartedVersion is { Length: <= 32 } started && System.Version.TryParse(started, out _) ? started : null;
+            LastNewsVersion = ReleaseNotes.ValidVersion(doc.LastNewsVersion);
+            PendingNewsVersion = ReleaseNotes.ValidVersion(doc.PendingNewsVersion);
+            PendingNewsFromVersion = PendingNewsVersion == null ? null : ReleaseNotes.ValidVersion(doc.PendingNewsFromVersion) ?? "";
             Language = doc.Language is "es" or "en" ? doc.Language : "es";
             OnlineGameInfo = doc.OnlineGameInfo;
             // An unknown cursor from a later version keeps the default and the rest of the file.
@@ -147,7 +155,8 @@ public sealed class AppPreferences
             File.WriteAllText(temporary, JsonSerializer.Serialize(new Document(1, TextPercent, HighContrast, IntegerScale, Fullscreen,
                 PowerSaving, ShowFps, SpectrumJoystick.ToString(), C64Port, TypeLoad, TurboWhileLoading, PauseInBackground, LastFolder,
                 Interface switch { InterfaceStyle.Hardcore => "hardcore", InterfaceStyle.Terminal => "terminal", InterfaceStyle.Amber => "amber", _ => "retro" }, InterfaceOfferedVersion, OnlineGameInfo,
-                CursorNames.First(pair => pair.Value == ConsoleCursor).Key, ConsoleBlink, ConsoleScanlines, ConsoleHistory, LibraryFolder, LastStartedVersion, Language, ConsolePalette, ConsoleColors, _interfacePalettes)));
+                CursorNames.First(pair => pair.Value == ConsoleCursor).Key, ConsoleBlink, ConsoleScanlines, ConsoleHistory, LibraryFolder, LastStartedVersion, Language, ConsolePalette, ConsoleColors, _interfacePalettes,
+                LastNewsVersion, PendingNewsVersion, PendingNewsFromVersion)));
             File.Move(temporary, _path, overwrite: true); Problem = null; return true;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)

@@ -21,6 +21,8 @@ public sealed class StartupReceiptTests
         var plan = Plan();
         Assert.That(UpdateRunner.ConfirmStartup(plan.FilePath, plan.NewRoot, new(0, 3, 6)), Is.EqualTo("0.3.6"));
         Assert.That(File.ReadAllText(Path.Combine(plan.Job, "ready")), Is.EqualTo(plan.Id));
+        Assert.That(UpdateRunner.ConfirmStartup(plan.FilePath, plan.NewRoot, new(0, 3, 6), out string previous), Is.EqualTo("0.3.6"));
+        Assert.That(previous, Is.EqualTo("0.3.5"));
         Assert.That(Directory.GetFiles(plan.Job, "*.tmp"), Is.Empty);
     }
 

@@ -75,8 +75,8 @@ internal static class AppStartup
             app.Frame(Raylib.GetFrameTime());
             if (ready != null)
             {
-                string installedVersion = UpdateRunner.ConfirmStartup(ready);
-                app.OfferInterfaceAfterUpdate(installedVersion);
+                string installedVersion = UpdateRunner.ConfirmStartup(ready, out string previousVersion);
+                app.OfferInterfaceAfterUpdate(installedVersion, previousVersion);
                 ready = null;
             }
             if (startupReady != null)

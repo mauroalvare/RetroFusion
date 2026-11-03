@@ -15,6 +15,12 @@ El intervalo incluye validación y correcciones y no se presenta como dato del p
 
 ## Actualizaciones del programa
 
+`ReleaseNotes` contiene el historial local ES/EN de cada entrega publicada. `ReleaseNews`
+selecciona versiones con comparación numérica y conserva una entrega pendiente en
+preferencias v1 hasta que el usuario cierra Novedades. `LastStartedVersion` no implica
+lectura. La confirmación validada de `UpdateRunner` entrega también `FromVersion` antes
+de limpiar el trabajo: un salto de versiones no pierde sus cambios intermedios. D-137.
+
 `UpdateWindow` consulta releases estables al abrir una instalación empaquetada; se puede
 omitir o desactivar desde Ayuda. `ReleaseClient` exige origen oficial, versión superior,
 tamaño y SHA-256. `SafePackage` limita la extracción y `PackageManifest` verifica cada

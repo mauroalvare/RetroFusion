@@ -9,13 +9,15 @@ Si la versión nueva no abre, se restaura la anterior. Al terminar se eliminan l
 descarga y los temporales. Si se interrumpe la actualización, se conservan hasta recuperarla.
 Podés omitir la actualización o desactivarla en Ayuda > Actualizaciones.
 
-Las compilaciones posteriores a 0.3.7 agregan recuperación antes de abrir la
+Desde la 0.4.0 se incluye recuperación antes de abrir la
 interfaz: si la apertura falla, ofrecen buscar una versión nueva. También se
 puede iniciar RetroEmu.exe --repair. Windows debe poder ejecutar el programa,
 el runtime y el manifiesto; no repara un EXE que el sistema no puede cargar.
 La consulta y la instalación requieren confirmaciones separadas.
 
-Después de actualizar se vuelve a elegir la interfaz y se muestran Novedades.
+Al empezar y después de actualizar se elige la interfaz y se muestran Novedades.
+Si salteaste versiones, se reúnen los cambios desde la que tenías hasta la nueva.
+Podés cambiar el idioma en el cartel y volver al historial desde Ayuda.
 Preferencias permite elegir castellano o inglés. English guide:
 docs/USER-GUIDE-EN.md. La interfaz de comandos se llama Terminal real.
 

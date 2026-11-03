@@ -4,70 +4,112 @@ namespace Retro.App;
 
 public sealed partial class RetroApp
 {
-    private bool _newsOpen;
-    private void OpenNews() => _newsOpen = true;
+    private bool _newsOpen, _newsAutomatic, _newsHistory, _newsPausing, _pausedBeforeNews;
+    private string? _newsFromVersion;
+    private string _newsVersion = "";
+    private ReleaseNews NewsDelivery => new(_prefs);
+    private static string NewsText(string es, string en) => UiText.English ? en : es;
+
+    private void QueueNews(string version, string? previousVersion, bool force)
+    {
+        if (!NewsDelivery.Queue(version, previousVersion, force)) return;
+        _newsVersion = _prefs.PendingNewsVersion!;
+        _newsFromVersion = _prefs.PendingNewsFromVersion;
+        _newsHistory = false; _newsAutomatic = _newsOpen = true;
+    }
+
+    private void OpenNews()
+    {
+        if (_newsOpen) return;
+        _newsVersion = typeof(ReleaseNotes).Assembly.GetName().Version!.ToString(3);
+        _newsFromVersion = null; _newsHistory = true; _newsAutomatic = false; _newsOpen = true;
+    }
+
+    private void PauseForNews()
+    {
+        if (!_newsOpen || _interfacePicker.IsOpen) return;
+        if (!_newsPausing) { _pausedBeforeNews = _host.Paused; _newsPausing = true; }
+        _host.Paused = true;
+    }
+
+    private void CloseNews()
+    {
+        if (_newsAutomatic) NewsDelivery.Acknowledge(_newsVersion);
+        _newsOpen = _newsAutomatic = false;
+        if (_newsPausing) { _host.Paused = _pausedBeforeNews; _newsPausing = false; }
+    }
+
+    private void NewsBounds(string key) => InterfaceControlBounds?.Invoke(key, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
 
     private void DrawNews()
     {
         if (!_newsOpen || _interfacePicker.IsOpen) return;
+        PauseForNews();
         var room = WorkspaceLayout.Available();
         ImGui.SetNextWindowSize(System.Numerics.Vector2.Min(UiTheme.Px(760, 600), room), ImGuiCond.Appearing);
         ImGui.SetNextWindowSizeConstraints(System.Numerics.Vector2.Min(UiTheme.Px(360, 260), room), room);
-        if (ImGui.Begin(UiText.Label("Novedades###release-notes"), ref _newsOpen, ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoCollapse))
+        bool open = true;
+        if (ImGui.Begin(UiText.Label("Novedades###release-notes"), ref open, ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
         {
             WorkspaceLayout.KeepOnScreen();
-            UiTheme.Heading("Novedades de RetroEmu", "Las funciones nuevas y los cambios de las últimas versiones.");
-            float footer = ImGui.GetFrameHeightWithSpacing() + UiTheme.Px(8);
+            // Reserve exactly the rows needed by the footer; only the news body scrolls.
+            string language = UiText.English ? "Español" : "English";
+            string history = NewsText(_newsHistory ? "Lo nuevo" : "Historial", _newsHistory ? "New only" : "History");
+            string close = NewsText("Listo", "Done");
+            float available = ImGui.GetContentRegionAvail().X, gap = ImGui.GetStyle().ItemSpacing.X;
+            float ButtonWidth(string text) => ImGui.CalcTextSize(text).X + ImGui.GetStyle().FramePadding.X * 2;
+            string[] controls = _newsAutomatic ? [language, history, close] : [language, close];
+            int rows = 1; float used = 0;
+            foreach (string control in controls)
+            {
+                float width = ButtonWidth(control);
+                if (used > 0 && used + gap + width > available) { rows++; used = 0; }
+                used += (used > 0 ? gap : 0) + width;
+            }
+            float footer = ImGui.GetFrameHeightWithSpacing() * rows + ImGui.GetStyle().ItemSpacing.Y * 2 + 1;
             ImGui.BeginChild("release-notes-body", new(0, -footer));
             ImGui.PushTextWrapPos(0);
-            foreach (var release in ReleaseNotes.All)
+            ImGui.TextWrapped(NewsText("Novedades de RetroEmu", "What's new in RetroEmu"));
+            string? from = ReleaseNotes.ValidVersion(_newsFromVersion);
+            ImGui.TextWrapped(_newsAutomatic
+                ? from == null
+                    ? NewsText("¡Bienvenido! Estas son las funciones y mejoras que podés descubrir.", "Welcome! Here are the features and improvements you can explore.")
+                    : NewsText($"Te ponemos al día: de la {from} a la {_newsVersion}.", $"Let's catch you up: from {from} to {_newsVersion}.")
+                : NewsText("Volvé a descubrir lo que se agregó en cada versión.", "Rediscover what was added in each version."));
+            foreach (var release in ReleaseNotes.Since(_newsHistory ? null : _newsFromVersion, _newsVersion))
             {
-                UiTheme.Section(release.Version == "current" ? UiText.Get("Esta versión · ") + typeof(ReleaseNotes).Assembly.GetName().Version?.ToString(3) : release.Version);
-                foreach (string item in release.Items)
+                ImGui.Spacing(); UiTheme.Section(release.Version);
+                foreach (var item in release.Items)
                 {
-                    ImGui.Bullet(); ImGui.TextWrapped(UiText.Get(item));
+                    ImGui.TextWrapped(item.KindIn(_prefs.Language) + " · " + item.Title.In(_prefs.Language));
+                    ImGui.TextWrapped(item.Description.In(_prefs.Language));
+                    ImGui.Spacing();
                 }
-                ImGui.Spacing();
+                NewsBounds("Novedades " + release.Version);
             }
             ImGui.PopTextWrapPos(); ImGui.EndChild(); ImGui.Separator();
-            if (ImGui.Button(UiText.Label("Cerrar novedades"))) _newsOpen = false;
-            InterfaceControlBounds?.Invoke("Cerrar novedades", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
+            used = 0;
+            void PlaceButton(string text)
+            {
+                float width = ButtonWidth(text);
+                if (used > 0 && used + gap + width <= available) ImGui.SameLine();
+                else used = 0;
+                used += (used > 0 ? gap : 0) + width;
+            }
+            PlaceButton(language);
+            if (ImGui.Button(language + "##news-language")) SetLanguage(UiText.English ? "es" : "en");
+            NewsBounds("Idioma novedades");
+            if (_newsAutomatic)
+            {
+                PlaceButton(history);
+                if (ImGui.Button(history + "##news-history")) _newsHistory = !_newsHistory;
+                NewsBounds("Historial novedades");
+            }
+            PlaceButton(close);
+            if (ImGui.Button(close + "##news-close")) open = false;
+            NewsBounds("Cerrar novedades");
         }
         ImGui.End();
+        if (!open) CloseNews();
     }
-}
-
-internal sealed record ReleaseNote(string Version, IReadOnlyList<string> Items);
-internal static class ReleaseNotes
-{
-    public static readonly IReadOnlyList<ReleaseNote> All = [
-        new("current", [
-            "El arranque de emergencia permite buscar e instalar una actualización aunque no abra la interfaz principal.",
-            "El actualizador reemplaza los archivos de forma atómica para poder recuperarse después de un corte.",
-            "La elección de interfaz se vuelve a ofrecer después de cada actualización, también si se hizo manualmente.",
-            "Terminal real es el nuevo nombre de la interfaz por comandos.",
-            "El idioma se elige en Preferencias; la terminal ofrece las órdenes correspondientes al idioma elegido.",
-            "Los favoritos ausentes siguen visibles y recuperan su marca cuando vuelve el mismo contenido.",
-            "El buscador incluye órdenes con parámetros y ejemplos; elegir una prepara la línea sin ejecutarla.",
-            "Retro, Explorador, Salón y Terminal real tienen navegación y distribución propias; los colores se eligen aparte.",
-            "Cada interfaz conserva su propia paleta y ocho colores RGB libres, con vista previa, Aplicar y Cancelar.",
-            "Requisitos muestra qué falta para arrancar; --no-audio permite abrir sin inicializar sonido.",
-            "La reparación de Visual C++ sólo se ofrece si falta una dependencia; pide permiso para descargar y para ejecutar el instalador firmado por Microsoft.",
-            "El paquete Linux incluye una comprobación previa al runtime, con requisitos de glibc y bibliotecas del sistema.",
-            "Los talleres distinguen errores, cancelaciones y resultados parciales; un fallo al guardar anotaciones conserva la respuesta en la sesión.",
-            "La falta del firmware de una máquina no bloquea la biblioteca ni los cartuchos de otros sistemas.",
-            "Los cartuchos NES con batería de 8 KB conservan el progreso entre sesiones y al reiniciar; se pueden exportar y recuperar copias desde Juego o la terminal.",
-            "Comentarios y etiquetas se comparten entre editor y terminal, separados por edición; los fallos al guardar permiten conservar copias sin perder la sesión."
-        ]),
-        new("0.3.7", [
-            "Consola interna con ayuda, historial, autocompletado y tareas cancelables en segundo plano.",
-            "Biblioteca renovada con ficha de detalle, filtros y listas que se mantienen ágiles.",
-            "Preferencias por grupos y selector de estilos con vistas previas ampliables.",
-            "Sin dispositivo de audio, las partidas siguen a su velocidad normal y se puede reintentar la conexión."
-        ]),
-        new("0.3.6", [
-            "Manuales incluidos en el paquete y ayuda para jugar, crear, investigar y modificar.",
-            "Investigación y creación con recuperación de trabajos y datos comprobados por edición."
-        ])
-    ];
 }

@@ -66,6 +66,10 @@ Every confirmed update asks for an interface again. A manual update is detected 
 changed program version. An ordinary restart of that version does not repeat the question.
 Keep current retains the existing choice; Use this style applies the preview. The Release
 notes window opens afterward and remains available from Help or the news command.
+On a first launch it welcomes you with the available history. After updating, it collects
+every release since your previous version (for example, 0.2.6 to 0.4.0). Use its language
+button to switch between English and Spanish, or History to explore older news.
+News is marked as read only when you close it, so an interrupted first launch offers it again.
 
 ## Play and the library
 
