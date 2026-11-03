@@ -117,7 +117,17 @@ public class AiModelCatalogTests
     public async Task ChosenEffortReachesTheProcess_AndASessionOverrideClearsIt(string id, string expected)
     {
         string args = Path.Combine(_dir, "args.txt");
-        string exe = Fake("tool", $"echo %* > \"{args}\"\nmore > nul\necho {{\"is_error\":false,\"result\":\"listo\"}}");
+        string body = id == "sub-codex" ? """
+            :arguments
+            if "%~1"=="" goto answer
+            if "%~1"=="-o" set "last=%~2"
+            shift
+            goto arguments
+            :answer
+            >"%last%" echo listo
+            echo {"type":"turn.completed"}
+            """ : "echo {\"type\":\"result\",\"is_error\":false,\"result\":\"listo\"}";
+        string exe = Fake("tool", $"echo %* > \"{args}\"\nmore > nul\n" + body);
         var settings = new AiSettings { Provider = id };
         settings.CliPaths[id] = exe;
         settings.CliModels[id] = "future";

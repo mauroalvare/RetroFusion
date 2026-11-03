@@ -7,6 +7,24 @@ namespace Studio.Tests;
 public class AgentWorkspaceTests
 {
     [Test]
+    public void AnAgentHoldingTheSourceFileDoesNotCrashOrReplaceTheCurrentGame()
+    {
+        string folder = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "retro-agent-locked-" + Guid.NewGuid().ToString("N"))).FullName;
+        var template = new StudioGame { Id="own-game", Title="Own game", Script="old complete source" };
+        string path = Path.Combine(folder, StudioWorkspace.ScriptFile);
+        File.WriteAllText(path, "new complete source");
+        try
+        {
+            using (var writing = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+                Assert.That(StudioWorkspace.Read(folder, template), Is.Null, "A source still being written must remain pending.");
+            var read = StudioWorkspace.Read(folder, template);
+            Assert.That(read?.game.Script, Is.EqualTo("new complete source"));
+            Assert.That(template.Script, Is.EqualTo("old complete source"));
+        }
+        finally { Directory.Delete(folder, true); }
+    }
+
+    [Test]
     public void CreatingAnotherTaskForTheSameGamePreservesThePreviousWorkInBothCreators()
     {
         string root = Path.Combine(Path.GetTempPath(), "retro-workspace-" + Guid.NewGuid().ToString("N"));

@@ -146,7 +146,7 @@ public sealed class CliAgentProvider : IAiProvider
     public async Task<string> CompleteAsync(AiRequest request, CancellationToken ct)
     {
         LastUsage = null;
-        ct.ThrowIfCancellationRequested();
+        request.Validate(ct, supportsImages: true);
         string exe = CliTools.Find(_tool, _override)
                      ?? throw new AiException(Retro.Core.UiText.Format($"No encontré {Retro.Core.UiText.Raw(_tool.Name)}. {_tool.InstallHint}"));
         string work = Path.Combine(Path.GetTempPath(), "RetroEmu-ia");
@@ -155,7 +155,7 @@ public sealed class CliAgentProvider : IAiProvider
         string? schemaFile = null;
         try
         {
-            bool agy = Path.GetFileNameWithoutExtension(exe).Equals("agy", StringComparison.OrdinalIgnoreCase);
+            bool agy = _tool.Id == "sub-google" && !Path.GetFileNameWithoutExtension(exe).Equals("gemini", StringComparison.OrdinalIgnoreCase);
             var images = request.Images ?? Array.Empty<string>();
             List<string> args = _tool.Id switch
             {
@@ -166,7 +166,7 @@ public sealed class CliAgentProvider : IAiProvider
                     : new List<string> { "-p", "--output-format", "json", "--permission-mode", "dontAsk", "--allowedTools", "Read" }
                         .Concat(images.Select(Path.GetDirectoryName).Distinct().SelectMany(d => new[] { "--add-dir", d! })).ToList(),
                 // "-" = the prompt comes from stdin; read-only sandbox by default; no git repo needed; -i attaches pictures
-                "sub-codex" => new List<string> { "exec", "--json", "--skip-git-repo-check", "-o", lastMessage }
+                "sub-codex" => new List<string> { "exec", "--json", "--skip-git-repo-check", "-o", lastMessage, "--sandbox", "read-only" }
                     .Concat(images.SelectMany(i => new[] { "-i", i })).Append("-").ToList(),
                 _ => agy ? AgyArgs(request, work, out schemaFile)
                          : new() { "-p", "Respondé la consigna que te paso por la entrada estándar.", "--output-format", "json" },
@@ -192,7 +192,7 @@ public sealed class CliAgentProvider : IAiProvider
             string answer = _tool.Id switch
             {
                 "sub-claude" => ClaudeResult(stdout, stderr, code),
-                "sub-codex" => File.Exists(lastMessage) ? File.ReadAllText(lastMessage) : stdout,
+                "sub-codex" => CodexResult(stdout, lastMessage),
                 _ => agy ? AgyResult(stdout, stderr) : GeminiResult(stdout),
             };
             if (string.IsNullOrWhiteSpace(answer))
@@ -237,16 +237,44 @@ public sealed class CliAgentProvider : IAiProvider
         {
             using var doc = JsonDocument.Parse(stdout[s..]);
             var root = doc.RootElement;
+            if (root.ValueKind != JsonValueKind.Object || JsonApi.Str(root, "type") != "result") throw JsonApi.Incomplete(_tool.Name);
             string result = root.TryGetProperty("result", out var r) && r.ValueKind == JsonValueKind.String ? r.GetString() ?? "" : "";
             bool isError = root.TryGetProperty("is_error", out var e) && e.ValueKind == JsonValueKind.True;
             if (isError || code != 0)
                 throw new AiException(Failure(result.Length > 0 ? result : stderr));
-            return result;
+            if (e.ValueKind is not (JsonValueKind.False or JsonValueKind.Undefined)
+                || JsonApi.Str(root, "subtype") is not ("" or "success")) throw JsonApi.Incomplete(_tool.Name);
+            return JsonApi.Nonempty(result, _tool.Name);
         }
         catch (JsonException)
         {
-            return stdout;
+            throw JsonApi.Incomplete(_tool.Name);
         }
+    }
+
+    private string CodexResult(string stdout, string path)
+    {
+        int completed = 0;
+        foreach (string line in stdout.Split('\n'))
+        {
+            if (!line.TrimStart().StartsWith('{')) continue;
+            try
+            {
+                using var doc = JsonDocument.Parse(line);
+                string type = JsonApi.Str(doc.RootElement, "type");
+                if (type == "turn.failed") throw JsonApi.Incomplete(_tool.Name);
+                if (type == "turn.completed") completed++;
+            }
+            catch (JsonException) { throw JsonApi.Incomplete(_tool.Name); }
+        }
+        try
+        {
+            var file = new FileInfo(path);
+            if (completed != 1 || !file.Exists || file.Length > MaxCliOutputCharacters || file.Attributes.HasFlag(FileAttributes.ReparsePoint)) throw JsonApi.Incomplete(_tool.Name);
+            return JsonApi.Nonempty(File.ReadAllText(path, new UTF8Encoding(false, true)), _tool.Name);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or DecoderFallbackException)
+        { throw new AiException(Retro.Core.UiText.Get("No se pudo leer la respuesta final del CLI. No se aplicó la salida parcial."), error); }
     }
 
     /// <summary>Only a final result can complete the request; progress and partial text cannot.</summary>
@@ -266,22 +294,23 @@ public sealed class CliAgentProvider : IAiProvider
         return response;
     }
 
-    private static string GeminiResult(string stdout)
+    private string GeminiResult(string stdout)
     {
         int s = stdout.IndexOf('{');
         if (s < 0)
-            return stdout;
+            throw JsonApi.Incomplete(_tool.Name);
         try
         {
             using var doc = JsonDocument.Parse(stdout[s..]);
             var root = doc.RootElement;
-            if (root.TryGetProperty("error", out var err) && err.ValueKind == JsonValueKind.Object)
-                throw new AiException(Retro.Core.UiText.Get("Error de la IA: ") + err.GetRawText());
-            return root.TryGetProperty("response", out var r) && r.ValueKind == JsonValueKind.String ? r.GetString() ?? "" : stdout;
+            if (root.ValueKind != JsonValueKind.Object) throw JsonApi.Incomplete(_tool.Name);
+            if (root.TryGetProperty("error", out var err) && err.ValueKind != JsonValueKind.Null)
+                throw new AiException(Failure(err.ValueKind == JsonValueKind.String ? err.GetString() ?? "" : err.GetRawText()));
+            return JsonApi.Nonempty(JsonApi.Str(root, "response"), _tool.Name);
         }
         catch (JsonException)
         {
-            return stdout;
+            throw JsonApi.Incomplete(_tool.Name);
         }
     }
 
@@ -290,6 +319,8 @@ public sealed class CliAgentProvider : IAiProvider
     {
         if (_tool.Id == "sub-google" && AntigravityProtocol.PermissionDenied(output))
             return Retro.Core.UiText.Get("Antigravity CLI bloqueó una herramienta porque no puede pedir permiso en modo sin interacción. Revisá /permissions en una sesión interactiva y autorizá solo la acción concreta que quieras permitir, o usá el modo manual. RetroEmu no habilita permisos generales automáticamente.");
+        if (AntigravityProtocol.PermissionDenied(output))
+            return Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(_tool.Name)} bloqueó una acción que necesita permiso. Revisá la configuración de permisos de esa herramienta o usá el modo manual. RetroEmu no habilita permisos generales automáticamente.");
         if (_tool.Id == "sub-google" && output.Contains("input-format", StringComparison.OrdinalIgnoreCase)
             && (output.Contains("unknown", StringComparison.OrdinalIgnoreCase) || output.Contains("not defined", StringComparison.OrdinalIgnoreCase)))
             return Retro.Core.UiText.Get("Esta versión de Antigravity CLI no admite la entrada por stream-json. Revisá Ayuda > Conectar IA para actualizarla desde Google, o usá el modo manual. RetroEmu no descargó ni instaló herramientas.");
@@ -297,7 +328,8 @@ public sealed class CliAgentProvider : IAiProvider
         string lower = text.ToLowerInvariant();
         if (lower.Contains("login") || lower.Contains("log in") || lower.Contains("sign in") || lower.Contains("auth") || lower.Contains("credential"))
             return Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(_tool.Name)} no tiene una sesión iniciada. Abrí una terminal, ejecutalo y entrá con tu cuenta de {_tool.Subscription}. Detalle: {text}");
-        if (lower.Contains("limit") || lower.Contains("quota") || lower.Contains("rate"))
+        if (lower.Contains("rate limit") || lower.Contains("rate_limit") || lower.Contains("ratelimit") || lower.Contains("quota")
+            || lower.Contains("usage limit") || lower.Contains("usage_limit") || lower.Contains("daily limit") || lower.Contains("weekly limit") || lower.Contains("too many requests"))
             return Retro.Core.UiText.Format($"Llegaste al límite de uso de tu plan en {Retro.Core.UiText.Raw(_tool.Name)}; probá más tarde. Detalle: {text}");
         return Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(_tool.Name)} falló: {text}");
     }
@@ -321,6 +353,9 @@ public sealed class CliAgentProvider : IAiProvider
         {
             throw new AiException(Retro.Core.UiText.Format($"No se pudo ejecutar {exe}: {e.Message}"));
         }
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeoutCts.CancelAfter(timeout);
+        Exception? readFailure = null;
         long started = Stopwatch.GetTimestamp(), lastOutput = started, characters = 0;
         var output = new StringBuilder();
         var gate = new object();
@@ -333,29 +368,47 @@ public sealed class CliAgentProvider : IAiProvider
         }
         async Task<string> ReadAsync(StreamReader reader)
         {
-            var answer = new StringBuilder();
-            var buffer = new char[2048];
-            int count;
-            while ((count = await reader.ReadAsync(buffer.AsMemory(), ct)) > 0)
+            try
             {
-                answer.Append(buffer, 0, count);
-                lock (gate)
+                var answer = new StringBuilder();
+                var buffer = new char[2048];
+                int count;
+                while ((count = await reader.ReadAsync(buffer.AsMemory(), timeoutCts.Token)) > 0)
                 {
-                    characters += count;
-                    lastOutput = Stopwatch.GetTimestamp();
-                    output.Append(buffer, 0, count);
-                    if (output.Length > CliActivity.MaxOutputLength)
-                        output.Remove(0, output.Length - CliActivity.MaxOutputLength);
-                    Report(true);
+                    if (answer.Length + count > MaxCliOutputCharacters) throw new AiException(Retro.Core.UiText.Get("La salida del CLI es demasiado grande. No se aplicó."));
+                    answer.Append(buffer, 0, count);
+                    lock (gate)
+                    {
+                        characters += count;
+                        lastOutput = Stopwatch.GetTimestamp();
+                        output.Append(buffer, 0, count);
+                        if (output.Length > CliActivity.MaxOutputLength)
+                            output.Remove(0, output.Length - CliActivity.MaxOutputLength);
+                        Report(true);
+                    }
                 }
+                return answer.ToString();
             }
-            return answer.ToString();
+            catch (Exception error) when (error is IOException or AiException or DecoderFallbackException)
+            {
+                Interlocked.CompareExchange(ref readFailure, error, null);
+                timeoutCts.Cancel(); throw;
+            }
         }
         Report(true);
         var outTask = ReadAsync(p.StandardOutput);
         var errTask = ReadAsync(p.StandardError);
-        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeoutCts.CancelAfter(timeout);
+        async Task StopAndDrain()
+        {
+            timeoutCts.Cancel();
+            Exception? stopError = null;
+            try { if (!p.HasExited) p.Kill(entireProcessTree: true); }
+            catch (InvalidOperationException) { }
+            catch (System.ComponentModel.Win32Exception error) { stopError = error; }
+            try { await Task.WhenAll(outTask, errTask); }
+            catch (Exception error) when (error is OperationCanceledException or IOException or AiException or DecoderFallbackException) { }
+            if (stopError != null) throw new AiException(Retro.Core.UiText.Get("No se pudo detener el CLI. Revisá el proceso de la herramienta antes de reintentar."), stopError);
+        }
         try
         {
             try
@@ -377,23 +430,32 @@ public sealed class CliAgentProvider : IAiProvider
             catch (IOException) { }
             await p.WaitForExitAsync(timeoutCts.Token);
             string stdout = await outTask, stderr = await errTask;
+            if (p.ExitCode == 0 && stdin.Length > 0 && !inputDelivered)
+                throw new AiException(Retro.Core.UiText.Get("El CLI cerró la entrada antes de recibir el pedido completo. No se aplicó su respuesta. Podés reintentar o usar el modo manual."));
             status = p.ExitCode == 0 ? "CLI finalizado" : "CLI terminó con error";
             return (p.ExitCode, stdout, stderr);
         }
         catch (OperationCanceledException)
         {
-            try { p.Kill(entireProcessTree: true); } catch (InvalidOperationException) { }
-            try { await Task.WhenAll(outTask, errTask); } catch (OperationCanceledException) { }
+            await StopAndDrain();
             status = ct.IsCancellationRequested ? "CLI cancelado" : "CLI detenido por tiempo máximo";
             if (ct.IsCancellationRequested) throw;
+            if (readFailure != null) throw readFailure is AiException known ? known : new AiException(Retro.Core.UiText.Get("Se interrumpió la salida del CLI. No se aplicó la respuesta parcial."), readFailure);
             string limit = timeout.TotalMinutes >= 1 ? Retro.Core.UiText.Format($"{timeout.TotalMinutes:0.#} minutos") : Retro.Core.UiText.Format($"{Math.Max(1, timeout.TotalSeconds):0.#} segundos");
             string phase = stdin.Length == 0 ? "" : inputDelivered
                 ? " El pedido llegó al CLI, pero no se confirmó una respuesta dentro del plazo. Revisá Modelo y conexión → Conexión avanzada."
                 : " No terminó de enviar el pedido al CLI. Revisá la ruta de la herramienta en Modelo y conexión → Conexión avanzada.";
-            throw new AiException(Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(Path.GetFileName(exe))} tardó más de {limit} y lo detuve.") + phase);
+            throw new AiException(Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(Path.GetFileName(exe))} tardó más de {limit} y dejé de esperar su respuesta.") + Retro.Core.UiText.Get(phase));
+        }
+        catch (Exception error) when (error is IOException or AiException or DecoderFallbackException)
+        {
+            await StopAndDrain(); status = "CLI terminó con error";
+            throw error is AiException known ? known : new AiException(Retro.Core.UiText.Get("Se interrumpió la salida del CLI. No se aplicó la respuesta parcial."), error);
         }
         finally { Report(false); }
     }
+
+    private const int MaxCliOutputCharacters = 16 * 1024 * 1024;
 
     internal static ProcessStartInfo StartInfo(string exe, IReadOnlyList<string> args, string workDir)
     {
@@ -405,7 +467,7 @@ public sealed class CliAgentProvider : IAiProvider
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
-            StandardOutputEncoding = Encoding.UTF8,
+            StandardOutputEncoding = new UTF8Encoding(false, true),
             StandardErrorEncoding = Encoding.UTF8,
             // the prompt goes in UTF-8 without BOM: on Windows the default is the console code
             // page, and the tools reject (Codex) or garble the accents of a Spanish prompt
@@ -428,7 +490,14 @@ public sealed class CliAgentProvider : IAiProvider
         return psi;
     }
 
-    private static string Quote(string a) => a.Length > 0 && a.IndexOfAny(new[] { ' ', '"', '&', '|', '<', '>', '^' }) < 0 ? a : "\"" + a.Replace("\"", "\\\"") + "\"";
+    private static string Quote(string a)
+    {
+        // cmd expands environment variables and quotes before handing arguments to an npm shim.
+        // Refuse those ambiguous values rather than treating a model/path as shell instructions.
+        if (a.Any(char.IsControl) || a.IndexOfAny(['"', '%', '!']) >= 0)
+            throw new AiException(Retro.Core.UiText.Get("Un argumento no se puede pasar de forma segura al lanzador .cmd. Usá el ejecutable directo de la herramienta o revisá su ruta y el identificador del modelo."));
+        return a.Length > 0 && a.IndexOfAny([' ', '&', '|', '<', '>', '^', '(', ')']) < 0 ? a : "\"" + a + "\"";
+    }
 
     /// <summary>A tiny request to check that the tool is installed and signed in.</summary>
     public async Task<string> TestAsync(CancellationToken ct)

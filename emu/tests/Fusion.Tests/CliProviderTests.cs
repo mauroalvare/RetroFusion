@@ -109,6 +109,7 @@ public class CliProviderTests
         echo consigna recibida 1>&2
         {{(wait ? "ping -n 30 127.0.0.1 > nul" : "")}}
         >"%last%" echo {"title":"Local"}
+        echo {"type":"turn.completed"}
         exit /b {{(fail ? 17 : 0)}}
         """);
 
@@ -245,7 +246,7 @@ public class CliProviderTests
             _ => answer
         };
         string packet=Path.Combine(_dir,"answer.json");File.WriteAllText(packet,response,new System.Text.UTF8Encoding(false));
-        string body = tool=="codex" ? $"more > nul\ncopy /y \"{packet}\" \"%~5\" > nul"
+        string body = tool=="codex" ? $"more > nul\ncopy /y \"{packet}\" \"%~5\" > nul\necho {{\"type\":\"turn.completed\"}}"
             : (tool=="agy" ? "" : "more > nul\n") + $"type \"{packet}\"";
         var provider=new CliAgentProvider(tool=="claude"?CliTools.Claude:tool=="codex"?CliTools.Codex:CliTools.Google,Fake(tool,body));
         var profile=new Retro.Fusion.GameProfile{Id="own-cli-analysis",Machine="nes",Name="Programa propio"};
@@ -291,30 +292,42 @@ public class CliProviderTests
         Assert.That(ai.Activity.Elapsed, Is.EqualTo(elapsed), "el reloj se detiene al salir el proceso");
     }
 
-    [Test]
-    public async Task LargeUtf8Prompt_ReachesTheWindowsShimUnchanged()
+    [TestCase("codex"), TestCase("claude"), TestCase("gemini"), TestCase("agy")]
+    public async Task LargeUtf8Prompt_ReachesTheWindowsShimUnchanged(string tool)
     {
         string capture = Path.Combine(_dir, "received.bin");
+        string packet = tool switch
+        {
+            "codex" => "{\"type\":\"turn.completed\"}",
+            "claude" => "{\"type\":\"result\",\"is_error\":false,\"result\":\"respuesta local\"}",
+            "agy" => "{\"event\":\"result\",\"result\":{\"status\":\"SUCCESS\",\"response\":\"respuesta local\"}}",
+            _ => "{\"response\":\"respuesta local\"}"
+        };
         string script = "$f=[IO.File]::Create('" + capture.Replace("'", "''") + "');" +
             "try { [Console]::OpenStandardInput().CopyTo($f) } finally { $f.Dispose() };" +
-            "[Console]::WriteLine('respuesta local')";
+            "[Console]::WriteLine('" + packet + "')";
         string encoded = Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(script));
-        string exe = Fake("codex", "powershell.exe -NoProfile -NonInteractive -EncodedCommand " + encoded);
-        var ai = new CliAgentProvider(CliTools.Codex, exe, TimeSpan.FromSeconds(15));
+        string exe = Fake(tool, (tool == "codex" ? ">\"%~5\" echo respuesta local\n" : "") + "powershell.exe -NoProfile -NonInteractive -EncodedCommand " + encoded);
+        var ai = new CliAgentProvider(tool == "codex" ? CliTools.Codex : tool == "claude" ? CliTools.Claude : CliTools.Google, exe, TimeSpan.FromSeconds(15));
         var request = new AiRequest("Instrucciones con acentos y signos.",
             [new(true, string.Concat(Enumerable.Repeat("áéíóú ñ 😀\r\n", 12000)))], null);
 
         string answer = await ai.CompleteAsync(request, CancellationToken.None);
 
         Assert.That(answer.Trim(), Is.EqualTo("respuesta local"));
-        Assert.That(File.ReadAllBytes(capture), Is.EqualTo(System.Text.Encoding.UTF8.GetBytes(CliAgentProvider.Flatten(request))),
+        if (tool == "agy")
+        {
+            using var received = JsonDocument.Parse(File.ReadAllBytes(capture));
+            Assert.That(received.RootElement.GetProperty("message").GetProperty("content").GetString(), Is.EqualTo(CliAgentProvider.Flatten(request)));
+        }
+        else Assert.That(File.ReadAllBytes(capture), Is.EqualTo(System.Text.Encoding.UTF8.GetBytes(CliAgentProvider.Flatten(request))),
             "The complete prompt must cross the pipe and reach EOF without a BOM or text conversion.");
     }
 
     [Test]
     public async Task Activity_DistinguishesInputDeliveryFromWaitingForTheAnswer()
     {
-        string exe = Fake("codex", "more > nul\necho pedido recibido 1>&2\nping -n 3 127.0.0.1 > nul\necho respuesta local");
+        string exe = Fake("codex", "more > nul\necho pedido recibido 1>&2\nping -n 3 127.0.0.1 > nul\n>\"%~5\" echo respuesta local\necho {\"type\":\"turn.completed\"}");
         var ai = new CliAgentProvider(CliTools.Codex, exe);
         var pending = ai.CompleteAsync(Request(), CancellationToken.None);
         try

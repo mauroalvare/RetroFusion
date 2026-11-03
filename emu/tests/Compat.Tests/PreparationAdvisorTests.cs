@@ -36,6 +36,7 @@ public sealed class PreparationAdvisorTests
     private sealed class Simulated(Func<AiRequest, CancellationToken, Task<string>> response) : IAiProvider
     {
         public string Name => "IA simulada";
+        public bool SupportsImages => true;
         public List<AiRequest> Requests { get; } = [];
         public Task<string> CompleteAsync(AiRequest request, CancellationToken ct)
         {

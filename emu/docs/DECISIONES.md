@@ -2428,3 +2428,41 @@ Pruebas con procesos reales simulados comprueban transporte completo Unicode/mul
 mayor al límite de Windows, limpieza en error y éxito, imágenes/modelo/esfuerzo, resultados y
 contadores, permisos con salida cero/no cero y ambos idiomas. El arreglo requiere una publicación
 nueva para llegar a la instalación del usuario; no se hereda autorización de la entrega 0.4.0.
+
+## D-139 — Respuesta final y transportes acotados en todas las integraciones de IA
+
+2026-11-03. T-138, R8. Pedido del usuario: revisar todas las IAs y casos límite después
+del arreglo Antigravity. No autoriza llamadas reales, nuevas publicaciones ni instalaciones.
+Se conservan D-138, modelos/esfuerzos y ajustes/cuentas existentes.
+
+El texto solo se devuelve con confirmación final del protocolo: Codex requiere exactamente
+un turn.completed, ningún turn.failed y su archivo final propio; Claude Code exige envelope
+result sin error y Gemini CLI response sin error. Las API exigen estado/motivo final y texto
+útil. Progreso, JSON inválido o salidas parciales no pasan como respuesta. Las métricas son
+las informadas por el proveedor, se reinician por pedido y no se inventan ante fallo de red.
+Ollama incorpora cache informado cuando está disponible.
+
+JsonApi aplica plazo/cancelación a headers y cuerpo, valida UTF-8 y acota 16 MiB. El SDK
+Anthropic recibe el mismo límite mediante BoundedAiTransport: clona el pedido al reenviarlo
+sin disponer el HttpClient prestado. Sus reintentos originales siguen en producción; el
+transporte inyectado de pruebas los desactiva. Claude y Ollama agregan sobrecargas HttpClient
+sin eliminar sus constructores previos. No se agregan paquetes ni se modifica el SDK.
+
+El runner comparte cancelación entre stdin/proceso/pipes y limita cada canal a 16 Mi
+caracteres. Al cortar espera observa ambos lectores e intenta terminar el árbol activo.
+Si el CLI sale con código cero sin recibir todo stdin, rechaza incluso un envelope final;
+el código no cero conserva su diagnóstico propio de permisos, sesión u otro fallo.
+No puede garantizar detener un hijo separado cuyo padre ya salió. Codex solicita sandbox
+read-only explícito. Un .cmd/.bat rechaza argumentos ambiguos antes de arrancar en vez de
+expandir variables/comillas. No se eleva permiso ni se cambia la configuración global.
+
+AiRequest valida esquema objeto y adjuntos según capacidades antes de enviar. Los asesores
+no crean capturas para un proveedor de texto y respetan cancelación previa. StudioWorkspace
+incluye la lectura del código dentro de su manejo de bloqueo temporal, conservando plantilla
+y estado pendiente. Los diagnósticos nuevos tienen traducción ES/EN.
+
+Las 14 regresiones iniciales fallaron antes de corregir los proveedores y pasaron después.
+Otras cuatro reprodujeron la aceptación de una respuesta con la entrada cerrada prematuramente.
+La matriz ampliada usa HTTP falso y procesos propios con pipes reales: ningún resultado se
+presenta como una generación real. INTEGRACIONES-IA.md enumera contratos oficiales consultados,
+pruebas y límites. La entrega 0.4.0/deb7fba no contiene este incremento local.

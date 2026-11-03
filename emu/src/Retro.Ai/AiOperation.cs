@@ -26,7 +26,7 @@ public sealed record AiUsage(long InputTokens, long OutputTokens, long? CachedIn
         long read = Number(usage, "cache_read_input_tokens") ?? 0, written = Number(usage, "cache_creation_input_tokens") ?? 0;
         return pair with { InputTokens = pair.InputTokens + read + written, CachedInputTokens = Number(usage, "cache_read_input_tokens") };
     }
-    public static AiUsage? Ollama(JsonElement root) => Pair(root, "prompt_eval_count", "eval_count");
+    public static AiUsage? Ollama(JsonElement root) => Pair(root, "prompt_eval_count", "eval_count", Number(root, "prompt_eval_cached_count"));
     public static AiUsage? Gemini(JsonElement root)
     {
         var usage = Child(root, "usageMetadata");

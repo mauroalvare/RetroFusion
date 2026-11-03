@@ -97,9 +97,9 @@ public static class StudioWorkspace
             return null;
         var game = template.Copy();
         game.Playtests = [];
-        DateTime written = File.GetLastWriteTimeUtc(scriptPath);
         try
         {
+            DateTime written = File.GetLastWriteTimeUtc(scriptPath);
             string gamePath = Path.Combine(dir, GameFile);
             if (File.Exists(gamePath))
             {
@@ -113,14 +113,14 @@ public static class StudioWorkspace
                 game.Playtests = fromFile.Playtests;
                 written = new[] { written, File.GetLastWriteTimeUtc(gamePath) }.Max();
             }
+            game.Script = File.ReadAllText(scriptPath);
+            return (game, written);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
         {
             // Never approve an older plan while juego.json is incomplete or invalid.
             return null;
         }
-        game.Script = File.ReadAllText(scriptPath);
-        return (game, written);
     }
 
     public static void WriteReport(string dir, ValidationReport report)

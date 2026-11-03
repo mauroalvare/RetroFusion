@@ -17,6 +17,14 @@ public sealed record AiRequest(string System, IReadOnlyList<AiTurn> Turns, JsonE
 {
     private string _system = System;
     public string System { get => Retro.Core.UiText.Get(_system); init => _system = value; }
+    internal void Validate(CancellationToken ct, bool supportsImages = false)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (Schema is { } schema && schema.ValueKind != JsonValueKind.Object)
+            throw new AiException(Retro.Core.UiText.Get("El esquema de la respuesta tiene que ser un objeto JSON."));
+        if (!supportsImages && Images is { Count: > 0 })
+            throw new AiException(Retro.Core.UiText.Get("Esta integración no admite adjuntar imágenes. Podés continuar con el texto o elegir una herramienta compatible con capturas."));
+    }
 }
 
 public sealed class AiException : Exception
@@ -42,13 +50,22 @@ public sealed class ClaudeProvider : IAiProvider
 {
     public AiUsage? LastUsage { get; private set; }
     public const string DefaultModel = "claude-opus-5-5";
-    private readonly AnthropicClient _client;
+    private readonly IAnthropicClient _client;
     private readonly string _model;
+    private readonly string _explicitKey;
 
-    public ClaudeProvider(string? apiKey, string? model = null)
+    public ClaudeProvider(string? apiKey, string? model = null) : this(apiKey, model, null) { }
+
+    /// <summary>An injected transport allows deterministic protocol checks without contacting a provider.</summary>
+    public ClaudeProvider(string? apiKey, string? model, HttpClient? http)
     {
         // With no key the SDK uses ANTHROPIC_API_KEY or the profile from `ant auth login`.
-        _client = string.IsNullOrWhiteSpace(apiKey) ? new AnthropicClient() : new AnthropicClient { ApiKey = apiKey };
+        _explicitKey = apiKey?.Trim() ?? "";
+        _client = _explicitKey.Length == 0 ? new AnthropicClient() : new AnthropicClient { ApiKey = _explicitKey };
+        var transport = new HttpClient(new BoundedAiTransport(http ?? _client.HttpClient))
+            { Timeout = http?.Timeout ?? TimeSpan.FromMinutes(10) };
+        _client = _client.WithOptions(options => options with { HttpClient = transport, Timeout = transport.Timeout, ResponseValidation = true,
+            MaxRetries = http != null ? 0 : options.MaxRetries });
         _model = string.IsNullOrWhiteSpace(model) ? DefaultModel : model;
     }
 
@@ -57,6 +74,8 @@ public sealed class ClaudeProvider : IAiProvider
     public async Task<string> CompleteAsync(AiRequest request, CancellationToken ct)
     {
         LastUsage = null;
+        request.Validate(ct);
+        JsonApi.ValidateKey(_explicitKey);
         var messages = request.Turns
             .Select(t => new BetaMessageParam { Role = t.FromUser ? Role.User : Role.Assistant, Content = t.Text })
             .ToList();
@@ -100,17 +119,26 @@ public sealed class ClaudeProvider : IAiProvider
         {
             throw new AiException(Retro.Core.UiText.Get("Claude rechazó el pedido: ") + e.Message, e);
         }
+        catch (OperationCanceledException e) when (!ct.IsCancellationRequested)
+        { throw new AiException(Retro.Core.UiText.Get("Claude tardó demasiado en responder. Probá de nuevo."), e); }
+        catch (AnthropicException) when (ct.IsCancellationRequested)
+        { throw new OperationCanceledException(ct); }
+        catch (AnthropicException e)
+        { throw new AiException(Retro.Core.UiText.Get("No pude completar la conexión con Claude. Revisá tu conexión y volvé a intentar."), e); }
+        catch (Exception e) when (e is JsonException or IOException or DecoderFallbackException)
+        { throw new AiException(Retro.Core.UiText.Get("Claude devolvió una respuesta ilegible o incompleta. No se aplicó la salida parcial."), e); }
+        LastUsage = new(response.Usage.InputTokens + (response.Usage.CacheReadInputTokens ?? 0) + (response.Usage.CacheCreationInputTokens ?? 0),
+            response.Usage.OutputTokens, response.Usage.CacheReadInputTokens);
         if (response.StopReason == "refusal")
             throw new AiException("Claude se negó a responder este pedido.");
         if (response.StopReason == "max_tokens")
             throw new AiException("La respuesta de Claude se cortó por longitud.");
+        if (response.StopReason != "end_turn" && response.StopReason != "stop_sequence") throw JsonApi.Incomplete("Claude");
         var text = new StringBuilder();
-        LastUsage = new(response.Usage.InputTokens + (response.Usage.CacheReadInputTokens ?? 0) + (response.Usage.CacheCreationInputTokens ?? 0),
-            response.Usage.OutputTokens, response.Usage.CacheReadInputTokens);
         foreach (var block in response.Content)
             if (block.TryPickText(out BetaTextBlock? t))
                 text.Append(t.Text);
-        return text.ToString();
+        return JsonApi.Nonempty(text.ToString(), "Claude");
     }
 }
 
@@ -118,13 +146,16 @@ public sealed class ClaudeProvider : IAiProvider
 public sealed class OllamaProvider : IAiProvider
 {
     public AiUsage? LastUsage { get; private set; }
-    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(10) };
+    private readonly HttpClient _http;
     private readonly string _url, _model;
 
-    public OllamaProvider(string? url, string? model)
+    public OllamaProvider(string? url, string? model) : this(url, model, null) { }
+
+    public OllamaProvider(string? url, string? model, HttpClient? http)
     {
         _url = string.IsNullOrWhiteSpace(url) ? "http://localhost:11434" : url.TrimEnd('/');
         _model = string.IsNullOrWhiteSpace(model) ? "llama3.1" : model;
+        _http = http ?? JsonApi.Http;
     }
 
     public string Name => Retro.Core.UiText.Format($"Ollama ({_model})");
@@ -132,6 +163,9 @@ public sealed class OllamaProvider : IAiProvider
     public async Task<string> CompleteAsync(AiRequest request, CancellationToken ct)
     {
         LastUsage = null;
+        request.Validate(ct);
+        if (!Uri.TryCreate(_url, UriKind.Absolute, out var server) || server.Scheme is not ("http" or "https") || server.Host.Length == 0)
+            throw new AiException(Retro.Core.UiText.Get("La dirección de Ollama no es válida. Usá la dirección del servidor con http:// o https://, por ejemplo http://localhost:11434."));
         var messages = new List<object> { new { role = "system", content = request.System } };
         messages.AddRange(request.Turns.Select(t => new { role = t.FromUser ? "user" : "assistant", content = t.Text }));
         var body = new Dictionary<string, object?>
@@ -142,21 +176,25 @@ public sealed class OllamaProvider : IAiProvider
         };
         if (request.Schema is JsonElement schema)
             body["format"] = schema;
-        HttpResponseMessage resp;
+        using var msg = new HttpRequestMessage(HttpMethod.Post, _url + "/api/chat") { Content = JsonContent.Create(body) };
+        HttpStatusCode status; string json;
         try
         {
-            resp = await Http.PostAsJsonAsync(_url + Retro.Core.UiText.Get("/api/chat"), body, ct);
+            (status, json) = await JsonApi.SendAsync(_http, msg, "Ollama", ct);
         }
-        catch (HttpRequestException e)
+        catch (AiException e) when (e.InnerException is HttpRequestException)
         {
             throw new AiException(Retro.Core.UiText.Format($"No pude conectar con Ollama en {_url}. ¿Está abierto? (ollama serve)"), e);
         }
-        string json = await resp.Content.ReadAsStringAsync(ct);
-        if (!resp.IsSuccessStatusCode)
-            throw new AiException(Retro.Core.UiText.Format($"Ollama respondió {(int)resp.StatusCode}: {json}"));
-        using var doc = JsonDocument.Parse(json);
+        if ((int)status is < 200 or > 299)
+            throw new AiException(Retro.Core.UiText.Format($"Ollama respondió {(int)status}: {JsonApi.ErrorOf(json).message}"));
+        using var doc = JsonApi.Parse(json, "Ollama");
         LastUsage = AiUsage.Ollama(doc.RootElement);
-        return doc.RootElement.GetProperty("message").GetProperty("content").GetString() ?? "";
+        if (JsonApi.Str(doc.RootElement, "error") is { Length: > 0 } error) throw new AiException(Retro.Core.UiText.Get("Ollama rechazó el pedido: ") + error);
+        if (!JsonApi.Has(doc.RootElement, "done", out var done) || done.ValueKind != JsonValueKind.True) throw JsonApi.Incomplete("Ollama");
+        if (JsonApi.Str(doc.RootElement, "done_reason") is not ("" or "stop")) throw JsonApi.Incomplete("Ollama");
+        if (!JsonApi.Has(doc.RootElement, "message", out var message) || JsonApi.Str(message, "role") != "assistant") throw JsonApi.Incomplete("Ollama");
+        return JsonApi.Nonempty(JsonApi.Str(message, "content"), "Ollama");
     }
 }
 
@@ -186,8 +224,10 @@ public sealed class OpenAiProvider : IAiProvider
     public async Task<string> CompleteAsync(AiRequest request, CancellationToken ct)
     {
         LastUsage = null;
+        request.Validate(ct);
         if (_key.Length == 0)
             throw new AiException("Falta la clave de API de OpenAI: escribila en Fusión de juegos o definí la variable OPENAI_API_KEY.");
+        JsonApi.ValidateKey(_key);
         var input = new JsonArray();
         foreach (var t in request.Turns)
             input.Add(new JsonObject { ["role"] = t.FromUser ? "user" : "assistant", ["content"] = t.Text });
@@ -220,6 +260,7 @@ public sealed class OpenAiProvider : IAiProvider
         LastUsage = AiUsage.Responses(root);
         switch (JsonApi.Str(root, "status"))
         {
+            case "completed": break;
             case "failed":
                 throw new AiException(Retro.Core.UiText.Get("OpenAI no pudo completar el pedido: ") +
                                       (JsonApi.Has(root, "error", out var err) ? JsonApi.Str(err, "message") : "sin detalle"));
@@ -228,6 +269,7 @@ public sealed class OpenAiProvider : IAiProvider
                 throw new AiException(reason == "content_filter"
                     ? "OpenAI cortó la respuesta con su filtro de contenido."
                     : "La respuesta de ChatGPT se cortó por longitud.");
+            default: throw JsonApi.Incomplete("ChatGPT");
         }
         var text = new StringBuilder();
         if (JsonApi.Has(root, "output", out var output) && output.ValueKind == JsonValueKind.Array)
@@ -238,6 +280,7 @@ public sealed class OpenAiProvider : IAiProvider
                 if (JsonApi.Str(item, "type") != "message" || JsonApi.Str(item, "phase") == "commentary" ||
                     !JsonApi.Has(item, "content", out var content) || content.ValueKind != JsonValueKind.Array)
                     continue;
+                if (JsonApi.Str(item, "role") != "assistant" || JsonApi.Str(item, "status") != "completed") throw JsonApi.Incomplete("ChatGPT");
                 foreach (var part in content.EnumerateArray())
                 {
                     if (JsonApi.Str(part, "type") == "refusal")
@@ -392,8 +435,10 @@ public sealed class GeminiProvider : IAiProvider
     public async Task<string> CompleteAsync(AiRequest request, CancellationToken ct)
     {
         LastUsage = null;
+        request.Validate(ct);
         if (_key.Length == 0)
             throw new AiException("Falta la clave de API de Gemini: escribila en Fusión de juegos o definí la variable GEMINI_API_KEY.");
+        JsonApi.ValidateKey(_key);
         var contents = new JsonArray();
         foreach (var t in request.Turns)
             contents.Add(new JsonObject { ["role"] = t.FromUser ? "user" : "model", ["parts"] = new JsonArray(new JsonObject { ["text"] = t.Text }) });
@@ -430,7 +475,8 @@ public sealed class GeminiProvider : IAiProvider
         string finish = JsonApi.Str(candidate, "finishReason");
         if (finish is "MAX_TOKENS" or "CONTINUATION")
             throw new AiException("La respuesta de Gemini se cortó por longitud.");
-        if (finish is not ("" or "STOP" or "FINISH_REASON_UNSPECIFIED"))
+        if (finish is "" or "FINISH_REASON_UNSPECIFIED") throw JsonApi.Incomplete("Gemini");
+        if (finish != "STOP")
             throw new AiException(Retro.Core.UiText.Format($"Gemini se negó a responder este pedido (motivo: {finish})."));
         var text = new StringBuilder();
         if (JsonApi.Has(candidate, "content", out var content) && JsonApi.Has(content, "parts", out var parts) && parts.ValueKind == JsonValueKind.Array)
@@ -513,6 +559,14 @@ public sealed class GeminiProvider : IAiProvider
 /// <summary>Plumbing shared by the providers that call a JSON API with plain HttpClient (OpenAI, Gemini).</summary>
 internal static class JsonApi
 {
+    public static void ValidateKey(string key)
+    {
+        if (key.Any(char.IsControl)) throw new AiException(Retro.Core.UiText.Get("La clave de API contiene caracteres de control. Volvé a copiarla en una sola línea."));
+    }
+    public const int MaxResponseBytes = 16 * 1024 * 1024;
+    public static AiException Incomplete(string who) => new(Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(who)} no confirmó una respuesta completa. La salida parcial no se aplicó. Podés reintentar o usar el modo manual."));
+    public static string Nonempty(string text, string who) => !string.IsNullOrWhiteSpace(text) ? text
+        : throw new AiException(Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(who)} devolvió una respuesta vacía."));
     public const int MaxOutputTokens = 16000;
     public static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(10) };
     public static readonly JsonSerializerOptions Readable = new() { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
@@ -525,26 +579,55 @@ internal static class JsonApi
     /// <summary>Sends the request and reads the whole answer; a service that can't be reached is an AiException.</summary>
     public static async Task<(HttpStatusCode status, string body)> SendAsync(HttpClient http, HttpRequestMessage msg, string who, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        if (http.Timeout != Timeout.InfiniteTimeSpan) deadline.CancelAfter(http.Timeout);
         try
         {
-            using var resp = await http.SendAsync(msg, ct);
-            return (resp.StatusCode, await resp.Content.ReadAsStringAsync(ct));
+            // HttpClient's timeout ends at the headers in this mode; the linked deadline also covers reading the body.
+            using var resp = await http.SendAsync(msg, HttpCompletionOption.ResponseHeadersRead, deadline.Token);
+            byte[] bytes = await ReadBodyAsync(resp, who, deadline.Token);
+            int start = bytes.AsSpan().StartsWith(new byte[] { 0xef, 0xbb, 0xbf }) ? 3 : 0;
+            return (resp.StatusCode, new UTF8Encoding(false, true).GetString(bytes, start, bytes.Length - start));
         }
         catch (HttpRequestException e)
         {
             throw new AiException(Retro.Core.UiText.Format($"No pude conectar con {who}. Revisá tu conexión a internet."), e);
         }
-        catch (TaskCanceledException e) when (!ct.IsCancellationRequested)
+        catch (OperationCanceledException e) when (!ct.IsCancellationRequested)
         {
             throw new AiException(Retro.Core.UiText.Format($"{who} tardó demasiado en responder. Probá de nuevo."), e);
         }
+        catch (IOException e)
+        { throw new AiException(Retro.Core.UiText.Format($"Se interrumpió la respuesta de {Retro.Core.UiText.Raw(who)}. No se aplicó la salida parcial."), e); }
+        catch (DecoderFallbackException e)
+        { throw new AiException(Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(who)} devolvió texto con una codificación inválida."), e); }
+    }
+
+    private static AiException TooLarge(string who) => new(Retro.Core.UiText.Format($"La respuesta de {Retro.Core.UiText.Raw(who)} es demasiado grande. No se aplicó."));
+
+    internal static async Task<byte[]> ReadBodyAsync(HttpResponseMessage response, string who, CancellationToken ct)
+    {
+        if (response.Content.Headers.ContentLength > MaxResponseBytes) throw TooLarge(who);
+        await using var stream = await response.Content.ReadAsStreamAsync(ct);
+        using var body = new MemoryStream();
+        byte[] buffer = new byte[16384]; int read;
+        while ((read = await stream.ReadAsync(buffer, ct)) > 0)
+        {
+            if (body.Length + read > MaxResponseBytes) throw TooLarge(who);
+            body.Write(buffer, 0, read);
+        }
+        return body.ToArray();
     }
 
     public static JsonDocument Parse(string json, string who)
     {
         try
         {
-            return JsonDocument.Parse(json);
+            var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.ValueKind == JsonValueKind.Object) return doc;
+            doc.Dispose();
+            throw new AiException(Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(who)} devolvió una respuesta con un formato inválido."));
         }
         catch (JsonException e)
         {

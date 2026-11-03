@@ -701,8 +701,8 @@ mismo esquema. Los chats sin API y los agentes se conectan copiando la consigna 
 carpeta de `AgentWorkspace`.
 
 Un proceso CLI que termina con código distinto de cero produce un error aunque haya
-escrito un borrador parcial. Los archivos temporales propios de respuesta y consignas
-largas se eliminan también al cancelar o agotar el tiempo. Las pruebas usan procesos
+escrito un borrador parcial. Los archivos temporales propios de respuesta y esquemas
+se eliminan también al cancelar o agotar el tiempo. Las pruebas usan procesos
 simulados para cubrir éxito, error y cancelación.
 
 `AntigravityProtocol` (D-138, posterior a 0.4.0) distingue avances de un único resultado
@@ -712,6 +712,18 @@ evita los límites de la línea de comandos de Windows y la lectura de consignas
 Se solicita modo plan sin modificar permisos globales. Un rechazo headless produce un aviso
 ES/EN accionable y no dispara un reintento con permisos más amplios. Los contadores finales
 son acumulativos: no se suman eventos intermedios ni se vuelve a agregar thinking/cache.
+
+D-139 (local posterior a 0.4.0) extiende la validación final a todos los proveedores.
+Codex exige un turno completado y su archivo final; Claude Code y Gemini CLI requieren
+su envelope de resultado. Las API exigen un motivo/estado final válido y texto no vacío.
+`JsonApi` acota el cuerpo HTTP a 16 MiB y aplica cancelación/plazo también tras los headers;
+`BoundedAiTransport` pone el mismo límite antes de la lectura del SDK Anthropic, sin
+cambiar sus reintentos de producción. El runner CLI limita cada canal a 16 Mi caracteres,
+con cancelación compartida para stdin, proceso y lectores; el panel retiene una cola de
+12.000 caracteres. No acepta un progreso como respuesta ni eleva permisos al fallar.
+Los asesores consultan `SupportsImages` antes de crear o adjuntar una captura y la carpeta
+del agente conserva estado pendiente mientras otro proceso bloquea su código al escribir.
+La [matriz de integraciones](INTEGRACIONES-IA.md) distingue evidencia simulada y límites reales.
 
 `CodeExplainer` le pasa a la IA una rutina desensamblada, las rutinas
 que llama con los nombres ya conocidos y las variables del perfil, y guarda la respuesta

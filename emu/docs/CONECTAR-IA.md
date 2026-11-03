@@ -98,3 +98,19 @@ ajustar los valores para esa sesión. **Recuperar archivo** guarda primero una c
 del anterior y después publica la configuración nueva; si falla, el aviso describe
 que los cambios siguen solo en la sesión. La ruta del respaldo queda en la ayuda
 del mensaje. Recuperar o cambiar estos ajustes no envía un pedido de generación.
+
+## Si una respuesta falla o queda incompleta
+
+La revisión local posterior a 0.4.0 comprueba que la herramienta haya terminado la respuesta
+antes de aceptarla. Un avance, una salida cortada o un JSON dañado muestran un aviso y no se
+aplican como resultado. También se limita la espera si el proceso termina pero deja abierto
+un canal de salida. No se amplían permisos automáticamente al encontrar un error.
+
+Podés corregir la conexión o continuar copiando y pegando. Si trabajás con una carpeta de
+agente, esperar mientras guarda el archivo ya no convierte ese bloqueo temporal en un fallo
+de lectura. Las capturas se adjuntan solo a integraciones que declaran admitirlas.
+Estos cambios siguen locales y no están en la release 0.4.0.
+
+La [matriz de integraciones](INTEGRACIONES-IA.md) describe los casos comprobados con procesos
+y respuestas simulados. No hubo generaciones reales: una prueba de protocolo no confirma
+tu cuota, el acceso a un modelo ni la calidad del resultado que produzca.

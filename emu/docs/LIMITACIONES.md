@@ -633,11 +633,21 @@ en el programa nuevo no promete lectura de formatos nuevos en programas anterior
   Probar conexión se puede cancelar; también se solicita cancelación al cambiar de
   proveedor o cerrar la app. Un envío terminado al proceso local no confirma recepción
   del servidor ni una respuesta. Un plazo agotado sin métricas deja el consumo desconocido.
+  La revisión local D-139 exige respuesta final confirmada en todas las integraciones y
+  cubre transporte interrumpido, JSON inválido y cancelación con simulaciones. No certifica
+  cuentas, modelos, cuotas ni generaciones reales. Las API declaran solo texto; los asesores
+  omiten capturas incompatibles. Ver [matriz y contratos](INTEGRACIONES-IA.md).
+  HTTP admite hasta 16 MiB por cuerpo; cada canal CLI hasta 16 Mi caracteres y el archivo
+  final de Codex hasta 16 MiB. Cancelar limita la espera incluso con pipes heredados, pero no
+  garantiza matar un hijo separado cuyo padre ya salió. Los lanzadores .cmd/.bat rechazan
+  argumentos con comillas, %, ! o caracteres de control: usar ejecutable directo en ese caso.
+  No se ejecutaron estas CLI con una cuenta real ni se comprobaron sus procesos en Linux.
 
 - **Construcción con IA:** el panel muestra actividad observada del proceso y la salida
   que el CLI emite. No revela razonamiento interno ni puede obtener texto que la herramienta
-  todavía no envió. Puede mostrar JSON o código según el formato del CLI. Conserva solo
-  los últimos 12.000 caracteres en memoria; no crea un registro de conversaciones en disco.
+  todavía no envió. Puede mostrar JSON o código según el formato del CLI. El panel conserva
+  los últimos 12.000 caracteres; el runner retiene la respuesta hasta los límites anteriores
+  mientras trabaja. No crea un registro de conversaciones en disco.
   El tiempo transcurrido está disponible; el estimado restante por operación requiere
   al menos tres trabajos completos comparables. En la creación de fusiones se ofrece
   además una orientación general para el trabajo completo cuando faltan muestras.

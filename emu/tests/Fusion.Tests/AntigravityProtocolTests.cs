@@ -10,9 +10,9 @@ public sealed class AntigravityProtocolTests
     private string _folder = "";
     [SetUp] public void SetUp() => _folder = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "retro-agy-" + Guid.NewGuid().ToString("N"))).FullName;
     [TearDown] public void TearDown() { UiText.Language = "es"; Directory.Delete(_folder, true); }
-    private CliAgentProvider Fake(string stdout, string stderr = "", int code = 0, string? model = null, string? effort = null)
+    private CliAgentProvider Fake(string stdout, string stderr = "", int code = 0, string? model = null, string? effort = null, string command = "agy")
     {
-        string output = Path.Combine(_folder, "stdout.jsonl"), error = Path.Combine(_folder, "stderr.txt"), exe = Path.Combine(_folder, "agy.cmd");
+        string output = Path.Combine(_folder, "stdout.jsonl"), error = Path.Combine(_folder, "stderr.txt"), exe = Path.Combine(_folder, command + ".cmd");
         File.WriteAllText(output, stdout, new System.Text.UTF8Encoding(false));
         File.WriteAllText(error, stderr, new System.Text.UTF8Encoding(false));
         File.WriteAllText(exe, $"@echo off\r\n>\"{Path.Combine(_folder, "arguments.txt")}\" echo %*\r\nmore > nul\r\ntype \"{output}\"\r\ntype \"{error}\" 1>&2\r\nexit /b {code}\r\n");
@@ -64,6 +64,14 @@ public sealed class AntigravityProtocolTests
     public async Task ARecoveredBenignToolDenialDoesNotDiscardTheConfirmedFinalAnswer()
     {
         Assert.That(await Fake(Event(new { status="SUCCESS", response="final answer" }), Denial).CompleteAsync(Request, CancellationToken.None), Is.EqualTo("final answer"));
+    }
+
+    [Test]
+    public async Task ACustomAntigravityWrapperUsesTheSameTransportAsAgy()
+    {
+        var ai = Fake(Event(new { status="SUCCESS",response="own final" }), command:"own-agy-wrapper");
+        Assert.That(await ai.CompleteAsync(Request,CancellationToken.None),Is.EqualTo("own final"));
+        Assert.That(File.ReadAllText(Path.Combine(_folder,"arguments.txt")),Does.Contain("--input-format").And.Contain("stream-json"));
     }
 
     [Test]

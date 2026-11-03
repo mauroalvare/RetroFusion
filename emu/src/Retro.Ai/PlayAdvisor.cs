@@ -88,11 +88,12 @@ public sealed class AiPlayAdvisor : IPlayAdvisor, IVariableNamer, IPreparationEx
 
     public async Task<PlayAdvice> AdviseAsync(PlayObservation observation, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         // only this round: the observation already lists every round before (actions, reasons
         // and results), so resending old turns would only make each request bigger and costlier
         var turns = new[] { new AiTurn(true, observation.Describe()) };
         // the screen as it is: the text reader and the sketch miss custom fonts and graphics
-        string? picture = observation.Picture != null ? SavePicture(observation.Picture, Retro.Core.UiText.Format($"ronda-{observation.Round:00}")) : null;
+        string? picture = _ai.SupportsImages && observation.Picture != null ? SavePicture(observation.Picture, Retro.Core.UiText.Format($"ronda-{observation.Round:00}")) : null;
         string answer;
         try
         {
@@ -154,7 +155,8 @@ public sealed class AiPlayAdvisor : IPlayAdvisor, IVariableNamer, IPreparationEx
 
     public async Task<List<VariableName>> NameVariablesAsync(VariableQuestion question, CancellationToken ct)
     {
-        string? picture = question.Picture != null ? SavePicture(question.Picture, "variables") : null;
+        ct.ThrowIfCancellationRequested();
+        string? picture = _ai.SupportsImages && question.Picture != null ? SavePicture(question.Picture, "variables") : null;
         try
         {
             string answer = await _ai.CompleteAsync(new AiRequest(NamingGuide, new[] { new AiTurn(true, question.Describe()) }, NamingSchema(),
@@ -245,7 +247,7 @@ public sealed class AiPlayAdvisor : IPlayAdvisor, IVariableNamer, IPreparationEx
     public async Task<List<LabExperiment>> PlanExperimentsAsync(PreparationExperimentQuestion question, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
-        string? picture = question.Picture != null ? SavePicture(question.Picture, "experimentos") : null;
+        string? picture = _ai.SupportsImages && question.Picture != null ? SavePicture(question.Picture, "experimentos") : null;
         try
         {
             string answer = await _ai.CompleteAsync(new AiRequest(ExperimentGuide,

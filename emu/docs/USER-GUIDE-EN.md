@@ -174,6 +174,20 @@ review the specific action with /permissions in an interactive agy session, or u
 This fix is local and is not part of the published 0.4.0. Tests use simulated processes;
 no real AI generation was run. See the [official protocol](https://antigravity.google/docs/cli/headless/).
 
+Further local checks cover Claude Code, Codex, legacy Gemini CLI, Claude/OpenAI/Gemini APIs
+and Ollama. An incomplete response, invalid JSON or progress text is rejected instead of
+being used as the final answer. Time limits cover response reading as well as sending the
+request. Temporary file locks in an agent workspace leave the response pending. Advisors
+attach screenshots only when the integration declares support for them.
+
+These changes are not in the published 0.4.0. Verification uses simulated HTTP responses
+and local test processes, without real AI calls or changes to your global permissions.
+HTTP response bodies are limited to 16 MiB; CLI output to 16 Mi characters per channel.
+Windows .cmd launchers reject ambiguous argument characters (quotes, %, ! and control
+characters); use the tool's native executable in that case. A detached child of an already
+exited process may remain running even though RetroEmu stops waiting for its output.
+Account access, quotas, model quality and future tool versions still require separate checks.
+
 retro-cli --language en prints English usage. Examples without AI:
 
 ~~~text
