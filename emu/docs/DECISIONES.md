@@ -2394,3 +2394,37 @@ AppStartup lo entrega al recorrido de bienvenida antes de limpiar el trabajo. El
 de interfaz sigue ofreciéndose tras cada actualización confirmada, incluso al reinstalar.
 El cartel permite cambiar idioma, consultar todo el historial y pausar sin enviar entradas
 a la partida; cuerpo desplazable y cierre fuera del desplazamiento para texto grande.
+
+## D-138 — Antigravity por stdin, respuesta final y permisos conservados
+
+2026-11-03. T-138, R7. El usuario informa un error real de Antigravity: command permission
+auto-denied en modo headless, sin respuesta. Se reproduce el caso de protocolo con procesos
+simulados; no se vuelve a invocar una IA real. 0.4.0/deb7fba sigue publicada y sin cambios.
+
+La integración anterior desviaba consignas mayores a 24000 caracteres hacia un archivo y
+pedía al agente que lo leyera. Esa lectura puede necesitar un comando que no admite aprobación
+interactiva; no se conoce el comando exacto del fallo del usuario. Se elimina esa dependencia
+enviando una sola línea NDJSON `event=user`, `message.content` completo por stdin, sin -p.
+La documentación oficial confirma que stream-json admite EOF inmediato y devuelve el resultado
+del turno antes de salir: https://antigravity.google/docs/cli/headless/.
+La ayuda local de agy 1.4.12 anuncia los parámetros; no se consumió cuota con una generación.
+
+Se usa --input-format stream-json, --output-format stream-json, --mode plan y
+--disable-slash-commands. El esquema grande va como ruta --json-schema a un archivo UTF-8 propio
+que lee el CLI, no el agente, y se elimina al finalizar/cancelar/fallar. Las imágenes conservan
+solo sus carpetas --add-dir. No se agrega un allow global ni se modifica settings.json;
+no se usa un modo de aprobación general. Las políticas existentes de Antigravity siguen vigentes.
+
+AntigravityProtocol exige un único evento result, con status SUCCESS; structured_output tiene
+prioridad sobre response. También acepta el envelope JSON previo con status explícito.
+Progreso, JSON arbitrario, eventos incompletos y resultados duplicados no confirman una respuesta.
+Salida de proceso no cero sigue siendo error incluso si hay un resultado aparente.
+Un error de permisos tiene aviso ES/EN que indica revisar solo la acción concreta en /permissions
+o usar modo manual; una versión sin input-format tiene diagnóstico y no se instala/actualiza sola.
+Un rechazo benigno en stderr no invalida un result SUCCESS completo. Los tokens se toman del
+result.usage acumulado: output ya contiene thinking e input incluye cache; no sumar pasos.
+
+Pruebas con procesos reales simulados comprueban transporte completo Unicode/multilínea, esquema
+mayor al límite de Windows, limpieza en error y éxito, imágenes/modelo/esfuerzo, resultados y
+contadores, permisos con salida cero/no cero y ambos idiomas. El arreglo requiere una publicación
+nueva para llegar a la instalación del usuario; no se hereda autorización de la entrega 0.4.0.

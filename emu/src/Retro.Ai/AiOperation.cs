@@ -38,6 +38,9 @@ public sealed record AiUsage(long InputTokens, long OutputTokens, long? CachedIn
     {
         try
         {
+            if (tool == "sub-google" && AntigravityProtocol.Result(stdout) is { } agy
+                && Pair(Child(agy, "usage"), "input_tokens", "output_tokens", Number(Child(agy, "usage"), "cache_read_tokens")) is { } reported)
+                return reported; // Terminal usage is cumulative; do not sum step updates or add thinking tokens again.
             if (tool == "sub-codex")
             {
                 AiUsage? total = null;

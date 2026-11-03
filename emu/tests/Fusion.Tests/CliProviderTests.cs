@@ -175,20 +175,35 @@ public class CliProviderTests
 
     [TestCase(false)]
     [TestCase(true)]
-    public async Task LongPrompt_RemovesOnlyItsOwnFileAfterTheProcess(bool fail)
+    public async Task AntigravityLongPromptAndLargeSchemaAvoidCommandLineAndFileReadingTools(bool fail)
     {
         string capture = Path.Combine(_dir, "argument.txt");
-        string exe = Fake("agy", $">\"{capture}\" echo %~2\necho respuesta\nexit /b {(fail ? 17 : 0)}");
+        string input = Path.Combine(_dir, "received.json");
+        string schemaPath = Path.Combine(_dir, "schema-path.txt"), schemaCopy = Path.Combine(_dir, "schema-copy.json");
+        string script = "$f=[IO.File]::Create('" + input.Replace("'", "''") + "');" +
+            "try { [Console]::OpenStandardInput().CopyTo($f) } finally { $f.Dispose() };" +
+            "[Console]::WriteLine('{\"event\":\"result\",\"result\":{\"status\":\"SUCCESS\",\"response\":\"respuesta\"}}')";
+        string encoded = Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(script));
+        string exe = Fake("agy", $">\"{capture}\" echo %*\n>\"{schemaPath}\" echo %~9\ncopy /y \"%~9\" \"{schemaCopy}\" > nul\npowershell.exe -NoProfile -NonInteractive -EncodedCommand {encoded}\nexit /b {(fail ? 17 : 0)}");
         var ai = new CliAgentProvider(CliTools.Google, exe);
-        var request = new AiRequest(new string('a', 25000), new[] { new AiTurn(true, "idea") }, null);
+        var schema = JsonSerializer.SerializeToElement(new { type = "object", description = new string('a', 50000) });
+        var request = new AiRequest("Instrucciones propias", [new(true, string.Concat(Enumerable.Repeat("áéíóú ñ 😀\r\n", 12000)))], schema);
         if (fail)
             Assert.ThrowsAsync<AiException>(() => ai.CompleteAsync(request, CancellationToken.None));
         else
             await ai.CompleteAsync(request, CancellationToken.None);
         string argument = File.ReadAllText(capture);
-        var match = System.Text.RegularExpressions.Regex.Match(argument, @"archivo (.+): leelo");
-        Assert.That(match.Success, Is.True, argument);
-        Assert.That(File.Exists(match.Groups[1].Value), Is.False, "la consigna temporal no queda abandonada");
+        Assert.That(argument.Length, Is.LessThan(2000));
+        Assert.That(argument, Does.Contain("--input-format").And.Contain("stream-json").And.Contain("plan").And.Contain("--disable-slash-commands"));
+        Assert.That(argument, Does.Not.Contain("consigna-").And.Not.Contain("--dangerously-skip-permissions").And.Not.Contain("--add-dir"));
+        byte[] delivered = File.ReadAllBytes(input);
+        Assert.That(delivered.Take(3), Is.Not.EqualTo(new byte[] { 0xef, 0xbb, 0xbf }));
+        Assert.That(delivered.Count(b => b == (byte)'\n'), Is.EqualTo(1), "One request is one NDJSON event, even with embedded line breaks.");
+        using var json = JsonDocument.Parse(delivered);
+        Assert.That(json.RootElement.GetProperty("event").GetString(), Is.EqualTo("user"));
+        Assert.That(json.RootElement.GetProperty("message").GetProperty("content").GetString(), Is.EqualTo(CliAgentProvider.Flatten(request)));
+        Assert.That(File.ReadAllText(schemaCopy), Is.EqualTo(schema.GetRawText()));
+        Assert.That(File.Exists(File.ReadAllText(schemaPath).Trim()), Is.False, "Only the CLI's own schema file is temporary, also on failure.");
     }
 
     [Test]
@@ -208,7 +223,7 @@ public class CliProviderTests
     [Test]
     public async Task Antigravity_ReturnsItsText()
     {
-        string exe = Fake("agy", "more > nul\necho idea de antigravity");
+        string exe = Fake("agy", "more > nul\necho {\"event\":\"result\",\"result\":{\"status\":\"SUCCESS\",\"response\":\"idea de antigravity\"}}");
         var ai = new CliAgentProvider(CliTools.Google, exe);
         string answer = await ai.CompleteAsync(Request(), CancellationToken.None);
         Assert.That(answer.Trim(), Is.EqualTo("idea de antigravity"));
@@ -260,7 +275,7 @@ public class CliProviderTests
     [Test]
     public async Task Activity_ShowsOutputBeforeTheCliFinishes()
     {
-        string exe = Fake("agy", "echo preparando el juego 1>&2\nping -n 3 127.0.0.1 > nul\necho respuesta final");
+        string exe = Fake("agy", "more > nul\necho preparando el juego 1>&2\nping -n 3 127.0.0.1 > nul\necho {\"event\":\"result\",\"result\":{\"status\":\"SUCCESS\",\"response\":\"respuesta final\"}}");
         var ai = new CliAgentProvider(CliTools.Google, exe);
         var task = ai.CompleteAsync(Request(), CancellationToken.None);
         await WaitForOutput(ai);
@@ -345,9 +360,29 @@ public class CliProviderTests
     }
 
     [Test]
+    public async Task AntigravityCancellationRemovesItsSchemaWithoutTouchingOwnExistingFiles()
+    {
+        string capture = Path.Combine(_dir, "schema-path.txt"), own = Path.Combine(_dir, "keep.txt");
+        File.WriteAllText(own, "own existing data");
+        string exe = Fake("agy", $">\"{capture}\" echo %~9\nmore > nul\necho esperando respuesta 1>&2\nping -n 30 127.0.0.1 > nul");
+        var ai = new CliAgentProvider(CliTools.Google, exe);
+        using var cancellation = new CancellationTokenSource();
+        var pending = ai.CompleteAsync(Request(schema: true), cancellation.Token);
+        await WaitForOutput(ai);
+        string schema = File.ReadAllText(capture).Trim();
+        Assert.That(File.Exists(schema), Is.True);
+        cancellation.Cancel();
+        Assert.CatchAsync<OperationCanceledException>(async () => await pending);
+        Assert.That(File.Exists(schema), Is.False);
+        Assert.That(File.ReadAllText(own), Is.EqualTo("own existing data"));
+    }
+
+    [Test]
     public async Task Activity_IsBoundedWithoutTruncatingTheActualAnswer()
     {
-        string exe = Fake("agy", "for /l %%i in (1,1,250) do echo 012345678901234567890123456789012345678901234567890123456789\necho ultima linea");
+        string packet = Path.Combine(_dir, "large-answer.json");
+        File.WriteAllText(packet, JsonSerializer.Serialize(new { @event="result", result=new { status="SUCCESS", response=new string('x', 16000)+"ultima linea" } }));
+        string exe = Fake("agy", $"more > nul\ntype \"{packet}\"");
         var ai = new CliAgentProvider(CliTools.Google, exe);
         string answer = await ai.CompleteAsync(Request(), CancellationToken.None);
         Assert.That(answer.Length, Is.GreaterThan(CliActivity.MaxOutputLength));

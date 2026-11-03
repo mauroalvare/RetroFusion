@@ -687,7 +687,8 @@ documenta las unidades y las convenciones de caché; no representan cuota ni fac
 recibir texto. `CliAgentProvider` usa las herramientas oficiales que vienen con las
 suscripciones, en modo no interactivo y sin clave de API: Claude Code (`claude -p`,
 salida JSON), Codex CLI (`codex exec -`, última respuesta en un archivo) y Antigravity CLI
-(`agy -p`) o Gemini CLI; el pedido va por la entrada estándar y RetroEmu nunca maneja las
+(`agy --input-format stream-json --output-format stream-json`, un evento user por stdin)
+o Gemini CLI; el pedido va por la entrada estándar y RetroEmu nunca maneja las
 credenciales. `ClaudeProvider` usa el SDK oficial de Anthropic con salidas
 estructuradas (la respuesta respeta el esquema), esfuerzo medio y modelo de respaldo si
 el principal rechaza el pedido. `OpenAiProvider` (API Responses de OpenAI) y
@@ -703,6 +704,14 @@ Un proceso CLI que termina con código distinto de cero produce un error aunque 
 escrito un borrador parcial. Los archivos temporales propios de respuesta y consignas
 largas se eliminan también al cancelar o agotar el tiempo. Las pruebas usan procesos
 simulados para cubrir éxito, error y cancelación.
+
+`AntigravityProtocol` (D-138, posterior a 0.4.0) distingue avances de un único resultado
+terminal. No aplica texto parcial, JSON incompleto ni resultados duplicados. El esquema
+lo lee el CLI desde su archivo propio, no una herramienta del agente. La entrada completa
+evita los límites de la línea de comandos de Windows y la lectura de consignas por comando.
+Se solicita modo plan sin modificar permisos globales. Un rechazo headless produce un aviso
+ES/EN accionable y no dispara un reintento con permisos más amplios. Los contadores finales
+son acumulativos: no se suman eventos intermedios ni se vuelve a agregar thinking/cache.
 
 `CodeExplainer` le pasa a la IA una rutina desensamblada, las rutinas
 que llama con los nombres ya conocidos y las variables del perfil, y guarda la respuesta

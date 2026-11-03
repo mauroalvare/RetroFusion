@@ -44,6 +44,21 @@ Si todavía usás Gemini CLI, podés iniciar sesión ejecutando `gemini` y usar 
 modelo predeterminado. El listado integrado de modelos requiere Antigravity CLI.
 [Guía oficial](https://codelabs.developers.google.com/antigravity-cli-hands-on).
 
+En el desarrollo posterior a 0.4.0, RetroEmu envía la consigna completa por entrada estándar
+con `--input-format stream-json --output-format stream-json`. Así las consignas largas no
+necesitan que el agente ejecute un comando para leer un archivo temporal. El esquema se
+pasa como archivo al propio CLI y se elimina al terminar, también si falla o se cancela.
+La integración pide `--mode plan` y deshabilita la expansión de órdenes/skills del texto;
+no cambia `settings.json` ni agrega permisos generales. Requiere un `agy` con esos parámetros
+(ayuda local contrastada con 1.4.12). [Protocolo oficial](https://antigravity.google/docs/cli/headless/).
+
+Si aparece «command permission … headless … auto-denied», se bloqueó una herramienta que
+no podía pedir permiso sin una terminal interactiva. Revisá `/permissions` al abrir `agy`
+interactivamente y autorizá solo la acción concreta que quieras usar, o elegí el modo manual
+de RetroEmu. No hace falta habilitar todos los comandos para enviar una consigna.
+La versión 0.4.0 publicada todavía usaba archivos para consignas largas; esta corrección
+queda local hasta una nueva publicación. No se ejecutó una generación real para verificarla.
+
 ## Ollama, en tu PC
 
 1. [Descargá Ollama para tu sistema](https://ollama.com/download) y seguí el instalador.

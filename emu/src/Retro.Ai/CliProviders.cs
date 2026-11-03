@@ -152,7 +152,6 @@ public sealed class CliAgentProvider : IAiProvider
         string work = Path.Combine(Path.GetTempPath(), "RetroEmu-ia");
         Directory.CreateDirectory(work);
         string lastMessage = Path.Combine(work, Retro.Core.UiText.Format($"respuesta-{Guid.NewGuid():N}.txt"));
-        string? promptFile = null;
         string? schemaFile = null;
         try
         {
@@ -169,8 +168,7 @@ public sealed class CliAgentProvider : IAiProvider
                 // "-" = the prompt comes from stdin; read-only sandbox by default; no git repo needed; -i attaches pictures
                 "sub-codex" => new List<string> { "exec", "--json", "--skip-git-repo-check", "-o", lastMessage }
                     .Concat(images.SelectMany(i => new[] { "-i", i })).Append("-").ToList(),
-                // the -p text is appended to stdin, which carries the real prompt
-                _ => agy ? AgyArgs(request, work, out promptFile)
+                _ => agy ? AgyArgs(request, work, out schemaFile)
                          : new() { "-p", "Respondé la consigna que te paso por la entrada estándar.", "--output-format", "json" },
             };
             // the model goes before codex's "-" (stdin) and anywhere for the others
@@ -182,9 +180,10 @@ public sealed class CliAgentProvider : IAiProvider
                 File.WriteAllText(schemaFile, schema.GetRawText(), new UTF8Encoding(false));
                 args.InsertRange(args.Count - 1, ["--output-schema", schemaFile]);
             }
-            // agy takes the prompt as an argument and does not read standard input
+            // One stream-json user event carries the entire agy request, with no command-line size limit or file-reading tool.
             string previousOutput = Activity?.Output is { Length: > 0 } previous ? previous + "\n\n" : "";
-            var (code, stdout, stderr) = await RunAsync(exe, args, work, agy ? "" : Flatten(request), _timeout, ct,
+            string input = agy ? AntigravityProtocol.Input(Flatten(request)) : Flatten(request);
+            var (code, stdout, stderr) = await RunAsync(exe, args, work, input, _timeout, ct,
                 activity => Volatile.Write(ref _activity, activity with { Output = CliActivity.Tail(previousOutput +
                     (_tool.Id == "sub-codex" ? CliActivity.CodexText(activity.Output) : activity.Output)) }));
             LastUsage = AiUsage.Cli(_tool.Id, stdout);
@@ -194,7 +193,7 @@ public sealed class CliAgentProvider : IAiProvider
             {
                 "sub-claude" => ClaudeResult(stdout, stderr, code),
                 "sub-codex" => File.Exists(lastMessage) ? File.ReadAllText(lastMessage) : stdout,
-                _ => agy ? AgyResult(stdout) : GeminiResult(stdout),
+                _ => agy ? AgyResult(stdout, stderr) : GeminiResult(stdout),
             };
             if (string.IsNullOrWhiteSpace(answer))
                 throw new AiException(Retro.Core.UiText.Format($"{Retro.Core.UiText.Raw(_tool.Name)} no devolvió ninguna respuesta. {Tail(stderr)}"));
@@ -202,7 +201,7 @@ public sealed class CliAgentProvider : IAiProvider
         }
         finally
         {
-            foreach (string? file in new[] { lastMessage, promptFile, schemaFile })
+            foreach (string? file in new[] { lastMessage, schemaFile })
                 if (file != null)
                     try { File.Delete(file); }
                     catch (IOException) { }
@@ -211,31 +210,21 @@ public sealed class CliAgentProvider : IAiProvider
     }
 
     /// <summary>
-    /// Antigravity CLI: the prompt goes as the -p argument (in a file it is told to read when it
-    /// does not fit in a Windows command line), the schema with --json-schema, and the folders
-    /// of the pictures and of that file in its workspace, in the read-only plan mode.
+    /// Antigravity CLI: stdin receives one NDJSON user event; the CLI reads the schema itself,
+    /// without asking the agent to read a prompt file or granting command permissions.
     /// </summary>
-    private static List<string> AgyArgs(AiRequest request, string work, out string? promptFile)
+    private static List<string> AgyArgs(AiRequest request, string work, out string? schemaFile)
     {
-        promptFile = null;
-        string prompt = Flatten(request);
+        schemaFile = null;
         var dirs = (request.Images ?? Array.Empty<string>()).Select(i => Path.GetDirectoryName(i)!).ToList();
-        if (prompt.Length > 24000)
-        {
-            promptFile = Path.Combine(work, Retro.Core.UiText.Format($"consigna-{Guid.NewGuid():N}.md"));
-            File.WriteAllText(promptFile, prompt, new UTF8Encoding(false));
-            dirs.Add(work);
-            prompt = Retro.Core.UiText.Format($"La consigna completa está en el archivo {promptFile}: leelo entero y hacé exactamente lo que pide (respondé solo con lo que pide).");
-        }
-        var args = new List<string> { "-p", prompt, "--output-format", "json" };
+        var args = new List<string> { "--input-format", "stream-json", "--output-format", "stream-json", "--mode", "plan", "--disable-slash-commands" };
         if (request.Schema is JsonElement schema)
-            args.AddRange(new[] { "--json-schema", schema.GetRawText() });
-        if (dirs.Count > 0)
         {
-            args.AddRange(new[] { "--mode", "plan" });
-            foreach (var d in dirs.Distinct())
-                args.AddRange(new[] { "--add-dir", d });
+            schemaFile = Path.Combine(work, $"esquema-{Guid.NewGuid():N}.json");
+            File.WriteAllText(schemaFile, schema.GetRawText(), new UTF8Encoding(false));
+            args.AddRange(new[] { "--json-schema", schemaFile });
         }
+        foreach (var d in dirs.Distinct()) args.AddRange(new[] { "--add-dir", d });
         return args;
     }
 
@@ -260,28 +249,21 @@ public sealed class CliAgentProvider : IAiProvider
         }
     }
 
-    /// <summary>agy --output-format json: {"status":"SUCCESS","response":"...","structured_output":{...}}.</summary>
-    private string AgyResult(string stdout)
+    /// <summary>Only a final result can complete the request; progress and partial text cannot.</summary>
+    private string AgyResult(string stdout, string stderr)
     {
-        int s = stdout.IndexOf('{');
-        if (s < 0)
-            return stdout;
-        try
+        if (AntigravityProtocol.Result(stdout) is not { } root)
+            throw new AiException(AntigravityProtocol.PermissionDenied(stderr) ? Failure(stderr)
+                : Retro.Core.UiText.Get("Antigravity CLI no confirmó una respuesta completa. La salida parcial no se aplicó. Podés reintentar o usar el modo manual."));
+        string response = AntigravityProtocol.Text(root, "response");
+        if (!AntigravityProtocol.Text(root, "status").Equals("SUCCESS", StringComparison.OrdinalIgnoreCase))
         {
-            using var doc = JsonDocument.Parse(stdout[s..]);
-            var root = doc.RootElement;
-            string status = root.TryGetProperty("status", out var st) && st.ValueKind == JsonValueKind.String ? st.GetString() ?? "" : "";
-            string response = root.TryGetProperty("response", out var r) && r.ValueKind == JsonValueKind.String ? r.GetString() ?? "" : "";
-            if (status.Length > 0 && !status.Equals("SUCCESS", StringComparison.OrdinalIgnoreCase))
-                throw new AiException(Failure(response.Length > 0 ? response : stdout));
-            if (root.TryGetProperty("structured_output", out var so) && so.ValueKind == JsonValueKind.Object)
-                return so.GetRawText();
-            return response;
+            string error = AntigravityProtocol.Text(root, "error");
+            throw new AiException(Failure(error.Length > 0 ? error : response.Length > 0 ? response : stdout));
         }
-        catch (JsonException)
-        {
-            return stdout;
-        }
+        if (root.TryGetProperty("structured_output", out var so) && so.ValueKind == JsonValueKind.Object) return so.GetRawText();
+        if (string.IsNullOrWhiteSpace(response) && AntigravityProtocol.PermissionDenied(stderr)) throw new AiException(Failure(stderr));
+        return response;
     }
 
     private static string GeminiResult(string stdout)
@@ -306,6 +288,11 @@ public sealed class CliAgentProvider : IAiProvider
     /// <summary>A failure message that tells the user what to do.</summary>
     private string Failure(string output)
     {
+        if (_tool.Id == "sub-google" && AntigravityProtocol.PermissionDenied(output))
+            return Retro.Core.UiText.Get("Antigravity CLI bloqueó una herramienta porque no puede pedir permiso en modo sin interacción. Revisá /permissions en una sesión interactiva y autorizá solo la acción concreta que quieras permitir, o usá el modo manual. RetroEmu no habilita permisos generales automáticamente.");
+        if (_tool.Id == "sub-google" && output.Contains("input-format", StringComparison.OrdinalIgnoreCase)
+            && (output.Contains("unknown", StringComparison.OrdinalIgnoreCase) || output.Contains("not defined", StringComparison.OrdinalIgnoreCase)))
+            return Retro.Core.UiText.Get("Esta versión de Antigravity CLI no admite la entrada por stream-json. Revisá Ayuda > Conectar IA para actualizarla desde Google, o usá el modo manual. RetroEmu no descargó ni instaló herramientas.");
         string text = Tail(output);
         string lower = text.ToLowerInvariant();
         if (lower.Contains("login") || lower.Contains("log in") || lower.Contains("sign in") || lower.Contains("auth") || lower.Contains("credential"))

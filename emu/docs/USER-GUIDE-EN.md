@@ -167,6 +167,13 @@ They describe capabilities and limits without requiring a specific AI provider.
 
 ## CLI
 
+The Antigravity integration developed after 0.4.0 sends the full prompt through stream-json
+stdin, so long prompts do not require an agent tool to read a temporary file. It requests
+plan mode and keeps your global permissions unchanged. If a tool is denied in headless mode,
+review the specific action with /permissions in an interactive agy session, or use manual mode.
+This fix is local and is not part of the published 0.4.0. Tests use simulated processes;
+no real AI generation was run. See the [official protocol](https://antigravity.google/docs/cli/headless/).
+
 retro-cli --language en prints English usage. Examples without AI:
 
 ~~~text

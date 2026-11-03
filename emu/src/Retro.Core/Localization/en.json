@@ -4581,5 +4581,8 @@
   "exportar-anotaciones \"C:\\Copias\\Notas.json\"": "export-notes \"C:\\Copies\\Notes.json\"",
   "No se confirmó el guardado en el archivo habitual. Podés reintentar o exportar una copia JSON nueva.": "Saving to the normal file was not confirmed. You can retry or export a new JSON copy.",
   "Comentarios y etiquetas se comparten entre editor y terminal, separados por edición; los fallos al guardar permiten conservar copias sin perder la sesión.": "Comments and labels are shared between the editor and terminal, separated by edition; save failures allow recovery copies without losing the session.",
-  "No se pudo completar la acción: ": "The action could not be completed: "
+  "No se pudo completar la acción: ": "The action could not be completed: ",
+  "Antigravity CLI no confirmó una respuesta completa. La salida parcial no se aplicó. Podés reintentar o usar el modo manual.": "Antigravity CLI did not confirm a complete response. Partial output was not applied. You can retry or use manual mode.",
+  "Antigravity CLI bloqueó una herramienta porque no puede pedir permiso en modo sin interacción. Revisá /permissions en una sesión interactiva y autorizá solo la acción concreta que quieras permitir, o usá el modo manual. RetroEmu no habilita permisos generales automáticamente.": "Antigravity CLI blocked a tool because it cannot ask for permission in headless mode. Review /permissions in an interactive session and allow only the specific action you want to permit, or use manual mode. RetroEmu does not enable blanket permissions automatically.",
+  "Esta versión de Antigravity CLI no admite la entrada por stream-json. Revisá Ayuda > Conectar IA para actualizarla desde Google, o usá el modo manual. RetroEmu no descargó ni instaló herramientas.": "This Antigravity CLI version does not support stream-json input. See Help > Connect AI to update it from Google, or use manual mode. RetroEmu did not download or install any tools."
 }
