@@ -396,6 +396,7 @@ public sealed partial class CodeWindow
         PersistModifications();
         StopObservation(); _modifications?.Dispose();
         _host.BeforeFrame -= ApplyFrozen; _host.SessionChanging -= LeaveModificationSession;
+        _host.SessionLeaving -= EnsureAnnotationsPreserved;
         _host.SessionChanging -= StopAutonomousSession;
         StopAutonomousSession();
         RetireWork(ref _explainTask, ref _cts);

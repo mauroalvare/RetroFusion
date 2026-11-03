@@ -69,7 +69,7 @@ public sealed class CodePatchTransactionTests
         try
         {
             var host = Host(); var machine = host.Machine!;
-            using var window = new CodeWindow(host, new AiSettings { Provider = "manual", ProvidersDisabled = true }, _ => { }, history: new ModificationHistory(persist: false));
+            using var window = new CodeWindow(host, new AiSettings { Provider = "manual", ProvidersDisabled = true }, _ => { }, history: new ModificationHistory(persist: false), annotationsDirectory: Path.Combine(folder, "notes"));
             var notes = CodeAnnotations.Load("propio", folder);
             typeof(CodeWindow).GetField("_notes", Private)!.SetValue(window, notes);
             typeof(CodeWindow).GetField("_gameId", Private)!.SetValue(window, "propio");

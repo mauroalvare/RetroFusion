@@ -158,7 +158,8 @@ que la orden abre o consulta, y una parte sigue en un instrumento visual.
 | Breakpoints, pasos, ejecución hasta una dirección | Completo | — |
 | Búsqueda de variables por comparación | Completo | Observación avanzada de escrituras y propuestas de IA. |
 | Variables del perfil | Parcial | Consulta por órdenes; editarlas sigue en Modificar y analizar. |
-| Anotaciones, referencias de rutinas, parches, exportación | Parcial | Código y rutinas, con `hacer code`. |
+| Comentarios, etiquetas, consulta y copia JSON de anotaciones | Completo | Importación por nombre con confirmación; no cambia bytes ni usa IA. |
+| Referencias de rutinas, parches, exportación ASM y de perfiles | Parcial | Código y rutinas, con `hacer code`. |
 | Proyectos: listar, consultar, validar | Completo | — |
 | Preparar un original sin IA | Completo | La preparación con IA sigue en el taller de fusión. |
 | Crear y fusionar | Parcial | El diseño y la construcción usan sus talleres: `crear`, `fusionar`, `hacer inspired`. |
@@ -240,6 +241,11 @@ que coincida. `ayuda <orden>` agrega argumentos, ejemplos y errores.
 | `bp [lista\|agregar\|quitar\|limpiar] [direccion]` (`breakpoint`) | Administra los breakpoints del depurador. |
 | `rastrear <accion> [valor]` (`buscar-memoria`) | Busca una variable comparando la memoria entre momentos de la partida. |
 | `variables` | Lista las variables conocidas de este juego, con su valor y su evidencia. |
+| `exportar-anotaciones <ruta…>` (`export-notes`) | Exporta una copia JSON de las anotaciones actuales sin sobrescribir archivos. |
+| `anotaciones [direccion]` (`notes`) | Lista anotaciones o consulta una dirección de la edición actual. |
+| `anotar <direccion> <texto…>` (`note`) | Guarda un comentario manual en una dirección del original actual. |
+| `etiquetar <direccion> <texto…>` (`label`) | Guarda un nombre manual para una dirección del original actual. |
+| `importar-anotaciones <confirmar>` (`import-notes`) | Incorpora anotaciones anteriores por nombre con confirmación de edición. |
 
 ### Proyectos
 

@@ -120,7 +120,7 @@ public sealed class PcLaunchTests
     {
         var host = Host();
         var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
-        using var window = new CodeWindow(host, new Retro.Ai.AiSettings(), _ => { });
+        using var window = new CodeWindow(host, new Retro.Ai.AiSettings(), _ => { }, annotationsDirectory: Path.Combine(_folder, "notes"));
         window.Update();
         var write = typeof(CodeWindow).GetMethod("Write", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
         Assert.That(write.Invoke(null, [host.Machine!, 0x10003u, new byte[] { 0x47 }]), Is.EqualTo(true));

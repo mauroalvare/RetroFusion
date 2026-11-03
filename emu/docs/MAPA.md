@@ -25,6 +25,8 @@ los datos personales sin cambiar originales ni perfiles de emulación. Detalle e
 La [identificación y los estilos](INTERFACES-Y-DATOS.md) detalla las fuentes de
 datos, las opciones compartidas y la elección tras actualizar. La [guía de la consola](CONSOLA.md)
 describe órdenes, teclas, tareas y la matriz de cobertura por órdenes.
+Las [anotaciones por edición](ANOTACIONES.md) comparten comentarios, etiquetas y copias
+entre la terminal y el editor, con migración explícita de archivos anteriores por nombre.
 `Retro.App/Terminal/` separa búfer, tokenizador, definiciones, editor de línea, historial, teclado
 y dibujo; `RetroApp.Terminal*.cs` define las órdenes y `AppTasks.cs` el modelo común de tareas.
 `--interface retro|explorer|real|lounge` elige el diseño al iniciar; `--interface-picker`

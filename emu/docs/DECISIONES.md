@@ -2330,3 +2330,41 @@ hay una exportación actual verificable. El cierre permite volver o descartar de
 explícita; los botones quedan fuera del texto desplazable. Una exportación alterada,
 eliminada o anterior a cambios nuevos no autoriza descartar la memoria. Recuperar usa
 la invalidación de sesión/entradas/historial del host y deja la partida pausada.
+
+## D-136 — Anotaciones por contenido, órdenes manuales y conservación de sesión
+
+CodeWindow comparte ReadAnnotation, WriteAnnotation, AnnotationAddresses e importación/
+exportación con la terminal, sin otra copia de datos ni proveedor de IA. Comentarios de
+hasta 4096 caracteres y etiquetas de hasta 128 validan dirección antes de editar; el texto
+del usuario no se traduce. Consultar incluye explicaciones ya guardadas, sin iniciarlas.
+--autotest y las pruebas de CodeWindow inyectan su carpeta de anotaciones.
+
+Los originales usan edition-<GameKey> (sistema, medios, firmware) como identidad y nombre,
+independiente de la ruta y del idioma. El JSON/1 agrega Format, GameIdentity y LegacySourceHash
+a los mapas previos. Los archivos por edición exigen identidad; el cargador genérico conserva
+lectura de JSON anterior sin esos campos para una migración explícita. Un formato futuro,
+identidad ajena o datos inválidos deja el archivo sin cambios. Las fusiones conservan el
+alcance anterior por perfil; las órdenes nuevas requieren un original cargado.
+
+Las anotaciones anteriores por nombre se conservan y se importan tras confirmar la edición.
+La mezcla es aditiva: prevalecen las claves actuales; se validan todas las direcciones antes
+de copiar. Registros de parches se incorporan como datos, sin ejecutar bytes. Se recuerda el
+hash exacto del origen importado; no se repite el aviso salvo que cambie ese archivo.
+
+CodeAnnotations mantiene los bytes leídos y usa .lock estable para comparar y reemplazar
+atómicamente. Ante conflicto conserva la edición en memoria y exige recuperar con copia
+previa del archivo actual. La copia cubre la preservación y la escritura bajo el mismo
+bloqueo. Format/GameIdentity y las cinco colecciones se validan antes de publicar; el límite
+es 4 MiB y se rechazan enlaces de archivo. No se serializan estados de error ni flags de sesión.
+
+HasUnsavedChanges distingue un error de lectura sin ediciones de trabajo nuevo en memoria.
+SessionLeaving puede rechazar antes de cambiar máquina, resetear, cargar estado o actualizar;
+SessionChanging conserva su rol de notificar liberación tras la comprobación. La salida
+permite volver o descartar. Una exportación JSON nueva, sincronizada y verificada contra la
+memoria puede conservar la sesión cuando falla su archivo habitual; modificarla, eliminarla
+o editar después invalida esa garantía. Se comparte el mismo guardado desde el panel y las
+órdenes. La importación de una ruta de copia arbitraria sigue fuera del recorrido por órdenes.
+El aviso de salida pausa y permite restaurar la pausa anterior. Descartar no dispara
+otro guardado al cerrar. Menús, atajos, depurador, buscador y arranque/detención del taller
+presentan una conservación rechazada como aviso, manteniendo la aplicación abierta.
+Un refresco de perfil conserva las notas pendientes si su identidad de contenido no cambió.

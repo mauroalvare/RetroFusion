@@ -63,6 +63,8 @@ public sealed partial class RetroApp
     private string? _lastMachineId;
     private bool _screenFocused;
     public bool QuitRequested { get; private set; }
+    private bool _discardUnsavedOnQuit;
+    private bool _pausedBeforeQuit;
 
     // --autotest <seconds> <png>: run, save a screenshot of the whole window, quit.
     private double _autotestSeconds = -1;
@@ -118,7 +120,9 @@ public sealed partial class RetroApp
         _captureFolder = args.Contains("--autotest") ? Path.Combine(Environment.CurrentDirectory, "out", "autotest-capturas") : ScreenCapture.DefaultFolder;
         _studio = new StudioWindow(_host, _romDir, games, _ai, playOriginal:OpenFile, analyzeOriginal:OpenOriginalAnalysis);
         _code = new CodeWindow(_host, _ai, ShowInDebugger, EditCurrentStudioGame,
-            new ModificationHistory(persist: !args.Contains("--autotest")),firmwareDirectory:_romDir);
+            new ModificationHistory(persist: !args.Contains("--autotest")), firmwareDirectory: _romDir,
+            annotationsDirectory: args.Contains("--autotest") ? Path.Combine(Environment.CurrentDirectory, "out", "autotest-annotations") : null);
+        _code.AnnotationControlBounds = (name, min, max) => InterfaceControlBounds?.Invoke(name, min, max);
         _creator = new CreatorWindow(_romDir, _ai, OpenFile);
         _home = new HomeScreen(_library, OpenFile, PlayFusion, _browser.Open,
             visible =>
@@ -200,7 +204,7 @@ public sealed partial class RetroApp
         }
         if (!openedFile && !args.Any(a => a is "--studio" or "--preparar" or "--crear-window" or "--studio-window" or "--code" or "--mods-window" or "--states-window" or "--sound-window" or "--preferences-window" or "--debug" or "--create-hub" or "--tools-hub" or "--help-hub" or "--research-window" or "--auto-analysis-window"))
             _home.Open();
-        _updates = new UpdateWindow(args, beforeInstall: _host.EnsureBatteryPreserved);
+        _updates = new UpdateWindow(args, beforeInstall: _host.PreserveSession);
         _updates.ControlBounds = (name, min, max) => InterfaceControlBounds?.Invoke(name, min, max);
         if (Hardcore) OpenTerminal();
         if (args.Contains("--interface-picker")) OpenInterfacePicker();
@@ -301,7 +305,11 @@ public sealed partial class RetroApp
     public void Shutdown()
     {
         // Normal quit and updates check this before closing. Retry once for a last storage failure.
-        if (!_host.TryPreserveBattery()) Console.Error.WriteLine(UiText.Message(_host.BatteryProblem ?? ""));
+        if (!_discardUnsavedOnQuit)
+        {
+            if (!_host.TryPreserveBattery()) Console.Error.WriteLine(UiText.Message(_host.BatteryProblem ?? ""));
+            if (!_code.TryPreserveAnnotations()) Console.Error.WriteLine(UiText.Message(_code.AnnotationProblem));
+        }
         _updates.Dispose();
         foreach (var task in _tasks.Active) task.Cancel();
         _terminal?.History.Save();
@@ -353,7 +361,7 @@ public sealed partial class RetroApp
         imguiKeyboard = CaptureGuiKeyboard();
         _code.Update();
         _studio.Update(); _creator.Update();
-        if (_home.IsOpen) _host.Paused = true;
+        if (_home.IsOpen || _quitNotice != null) _host.Paused = true;
         var m = _host.Machine;
         PauseInBackground(m);
         if (m != null && !_updates.Blocking)
@@ -426,7 +434,7 @@ public sealed partial class RetroApp
         DrawPaletteEditor();
         DrawRequirements();
         AiConnectionWindow.Draw(_ai);
-        _commands.Draw(_commands.IsOpen ? CommandPalette.WithOrders(Commands, Terminal.Commands, PrepareConsoleOrder) : Commands);
+        TryStateAction(() => _commands.Draw(_commands.IsOpen ? CommandPalette.WithOrders(Commands, Terminal.Commands, PrepareConsoleOrder) : Commands));
         DrawTerminal();
         ImGui.EndDisabled();
         _updates.Draw();
@@ -515,12 +523,22 @@ public sealed partial class RetroApp
     /// <summary>Window close button and Juego > Salir: asks first when AI work would be cancelled.</summary>
     public void RequestQuit()
     {
+        if (_quitNotice == null) _pausedBeforeQuit = _host.Paused;
+        _host.Paused = true;
         bool preserved = _host.TryPreserveBattery();
+        _quitAnnotationsPending = !_code.TryPreserveAnnotations();
         _quitBatteryPending = !preserved;
         _quitNotice = QuitGuard.Notice(_studio.IsWorking, _creator.IsWorking, _code.IsWorking, _tasks.Active.Count(task => !task.Tracked));
         if (!preserved) _quitNotice = (_quitNotice == null ? "" : _quitNotice + "\n\n") + UiText.Get("La batería NES todavía no se pudo guardar. Volvé para exportar una copia desde Juego > Batería del cartucho. Salir ahora pierde los cambios que sólo están en memoria.");
+        if (_quitAnnotationsPending) _quitNotice = (_quitNotice == null ? "" : _quitNotice + "\n\n") + UiText.Get("Hay anotaciones sin guardar. Volvé para exportarlas con exportar-anotaciones o recuperar el archivo en el editor. Salir ahora pierde los cambios de esta sesión.");
         if (ComponentRepairActive) _quitNotice = (_quitNotice == null ? "" : _quitNotice + "\n\n") + UiText.Get("Hay una reparación de componentes en curso. Salir cancela la descarga pendiente; si el instalador de Windows ya empezó, seguirá bajo su control. No se termina por la fuerza una instalación del sistema.");
         if (_quitNotice == null) QuitRequested = true;
+    }
+
+    private void CancelQuit()
+    {
+        _quitNotice = null;
+        _host.Paused = _pausedBeforeQuit;
     }
 
     private void PaceFrames(IMachine? m)
@@ -747,7 +765,7 @@ public sealed partial class RetroApp
     private void OpenInspiredCreator() { CloseEditors(); _home.Close(); _studio.Open(inspired: true); }
     private void PlayFusion(string id) { CloseEditors(); _home.Close(); _studio.PlayById(id); _studio.Close(); }
     private void OpenModifications() { CloseEditors(); _home.Close(); _code.OpenModifications(); }
-    private void OpenOriginalAnalysis(string path) { OpenFile(path); _code.OpenAutomaticAnalysis(); }
+    private void OpenOriginalAnalysis(string path) { OpenFile(path); if (_errorPopup == null && _pendingOpen == null) _code.OpenAutomaticAnalysis(); }
     private void OpenAutomaticAnalysis() {CloseEditors();_home.Close();_debugMode=false;_code.OpenAutomaticAnalysis();}
 
     private IReadOnlyList<MediaFile> _openedMedia = [];
@@ -837,8 +855,8 @@ public sealed partial class RetroApp
         if (_host.Pc != null && _host.Fusion == null && !ctrl) return;
         bool machineFKeys = _host.C64 != null && _host.Fusion == null;
         if (Raylib.IsKeyPressed(KeyboardKey.F2)) _host.QuickSave();
-        if (Raylib.IsKeyPressed(KeyboardKey.F4) || (!machineFKeys && _host.Pc == null && Raylib.IsKeyPressed(KeyboardKey.F3))) _host.QuickLoad();
-        if (!machineFKeys && Raylib.IsKeyPressed(KeyboardKey.F5)) _host.Reset(Raylib.IsKeyDown(KeyboardKey.LeftShift));
+        if (Raylib.IsKeyPressed(KeyboardKey.F4) || (!machineFKeys && _host.Pc == null && Raylib.IsKeyPressed(KeyboardKey.F3))) TryStateAction(_host.QuickLoad);
+        if (!machineFKeys && Raylib.IsKeyPressed(KeyboardKey.F5)) TryStateAction(() => _host.Reset(Raylib.IsKeyDown(KeyboardKey.LeftShift)));
         if (Raylib.IsKeyPressed(KeyboardKey.F6)) ToggleTape();
         if (Raylib.IsKeyPressed(KeyboardKey.F7)) _host.Zx?.Tape.Rewind();
         if (Raylib.IsKeyPressed(KeyboardKey.F8)) _host.Turbo = !_host.Turbo;
@@ -961,7 +979,7 @@ public sealed partial class RetroApp
             }
             ImGui.Separator();
             if (ImGui.MenuItem(UiText.Label("Guardar estado rápido"), Shortcut("F2"), false, _host.CanUseStates)) _host.QuickSave();
-            if (ImGui.MenuItem(UiText.Label("Cargar estado rápido"), _host.Pc != null ? Shortcut("F4") : _host.C64 != null ? "F4" : "F3", false, _host.CanUseStates)) _host.QuickLoad();
+            if (ImGui.MenuItem(UiText.Label("Cargar estado rápido"), _host.Pc != null ? Shortcut("F4") : _host.C64 != null ? "F4" : "F3", false, _host.CanUseStates)) TryStateAction(_host.QuickLoad);
             if (ImGui.MenuItem(UiText.Label("Partidas guardadas..."), "", false, _host.CanUseStates)) OpenStateWindow();
             if (ImGui.MenuItem(UiText.Label("Batería del cartucho"), "", false, _host.Battery != null)) OpenBatteryWindow();
             if (ImGui.BeginMenu(UiText.Label("Rebobinado y entradas"), _host.CanUseStates))
@@ -989,11 +1007,11 @@ public sealed partial class RetroApp
             ImGui.BeginDisabled(_host.Machine == null);
             if (ImGui.MenuItem(UiText.Label(_host.Paused ? "Continuar" : "Pausa"), Shortcut("F9"), false, !_home.IsOpen))
             { if (_host.Paused) _host.Continue(); else _host.Pause("Pausa"); }
-            if (ImGui.MenuItem(UiText.Label(_host.Fusion != null ? "Reiniciar fusión o creación" : "Reiniciar"), Shortcut("F5"))) _host.Reset(false);
-            if (ImGui.MenuItem(UiText.Label(_host.Nes?.Cartridge.HasBattery == true ? "Reinicio total (conserva batería)" : "Reinicio total (borra RAM)"), Shortcut("Shift+F5"), false, _host.Fusion == null)) _host.Reset(true);
+            if (ImGui.MenuItem(UiText.Label(_host.Fusion != null ? "Reiniciar fusión o creación" : "Reiniciar"), Shortcut("F5"))) TryStateAction(() => _host.Reset(false));
+            if (ImGui.MenuItem(UiText.Label(_host.Nes?.Cartridge.HasBattery == true ? "Reinicio total (conserva batería)" : "Reinicio total (borra RAM)"), Shortcut("Shift+F5"), false, _host.Fusion == null)) TryStateAction(() => _host.Reset(true));
             bool turbo = _host.Turbo;
             if (ImGui.MenuItem(UiText.Label("Turbo"), Shortcut("F8"), ref turbo)) _host.Turbo = turbo;
-            if (ImGui.MenuItem(UiText.Label("Detener fusión o creación"), "", false, _host.Fusion != null)) _host.StopFusion();
+            if (ImGui.MenuItem(UiText.Label("Detener fusión o creación"), "", false, _host.Fusion != null)) TryStateAction(_host.StopFusion);
             if ((_host.Zx != null || _host.C64 != null || _host.Invaders != null) && ImGui.BeginMenu(UiText.Label("Controles y hardware")))
             {
             if (_host.Zx != null)
@@ -1256,7 +1274,7 @@ public sealed partial class RetroApp
     {
         try { action(); }
         catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
-        { _errorPopup = UiText.Get("No se pudo guardar o cargar el estado: ") + error.Message; }
+        { _errorPopup = UiText.Get("No se pudo completar la acción: ") + UiText.Message(error.Message); }
     }
 
     private void RevealCurrentWork()
@@ -1364,20 +1382,26 @@ public sealed partial class RetroApp
                 ImGui.BeginChild("quit-notice", new(0, -3 * ImGui.GetFrameHeightWithSpacing() - UiTheme.Px(8)));
                 ImGui.TextWrapped(UiText.Get(notice));
                 ImGui.EndChild(); ImGui.Separator();
-                if (ImGui.Button(UiText.Label("Volver"), new(-1, 0))) { _quitNotice = null; ImGui.CloseCurrentPopup(); }
+                if (ImGui.Button(UiText.Label("Volver"), new(-1, 0))) { CancelQuit(); ImGui.CloseCurrentPopup(); }
                 InterfaceControlBounds?.Invoke("Volver al programa", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
-                if (ImGui.Button(UiText.Label(_quitBatteryPending ? "Ver batería" : "Ver el trabajo"), new(-1, 0)))
+                if (ImGui.Button(UiText.Label(_quitBatteryPending ? "Ver batería" : _quitAnnotationsPending ? "Ver anotaciones" : "Ver el trabajo"), new(-1, 0)))
                 {
                     _quitNotice = null; ImGui.CloseCurrentPopup();
-                    if (_quitBatteryPending) OpenBatteryWindow(); else RevealCurrentWork();
+                    if (_quitBatteryPending) OpenBatteryWindow();
+                    else if (_quitAnnotationsPending) { CloseEditors(); _home.Close(); _code.Open(); }
+                    else RevealCurrentWork();
                 }
                 InterfaceControlBounds?.Invoke("Ver antes de salir", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
-                if (ImGui.Button(UiText.Label(_quitBatteryPending ? "Salir sin guardar" : "Salir y cancelar"), new(-1, 0))) { _quitNotice = null; ImGui.CloseCurrentPopup(); QuitRequested = true; }
+                if (ImGui.Button(UiText.Label(_quitBatteryPending || _quitAnnotationsPending ? "Salir sin guardar" : "Salir y cancelar"), new(-1, 0)))
+                {
+                    _discardUnsavedOnQuit = _quitBatteryPending || _quitAnnotationsPending;
+                    _quitNotice = null; ImGui.CloseCurrentPopup(); QuitRequested = true;
+                }
                 InterfaceControlBounds?.Invoke("Confirmar salida", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
-                if (ImGui.IsKeyPressed(ImGuiKey.Escape)) { _quitNotice = null; ImGui.CloseCurrentPopup(); }
+                if (ImGui.IsKeyPressed(ImGuiKey.Escape)) { CancelQuit(); ImGui.CloseCurrentPopup(); }
                 ImGui.EndPopup();
             }
-            if (!open) _quitNotice = null;
+            if (!open) CancelQuit();
         }
         if (_errorPopup != null)
         {
@@ -1399,6 +1423,7 @@ public sealed partial class RetroApp
                     _errorPopup = null;
                     ImGui.CloseCurrentPopup();
                 }
+                InterfaceControlBounds?.Invoke("Cerrar aviso", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
                 UiTheme.SameLineIfFits("Ir a la biblioteca");
                 if (ImGui.Button(UiText.Label("Ir a la biblioteca")))
                 {
@@ -1526,7 +1551,8 @@ public sealed partial class RetroApp
         UiTheme.SameLineIfFits("Cuadro");
         if (ImGui.Button(UiText.Label("Cuadro"))) _host.StepFrame();
         UiTheme.SameLineIfFits("Reiniciar");
-        if (ImGui.Button(UiText.Label("Reiniciar"))) _host.Reset(false);
+        if (ImGui.Button(UiText.Label("Reiniciar"))) TryStateAction(() => _host.Reset(false));
+        InterfaceControlBounds?.Invoke("Reiniciar depurador", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
         ImGui.Separator();
         if (ImGui.BeginTable("regs", 2, ImGuiTableFlags.SizingFixedFit))
         {

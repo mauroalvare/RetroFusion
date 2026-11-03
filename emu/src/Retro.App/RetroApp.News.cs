@@ -56,7 +56,8 @@ internal static class ReleaseNotes
             "El paquete Linux incluye una comprobación previa al runtime, con requisitos de glibc y bibliotecas del sistema.",
             "Los talleres distinguen errores, cancelaciones y resultados parciales; un fallo al guardar anotaciones conserva la respuesta en la sesión.",
             "La falta del firmware de una máquina no bloquea la biblioteca ni los cartuchos de otros sistemas.",
-            "Los cartuchos NES con batería de 8 KB conservan el progreso entre sesiones y al reiniciar; se pueden exportar y recuperar copias desde Juego o la terminal."
+            "Los cartuchos NES con batería de 8 KB conservan el progreso entre sesiones y al reiniciar; se pueden exportar y recuperar copias desde Juego o la terminal.",
+            "Comentarios y etiquetas se comparten entre editor y terminal, separados por edición; los fallos al guardar permiten conservar copias sin perder la sesión."
         ]),
         new("0.3.7", [
             "Consola interna con ayuda, historial, autocompletado y tareas cancelables en segundo plano.",

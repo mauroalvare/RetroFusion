@@ -51,7 +51,7 @@ public class ModificationAnalysisUiTests
         host.Start(MachineCatalog.Get("zx48"),_directory);
         host.Load(new Retro.Core.MediaFile("analysis-own-"+Guid.NewGuid().ToString("N")+".tap",[3,0,255,0,255],"own.tap"),false);
         host.LoadBinary([0x21,0,0x80,0x34,0xC3,3,0x90],0x9000,true);
-        var window=new CodeWindow(host,new AiSettings(),_=>{});
+        var window=new CodeWindow(host,new AiSettings(),_=>{}, annotationsDirectory: Path.Combine(_directory, "notes"));
         window.OpenModifications();window.Update();
         for(int step=0;step<7;step++)host.Machine!.StepInstruction();
         return(host,window);

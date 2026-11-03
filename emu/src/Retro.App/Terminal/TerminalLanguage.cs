@@ -6,6 +6,7 @@ internal static class TerminalLanguage
     private static readonly IReadOnlyDictionary<string, string> Names = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["ayuda"]="help", ["como"]="how", ["limpiar"]="clear", ["historial"]="history", ["requisitos"]="requirements", ["paleta"]="palette", ["bateria"]="battery",
+        ["anotaciones"]="notes", ["anotar"]="note", ["etiquetar"]="label", ["importar-anotaciones"]="import-notes", ["exportar-anotaciones"]="export-notes",
         ["proyectos"]="projects", ["proyecto"]="project", ["validar"]="validate", ["retomar-trabajo"]="resume-work", ["preparar"]="prepare",
         ["tareas"]="tasks", ["tarea"]="task", ["seguir"]="follow", ["cancelar"]="cancel", ["retomar"]="resume-task",
         ["jugar"]="play", ["abrir"]="open", ["continuar"]="continue", ["pausa"]="pause", ["reiniciar"]="reset",
@@ -35,7 +36,7 @@ internal static class TerminalLanguage
         ["nombre-desc"]="name-desc", ["año-desc"]="year-desc", ["agregados"]="added", ["buscar"]="search", ["vaciar"]="clear",
         ["creado"]="created", ["inspirado"]="inspired", ["sin"]="unknown", ["nunca"]="never", ["agregados7"]="added7", ["agregados30"]="added30",
         ["fusiones"]="fusions", ["herramientas"]="tools", ["opciones"]="options", ["ayuda"]="help", ["barra"]="bar", ["subrayado"]="underline",
-        ["usar"]="use", ["editar"]="edit", ["guardar"]="save", ["exportar"]="export", ["recuperar"]="restore"
+        ["usar"]="use", ["editar"]="edit", ["guardar"]="save", ["exportar"]="export", ["recuperar"]="restore", ["confirmar"]="confirm"
     };
     private static readonly IReadOnlyDictionary<string, string> Options = new Dictionary<string, string>(StringComparer.Ordinal)
     {
@@ -61,5 +62,10 @@ internal static class TerminalLanguage
             CommandLine.Fold(Values.GetValueOrDefault(value, value)) == folded || CommandLine.Fold(UiText.Get(value)) == folded ||
             value == "reproducir" && folded == "play") ?? input;
     }
-    public static string Example(string line) => UiText.English ? string.Join(' ', line.Split(' ').Select((word, index) => index == 0 ? Name(word) : Options.GetValueOrDefault(word, Values.GetValueOrDefault(word, word)))) : line;
+    public static string Example(string line)
+    {
+        if (!UiText.English) return line;
+        string translated = UiText.Get(line);
+        return translated != line ? translated : string.Join(' ', line.Split(' ').Select((word, index) => index == 0 ? Name(word) : Options.GetValueOrDefault(word, Values.GetValueOrDefault(word, word))));
+    }
 }

@@ -25,6 +25,7 @@ public sealed partial class EmulatorHost
     public void RestoreBattery(string path)
     {
         if (Battery == null) throw new InvalidOperationException("No hay una batería NES disponible.");
+        SessionLeaving?.Invoke();
         Battery.Restore(path);
         SessionChanging?.Invoke();
         StateRestored();

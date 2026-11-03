@@ -38,7 +38,7 @@ public sealed class WorkshopEndingTests
         var machine = new Spectrum48(new byte[16384]); byte[] before = machine.SaveState();
         var notes = CodeAnnotations.Load("own", _folder); notes.Labels["8000"] = "Own original label"; notes.Save("own");
         byte[] saved = File.ReadAllBytes(Path.Combine(_folder, "own.json"));
-        using var code = new CodeWindow(new EmulatorHost(), new AiSettings(), _ => { });
+        using var code = new CodeWindow(new EmulatorHost(), new AiSettings(), _ => { }, annotationsDirectory: Path.Combine(_folder, "notes"));
         Set(code, "_notes", notes); Set(code, "_gameId", "own"); Set(code, "_machine", machine);
         using var cancellation = new CancellationTokenSource();
         var revision = code.GetType().GetField("_mediaRevision", Private)!.GetValue(code);
@@ -116,7 +116,7 @@ public sealed class WorkshopEndingTests
     [TestCase(false), TestCase(true)]
     public void AnalysisFailureOrCancellationCannotBeAnnouncedAsCompleted(bool cancelled)
     {
-        using var code = new CodeWindow(new EmulatorHost(), new AiSettings(), _ => { });
+        using var code = new CodeWindow(new EmulatorHost(), new AiSettings(), _ => { }, annotationsDirectory: Path.Combine(_folder, "notes"));
         Set(code, "_modificationTask", Ending<GameAnalysisResult>(cancelled));
         Set(code, "_modificationRevision", code.GetType().GetField("_mediaRevision", Private)!.GetValue(code));
         var center = new AppTaskCenter(); var task = Follow(center, "analysis", code.ReadWork());
@@ -151,7 +151,7 @@ public sealed class WorkshopEndingTests
     {
         string blocked = Path.Combine(_folder, "blocked"); File.WriteAllText(blocked, "Own sentinel");
         var notes = CodeAnnotations.Load("own", blocked); notes.Summaries["8000"] = "Own explanation";
-        using var code = new CodeWindow(new EmulatorHost(), new AiSettings(), _ => { });
+        using var code = new CodeWindow(new EmulatorHost(), new AiSettings(), _ => { }, annotationsDirectory: Path.Combine(_folder, "notes"));
         Set(code, "_notes", notes); Set(code, "_gameId", "own"); Set(code, "_pasted", "Own answer to preserve");
         Assert.That(Call(code, "SaveExplanation", "Everything was saved"), Is.EqualTo(false));
         Assert.That(code.WorkEnding, Is.EqualTo(AppTaskState.PartlyCompleted));

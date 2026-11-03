@@ -289,6 +289,18 @@ bus) y la suite funcional de Klaus Dormann.
   $F6 con la dirección de retorno, como el BASIC real: hay programas que dependen de eso)
   o escribiendo `RUN` en el buffer del teclado.
 
+## Anotaciones por edición
+
+Las anotaciones de CodeWindow para originales usan `edition-` más GameKey (sistema,
+medios y firmware), con identidad comprobada dentro del JSON. Cambiar el nombre no
+cambia sus notas y otra edición no las hereda. Los archivos anteriores por nombre se
+importan sólo tras confirmar, sin sustituir entradas actuales ni ejecutar parches.
+`SessionLeaving` comprueba conservación antes de mutar una sesión; `SessionChanging`
+sigue siendo la notificación posterior de liberación. CodeAnnotations excluye escritores,
+compara el archivo original y conserva copias al recuperar. --autotest y las pruebas
+de CodeWindow inyectan directorios propios. D-136 y [ANOTACIONES.md](ANOTACIONES.md)
+detallan esquema, órdenes, exportación y límites; no interviene IA para las notas manuales.
+
 ## Nintendo NES (NTSC)
 
 `Nes.SaveBattery/LoadBattery` transfieren únicamente la PRG NVRAM soportada de 8 KB,

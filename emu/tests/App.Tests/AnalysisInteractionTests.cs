@@ -32,7 +32,7 @@ public sealed class AnalysisInteractionTests
             Array.Fill(rom, (byte)0xEA, 16, 16384); rom[^4] = 0; rom[^3] = 0x80;
             string path = Path.Combine(folder, "own.nes"); File.WriteAllBytes(path, rom);
             host.StartNes(MachineCatalog.Get("nes"), new MediaFile("own.nes", rom, path));
-            window = new CodeWindow(host, new AiSettings { Provider = "manual" }, _ => { }, firmwareDirectory: folder);
+            window = new CodeWindow(host, new AiSettings { Provider = "manual" }, _ => { }, firmwareDirectory: folder, annotationsDirectory: Path.Combine(folder, "notes"));
             void Set(string name, object value) => typeof(CodeWindow).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(window, value);
             Set("_autonomousCalls", 0); Set("_autonomousFrames", 9000); Set("_autonomousPasses", 24);
             window.OpenAutomaticAnalysis();

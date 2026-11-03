@@ -50,7 +50,7 @@ public sealed class AutonomousAnalysisUiTests
 
     private CodeWindow Window(EmulatorHost host)
     {
-        var window = new CodeWindow(host, new AiSettings { Provider = "manual" }, _ => { }, firmwareDirectory: _directory);
+        var window = new CodeWindow(host, new AiSettings { Provider = "manual" }, _ => { }, firmwareDirectory: _directory, annotationsDirectory: Path.Combine(_directory, "notes"));
         window.Update(); Call(window, "LoadAutonomousContext");
         Set(window, "_autonomousCalls", 0); Set(window, "_autonomousPasses", 1); Set(window, "_autonomousFrames", 60);
         Set(window, "_autonomousGoal", "Contrastar el reloj sin inferir su propósito por el nombre.");

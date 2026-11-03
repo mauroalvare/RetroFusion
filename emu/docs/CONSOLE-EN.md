@@ -77,6 +77,11 @@ Use help <command> for examples, requirements and errors.
 | `bp [list\|add\|remove\|clear] [address]` (`breakpoint`) | Manages debugger breakpoints. |
 | `scan-memory <action> [value]` (`buscar-memoria`) | Finds a variable by comparing memory at different points in the game. |
 | `variables` | Lists known variables for this game with values and evidence. |
+| `export-notes <path…>` | Export a JSON copy of the current annotations without overwriting files. |
+| `notes [address]` | List annotations or inspect an address in the current edition. |
+| `note <address> <text…>` | Save a manual comment at an address in the current original game. |
+| `label <address> <text…>` | Save a manual label for an address in the current original game. |
+| `import-notes <confirm>` | Import earlier name-based annotations after confirming the edition. |
 
 ### Tasks
 

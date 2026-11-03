@@ -29,7 +29,10 @@ se trata de una limitación deducida que todavía necesita una prueba específic
   sus paneles visuales, abiertos mediante `hacer`; no se duplican como editores de texto.
   La [matriz de cobertura](CONSOLA.md#cobertura-por-órdenes) dice qué recorridos se
   completan escribiendo y cuáles son parciales: crear, fusionar, conectar la IA, editar
-  variables, anotar rutinas y exportar siguen en sus instrumentos. Las opciones y acciones
+  variables, editar parches y exportar ASM/perfiles siguen en sus instrumentos. Comentarios,
+  etiquetas, consulta y copia JSON de anotaciones sí tienen órdenes; la importación de las
+  anteriores por nombre exige confirmar la edición. [Anotaciones](ANOTACIONES.md).
+  Las opciones y acciones
   usan los catálogos comunes de los estilos gráficos. Los metadatos no se consultan en línea
   hasta habilitarlo; las pruebas usan respuestas simuladas, no certifican disponibilidad
   permanente del proveedor.

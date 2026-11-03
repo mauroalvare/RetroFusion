@@ -193,10 +193,33 @@ public sealed class CodeMap
 public sealed class CodeAnnotations
 {
     private string? _folder;
+    private string? _loadedPath;
+    private byte[]? _expected;
+    private byte[]? _exported;
     private bool _unreadable;
     [JsonIgnore] public string? Problem { get; private set; }
     [JsonIgnore] public bool CanRecover => _unreadable;
     [JsonIgnore] public string? RecoveryPath { get; private set; }
+    [JsonIgnore] public bool HasUnsavedChanges { get; private set; }
+    [JsonIgnore] public string? ExportedPath { get; private set; }
+    [JsonIgnore] public bool HasVerifiedExport
+    {
+        get
+        {
+            if (_exported == null || ExportedPath == null || !Valid()) return false;
+            try
+            {
+                byte[] current = JsonSerializer.SerializeToUtf8Bytes(this, new JsonSerializerOptions { WriteIndented = true });
+                byte[]? file = ReadFile(ExportedPath);
+                return current.AsSpan().SequenceEqual(_exported) && file != null && file.AsSpan().SequenceEqual(_exported);
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or ArgumentException) { return false; }
+        }
+    }
+    public int Format { get; set; } = 1;
+    public string GameIdentity { get; set; } = "";
+    public string LegacySourceHash { get; set; } = "";
+    [JsonIgnore] public string SourceFingerprint => _expected == null ? "" : Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(_expected));
     public Dictionary<string, string> Labels { get; set; } = new();
     public Dictionary<string, string> Comments { get; set; } = new();
     public Dictionary<string, string> Summaries { get; set; } = new();
@@ -212,7 +235,8 @@ public sealed class CodeAnnotations
     private static string Folder =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "RetroEmu", "anotaciones");
 
-    private bool Valid() => new[] { Labels, Comments, Summaries, Pseudocode, Patches }
+    private bool Valid() => Format == 1 && GameIdentity != null && LegacySourceHash != null &&
+        (LegacySourceHash.Length == 0 || LegacySourceHash.Length == 64 && LegacySourceHash.All(char.IsAsciiHexDigit)) && new[] { Labels, Comments, Summaries, Pseudocode, Patches }
         .All(values => values != null && values.All(pair => pair.Value != null));
 
     private static string PathFor(string gameId, string folder)
@@ -220,30 +244,35 @@ public sealed class CodeAnnotations
         if (string.IsNullOrWhiteSpace(gameId) || gameId is "." or ".." || gameId.Length > 180 ||
             gameId.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || gameId.Contains('/') || gameId.Contains('\\'))
             throw new ArgumentException("La identidad de las anotaciones no es válida.");
-        return Path.Combine(folder, gameId + Retro.Core.UiText.Get(".json"));
+        return Path.GetFullPath(Path.Combine(folder, gameId + ".json"));
     }
 
     public static CodeAnnotations Load(string gameId) => Load(gameId, Folder);
 
-    public static CodeAnnotations Load(string gameId, string folder)
+    public static CodeAnnotations Load(string gameId, string folder) => Load(gameId, folder, requireIdentity: false);
+
+    public static CodeAnnotations Load(string gameId, string folder, bool requireIdentity)
     {
+        string? path = null;
+        byte[]? data = null;
         try
         {
-            string path = PathFor(gameId, folder);
-            if (File.Exists(path))
+            path = PathFor(gameId, folder);
+            data = ReadFile(path);
+            if (data != null)
             {
-                if (new FileInfo(path).Length > 4 * 1024 * 1024) throw new InvalidDataException();
-                var notes = JsonSerializer.Deserialize<CodeAnnotations>(File.ReadAllText(path)) ?? throw new InvalidDataException();
-                if (!notes.Valid()) throw new InvalidDataException();
-                notes._folder = folder; return notes;
+                using var reader = new StreamReader(new MemoryStream(data), detectEncodingFromByteOrderMarks: true);
+                var notes = JsonSerializer.Deserialize<CodeAnnotations>(reader.ReadToEnd()) ?? throw new InvalidDataException();
+                if (!notes.Valid() || (notes.GameIdentity.Length > 0 ? notes.GameIdentity != gameId : requireIdentity)) throw new InvalidDataException();
+                notes._folder = Path.GetDirectoryName(path)!; notes._loadedPath = path; notes._expected = data; return notes;
             }
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or JsonException or ArgumentException)
         {
-            return new CodeAnnotations { _folder = folder, _unreadable = true,
+            return new CodeAnnotations { _folder = path == null ? folder : Path.GetDirectoryName(path)!, _loadedPath = path, _expected = data, _unreadable = true,
                 Problem = "No pude leer las anotaciones. Se conservó el archivo; los cambios quedan solo en esta sesión." };
         }
-        return new CodeAnnotations { _folder = folder };
+        return new CodeAnnotations { _folder = path == null ? folder : Path.GetDirectoryName(path)!, _loadedPath = path };
     }
 
     public void Save(string gameId) => TrySave(gameId, _folder ?? Folder);
@@ -251,19 +280,45 @@ public sealed class CodeAnnotations
 
     private bool TrySave(string gameId, string folder)
     {
+        HasUnsavedChanges = true;
         if (!Valid()) { Problem = "Las anotaciones contienen valores inválidos."; return false; }
+        if (GameIdentity.Length > 0 && GameIdentity != gameId) { Problem = "Las anotaciones pertenecen a otra edición. Se conservó el archivo."; return false; }
         if (_unreadable) return false;
-        string? temporary = null;
         try
         {
             string path = PathFor(gameId, folder);
-            Directory.CreateDirectory(folder); temporary = path + "." + Guid.NewGuid().ToString("N") + Retro.Core.UiText.Get(".tmp");
+            Directory.CreateDirectory(folder);
+            using var gate = Lock(path);
+            byte[]? current = ReadFile(path);
+            var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            byte[]? expected = string.Equals(path, _loadedPath, comparison) ? _expected : null;
+            if (!(current == null ? expected == null : expected != null && current.AsSpan().SequenceEqual(expected)))
+            {
+                _folder = Path.GetDirectoryName(path)!; _loadedPath = path; _unreadable = true;
+                Problem = "Otra instancia cambió las anotaciones. Los cambios siguen en esta sesión; recuperá el archivo para conservar ambas copias.";
+                return false;
+            }
+            return WriteFile(gameId, folder, path);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or ArgumentException)
+        { Problem = "No pude guardar las anotaciones. Los cambios quedan en esta sesión."; return false; }
+    }
+
+    private bool WriteFile(string gameId, string folder, string path)
+    {
+        string? temporary = null;
+        try
+        {
+            GameIdentity = gameId;
+            temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
             using (var file = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
             {
                 JsonSerializer.Serialize(file, this, new JsonSerializerOptions { WriteIndented = true }); file.Flush(flushToDisk: true);
             }
-            if (new FileInfo(temporary).Length > 4 * 1024 * 1024) throw new InvalidDataException();
-            File.Move(temporary, path, overwrite: true); _folder = folder; Problem = null; return true;
+            byte[] written = ReadFile(temporary)!;
+            File.Move(temporary, path, overwrite: true);
+            _folder = Path.GetDirectoryName(path)!; _loadedPath = path; _expected = written; _unreadable = false; HasUnsavedChanges = false; Problem = null;
+            return true;
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or ArgumentException)
         { Problem = "No pude guardar las anotaciones. Los cambios quedan en esta sesión."; return false; }
@@ -280,17 +335,70 @@ public sealed class CodeAnnotations
         string folder = _folder ?? Folder;
         if (!_unreadable) return TrySave(gameId, folder);
         if (!Valid()) { Problem = "Las anotaciones contienen valores inválidos."; return false; }
-        string backup;
+        if (GameIdentity.Length > 0 && GameIdentity != gameId) { Problem = "Las anotaciones pertenecen a otra edición. Se conservó el archivo."; return false; }
         try
         {
-            string path = PathFor(gameId, folder); backup = path + Retro.Core.UiText.Get(".respaldo-") + Guid.NewGuid().ToString("N");
-            File.Copy(path, backup, overwrite: false);
+            string path = PathFor(gameId, folder);
+            Directory.CreateDirectory(folder);
+            using var gate = Lock(path);
+            byte[] original = ReadFile(path) ?? throw new FileNotFoundException();
+            string backup = path + ".respaldo-" + Guid.NewGuid().ToString("N");
+            using (var preserved = new FileStream(backup, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            { preserved.Write(original); preserved.Flush(flushToDisk: true); }
             RecoveryPath = backup;
+            // The same lock covers preservation and replacement; the writer being recovered is explicit.
+            return WriteFile(gameId, folder, path);
         }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException)
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or ArgumentException)
         { Problem = "No pude conservar el archivo anterior. Las anotaciones siguen solo en esta sesión."; return false; }
-        _unreadable = false;
-        if (TrySave(gameId, folder)) { RecoveryPath = backup; return true; }
-        _unreadable = true; return false;
+    }
+
+    /// <summary>A verified recovery copy of current session notes; never overwrites the requested destination.</summary>
+    public string Export(string gameId, string path)
+    {
+        if (!Valid() || GameIdentity.Length > 0 && GameIdentity != gameId) throw new InvalidDataException("Las anotaciones pertenecen a otra edición. Se conservó el archivo.");
+        GameIdentity = gameId;
+        byte[] data = JsonSerializer.SerializeToUtf8Bytes(this, new JsonSerializerOptions { WriteIndented = true });
+        if (data.Length > 4 * 1024 * 1024) throw new InvalidDataException("Las anotaciones superan el máximo de 4 MB.");
+        path = Path.GetFullPath(path); Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        using var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+        try { file.Write(data); file.Flush(flushToDisk: true); }
+        catch
+        {
+            file.Dispose();
+            try { File.Delete(path); } catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+            throw;
+        }
+        _exported = data; ExportedPath = path;
+        return path;
+    }
+
+    private static FileStream Lock(string path)
+    {
+        RejectLink(path + ".lock");
+        return new FileStream(path + ".lock", FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+    }
+
+    private static void RejectLink(string path)
+    {
+        try
+        {
+            if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0) throw new IOException();
+        }
+        catch (FileNotFoundException) { }
+        catch (DirectoryNotFoundException) { }
+    }
+
+    private static byte[]? ReadFile(string path)
+    {
+        try
+        {
+            RejectLink(path);
+            using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            if (file.Length > 4 * 1024 * 1024) throw new InvalidDataException();
+            byte[] data = new byte[(int)file.Length]; file.ReadExactly(data); return data;
+        }
+        catch (FileNotFoundException) { return null; }
+        catch (DirectoryNotFoundException) { return null; }
     }
 }

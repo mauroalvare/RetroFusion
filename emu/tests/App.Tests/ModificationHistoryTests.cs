@@ -48,7 +48,7 @@ public class ModificationHistoryTests
         host.Load(new MediaFile(name, [3, 0, 255, flag, (byte)(255 ^ flag)], name), false);
         host.LoadBinary([0x21, 0, 0x80, 0x34, 0xC3, 3, 0x90], 0x9000, true);
         host.Machine!.Memory.Poke(0x8000, 0);
-        var window = new CodeWindow(host, new AiSettings(), _ => { }, history: Store());
+        var window = new CodeWindow(host, new AiSettings(), _ => { }, history: Store(), annotationsDirectory: Path.Combine(_directory, "notes"));
         window.OpenModifications(); window.Update();
         for (int step = 0; step < 2; step++) host.Machine!.StepInstruction();
         return (host, window);

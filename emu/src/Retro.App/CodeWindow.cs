@@ -66,7 +66,7 @@ public sealed partial class CodeWindow : IDisposable
     private string _newVarDescription = "";
     private string _bootText = "";
 
-    public CodeWindow(EmulatorHost host, AiSettings ai, Action<uint> showInDebugger, Action? openStudio = null, ModificationHistory? history = null, string? firmwareDirectory = null)
+    public CodeWindow(EmulatorHost host, AiSettings ai, Action<uint> showInDebugger, Action? openStudio = null, ModificationHistory? history = null, string? firmwareDirectory = null, string? annotationsDirectory = null)
     {
         _host = host;
         _ai = ai;
@@ -74,6 +74,8 @@ public sealed partial class CodeWindow : IDisposable
         _openStudio = openStudio;
         _history = history ?? new ModificationHistory();
         _researchFirmwareDirectory = firmwareDirectory ?? "";
+        _annotationsDirectory = annotationsDirectory;
+        _host.SessionLeaving += EnsureAnnotationsPreserved;
         _host.BeforeFrame += ApplyFrozen;
         _host.SessionChanging += LeaveModificationSession;
         _host.SessionChanging += StopAutonomousSession;
@@ -142,13 +144,15 @@ public sealed partial class CodeWindow : IDisposable
             if (ImGui.SmallButton(UiText.Label("Copiar mensaje"))) ImGui.SetClipboardText(_status);
         }
         if (_notes.Problem is { } problem) UiTheme.Hint(problem);
+        DrawUnsavedAnnotations();
         if (_notes.CanRecover)
         {
             UiTheme.Hint("Para guardar estas anotaciones, conservá primero una copia del archivo anterior.");
-            if (ImGui.Button(UiText.Label("Recuperar anotaciones"))) _notes.Recover(_gameId);
+            if (ImGui.Button(UiText.Label("Recuperar anotaciones"))) _notes.Recover(AnnotationId);
         }
         if (_notes.RecoveryPath is { } backup)
         { UiTheme.Hint("Se conservó un respaldo de las anotaciones anteriores."); if (ImGui.IsItemHovered()) UiTheme.Tooltip(backup); }
+        DrawLegacyAnnotations();
         if (_requestedPage is { } requested) { _activePage = requested; _requestedPage = null; }
         bool variablesSupported = machine.Memory.AddressBits <= 16;
         float pageWidth = new[] { "Cambios", "Análisis con IA", "Buscar variables", "Código" }
@@ -241,7 +245,7 @@ public sealed partial class CodeWindow : IDisposable
         (_gameId, _gameName, _profile) = Identify(m);
         if (_profile != null) _profile = GameProfile.Parse(_profile.ToJson());
         _modifications = _profile == null ? null : new GameModifications(m, _profile);
-        _notes = CodeAnnotations.Load(_gameId);
+        LoadAnnotations();
         _bootText = string.Join("\n", _profile?.Boot ?? DefaultBoot(m));
         _status = "";
         LoadModificationHistory();
@@ -465,7 +469,7 @@ public sealed partial class CodeWindow : IDisposable
                 if (ImGui.InputTextMultiline("##pseudo", ref code, 20000, new Vector2(-1, -1)))
                 {
                     _notes.Pseudocode[key] = code;
-                    _notes.Save(_gameId);
+                    _notes.Save(AnnotationId);
                 }
                 ImGui.EndTabItem();
             }
@@ -498,7 +502,7 @@ public sealed partial class CodeWindow : IDisposable
             _notes.Labels.Remove(CodeAnnotations.Key(a));
         else
             _notes.Labels[CodeAnnotations.Key(a)] = name;
-        _notes.Save(_gameId);
+        _notes.Save(AnnotationId);
     }
 
     private void DrawListing(IMachine m, Routine r)
@@ -579,7 +583,7 @@ public sealed partial class CodeWindow : IDisposable
             _notes.Comments.Remove(CodeAnnotations.Key(a));
         else
             _notes.Comments[CodeAnnotations.Key(a)] = text.Trim();
-        _notes.Save(_gameId);
+        _notes.Save(AnnotationId);
     }
 
     // ------------------------------------------------------------------ code changes
@@ -634,7 +638,7 @@ public sealed partial class CodeWindow : IDisposable
             return;
         }
         _notes.Patches[key] = string.Join(" ", original.Select(b => b.ToString("X2"))) + "|" + string.Join(" ", replacement.Select(b => b.ToString("X2")));
-        _notes.Save(_gameId);
+        _notes.Save(AnnotationId);
         _status = UiText.Format($"Cambiado ${a:X4}. El juego ya corre con el cambio (el archivo original no se toca).");
         Analyze(m);
     }
@@ -721,7 +725,7 @@ public sealed partial class CodeWindow : IDisposable
             if (ImGui.SmallButton(UiText.Label(UiText.Get("Deshacer##") + key)))
             {
                 if (Write(m, a, original))
-                { _notes.Patches.Remove(key); _notes.Save(_gameId); _status = "Parche deshecho; se restauraron los bytes originales."; Analyze(m); }
+                { _notes.Patches.Remove(key); _notes.Save(AnnotationId); _status = "Parche deshecho; se restauraron los bytes originales."; Analyze(m); }
                 else _status = "No se pudo deshacer el parche. La partida y el respaldo se conservaron; volvé a cargar el original.";
             }
         }
@@ -828,7 +832,7 @@ public sealed partial class CodeWindow : IDisposable
 
     private bool SaveExplanation(string success)
     {
-        _notes.Save(_gameId); _rename = "";
+        _notes.Save(AnnotationId); _rename = "";
         if (_notes.Problem is { } problem)
         { WorkEnding = AppTaskState.PartlyCompleted; _workDetail = _explainStatus = UiText.Message(problem); return false; }
         WorkEnding = AppTaskState.Completed; _workDetail = _explainStatus = UiText.Get(success); return true;

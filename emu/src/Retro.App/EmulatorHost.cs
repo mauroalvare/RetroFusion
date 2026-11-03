@@ -35,7 +35,7 @@ public sealed partial class EmulatorHost
 
     public void StartFusion(Retro.Fusion.IFusionRun session)
     {
-        EnsureBatteryPreserved();
+        PreserveSession();
         TimelineStateChanged(newMedia: true);
         SessionChanging?.Invoke();
         MediaRevision++;
@@ -52,6 +52,7 @@ public sealed partial class EmulatorHost
 
     public void StopFusion()
     {
+        PreserveSession();
         TimelineStateChanged(newMedia: true);
         SessionChanging?.Invoke();
         MediaRevision++;
@@ -99,6 +100,9 @@ public sealed partial class EmulatorHost
     public event Action<IMachine>? BeforeFrame;
     /// <summary>Releases game-bound edits before a loader can execute bootstrap instructions.</summary>
     public event Action? SessionChanging;
+    /// <summary>May reject a session change before memory, state or input history is mutated.</summary>
+    public event Action? SessionLeaving;
+    public void PreserveSession() { EnsureBatteryPreserved(); SessionLeaving?.Invoke(); }
     public double EffectiveSpeed { get; private set; } = 1;
 
     private readonly AudioQueue _audio = new(44100 / 2);
@@ -223,7 +227,7 @@ public sealed partial class EmulatorHost
 
     private void SetMachine(IMachine m, MachineInfo info, string firmware = "")
     {
-        EnsureBatteryPreserved();
+        PreserveSession();
         TimelineStateChanged(newMedia: true);
         SessionChanging?.Invoke();
         MediaRevision++;
@@ -245,6 +249,7 @@ public sealed partial class EmulatorHost
 
     public void Load(MediaFile file, bool autoType)
     {
+        PreserveSession();
         TimelineStateChanged(newMedia: true);
         var profile = ProfileLibrary.ForFiles([file]);
         SessionChanging?.Invoke();
@@ -463,6 +468,7 @@ public sealed partial class EmulatorHost
     {
         if (Fusion != null && Fusion is not Retro.Studio.StudioSession)
         { Status = "Volvé a abrir la fusión para reiniciarla completa."; return; }
+        PreserveSession();
         SessionChanging?.Invoke();
         if (Fusion is Retro.Studio.StudioSession studio) studio.Restart();
         else Machine?.Reset(hard);
@@ -533,6 +539,7 @@ public sealed partial class EmulatorHost
 
     private void RestoreState(byte[] state, int[]? pixels = null)
     {
+        PreserveSession();
         var machine = Machine!;
         byte[] previous = machine.SaveState();
         int[] previousPixels = machine.Video.Pixels.ToArray();

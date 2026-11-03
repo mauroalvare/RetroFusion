@@ -615,7 +615,10 @@ public sealed partial class StudioWindow
             s.Restart();
         ImGui.SameLine();
         if (ImGui.Button(UiText.Label("Detener")))
-            _host.StopFusion();
+        {
+            try { _host.StopFusion(); }
+            catch (IOException error) { Problem(error.Message); }
+        }
         var versions = _savedGames.Where(game => game.Id == g.Id).OrderBy(game => game.Version).ToList();
         if (versions.Count > 1)
         {
@@ -1604,10 +1607,14 @@ public sealed partial class StudioWindow
                 Problem(UiText.Get("No se pudo arrancar: ") + startError);
             else if (st.IsCompletedSuccessfully)
             {
-                _host.StartFusion(st.Result);
-                if (st.Result.Error == null) GameStarted?.Invoke(st.Result.Game);
-                _progress = "";
-                _status = "";
+                try
+                {
+                    _host.StartFusion(st.Result);
+                    if (st.Result.Error == null) GameStarted?.Invoke(st.Result.Game);
+                    _progress = "";
+                    _status = "";
+                }
+                catch (IOException error) { Problem(UiText.Get("No se pudo arrancar: ") + error.Message); }
             }
             else
                 Problem(UiText.Get("No se pudo arrancar: ") + Failure(st.Exception));
