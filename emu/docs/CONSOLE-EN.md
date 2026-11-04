@@ -38,7 +38,7 @@ Use help <command> for examples, requirements and errors.
 | `continue` (`seguir-jugando`, `volver`, `resume`) | Returns to the game and gives it the keyboard. |
 | `pause` (`pausar`) | Pauses the machine without leaving the console. |
 | `reset [hard]` | Resets the session or fusion; hard also clears the original's memory. |
-| `capture` (`foto`, `screenshot`) | Saves the emulated image at its resolution. |
+| `capture` (`foto`, `screenshot`) | Saves the emulated image at its resolution in the game's folder. |
 | `slots` | Lists saves for this game and edition. |
 | `save <slot> [replace]` | Saves the session to a slot. If occupied, you must enter replace. |
 | `load <slot>` | Restores a slot for this game and edition. |

@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace Retro.App;
 
-public enum AppOptionKind { Toggle, Choice, Number }
+public enum AppOptionKind { Toggle, Choice, Number, Shortcut }
 /// <summary>How far a change reaches, shown next to the setting.</summary>
 public enum OptionScope { Saved, Session, Interface }
 public sealed record OptionChoice(string Value, string Label)
@@ -28,6 +28,7 @@ public sealed record AppOption(string Id, string Title, string Group, string Des
     {
         AppOptionKind.Toggle => "on, off",
         AppOptionKind.Choice => string.Join(", ", Choices!.Select(choice => TerminalLanguage.Choice(choice.Value))),
+        AppOptionKind.Shortcut => UiText.Get("F1, Pause, o Ctrl con una letra o un número (Shift opcional)"),
         _ => UiText.Format($"{Min}..{Max}")
     };
     public bool Modified => Default != null && Read() != Default;
@@ -37,6 +38,7 @@ public sealed record AppOption(string Id, string Title, string Group, string Des
         {
             AppOptionKind.Toggle => [new("on", "activar"), new("off", "desactivar")],
             AppOptionKind.Choice => Choices!.Select(choice => new CompletionItem(choice.Value, choice.Label)),
+            AppOptionKind.Shortcut => ShortcutExamples.Select(example => new CompletionItem(example, UiText.Get("atajo"))),
             _ => []
         };
         return Default == null ? values : values.Append(new("restablecer", UiText.Get("volver a ") + Default));
@@ -56,6 +58,14 @@ public sealed record AppOption(string Id, string Title, string Group, string Des
             if (choice == null) return UiText.Get("Valores: ") + string.Join(", ", choices.Select(choice => choice.Value));
             write(choice.Value); return null;
         }, Array.AsReadOnly(choices));
+    private static readonly string[] ShortcutExamples = ["F1", "Ctrl+F1", "Shift+F1", "Ctrl+Shift+F1", "Pause", "Ctrl+Shift+S"];
+    /// <summary>A key chord typed as text ("Ctrl+Shift+S") or chosen by pressing it in Preferencias.</summary>
+    public static AppOption Shortcut(string id, string title, string group, string description, Func<KeyChord> read, Action<KeyChord> write) =>
+        new(id, title, group, description, AppOptionKind.Shortcut, () => read().ToString(), value =>
+        {
+            if (KeyChord.TryParse(value, out var chord) is { } problem) return problem;
+            write(chord); return null;
+        });
     public static AppOption Number(string id, string title, string group, string description, Func<int> read, Action<int> write, int min, int max) =>
         new(id, title, group, description, AppOptionKind.Number, () => read().ToString(CultureInfo.InvariantCulture), value =>
         {

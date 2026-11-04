@@ -86,7 +86,10 @@ public sealed partial class RetroApp
             ? new Retro.Ai.AiSettings { Provider = "manual", ProvidersDisabled = true } : Retro.Ai.AiSettings.Load();
         _input.KeySink = _host.SetInput;
         _host.InputReset += _input.ForgetKeys;
-        _prefs = new AppPreferences(persist: !args.Contains("--autotest"));
+        // Tests never read or write the user's preferences; --autotest-preferences gives a QA run its own file to restart with.
+        int qaPreferences = Array.IndexOf(args, "--autotest-preferences");
+        _prefs = !args.Contains("--autotest") ? new AppPreferences()
+            : qaPreferences >= 0 && qaPreferences + 1 < args.Length ? new AppPreferences(Path.GetFullPath(args[qaPreferences + 1])) : new AppPreferences(persist: false);
         int languageArg = Array.IndexOf(args, "--language");
         if (languageArg >= 0 && languageArg + 1 < args.Length && args[languageArg + 1] is "es" or "en") _prefs.Language = args[languageArg + 1];
         UiText.Language = _prefs.Language;
@@ -188,7 +191,7 @@ public sealed partial class RetroApp
             else if(args[i]=="--auto-analysis-window" && args.Contains("--autotest")) {CloseEditors();_home.Close();_code.OpenAutomaticAnalysis();}
             else if (args[i] is "--auto-analysis-action" or "--auto-analysis-section" && args.Contains("--autotest") && i + 1 < args.Length)
                 i++;
-            else if (args[i] is "--text-size" or "--interface" or "--language")
+            else if (args[i] is "--text-size" or "--interface" or "--language" or "--autotest-preferences")
                 i++;
             else if (args[i] != "--hidden" && File.Exists(args[i]))
             {
@@ -371,6 +374,7 @@ public sealed partial class RetroApp
             if (m.Id != _lastMachineId)
                 OnMachineChanged(m);
             bool keyboardToMachine = !imguiKeyboard && !_commands.IsOpen && (!_debugMode || _screenFocused);
+            _input.CaptureChord = CaptureChord;
             if (_host.Fusion is { } fusion)
             {
                 if (!_wasFusion)
@@ -495,8 +499,8 @@ public sealed partial class RetroApp
         var navigation = ImGuiConfigFlags.NavEnableKeyboard | ImGuiConfigFlags.NavEnableGamepad;
         if (interfaceOnly) io.ConfigFlags |= navigation;
         else io.ConfigFlags &= ~navigation;
-        // The console reads Tab and the arrows itself.
-        if (ConsoleOwnsKeyboard) io.ConfigFlags &= ~ImGuiConfigFlags.NavEnableKeyboard;
+        // The console reads Tab and the arrows itself. A shortcut being chosen must not also press the focused button.
+        if (ConsoleOwnsKeyboard || _listeningShortcut != null) io.ConfigFlags &= ~ImGuiConfigFlags.NavEnableKeyboard;
     }
 
     /// <summary>Select + Start on the gamepad opens the library, or returns to the game from it.</summary>
@@ -818,6 +822,8 @@ public sealed partial class RetroApp
     // ------------------------------------------------------------------ hotkeys
     private void HandleHotkeys(bool textInput)
     {
+        // While Preferencias waits for a new shortcut, every key belongs to that choice.
+        if (_listeningShortcut != null) return;
         if (Hardcore)
         {
             bool consoleShortcut = (Raylib.IsKeyDown(KeyboardKey.LeftControl) || Raylib.IsKeyDown(KeyboardKey.RightControl)) &&
@@ -850,7 +856,8 @@ public sealed partial class RetroApp
         if (InterfaceWorkspace) return;
         if (_host.Machine == null)
             return;
-        if (toolModifier && Raylib.IsKeyPressed(KeyboardKey.S)) SaveCapture();
+        // Read through ImGui, which receives the same keyboard: one capture per press, never while typing.
+        if (!_commands.IsOpen && !ConfigurationOpen && CaptureChord.Pressed()) SaveCapture();
         // the C64 has its own F1 F3 F5 F7 keys (games say "press F1"): there quick load is
         // F4 and reset is in the Machine menu
         if (_host.Pc != null && _host.Fusion == null && !ctrl) return;
@@ -897,13 +904,58 @@ public sealed partial class RetroApp
         OpenFile(path);
     }
 
-    private void SaveCapture()
+    /// <summary>Shortcut, menu, command palette and terminal all save through here, into the game's own folder.</summary>
+    private void SaveCapture() => TrySaveCapture(out _);
+
+    /// <summary>The terminal reports a failure in its own output, so it asks for no popup.</summary>
+    private bool TrySaveCapture(out string message, bool popup = true)
     {
-        if (_host.CurrentVideo is not { } video) return;
-        string title = _host.Fusion?.Title ?? (_host.LoadedMedia != null ? Path.GetFileNameWithoutExtension(_host.LoadedMedia) : _host.Info?.Name ?? "captura");
-        try { _host.Status = UiText.Get("Captura guardada: ") + ScreenCapture.Save(video, _captureFolder, title, DateTime.Now); }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException)
-        { _errorPopup = UiText.Get("No se pudo guardar la captura: ") + e.Message; }
+        message = UiText.Get("Encendé una máquina para capturar su pantalla.");
+        if (_host.CurrentVideo is not { } video) return false;
+        var subject = CaptureSubjectNow();
+        string folder = Path.Combine(_captureFolder, subject.Folder);
+        try
+        {
+            message = UiText.Get("Captura guardada: ") + ScreenCapture.Save(video, _captureFolder, subject, DateTime.Now);
+            _host.Status = message;
+            return true;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            // The game keeps running and nothing already saved is touched; a partial file is removed by ScreenCapture.
+            message = UiText.Get("No se pudo guardar la captura: ") + e.Message + "\n" + UiText.Format($"Carpeta: {UiText.Raw(folder)}. Las capturas anteriores no se modificaron.");
+            if (popup) _errorPopup = message;
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Which game is on screen: a fusion or studio creation by its id, an 8-bit creation by its folder,
+    /// an original by its content hash and library title, or no game while a machine runs alone.
+    /// </summary>
+    private CaptureSubject CaptureSubjectNow()
+    {
+        if (_host.Fusion is Retro.Studio.StudioSession studio)
+            return new(studio.Title, studio.Game.IsInspired ? "creado" : "fusion", studio.Game.Kind + "\n" + studio.Game.Id);
+        if (_host.Fusion is { } fusion) return new(fusion.Title, "fusion", fusion.Title);
+        if (_host.LoadedMedia == null) return CaptureSubject.NoGame(_host.Info?.Name);
+        string? source = _host.LoadedMediaSource is { } loaded ? loaded.Split('!')[0] : _currentMedia;
+        if (source != null && Path.GetFileName(Path.GetDirectoryName(source)) is { Length: > 0 } folderName
+            && Path.GetFileNameWithoutExtension(source).Equals("juego", StringComparison.OrdinalIgnoreCase)
+            && Retro.Ai.CreatedGames.All().FirstOrDefault(game => PathsEqual(game.Folder, Path.GetDirectoryName(source)!)) is { } created)
+            return new(created.Title, "creado", "8bits\n" + folderName);
+        // The title the library card shows: identified (collection list or confirmed lookup), else the entry name.
+        var entry = source == null ? null : _library.Entries.FirstOrDefault(entry => PathsEqual(entry.Path, source));
+        string title = (entry == null ? null : _gameMetadata.Get(entry.Identity)?.Title ?? entry.Name) is { Length: > 0 } shown
+            ? shown : Path.GetFileNameWithoutExtension(_host.LoadedMedia);
+        string identity = _host.LoadedMediaHashes.FirstOrDefault() ?? source ?? _host.LoadedMedia;
+        return new(title, _host.Machine?.Id ?? "juego", identity);
+    }
+
+    private static bool PathsEqual(string left, string right)
+    {
+        try { return string.Equals(Path.GetFullPath(left).TrimEnd(Path.DirectorySeparatorChar), Path.GetFullPath(right).TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase); }
+        catch (Exception e) when (e is ArgumentException or NotSupportedException or PathTooLongException) { return false; }
     }
 
     /// <summary>The library original being played: thumbnails are not offered for fusions, creations or loose files.</summary>
@@ -933,6 +985,12 @@ public sealed partial class RetroApp
     // ------------------------------------------------------------------ menu
     private bool ToolShortcutsNeedShift => InputMapper.ToolShortcutsNeedShift(_host.Machine, _host.Fusion != null);
     private string ToolShortcut(string key) => (ToolShortcutsNeedShift ? "Ctrl+Shift+" : "Ctrl+") + key;
+    /// <summary>
+    /// The capture chord chosen in Preferencias, adapted so it never reaches the running machine
+    /// (partial controllers built by tests have no preferences and get the default).
+    /// </summary>
+    private KeyChord CaptureChord => (_prefs?.CaptureShortcut ?? KeyChord.CaptureDefault).For(machineOwnsF1: _host.Fusion == null && (_host.Pc != null || _host.C64 != null),
+        ctrlIsMachineKey: ToolShortcutsNeedShift);
     private string Shortcut(string key) => _host.Pc != null && _host.Fusion == null ? UiText.Get("Ctrl+") + key :
         _host.Fusion == null && _host.C64 != null && key is "F5" or "Shift+F5" ? "" : key;
 
@@ -1000,8 +1058,9 @@ public sealed partial class RetroApp
                 ImGui.EndMenu();
             }
             ImGui.Separator();
-            if (ImGui.MenuItem(UiText.Label("Guardar captura de pantalla"), ToolShortcut("S"), false, _host.CurrentVideo != null)) SaveCapture();
-            if (ImGui.IsItemHovered()) UiTheme.Tooltip(UiText.Get("PNG de la pantalla emulada, a su resolución, en ") + _captureFolder);
+            if (ImGui.MenuItem(UiText.Label("Guardar captura de pantalla"), CaptureChord.Label, false, _host.CurrentVideo != null)) SaveCapture();
+            if (ImGui.IsItemHovered()) UiTheme.Tooltip(UiText.Get("PNG de la pantalla emulada, a su resolución, en la carpeta de este juego dentro de ") + _captureFolder
+                + "\n" + UiText.Get("El atajo se cambia en Preferencias > Controles."));
             if (ImGui.MenuItem(UiText.Label("Usar la pantalla como miniatura"), "", false, ThumbnailTarget() != null)) SaveThumbnail();
             if (ImGui.IsItemHovered()) UiTheme.Tooltip("Guarda la imagen junto al juego para la biblioteca. No reemplaza una imagen que ya exista.");
             ImGui.Separator();
@@ -1215,7 +1274,7 @@ public sealed partial class RetroApp
                 "Joystick: flechas y Alt. Elegí el tipo en Juego > Controles y hardware.", "Ctrl+Shift+O/L/M/K: abrir, biblioteca, modificar y código."],
             "c64" => ["Joystick: flechas y Alt o Ctrl derecho.", "Si no responde, cambiá el puerto en Juego > Controles y hardware.",
                 "Esc: RUN/STOP    RePág: RESTORE    Ctrl izquierdo: C=    Tab: CTRL", "F1, F3, F5 y F7 son las teclas del C64.", "Ctrl+Shift+O/L/M/K: abrir, biblioteca, modificar y código."],
-            "pcxt" => ["Teclado de PC de 83 teclas, con distribución estadounidense.", "F1–F10 llegan al PC. Ctrl + tecla de función controla el emulador.", "Ctrl+Shift+O/L/M/K: abrir, biblioteca, modificar y código."],
+            "pcxt" => ["Teclado de PC de 83 teclas, con distribución estadounidense.", "F1–F10 llegan al PC. Ctrl + tecla de función controla el emulador.","Ctrl+Shift+O/L/M/K: abrir, biblioteca, modificar y código."],
             "nes" => ["Flechas: mover    X: A    Z: B", "Enter: Start    Shift derecho: Select"],
             "invaders" => ["Flechas o A/D: mover    Espacio: disparar", "5 o C: moneda    1/2: empezar    T: tilt"],
             _ => ["Abrí un juego para ver sus controles."]
@@ -1230,7 +1289,7 @@ public sealed partial class RetroApp
             (ToolShortcut("O"), "Abrir juego o programa"), (ToolShortcut("L"), "Biblioteca"),
             (ToolShortcut("M"), "Modificar y analizar"), (ToolShortcut("K"), "Código del juego"),
             (ToolShortcut("P"), "Buscar una acción o herramienta"),
-            (ToolShortcut("S"), "Guardar captura de pantalla"),
+            (CaptureChord.Label, "Guardar captura de pantalla"),
         };
         if (_host.Fusion == null)
         {

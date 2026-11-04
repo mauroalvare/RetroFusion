@@ -180,7 +180,9 @@ public sealed partial class RetroApp
             Aliases = ["teclas"], Keywords = "ctrl atajo teclado controles",
             Run = context =>
             {
-                context.Table([new("Teclas"), new("Función", Flexible: true)], TerminalShortcuts.Select(item => new[] { item.Keys, item.Action }));
+                context.Table([new("Teclas"), new("Función", Flexible: true)], TerminalShortcuts
+                    .Append((Keys: CaptureChord.Label, Action: "Durante la partida: guarda una captura en la carpeta del juego"))
+                    .Select(item => new[] { item.Keys, item.Action }));
                 context.Detail("Dentro del juego el teclado pertenece a la máquina emulada: solo Ctrl+Shift+T vuelve a la consola.");
             }
         },

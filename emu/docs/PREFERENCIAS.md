@@ -51,6 +51,17 @@ otro diseño recupera su paleta. Las preferencias anteriores migran la paleta gl
 - **Joystick del C64:** puerto 2 (el de la mayoría de los juegos) o puerto 1.
 - **Escribir LOAD "" al abrir cintas** y **Acelerar durante la carga** se aplican a las
   cintas del Spectrum.
+- **Atajo para guardar capturas:** de fábrica es **F1**. **Cambiar…** espera la
+  combinación nueva (Esc cancela); **Volver al valor inicial** recupera F1. Se aceptan F1
+  (sola o con Ctrl o Shift), **Pausa** y Ctrl con una letra o un número, con Shift
+  opcional. Se rechazan, con el motivo, F2 a F12 (estado, reinicio, cinta, turbo, pausa,
+  paso, pantalla completa y depurador), Alt, Impr Pant, las teclas que llegan al juego sin
+  Ctrl y los atajos de herramientas o de edición (Ctrl+O, L, M, K, P, T, F, A, C, V, X, Z
+  e Y). En PC y C64 F1 es una tecla del juego: ahí la captura usa **Ctrl+F1**. Donde Ctrl
+  es una tecla del equipo (Spectrum, C64 y PC) una letra suma Shift, como los demás atajos.
+  Los menús, la paleta de acciones, **Ayuda > Atajos** y la orden `atajos` muestran la
+  combinación que vale para la máquina activa. En la terminal: `opcion atajo-captura`,
+  `opcion atajo-captura Ctrl+Shift+S` u `opcion atajo-captura restablecer`.
 
 Estas opciones también están en **Juego > Controles y hardware** y en **Cinta**.
 
@@ -83,6 +94,9 @@ Ctrl. La lista completa para la máquina activa está en **Ayuda > Atajos**.
 
 En la biblioteca, **Ctrl+F** lleva a la búsqueda; desde el inicio busca en todos los juegos.
 
+El atajo de capturas no se activa mientras escribís en un campo o en la consola, ni con
+Preferencias o la paleta de acciones abiertas. Mantener la tecla guarda una sola imagen.
+
 **Juego > Recientes** abre de nuevo los últimos juegos, creaciones y fusiones jugados.
 
 ## Mando
@@ -94,9 +108,23 @@ Mientras se juega, el mando es de la máquina.
 
 ## Capturas y miniaturas
 
-**Juego > Guardar captura de pantalla** (Ctrl+S; Ctrl+Shift+S en Spectrum, C64 y PC)
-guarda la pantalla emulada en PNG, a su resolución original, en la carpeta RetroEmu de
-tus imágenes. Cada captura lleva el nombre del juego y la fecha, y nunca reemplaza otra.
+**Juego > Guardar captura de pantalla** (F1 de fábrica; Ctrl+F1 en PC y C64; se cambia
+en **Preferencias > Controles**) guarda la pantalla emulada en PNG, a su resolución
+original. La paleta de acciones y la orden `captura` hacen lo mismo.
+
+Dentro de la carpeta RetroEmu de tus imágenes, cada juego tiene su propia carpeta:
+`RetroEmu/<juego> [<tipo>-<código>]/<juego>-<fecha>-<hora>.png`. El tipo es la máquina de
+un original (nes, zx48, c64, pcxt…), `fusion` o `creado`; el código corto distingue juegos
+distintos con el mismo título y se mantiene entre sesiones. Un original se reconoce por su
+contenido, una fusión o creación del estudio por su identificador, y un juego creado de
+8 bits por su carpeta. Si una máquina funciona sin juego, la imagen va a **Sin juego
+activo**. Los caracteres no válidos en Windows y los nombres reservados se reemplazan, así
+la carpeta también sirve al copiarla a otro sistema.
+
+Ninguna captura reemplaza otra: dos en el mismo segundo llevan -2, -3… Las capturas
+anteriores, también las que quedaron sueltas en la raíz por versiones previas, no se
+mueven. Si no se puede escribir (sin permiso, disco lleno o un archivo con el nombre de
+la carpeta), aparece el motivo con la carpeta, el juego sigue y no queda un PNG a medias.
 
 **Juego > Usar la pantalla como miniatura** guarda esa imagen junto al archivo del juego,
 con su mismo nombre, para que la biblioteca la muestre. Solo está disponible para los

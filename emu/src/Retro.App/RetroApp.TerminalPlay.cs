@@ -87,9 +87,14 @@ public sealed partial class RetroApp
         },
         new()
         {
-            Id = "play.capture", Name = "captura", Group = "Partida", Summary = "Guarda la imagen emulada a su resolución.",
+            Id = "play.capture", Name = "captura", Group = "Partida", Summary = "Guarda la imagen emulada a su resolución en la carpeta del juego.",
             Aliases = ["foto", "screenshot"], Keywords = "imagen png pantalla", Unavailable = NeedMachine,
-            Run = context => { SaveCapture(); context.Success(_host.Status); }
+            Result = "La imagen queda en la carpeta del juego dentro de Imágenes/RetroEmu; nunca reemplaza otra.",
+            Run = context =>
+            {
+                if (!TrySaveCapture(out string message, popup: false)) throw new CommandFailure(CommandProblem.Failed, message, "opcion atajo-captura muestra el atajo; revisá permisos y espacio de la carpeta.");
+                context.Success(message);
+            }
         },
         new()
         {

@@ -13,7 +13,8 @@ public sealed class AppPreferences
         bool ConsoleHistory = true, string? LibraryFolder = null, string? LastStartedVersion = null,
         string Language = "es", string ConsolePalette = "auto", TerminalColors? ConsoleColors = null,
         Dictionary<string, InterfacePalette>? InterfacePalettes = null,
-        string? LastNewsVersion = null, string? PendingNewsVersion = null, string? PendingNewsFromVersion = null);   // optional v1 fields preserve older preferences
+        string? LastNewsVersion = null, string? PendingNewsVersion = null, string? PendingNewsFromVersion = null,
+        string? CaptureShortcut = null);   // optional v1 fields preserve older preferences
     private readonly string _path;
     private readonly bool _persist;
     private bool _unreadable;
@@ -41,6 +42,15 @@ public sealed class AppPreferences
     public bool ConsoleBlink { get; set; } = true;
     public bool ConsoleScanlines { get; set; }
     public bool ConsoleHistory { get; set; } = true;
+    private KeyChord _captureShortcut = KeyChord.CaptureDefault;
+    // A chord this version does not accept (written by another one) is kept as is until the user picks another.
+    private string? _foreignCaptureShortcut;
+    /// <summary>Screenshot shortcut chosen in Preferencias > Controles; F1 by default.</summary>
+    public KeyChord CaptureShortcut
+    {
+        get => _captureShortcut;
+        set { _captureShortcut = value.Problem() == null ? value : KeyChord.CaptureDefault; _foreignCaptureShortcut = null; }
+    }
     private readonly Dictionary<string, InterfacePalette> _interfacePalettes = new(StringComparer.Ordinal);
     public IReadOnlyDictionary<string, InterfacePalette> InterfacePalettes => _interfacePalettes;
     public InterfacePalette PaletteFor(InterfaceStyle style) => _interfacePalettes.GetValueOrDefault(InterfaceStyles.Describe(style).Id)
@@ -96,6 +106,11 @@ public sealed class AppPreferences
             ConsoleCursor = CursorNames.GetValueOrDefault(doc.ConsoleCursor ?? "", TerminalCursor.Block);
             ConsoleBlink = doc.ConsoleBlink; ConsoleScanlines = doc.ConsoleScanlines; ConsoleHistory = doc.ConsoleHistory;
             LibraryFolder = doc.LibraryFolder is { Length: > 0 and <= 1024 } library ? library : null;
+            if (doc.CaptureShortcut is { Length: > 0 and <= 64 } capture)
+            {
+                if (KeyChord.TryParse(capture, out var chord) == null) _captureShortcut = chord;
+                else _foreignCaptureShortcut = capture;
+            }
             string paletteId = doc.ConsolePalette ?? "auto";
             if (doc.ConsoleColors != null && !TerminalPalettes.Valid(doc.ConsoleColors)) throw new InvalidDataException();
             if (doc.InterfacePalettes != null)
@@ -140,6 +155,7 @@ public sealed class AppPreferences
         Interface = InterfaceStyle.Retro; OnlineGameInfo = false;
         Language = "es";
         ConsoleCursor = TerminalCursor.Block; ConsoleBlink = ConsoleHistory = true; ConsoleScanlines = false;
+        CaptureShortcut = KeyChord.CaptureDefault;
         _interfacePalettes.Clear();
     }
 
@@ -156,7 +172,8 @@ public sealed class AppPreferences
                 PowerSaving, ShowFps, SpectrumJoystick.ToString(), C64Port, TypeLoad, TurboWhileLoading, PauseInBackground, LastFolder,
                 Interface switch { InterfaceStyle.Hardcore => "hardcore", InterfaceStyle.Terminal => "terminal", InterfaceStyle.Amber => "amber", _ => "retro" }, InterfaceOfferedVersion, OnlineGameInfo,
                 CursorNames.First(pair => pair.Value == ConsoleCursor).Key, ConsoleBlink, ConsoleScanlines, ConsoleHistory, LibraryFolder, LastStartedVersion, Language, ConsolePalette, ConsoleColors, _interfacePalettes,
-                LastNewsVersion, PendingNewsVersion, PendingNewsFromVersion)));
+                LastNewsVersion, PendingNewsVersion, PendingNewsFromVersion,
+                _foreignCaptureShortcut ?? (_captureShortcut == KeyChord.CaptureDefault ? null : _captureShortcut.ToString()))));
             File.Move(temporary, _path, overwrite: true); Problem = null; return true;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)

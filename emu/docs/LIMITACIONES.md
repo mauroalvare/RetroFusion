@@ -689,8 +689,19 @@ en el programa nuevo no promete lectura de formatos nuevos en programas anterior
   versión posterior disponible. No resuelve por sí mismo la falta de OpenGL ni repara
   cualquier instalación dañada. Windows 10, Linux gráfico y la PC de los avisos de audio
   todavía requieren una comprobación propia. [Alcance y uso](ARRANQUE-Y-RECUPERACION.md).
+- **Atajo y carpetas de capturas (D-140):** con un atajo que lleva Ctrl, el juego puede
+  recibir Ctrl por un instante antes de la tecla principal: en NES, arcade y fusiones es un
+  botón, y en Spectrum, C64 y PC una tecla del equipo; con el atajo completo apretado el
+  juego deja de oír esas teclas. F1 o Pausa evitan ese cruce donde F1 no es del juego. Impr
+  Pant se rechaza porque Windows 11 y varios escritorios Linux la usan para sus propias
+  capturas. Un original se agrupa por el contenido de su archivo: otra edición o una ROM
+  modificada forman otra carpeta, y un título nuevo en la biblioteca también. Las capturas de
+  versiones anteriores quedan en la raíz; no se mueven ni se renombran. Comprobado con ventana
+  oculta y eventos ImGui en Windows 11 a 100 y 175 %; teclado físico, Linux gráfico, Windows 10
+  y otros DPI no se probaron.
 - **Pruebas ocultas:** --autotest fuerza proveedores de IA deshabilitados y usa carpetas
-  de fusiones, creaciones y perfiles junto a su evidencia. No debe heredar bibliotecas
+  de fusiones, creaciones y perfiles junto a su evidencia. Las preferencias no se leen ni se
+  guardan, salvo un archivo propio indicado con --autotest-preferences. No debe heredar bibliotecas
   del jugador al buscar en las carpetas superiores.
 
 - La tipografía usa fuentes instaladas o la incorporada de ImGui; puede variar entre sistemas.

@@ -42,7 +42,7 @@ internal static class TerminalLanguage
     {
         ["idioma"]="language", ["interfaz"]="interface", ["texto"]="text-size", ["contraste"]="contrast", ["consulta-fichas"]="online-metadata",
         ["pantalla-completa"]="fullscreen", ["escala-entera"]="integer-scale", ["fps"]="fps", ["joystick-zx"]="zx-joystick", ["puerto-c64"]="c64-port",
-        ["load-cintas"]="tape-load", ["turbo-carga"]="loading-turbo", ["ahorro"]="power-saving", ["pausa-fondo"]="background-pause",
+        ["atajo-captura"]="capture-shortcut", ["load-cintas"]="tape-load", ["turbo-carga"]="loading-turbo", ["ahorro"]="power-saving", ["pausa-fondo"]="background-pause",
         ["consola-cursor"]="console-cursor", ["consola-parpadeo"]="console-blink", ["consola-crt"]="console-scanlines", ["consola-historial"]="console-history", ["consola-paleta"]="console-palette",
         ["volumen"]="volume", ["silencio"]="mute", ["silencio-fondo"]="background-mute", ["buffer-audio"]="audio-buffer"
     };

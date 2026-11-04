@@ -2466,3 +2466,34 @@ Otras cuatro reprodujeron la aceptación de una respuesta con la entrada cerrada
 La matriz ampliada usa HTTP falso y procesos propios con pipes reales: ningún resultado se
 presenta como una generación real. INTEGRACIONES-IA.md enumera contratos oficiales consultados,
 pruebas y límites. La entrega 0.4.0/deb7fba no contiene este incremento local.
+
+## D-140 — Atajo de capturas configurable y una carpeta por juego
+
+El atajo fijo Ctrl+S (Ctrl+Shift+S en Spectrum, C64 y PC) se reemplaza por un ajuste
+`atajo-captura` del catálogo compartido de Preferencias y la terminal. El valor inicial es
+F1: es la única tecla de función que el emulador no usa (F2–F12 tienen acciones que ignoran
+los modificadores) y no es Ctrl, que en NES, arcade y fusiones es un botón del juego. En los
+originales de PC y C64, donde F1 es del equipo, rige Ctrl+F1; una letra con Ctrl suma Shift
+donde Ctrl es una tecla del equipo, como los otros atajos (`KeyChord.For`). Se aceptan F1 con
+o sin Ctrl/Shift, Pausa y Ctrl con letra o número; se rechazan con su motivo F2–F12, Alt,
+Impr Pant, teclas sin Ctrl y Ctrl+O/L/M/K/P/T/F/A/C/V/X/Z/Y. La tecla se lee desde ImGui
+con repetición desactivada, fuera de campos de texto, consola, paleta y Preferencias; con la
+combinación completa apretada la máquina no recibe esas teclas. S deja de ser una tecla fija
+de herramientas.
+
+preferencias.json v1 agrega `CaptureShortcut` opcional (null = F1). Un valor que esta versión
+no acepta se usa como F1 y se conserva al guardar hasta que el usuario elija otro; las versiones
+anteriores ignoran el campo. Restablecer todo también vuelve a F1. Preferencias espera la
+combinación con la navegación por teclado desactivada para que la tecla no active botones.
+
+Las capturas pasan a `<raíz>/<Título> [<tipo>-<código>]/<Título>-aaaammdd-hhmmss.png`. La raíz
+sigue siendo Imágenes/RetroEmu (out/autotest-capturas en --autotest). Tipo: id de máquina del
+original, `fusion` o `creado`. El código son 6 hex de SHA-256 sobre tipo e identidad: hash de
+contenido del original, tipo e id del StudioGame, o carpeta del juego creado de 8 bits. El
+título es el de la tarjeta de la biblioteca. Sin juego se usa `Sin juego activo`, en castellano
+como los demás nombres físicos. SafeName reemplaza los caracteres que Windows rechaza en todos
+los sistemas, evita nombres de dispositivo y no corta pares sustitutos. El archivo se crea con
+CreateNew, numera -2, -3… hasta 9999 y borra un parcial ante error. Menú, atajo, paleta,
+orden `captura` y --autotest usan TrySaveCapture; la orden informa un fallo como error. Las
+capturas anteriores no se migran. `--autotest-preferences <archivo>` da a una prueba oculta
+un archivo de preferencias propio para comprobar reinicios.

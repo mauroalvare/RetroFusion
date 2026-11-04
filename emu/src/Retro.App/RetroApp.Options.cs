@@ -24,6 +24,8 @@ public sealed partial class RetroApp
         AppOption.Choice("joystick-zx", "Joystick del Spectrum", "Controles", "Las flechas y el mando manejan el joystick elegido.", () => _prefs.SpectrumJoystick.ToString(), value => SetSpectrumJoystick(Enum.Parse<JoystickMode>(value)),
             Enum.GetValues<JoystickMode>().Select((mode, i) => new OptionChoice(mode.ToString(), JoystickNames[i])).ToArray()) with { Default = nameof(JoystickMode.Kempston) },
         AppOption.Choice("puerto-c64", "Joystick del C64", "Controles", "Puerto 2 en la mayoría de los juegos.", () => _prefs.C64Port.ToString(), value => SetC64Port(int.Parse(value)), new("1", C64Ports[0]), new("2", C64Ports[1])) with { Default = "2" },
+        AppOption.Shortcut("atajo-captura", "Atajo para guardar capturas", "Controles", "Elegí Cambiar y pulsá la combinación. Donde F1 es una tecla del juego (PC y C64) se usa Ctrl+F1, y donde Ctrl es una tecla del equipo las letras suman Shift.",
+            () => _prefs.CaptureShortcut, SetCaptureShortcut) with { Default = KeyChord.CaptureDefault.ToString() },
         AppOption.Toggle("load-cintas", "Escribir LOAD \"\" al abrir cintas", "Cintas del Spectrum", "Carga automática de cintas compatibles.", () => _prefs.TypeLoad, value => { _prefs.TypeLoad = value; _prefs.Save(); }) with { Default = "on" },
         AppOption.Toggle("turbo-carga", "Acelerar durante la carga", "Cintas del Spectrum", "Vuelve a la velocidad normal al terminar la carga.", () => _prefs.TurboWhileLoading, SetTurboWhileLoading) with { Default = "on" },
         AppOption.Toggle("ahorro", "Ahorrar energía sin partida", "Rendimiento", UiText.Format($"La interfaz usa hasta {FramePacing.Interface} cuadros por segundo; sin foco, {FramePacing.Background}. La partida conserva su frecuencia."), () => _prefs.PowerSaving, value => { _prefs.PowerSaving = value; _prefs.Save(); }) with { Default = "on" },
@@ -43,6 +45,52 @@ public sealed partial class RetroApp
         AppOption.Choice("buffer-audio", "Margen de audio", "Sonido", "Más cuadros toleran mejor las variaciones de tiempo, con mayor demora.", () => _sound.BufferFrames.ToString(), value => { _sound.BufferFrames = int.Parse(value); _sound.Save(); },
             new("1", "Corto · 1 cuadro"), new("2", "Equilibrado · 2 cuadros"), new("4", "Amplio · 4 cuadros")) with { Default = "2" }
     ];
+
+    private void SetCaptureShortcut(KeyChord chord) { _prefs.CaptureShortcut = chord; _prefs.Save(); _commandCatalog = null; }
+
+    // Preferencias waits for a key here; the hotkeys and keyboard navigation stay quiet meanwhile.
+    private string? _listeningShortcut;
+    private (string Option, string Text)? _shortcutNotice;
+
+    /// <summary>The pressed chord replaces the shortcut only when it is free; otherwise the reason shows and the old one stays.</summary>
+    private void PollShortcutListener()
+    {
+        if (_listeningShortcut is not { } id) return;
+        var option = Options.FirstOrDefault(option => option.Id == id);
+        if (option == null || !_preferencesOpen) { _listeningShortcut = null; return; }
+        var (chord, problem, cancel) = KeyChord.Listen();
+        if (cancel) { _listeningShortcut = null; _shortcutNotice = (id, UiText.Get("Se conservó el atajo anterior.")); return; }
+        if (problem != null) { _shortcutNotice = (id, problem + " " + UiText.Get("Se conserva el atajo anterior.")); return; }
+        if (chord is not { } chosen) return;
+        _listeningShortcut = null;
+        _shortcutNotice = (id, option.Write(chosen.ToString()) ?? UiText.Format($"Atajo guardado: {chosen.Label}."));
+    }
+
+    private void DrawShortcutOption(AppOption option)
+    {
+        ImGui.TextUnformatted(option.Title);
+        KeyChord.TryParse(option.Read(), out var current);
+        bool listening = _listeningShortcut == option.Id;
+        if (listening)
+        {
+            ImGui.AlignTextToFramePadding();
+            ImGui.TextColored(UiTheme.Accent, UiText.Get("Pulsá la combinación nueva. Esc cancela."));
+            ImGui.SameLine();
+            if (ImGui.Button(UiText.Label("Cancelar##atajo"))) { _listeningShortcut = null; _shortcutNotice = (option.Id, UiText.Get("Se conservó el atajo anterior.")); }
+            InterfaceControlBounds?.Invoke("Cancelar atajo:" + option.Id, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
+        }
+        else
+        {
+            ImGui.AlignTextToFramePadding();
+            ImGui.TextUnformatted(current.Label);
+            ImGui.SameLine();
+            if (ImGui.Button(UiText.Label("Cambiar…##atajo"))) { _listeningShortcut = option.Id; _shortcutNotice = null; }
+            InterfaceControlBounds?.Invoke("Cambiar atajo:" + option.Id, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
+        }
+        if (option.Id == "atajo-captura" && _host.Machine != null && CaptureChord != _prefs.CaptureShortcut)
+            UiTheme.Hint(UiText.Format($"Con la máquina actual se usa {CaptureChord.Label}, para que la tecla no llegue al juego."));
+        if (_shortcutNotice is { } notice && notice.Option == option.Id) UiTheme.Hint(notice.Text);
+    }
 
     private void SetLanguage(string language)
     {
@@ -80,12 +128,16 @@ public sealed partial class RetroApp
                         int number = int.Parse(value); ImGui.TextUnformatted(option.Title); ImGui.SetNextItemWidth(-1);
                         if (ImGui.SliderInt("##value", ref number, option.Min, option.Max)) option.Write(number.ToString());
                         break;
+                    case AppOptionKind.Shortcut:
+                        DrawShortcutOption(option);
+                        break;
                 }
                 InterfaceControlBounds?.Invoke("Opción:" + option.Id, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
                 UiTheme.Hint(option.Description);
                 if (option.Modified)
                 {
-                    if (ImGui.SmallButton(UiText.Label("Volver al valor inicial"))) option.Write(option.Default!);
+                    if (ImGui.SmallButton(UiText.Label("Volver al valor inicial"))) { option.Write(option.Default!); if (_listeningShortcut == option.Id) _listeningShortcut = null; }
+                    InterfaceControlBounds?.Invoke("Restablecer:" + option.Id, ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
                     if (ImGui.IsItemHovered()) UiTheme.Tooltip(UiText.Get("Valor inicial: ") + (option.Choices?.FirstOrDefault(choice => choice.Value == option.Default)?.Label ?? option.Default));
                 }
                 if (option.Id == "interfaz" && ImGui.Button(UiText.Label("Ver estilos y vistas previas…"))) OpenInterfacePicker();

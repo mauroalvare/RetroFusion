@@ -87,6 +87,16 @@ the emulated machine. In the library, dialogs and pause, Tab and arrows navigate
 Space activates and Escape goes back. Left Alt reaches menus. Tool shortcuts use Ctrl+Shift
 on machines that need Ctrl themselves. Help lists shortcuts for the active machine.
 
+Game > Save screenshot (F1 by default) writes a PNG of the emulated screen at its own
+resolution. Preferences > Controls > Screenshot shortcut changes it: choose Change and
+press the combination, or Restore default value for F1. F1 alone or with Ctrl or Shift,
+Pause, and Ctrl with a letter or digit are accepted; keys the emulator, the interface or
+the operating system already use are refused with the reason. On PC and C64, where F1
+belongs to the game, Ctrl+F1 is used. Each game gets its own folder inside Pictures/RetroEmu,
+named after its title plus its kind and a short code, so games with the same title stay
+apart; screens taken without a game go to "Sin juego activo". No screenshot replaces
+another, and earlier ones are never moved.
+
 No sound device is required to keep playing. Sound shows the condition and Retry audio can
 find a newly connected output. Volume, mute, background mute and audio buffer are shared by
 all styles. Larger buffers trade lower sensitivity to brief stalls for more latency.

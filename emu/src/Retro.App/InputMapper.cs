@@ -56,6 +56,7 @@ public sealed class InputMapper
     /// </summary>
     public void UpdateFusion(Retro.Fusion.IFusionRun session, bool keyboardEnabled)
     {
+        keyboardEnabled &= !HostChordHeld(KeyDown);
         bool Key(KeyboardKey k) => keyboardEnabled && Raylib.IsKeyDown(k);
         bool pad = GamepadReady();
         float ax = pad ? Raylib.GetGamepadAxisMovement(0, GamepadAxis.LeftX) : 0;
@@ -96,7 +97,7 @@ public sealed class InputMapper
     public static bool ToolShortcutsNeedShift(Retro.Core.IMachine? machine, bool fusion) =>
         machine is Retro.Systems.Pc.PcXt || (!fusion && machine is Spectrum48 or Retro.Systems.C64.C64);
 
-    /// <summary>Ctrl+Shift with O, K, L, M, P, S or T: an emulator shortcut that must not reach the machine.</summary>
+    /// <summary>Ctrl+Shift with O, K, L, M, P or T: an emulator shortcut that must not reach the machine.</summary>
     public static bool ToolChordHeld(Func<KeyboardKey, bool> down) =>
         (down(KeyboardKey.LeftControl) || down(KeyboardKey.RightControl)) && (down(KeyboardKey.LeftShift) || down(KeyboardKey.RightShift))
         && HostToolKeys.Any(down);
@@ -134,9 +135,13 @@ public sealed class InputMapper
         return _heldKeys.Count == 0;
     }
 
+    /// <summary>The capture shortcut in effect; while its whole chord is down the machine hears none of its keys.</summary>
+    public KeyChord? CaptureChord { get; set; }
+    internal bool HostChordHeld(Func<KeyboardKey, bool> down) => ToolChordHeld(down) || CaptureChord is { } capture && capture.Held(down);
+
     public void Update(Retro.Core.IMachine machine, bool keyboardEnabled)
     {
-        keyboardEnabled = KeyboardReady(KeyDown) && keyboardEnabled && !ToolChordHeld(KeyDown);
+        keyboardEnabled = KeyboardReady(KeyDown) && keyboardEnabled && !HostChordHeld(KeyDown);
         if (machine is Spectrum48 zx)
             UpdateSpectrum(zx, keyboardEnabled);
         else if (machine is Retro.Systems.C64.C64 c64)
@@ -175,7 +180,7 @@ public sealed class InputMapper
         return map.ToArray();
     }
     private static readonly KeyboardKey[] HostFunctionKeys = [KeyboardKey.F2, KeyboardKey.F4, KeyboardKey.F5, KeyboardKey.F8, KeyboardKey.F9, KeyboardKey.F10];
-    private static readonly KeyboardKey[] HostToolKeys = [KeyboardKey.O, KeyboardKey.K, KeyboardKey.L, KeyboardKey.M, KeyboardKey.S, KeyboardKey.P, KeyboardKey.T];
+    private static readonly KeyboardKey[] HostToolKeys = [KeyboardKey.O, KeyboardKey.K, KeyboardKey.L, KeyboardKey.M, KeyboardKey.P, KeyboardKey.T];
     public static HashSet<string> CollectPcKeys(Func<KeyboardKey, bool> down, bool enabled)
     {
         var now = new HashSet<string>();

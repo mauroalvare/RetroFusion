@@ -6,7 +6,7 @@ public sealed partial class RetroApp
 {
     private readonly CommandPalette _commands = new();
     private IReadOnlyList<AppCommand>? _commandCatalog;
-    private (bool Shift, bool Pc, bool C64) _commandContext;
+    private (bool Shift, bool Pc, bool C64, KeyChord Capture) _commandContext;
 
     private void PrepareConsoleOrder(CommandSpec order)
     {
@@ -21,7 +21,7 @@ public sealed partial class RetroApp
     {
         get
         {
-            var context = (ToolShortcutsNeedShift, _host.Pc != null, _host.C64 != null);
+            var context = (ToolShortcutsNeedShift, _host.Pc != null, _host.C64 != null, CaptureChord);
             if (context != _commandContext) { _commandCatalog = null; _commandContext = context; }
             return _commandCatalog ??= BuildCommands();
         }
@@ -57,7 +57,7 @@ public sealed partial class RetroApp
         new("load", "Cargar estado rápido", "Partida", "partida progreso", "", _host.QuickLoad, () => _host.CanUseStates, "Disponible en un original cargado."),
         new("slots", "Abrir partidas guardadas…", "Partida", "ranuras estados", "", OpenStateWindow, () => _host.CanUseStates, "Disponible en un original cargado."),
         new("battery", "Batería del cartucho", "Partida", "progreso ram respaldo", "", OpenBatteryWindow, () => _host.Battery != null, "No hay una batería NES disponible."),
-        new("capture", "Guardar captura de pantalla", "Partida", "imagen foto png", ToolShortcut("S"), SaveCapture, () => _host.CurrentVideo != null, "Encendé una máquina."),
+        new("capture", "Guardar captura de pantalla", "Partida", "imagen foto png", CaptureChord.Label, SaveCapture, () => _host.CurrentVideo != null, "Encendé una máquina."),
         new("rewind", "Retroceder cinco segundos", "Partida", "rebobinar historial", "", () => TryStateAction(() => _host.Rewind()),
             () => _host.RewindPoints > 0 && !_host.IsRecordingInputs && !_host.IsReplayingInputs, "Activá el historial en Juego > Rebobinado y entradas."),
         new("preferences", "Abrir preferencias…", "Opciones", "configuracion controles joystick accesibilidad", "", () => _preferencesOpen = true),

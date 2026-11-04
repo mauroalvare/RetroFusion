@@ -22,7 +22,8 @@ public sealed partial class RetroApp
     /// <summary>Settings by group, with the fixed footer always in reach. The list comes entirely from the shared catalog.</summary>
     private void DrawPreferencesWindow()
     {
-        if (!_preferencesOpen) return;
+        if (!_preferencesOpen) { _listeningShortcut = null; return; }
+        PollShortcutListener();
         var available = WorkspaceLayout.Available();
         // In a short window the settings come first: title and margins would leave them no room at large text sizes.
         bool compact = UiTheme.CompactHeight;
@@ -39,7 +40,7 @@ public sealed partial class RetroApp
         bool shown = compact ? ImGui.Begin(UiText.Label("Preferencias###preferencias"), WorkspaceLayout.EditorFlags | ImGuiWindowFlags.NoScrollbar)
             : ImGui.Begin(UiText.Label("Preferencias###preferencias"), ref _preferencesOpen, ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar);
         if (compact) ImGui.PopStyleVar();
-        if (!shown) { ImGui.End(); return; }
+        if (!shown) { _listeningShortcut = null; ImGui.End(); return; }
         if (!compact) WorkspaceLayout.KeepOnScreen();
         string[] groups = Options.Select(option => option.Group).Distinct().ToArray();
         if (!groups.Contains(_preferencesGroup)) _preferencesGroup = groups[0];
@@ -68,7 +69,9 @@ public sealed partial class RetroApp
         ImGui.PushTextWrapPos(0);
         if (_preferencesSearch.Trim().Length > 0) DrawSharedOptions(search: _preferencesSearch);
         else DrawSharedOptions(_preferencesGroup);
-        if (_preferencesGroup == UiText.Get("Interfaz") || _preferencesGroup == UiText.Get("Consola") || CommandLine.Fold(_preferencesSearch).Contains("palet") || CommandLine.Fold(_preferencesSearch).Contains("color"))
+        // While searching, the group list is not what is shown: only a colour search offers the editor.
+        bool searching = _preferencesSearch.Trim().Length > 0;
+        if (!searching && (_preferencesGroup == UiText.Get("Interfaz") || _preferencesGroup == UiText.Get("Consola")) || CommandLine.Fold(_preferencesSearch).Contains("palet") || CommandLine.Fold(_preferencesSearch).Contains("color"))
         {
             if (ImGui.Button(UiText.Label("Personalizar colores…"))) OpenPaletteEditor();
             InterfaceControlBounds?.Invoke("Personalizar paleta", ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
@@ -103,7 +106,7 @@ public sealed partial class RetroApp
     {
         SetInterface(InterfaceStyle.Retro);
         bool wasFullscreen = Raylib.IsWindowFullscreen();
-        _prefs.Defaults();
+        _prefs.Defaults(); _listeningShortcut = null; _shortcutNotice = null; _commandCatalog = null;
         UiText.Language = _prefs.Language;
         _commandCatalog = null; _optionCatalog = null; _terminalCatalog = null;
         if (wasFullscreen) Raylib.ToggleFullscreen();

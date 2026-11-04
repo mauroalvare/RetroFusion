@@ -27,12 +27,29 @@ public static class ScreenCapture
     {
         Directory.CreateDirectory(folder);
         string stem = SafeName(title) + "-" + now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture);
-        for (int copy = 1; ; copy++)
+        for (int copy = 1; copy <= MaxCopies; copy++)
         {
-            string path = Path.Combine(folder, stem + (copy == 1 ? "" : "-" + copy) + UiText.Get(".png"));
+            string path = Path.Combine(folder, stem + (copy == 1 ? "" : "-" + copy) + ".png");
             if (TryCreate(path, frame)) return path;
         }
+        throw new IOException(UiText.Format($"Ya hay {MaxCopies} capturas con el nombre {UiText.Raw(stem)} en esta carpeta."));
     }
+
+    /// <summary>
+    /// A new capture in the game's own folder under root: root/"Title [kind-id]"/title-date.png, or the
+    /// general folder without a game. Earlier captures, flat or not, stay where they are.
+    /// </summary>
+    public static string Save(VideoFrame frame, string root, CaptureSubject subject, DateTime now) =>
+        Save(frame, Path.Combine(root, subject.Folder), subject.Title, now);
+
+    private const int MaxCopies = 9999;
+    // Characters Windows rejects are replaced on every system, so a folder copied between them keeps working.
+    private static readonly HashSet<char> Invalid = [.. Path.GetInvalidFileNameChars(), '<', '>', ':', '"', '/', '\\', '|', '?', '*'];
+    private static readonly HashSet<string> DeviceNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+        "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
+    };
 
     /// <summary>Thumbnail for the library beside the game file; null when an image is already there.</summary>
     public static string? SaveThumbnail(VideoFrame frame, string media)
@@ -44,10 +61,12 @@ public static class ScreenCapture
 
     public static string SafeName(string title)
     {
-        var invalid = Path.GetInvalidFileNameChars();
-        string name = new string(title.Select(c => invalid.Contains(c) || char.IsControl(c) ? '_' : c).ToArray()).Trim().TrimEnd('.');
-        if (name.Length > 60) name = name[..60].TrimEnd();
-        return name.Length == 0 ? "captura" : name;
+        string name = new string(title.Select(c => Invalid.Contains(c) || char.IsControl(c) ? '_' : c).ToArray()).Trim().TrimEnd('.', ' ');
+        // Never split a surrogate pair: half an emoji is not a valid file name.
+        if (name.Length > 60) name = name[..(char.IsHighSurrogate(name[59]) ? 59 : 60)].TrimEnd('.', ' ');
+        if (name.Length == 0) return "captura";
+        int dot = name.IndexOf('.');
+        return DeviceNames.Contains((dot < 0 ? name : name[..dot]).TrimEnd()) ? "_" + name : name;
     }
 
     // CreateNew: an existing file, or one created meanwhile, is never overwritten.

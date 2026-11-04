@@ -128,8 +128,9 @@ le entregan el teclado; el Enter que ejecutó la orden no llega a la máquina au
 apretado, y Ctrl+Shift+T tampoco. Con el juego en pantalla queda una fila de consola abajo:
 un clic permite escribir una orden, Enter o Esc devuelven el teclado al juego. Dentro de la
 partida las teclas de función del emulador (F2, F3, F5, F8, F9, según la máquina) funcionan
-como en los demás estilos. Cada máquina conserva sus propias teclas: en Spectrum, C64 y PC
-los atajos de herramientas llevan Ctrl+Shift.
+como en los demás estilos, igual que el atajo de capturas (F1 de fábrica; `opcion atajo-captura`
+lo muestra o lo cambia y `atajos` indica el que vale para la máquina activa). Cada máquina
+conserva sus propias teclas: en Spectrum, C64 y PC los atajos de herramientas llevan Ctrl+Shift.
 
 ## Cobertura por órdenes
 
@@ -214,7 +215,7 @@ que coincida. `ayuda <orden>` agrega argumentos, ejemplos y errores.
 | `continuar` (`seguir-jugando`, `volver`, `resume`) | Vuelve a la partida y le entrega el teclado. |
 | `pausa` (`pausar`) | Pausa la máquina sin salir de la consola. |
 | `reiniciar [duro]` (`reset`) | Reinicia la partida o fusión; duro también limpia la memoria del original. |
-| `captura` (`foto`, `screenshot`) | Guarda la imagen emulada a su resolución. |
+| `captura` (`foto`, `screenshot`) | Guarda la imagen emulada a su resolución en la carpeta del juego. |
 | `ranuras` | Lista las partidas guardadas de este juego y edición. |
 | `guardar <ranura> [reemplazar]` (`save`) | Guarda la partida en una ranura. Si está ocupada exige escribir reemplazar. |
 | `cargar <ranura>` (`load`) | Recupera una ranura de este juego y edición. |

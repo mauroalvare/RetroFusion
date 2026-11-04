@@ -90,8 +90,16 @@ public sealed class ScreenCaptureTests
     }
 
     [Test]
-    public void TheCaptureShortcutDoesNotReachTheMachine() =>
-        Assert.That(InputMapper.ToolChordHeld(new[] { KeyboardKey.LeftControl, KeyboardKey.LeftShift, KeyboardKey.S }.Contains), Is.True);
+    public void TheCaptureShortcutDoesNotReachTheMachine()
+    {
+        var input = new InputMapper { CaptureChord = KeyChord.CaptureDefault.For(machineOwnsF1: true, ctrlIsMachineKey: true) };
+        Assert.That(input.HostChordHeld(new[] { KeyboardKey.LeftControl, KeyboardKey.F1 }.Contains), Is.True);
+        Assert.That(input.HostChordHeld(new[] { KeyboardKey.F1 }.Contains), Is.False, "F1 solo sigue siendo una tecla del PC y del C64.");
+        Assert.That(InputMapper.ToolChordHeld(new[] { KeyboardKey.LeftControl, KeyboardKey.LeftShift, KeyboardKey.S }.Contains), Is.False,
+            "Ctrl+Shift+S ya no es un atajo fijo: llega al juego salvo que el usuario lo elija para capturar.");
+        input.CaptureChord = new KeyChord("S", Ctrl: true, Shift: true);
+        Assert.That(input.HostChordHeld(new[] { KeyboardKey.RightControl, KeyboardKey.RightShift, KeyboardKey.S }.Contains), Is.True);
+    }
 
     [Test]
     public void TheLastPickerFolderIsRememberedAndOversizedPathsAreIgnored()
