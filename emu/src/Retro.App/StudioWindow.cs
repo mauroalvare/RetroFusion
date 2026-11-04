@@ -252,7 +252,7 @@ public sealed partial class StudioWindow
     }
     private bool _focusWork;
     public void ShowWork() { _open = true; _focusWork = true; _savedPage=false; }
-    public void ShowSavedWork() { Open(); _savedPage=true; }
+    public void ShowSavedWork() { Open(); _savedPage=true; RefreshWork(); }
 
     private bool Busy => _fusionPrepareTask != null || _prepareTask != null || _conceptTask != null || _designTask != null || _referenceTask != null || _validateTask != null || _startTask != null;
     public Task CancelWork()

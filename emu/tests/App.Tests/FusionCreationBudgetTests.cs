@@ -134,6 +134,38 @@ public sealed class FusionCreationBudgetTests
     }
 
     [Test]
+    public void AResearchThatStillMissesDataEndsItsTaskAsBlockedNotFinished()
+    {
+        var window = Window(new(), new WaitingAi(), TimeProvider.System);
+        var sources = new Dictionary<string, GameSource>(); var slots = new List<RecipeGame>();
+        var preparations = new List<Retro.Compat.PrepareResult>(); var fingerprints = new Dictionary<string, string>();
+        for (int i = 0; i < _targets.Count; i++)
+        {
+            var target = _targets[i];
+            sources[target.Source.Profile.Id] = target.Source;
+            slots.Add(new() { Slot = i == 0 ? "a" : "b", Profile = target.Source.Profile.Id });
+            // The second original could not be checked: the research stops with what it has.
+            preparations.Add(new() { Ok = i == 0, Profile = i == 0 ? target.Source.Profile : null, Sha256 = GamePreparer.Sha256Of(target.Source.Files[0]) });
+            fingerprints[target.Path] = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(target.Path)));
+        }
+        Set(window, "_researchWork", new FusionResearchWork { Concept = Idea,
+            Originals = _targets.Select((t, i) => new ResearchOriginal(i == 0 ? "a" : "b", t.Path, new string('A', 64), t.Source.Profile.Id, "")).ToList() });
+        var tasks = new AppTaskCenter();
+        tasks.Track("estudio", new WorkReport("investigación", Idea.Title, "Investigando"));
+        // The preparation task itself completed; its outcome is what blocks the work.
+        typeof(StudioWindow).GetProperty("WorkEnding")!.SetValue(window, AppTaskState.Completed);
+        Call(window, "CompletePreparation", new FusionPreparationResult(Idea, sources, preparations, "Falta comprobar el segundo original", slots, fingerprints));
+        var snapshot = window.ReadWork();
+        Assert.That((snapshot.Report, snapshot.Ending), Is.EqualTo(((WorkReport?)null, AppTaskState.Blocked)));
+        tasks.Track("estudio", snapshot.Report, snapshot.Ending, snapshot.Detail);
+        var task = tasks.All.Single();
+        Assert.That((task.Active, task.State), Is.EqualTo((false, AppTaskState.Blocked)));
+        Assert.That(task.Results, Has.Some.Contains("Falta una comprobación"));
+        Assert.That(AppTaskCenter.StateName(task.State), Does.StartWith("bloqueada"));
+        Assert.That(((FusionResearchStore)Get(window, "_researchStore")!).Pending().Single().Status, Is.EqualTo("blocked"), "The research stays saved to continue.");
+    }
+
+    [Test]
     public void ABlockedInvestigationCanOpenBothOriginalsWithoutStartingAnAiJob()
     {
         var ai=new WaitingAi(); var played=new List<string>(); var analyzed=new List<string>();

@@ -2520,3 +2520,20 @@ el programa porque el bucle principal no la captura. `exportar-perfil` escribe u
 nueva del perfil sin las etiquetas descubiertas no confirmadas. `agregar-variable` comparte la
 validación del buscador (nombre normalizado, no duplicado) y ahora informa si el perfil no se
 guardó. Sin cambios de formato de anotaciones, perfiles ni estados.
+
+## D-142 — Investigación bloqueada como tarea Bloqueada y un solo almacén de investigaciones
+
+Cuando la investigación de una fusión se detiene porque falta una comprobación (preparación
+fallida o dato pendiente tras revisar la idea), la tarea termina en `AppTaskState.Blocked`
+(«bloqueada: falta algo para seguir») con el detalle del taller, en vez de «terminada». La
+investigación sigue guardada con estado `blocked`; `tarea <id>` indica cómo continuarla y
+`proyectos` la muestra como «bloqueada: falta una comprobación» (o «en pausa»). Una
+cancelación conserva el estado Cancelada.
+
+`proyectos` y `retomar-trabajo` leían `FusionResearchStore()` en la carpeta predeterminada
+(fusiones/.trabajos/investigaciones), mientras el taller escribe en
+`<carpeta de juegos>/.retroemu/investigaciones`: las investigaciones reales no aparecían en la
+terminal. Ahora la terminal usa el mismo almacén del taller (`StudioWindow.ResearchStore`) y
+`ShowResearch`/`ShowSavedWork` releen la lista antes de buscar. Las claves internas de
+`proyectos` ya no pasan por la traducción. El plan de comprobación traduce título, pasos y
+evidencia con el catálogo existente. Sin cambios de formato de los checkpoints.

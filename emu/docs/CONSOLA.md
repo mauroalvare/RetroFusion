@@ -164,7 +164,7 @@ que la orden abre o consulta, y una parte sigue en un instrumento visual.
 | Proyectos: listar, consultar, validar | Completo | — |
 | Preparar un original sin IA | Completo | La preparación con IA sigue en el taller de fusión. |
 | Crear y fusionar | Parcial | El diseño y la construcción usan sus talleres: `crear`, `fusionar`, `hacer inspired`. |
-| Retomar trabajos guardados | Parcial | `retomar-trabajo` abre el taller en ese trabajo. |
+| Retomar trabajos guardados | Parcial | `proyectos` indica si una investigación quedó bloqueada o en pausa; `retomar-trabajo` abre el taller en ese trabajo, donde se continúa y se responden los pasos manuales. |
 | Investigación automática | Parcial | Se inicia en su panel, con `hacer auto-analysis`; se sigue en `tareas`. |
 | Conexión de IA | Parcial | `hacer ai` abre su ventana. |
 

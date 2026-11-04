@@ -4736,5 +4736,8 @@
   "Cambio aplicado: ": "Change applied: ",
   "Deshace el último cambio de variables o restaura la partida previa a todos.": "Undoes the last variable change or restores the game from before all of them.",
   "revertir restaurar congelados": "revert restore frozen",
-  "todo vuelve al momento anterior al primer cambio.": "all returns to the moment before the first change."
+  "todo vuelve al momento anterior al primer cambio.": "all returns to the moment before the first change.",
+  "bloqueada: falta algo para seguir": "blocked: something is missing to continue",
+  "Lo comprobado quedó guardado. proyectos lo lista y retomar-trabajo <n> abre el taller para resolver lo que falta.": "What was checked is saved. projects lists it and resume-work <n> opens the workshop to resolve what is missing.",
+  "bloqueada: falta una comprobación": "blocked: a check is missing"
 }

@@ -689,6 +689,10 @@ en el programa nuevo no promete lectura de formatos nuevos en programas anterior
   versión posterior disponible. No resuelve por sí mismo la falta de OpenGL ni repara
   cualquier instalación dañada. Windows 10, Linux gráfico y la PC de los avisos de audio
   todavía requieren una comprobación propia. [Alcance y uso](ARRANQUE-Y-RECUPERACION.md).
+- **Continuación de talleres por consola (D-142):** `retomar-trabajo` abre el taller en el trabajo o
+  la investigación; reanudarla, pegar una respuesta manual o leer la carpeta de un agente siguen en
+  el taller. Las investigaciones se guardan por carpeta de juegos: al cambiar de biblioteca durante
+  la sesión, el taller conserva el almacén con el que abrió.
 - **Órdenes del taller de código (D-141):** `referencias` solo conoce las rutinas e instrucciones
   reconstruidas hasta ese momento y reconoce direcciones escritas en el texto del desensamblado;
   no ve accesos indirectos ni calculados. `agregar-variable` crea datos de un byte; otras

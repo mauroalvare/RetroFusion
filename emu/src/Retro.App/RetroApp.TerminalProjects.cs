@@ -19,16 +19,22 @@ public sealed partial class RetroApp
         foreach (var game in StudioLibrary.AllVersions().GroupBy(game => game.Id).Select(group => group.OrderByDescending(version => version.Version).First()).OrderBy(game => game.Title))
         {
             var missing = game.Games.Where(slot => !available.Contains(slot.Profile)).Select(slot => slot.Profile).ToArray();
-            rows.Add(new(UiText.Get("fusion:") + game.Id, game.IsInspired ? "con originales" : "fusión", game.Title, UiText.Get("v") + game.Version, missing.Length == 0 ? "lista para abrir" : UiText.Get("faltan originales: ") + missing.Length));
+            rows.Add(new("fusion:" + game.Id, game.IsInspired ? "con originales" : "fusión", game.Title, UiText.Get("v") + game.Version, missing.Length == 0 ? "lista para abrir" : UiText.Get("faltan originales: ") + missing.Length));
         }
         foreach (var game in CreatedGames.All())
-            rows.Add(new(UiText.Get("creado:") + game.Folder, "desde cero", game.Title, game.Machine, game.Passed ? "prueba aprobada" : "prueba pendiente o fallida"));
+            rows.Add(new("creado:" + game.Folder, "desde cero", game.Title, game.Machine, game.Passed ? "prueba aprobada" : "prueba pendiente o fallida"));
         foreach (var work in StudioWorkStore.Pending())
-            rows.Add(new(UiText.Get("trabajo-fusion:") + work.Id, "trabajo guardado", work.State.Draft?.Title ?? work.State.Template.Title, "", "esperando continuar"));
+            rows.Add(new("trabajo-fusion:" + work.Id, "trabajo guardado", work.State.Draft?.Title ?? work.State.Template.Title, "", "esperando continuar"));
         foreach (var work in GameWorkStore.Pending())
-            rows.Add(new(UiText.Get("trabajo-creado:") + work.Id, "trabajo guardado", work.State.Draft?.Title ?? work.State.Wish, work.State.Machine, "esperando continuar"));
-        foreach (var work in new FusionResearchStore().Pending())
-            rows.Add(new(UiText.Get("investigacion:") + work.Id, "investigación", work.Concept.Title, "", work.Summary.Length > 0 ? work.Summary : "en pausa"));
+            rows.Add(new("trabajo-creado:" + work.Id, "trabajo guardado", work.State.Draft?.Title ?? work.State.Wish, work.State.Machine, "esperando continuar"));
+        // The same store the fusion workshop writes: a separate default folder would hide real research.
+        foreach (var work in _studio.ResearchStore.Pending())
+            rows.Add(new("investigacion:" + work.Id, "investigación", work.Concept.Title, "", work.Status switch
+            {
+                "blocked" => "bloqueada: falta una comprobación",
+                "paused" => "en pausa",
+                _ => work.Summary.Length > 0 ? work.Summary : "en pausa"
+            }));
         return rows;
     }
 
@@ -244,6 +250,7 @@ public sealed partial class RetroApp
                     foreach (string line in task.Errors) context.Write(UiText.Get("error: ") + line, TerminalKind.Error);
                     foreach (string line in task.Artifacts) context.Detail(UiText.Get("Archivo: ") + line);
                     if (task.CanResume) context.Detail(UiText.Format($"retomar {task.Id} la vuelve a intentar."));
+                    if (task.State == AppTaskState.Blocked) context.Detail("Lo comprobado quedó guardado. proyectos lo lista y retomar-trabajo <n> abre el taller para resolver lo que falta.");
                 }
             },
             new()

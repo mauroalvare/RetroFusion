@@ -9,6 +9,8 @@ namespace Retro.App;
 public sealed partial class StudioWindow
 {
     private readonly FusionResearchStore _researchStore;
+    /// <summary>The store this workshop writes, so the terminal lists and resumes the same research.</summary>
+    internal FusionResearchStore ResearchStore => _researchStore;
     private readonly Action<string>? _playOriginal, _analyzeOriginal;
     private FusionResearchWork? _researchWork, _resumeResearch;
     private IReadOnlyList<FusionResearchWork> _pendingResearch = [];
@@ -31,6 +33,8 @@ public sealed partial class StudioWindow
     public void ShowResearch(string id)
     {
         Open(); _savedPage=false;
+        // The terminal reads the store directly; read it again so a checkpoint saved meanwhile is found.
+        RefreshWork();
         var work=_pendingResearch.FirstOrDefault(w=>w.Id==id);
         if (work==null) { Problem("No se encontró la investigación guardada."); return; }
         _inspiredMode=work.Inspired; _researchWork=work; _showResearch=true;
@@ -102,6 +106,8 @@ public sealed partial class StudioWindow
         CheckpointResearch(result); _showResearch=true; _problem=_problemDetail=null;
         _build.Stop(false); _creationTiming?.Stop(false);
         _progress="Investigación guardada. Falta una comprobación antes de crear la fusión.";
+        // The task stopped on purpose with work saved: it is blocked, not finished nor failed.
+        if (WorkEnding != AppTaskState.Cancelled) WorkEnding = AppTaskState.Blocked;
         if (_researchWork!=null) { _researchWork.Status="blocked"; _researchStore.Save(_researchWork); }
         RefreshWork();
     }
@@ -235,11 +241,11 @@ public sealed partial class StudioWindow
         ImGui.TableNextColumn(); UiTheme.BeginCard("research-checklist");
         UiTheme.Section("Plan de comprobación", "Cada guía explica cómo hacer la prueba y qué evidencia hace falta. No tenés que deducir un aviso técnico.");
         foreach (var check in ResearchGuidance.For(work.Concept))
-            if (ImGui.CollapsingHeader(check.Title))
+            if (ImGui.CollapsingHeader(UiText.Label(check.Title)))
             {
                 ImGui.TextWrapped(UiText.Get(check.Needed)); ImGui.Spacing();
-                for (int i=0;i<check.Steps.Count;i++) { ImGui.TextWrapped(UiText.Get(UiText.Format($"{i+1}. {check.Steps[i]}"))); ImGui.Spacing(); }
-                UiTheme.Hint(UiText.Get("Evidencia necesaria: ")+check.Evidence);
+                for (int i=0;i<check.Steps.Count;i++) { ImGui.TextWrapped(UiText.Format($"{i+1}. {UiText.Get(check.Steps[i])}")); ImGui.Spacing(); }
+                UiTheme.Hint(UiText.Get("Evidencia necesaria: ")+UiText.Get(check.Evidence));
             }
         if (ImGui.Button(UiText.Label("Copiar guía completa"))) ImGui.SetClipboardText(ResearchGuidance.Markdown(work));
         if (ImGui.TreeNode(UiText.Label("Requisitos e informe completo")))
