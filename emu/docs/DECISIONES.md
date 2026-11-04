@@ -2497,3 +2497,26 @@ CreateNew, numera -2, -3… hasta 9999 y borra un parcial ante error. Menú, ata
 orden `captura` y --autotest usan TrySaveCapture; la orden informa un fallo como error. Las
 capturas anteriores no se migran. `--autotest-preferences <archivo>` da a una prueba oculta
 un archivo de preferencias propio para comprobar reinicios.
+
+## D-141 — Órdenes del taller de código, preparación de parches y exportaciones nuevas
+
+Las órdenes `referencias`, `parches`, `parche`, `deshacer-parche`, `reaplicar-parches`,
+`exportar-asm`, `exportar-perfil`, `agregar-variable`, `cambiar-variable` y `deshacer-variable`
+usan los servicios de CodeWindow (CodeWindow.Terminal.cs) sobre el original cargado, con la
+misma transacción de parches (Write restaura estado y ROM editable ante un byte rechazado),
+el mismo respaldo en las anotaciones de la edición y el mismo historial deshacible de
+Modificar y analizar. `parche` sin `aplicar` solo prepara: valida bytes (máximo 256), rango,
+superposición y respaldo, y muestra el código antes y después hasta que ambos listados
+vuelven a coincidir en un límite de instrucción, para que se vea cómo se leerán los bytes
+sobrantes de una instrucción más larga. El editor de línea muestra esa misma vista previa
+antes de Cambiar. `referencias` asigna un byte de operando a la rutina de su instrucción y
+lista las instrucciones conocidas que nombran la dirección (hasta 50, con el total).
+
+Exportar .asm ya no reemplaza `<juego>.asm`: crea un archivo nuevo con -2, -3… (CreateNew), en
+Documentos/RetroEmu/codigo u `out/autotest-codigo` en --autotest, y una ruta explícita existente
+se rechaza. Un fallo de escritura (permisos, acceso controlado a carpetas, disco lleno) se
+informa en el panel o la consola y borra el parcial; antes una excepción en el botón podía cerrar
+el programa porque el bucle principal no la captura. `exportar-perfil` escribe una copia JSON
+nueva del perfil sin las etiquetas descubiertas no confirmadas. `agregar-variable` comparte la
+validación del buscador (nombre normalizado, no duplicado) y ahora informa si el perfil no se
+guardó. Sin cambios de formato de anotaciones, perfiles ni estados.

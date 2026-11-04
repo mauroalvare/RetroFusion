@@ -45,6 +45,7 @@ public sealed partial class CodeWindow : IDisposable
     private uint? _selected;
     private uint? _line;
     private string _filter = "";
+    private readonly string? _exportDirectory;
     private bool _onlyExecuted;
     private bool _hideSystemRom = true;
     private string _rename = "";
@@ -66,8 +67,9 @@ public sealed partial class CodeWindow : IDisposable
     private string _newVarDescription = "";
     private string _bootText = "";
 
-    public CodeWindow(EmulatorHost host, AiSettings ai, Action<uint> showInDebugger, Action? openStudio = null, ModificationHistory? history = null, string? firmwareDirectory = null, string? annotationsDirectory = null)
+    public CodeWindow(EmulatorHost host, AiSettings ai, Action<uint> showInDebugger, Action? openStudio = null, ModificationHistory? history = null, string? firmwareDirectory = null, string? annotationsDirectory = null, string? exportDirectory = null)
     {
+        _exportDirectory = exportDirectory;
         _host = host;
         _ai = ai;
         _showInDebugger = showInDebugger;
@@ -204,7 +206,8 @@ public sealed partial class CodeWindow : IDisposable
         if (_map != null)
         {
             ImGui.SameLine();
-            if (ImGui.Button(UiText.Label("Exportar .asm"))) _status = UiText.Get("Guardado en ") + Export(machine);
+            if (ImGui.Button(UiText.Label("Exportar .asm"))) _status = TrySaveListing(machine, null, out string message) ? UiText.Get("Guardado en ") + message : message;
+            if (ImGui.IsItemHovered()) UiTheme.Tooltip(UiText.Get("Crea un archivo nuevo en ") + ExportDirectory + UiText.Get(". Nunca reemplaza una exportación anterior."));
         }
         if (_codeSummary.Length > 0) AiPicker.Hint(_codeSummary);
         if (!ImGui.BeginTabBar("herramientas-tecnicas")) return;
@@ -508,7 +511,8 @@ public sealed partial class CodeWindow : IDisposable
     private void DrawListing(IMachine m, Routine r)
     {
         using var font = UiTheme.FixedWidth();
-        float editHeight = _line != null ? UiTheme.Px(130) : 0;
+        var draft = _line is uint chosen ? DraftPreview(m, chosen) : default;
+        float editHeight = _line != null ? UiTheme.Px(130) + (draft.Note == null ? 0 : (draft.Lines.Count + 1) * ImGui.GetTextLineHeightWithSpacing()) : 0;
         ImGui.BeginChild("listing", new Vector2(0, Math.Max(UiTheme.Px(140),ImGui.GetContentRegionAvail().Y-editHeight)), ImGuiChildFlags.None, ImGuiWindowFlags.HorizontalScrollbar);
         uint? expected = null;
         uint pc = m.Cpu.ProgramCounter;
@@ -543,18 +547,32 @@ public sealed partial class CodeWindow : IDisposable
         }
         ImGui.EndChild();
         if (_line is uint sel)
-            DrawLineEditor(m, r, sel);
+            DrawLineEditor(m, r, sel, draft);
     }
 
     private string RoutineReference(IMachine machine, Routine routine) => CodeExplainer.Reference(machine, routine,
         _host.Fusion == null ? _host.LoadedMediaHashes : [],
         _host.Fusion == null ? _host.FirmwareIdentity : "No asociada a esta ranura desde el visor; consultá las referencias del proyecto.", _gameName);
 
-    private void DrawLineEditor(IMachine m, Routine r, uint a)
+    /// <summary>
+    /// Preparation of the bytes typed in the line editor: why they cannot be written, or what Cambiar
+    /// would leave in the code. Nothing is written here.
+    /// </summary>
+    private (string? Note, IReadOnlyList<string> Lines) DraftPreview(IMachine m, uint a)
+    {
+        if (!TryParsePatchBytes(_patchHex, out byte[] draft, out string? problem)) return (problem, []);
+        if (draft.Length == 0) return (null, []);
+        if (PlanPatch(m, a, draft, out _, out byte[] after) is { } rejected) return (rejected, []);
+        byte[] before = Enumerable.Range(0, after.Length).Select(i => m.Memory.Peek(a + (uint)i)).ToArray();
+        return before.SequenceEqual(after) ? (null, []) : ("Vista previa de Cambiar (todavía no se aplicó):", Compare(m, a, before, after).After.Take(6).ToArray());
+    }
+
+    private void DrawLineEditor(IMachine m, Routine r, uint a, (string? Note, IReadOnlyList<string> Lines) draft)
     {
         ImGui.Separator();
         ImGui.TextUnformatted(UiText.Get(UiText.Format($"Línea ${a:X4}  (doble clic en un CALL o salto para ir a esa rutina)")));
-        ImGui.SetNextItemWidth(-130);
+        // Leave room for the button in any language and text size.
+        ImGui.SetNextItemWidth(-(ImGui.CalcTextSize(UiText.Get("Guardar comentario")).X + ImGui.GetStyle().FramePadding.X * 2 + ImGui.GetStyle().ItemSpacing.X));
         if (ImGui.InputTextWithHint("##comentario", UiText.Get("comentario"), ref _commentText, 200, ImGuiInputTextFlags.EnterReturnsTrue))
             SetComment(a, _commentText);
         ImGui.SameLine();
@@ -573,6 +591,12 @@ public sealed partial class CodeWindow : IDisposable
         }
         if (ImGui.IsItemHovered())
             UiTheme.Tooltip("Reemplaza la instrucción por NOP: la CPU deja de ejecutar esa operación.");
+        if (draft.Note == null) return;
+        using (UiTheme.FixedWidth())
+        {
+            ImGui.TextDisabled(UiText.Get(draft.Note));
+            foreach (string line in draft.Lines) ImGui.TextColored(CommentColor, UiText.Get(line));
+        }
     }
 
     private static byte NopOpcode(IMachine m) => m.Cpu is Retro.Cpu.M6502.M6502 ? (byte)0xEA : m.Cpu is Retro.Cpu.I8088.I8088Cpu ? (byte)0x90 : (byte)0x00;
@@ -589,19 +613,40 @@ public sealed partial class CodeWindow : IDisposable
     // ------------------------------------------------------------------ code changes
     private void Patch(IMachine m, uint a, string hex)
     {
-        byte[] bytes;
+        if (!TryParsePatchBytes(hex, out byte[] bytes, out string? problem)) { _status = problem!; return; }
+        if (bytes.Length == 0)
+            return;
+        if (PlanPatch(m, a, bytes, out byte[] original, out byte[] replacement) is { } rejected) { _status = rejected; return; }
+        _status = CommitPatch(m, a, original, replacement, out _);
+    }
+
+    internal const int MaxPatchBytes = 256;
+
+    /// <summary>Hex pairs separated by spaces or commas ("3E 05", "$3e,0x05"); the reason when they are not.</summary>
+    internal static bool TryParsePatchBytes(string hex, out byte[] bytes, out string? problem)
+    {
+        bytes = []; problem = null;
         try
         {
-            bytes = hex.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(h => byte.Parse(h, NumberStyles.HexNumber)).ToArray();
+            bytes = hex.Split([' ', ',', '\t'], StringSplitOptions.RemoveEmptyEntries)
+                .Select(h => byte.Parse(h.StartsWith('$') ? h[1..] : h.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? h[2..] : h, NumberStyles.HexNumber, CultureInfo.InvariantCulture)).ToArray();
         }
         catch (Exception e) when (e is FormatException or OverflowException)
         {
-            _status = "Bytes inválidos: usá pares hexadecimales separados por espacios (ej. 3E 05).";
-            return;
+            problem = "Bytes inválidos: usá pares hexadecimales separados por espacios (ej. 3E 05).";
+            return false;
         }
-        if (bytes.Length == 0)
-            return;
+        if (bytes.Length > MaxPatchBytes) { problem = UiText.Format($"Un parche admite hasta {MaxPatchBytes} bytes. Dividilo en partes."); return false; }
+        return true;
+    }
+
+    /// <summary>
+    /// Checks a patch without touching the machine: valid saved backup, inside the address space and not
+    /// overlapping another record. Returns the bytes to keep for undo and the bytes to write, or the reason.
+    /// </summary>
+    private string? PlanPatch(IMachine m, uint a, byte[] bytes, out byte[] original, out byte[] replacement)
+    {
+        original = replacement = [];
         string key = CodeAnnotations.Key(a);
         byte[]? previous = null;
         int length = bytes.Length;
@@ -611,11 +656,11 @@ public sealed partial class CodeWindow : IDisposable
             {
                 var parts = old.Split('|');
                 if (parts.Length != 2 || (previous = Hex(parts[0])).Length != Hex(parts[1]).Length)
-                { _status = "El respaldo de este parche está incompleto. Conservá las anotaciones y volvé a cargar el original antes de crear otro parche."; return; }
+                    return "El respaldo de este parche está incompleto. Conservá las anotaciones y volvé a cargar el original antes de crear otro parche.";
                 length = Math.Max(length, previous.Length);
             }
             if ((ulong)a + (uint)length > 1UL << m.Memory.AddressBits)
-            { _status = "El parche sale del espacio de direcciones. No se cambió la partida."; return; }
+                return "El parche sale del espacio de direcciones. No se cambió la partida.";
             foreach (var other in _notes.Patches.Where(other => other.Key != key))
             {
                 uint start = uint.Parse(other.Key, NumberStyles.HexNumber);
@@ -623,24 +668,29 @@ public sealed partial class CodeWindow : IDisposable
                 if (parts.Length != 2) throw new FormatException();
                 int count = Math.Max(Hex(parts[0]).Length, Hex(parts[1]).Length);
                 if ((ulong)a < (ulong)start + (uint)count && (ulong)start < (ulong)a + (uint)length)
-                { _status = "El parche se superpone con otro guardado. Deshacé el anterior antes de modificar ese rango."; return; }
+                    return "El parche se superpone con otro guardado. Deshacé el anterior antes de modificar ese rango.";
             }
         }
         catch (Exception error) when (error is FormatException or OverflowException)
-        { _status = "Hay un parche guardado inválido. Conservá las anotaciones y revisá sus bytes antes de continuar."; return; }
-        byte[] original = Enumerable.Range(0, length).Select(i => m.Memory.Peek(a + (uint)i)).ToArray();
+        { return "Hay un parche guardado inválido. Conservá las anotaciones y revisá sus bytes antes de continuar."; }
+        original = Enumerable.Range(0, length).Select(i => m.Memory.Peek(a + (uint)i)).ToArray();
         previous?.CopyTo(original, 0);
         // A shorter edit restores the old tail; an extension preserves every newly covered original byte.
-        byte[] replacement = (byte[])original.Clone(); bytes.CopyTo(replacement, 0);
+        replacement = (byte[])original.Clone(); bytes.CopyTo(replacement, 0);
+        return null;
+    }
+
+    /// <summary>Writes a planned patch as one transaction and records its backup; the status says what happened.</summary>
+    private string CommitPatch(IMachine m, uint a, byte[] original, byte[] replacement, out bool applied)
+    {
+        applied = false;
         if (!Write(m, a, replacement))
-        {
-            _status = "No se aplicó el parche: una dirección no admite escritura. Se restauró la partida anterior; revisá el rango.";
-            return;
-        }
-        _notes.Patches[key] = string.Join(" ", original.Select(b => b.ToString("X2"))) + "|" + string.Join(" ", replacement.Select(b => b.ToString("X2")));
+            return "No se aplicó el parche: una dirección no admite escritura. Se restauró la partida anterior; revisá el rango.";
+        applied = true;
+        _notes.Patches[CodeAnnotations.Key(a)] = string.Join(" ", original.Select(b => b.ToString("X2"))) + "|" + string.Join(" ", replacement.Select(b => b.ToString("X2")));
         _notes.Save(AnnotationId);
-        _status = UiText.Format($"Cambiado ${a:X4}. El juego ya corre con el cambio (el archivo original no se toca).");
         Analyze(m);
+        return UiText.Format($"Cambiado ${a:X4}. El juego ya corre con el cambio (el archivo original no se toca).");
     }
 
     private static bool Write(IMachine m, uint a, byte[] bytes)
@@ -1038,16 +1088,17 @@ public sealed partial class CodeWindow : IDisposable
         }
     }
 
-    private void AddVariable(IMachine m, uint address, byte value)
+    /// <returns>Whether the variable was added and its profile saved; the status says why not.</returns>
+    private bool AddVariable(IMachine m, uint address, byte value)
     {
         string name = Regex.Replace(_newVarName.Trim().ToLowerInvariant(), @"[^a-z0-9_]", "_");
-        if (name.Length == 0)
+        if (name.Trim('_').Length == 0)
         {
             _status = "Escribí un nombre para identificar la variable.";
-            return;
+            return false;
         }
         if (_profile?.Variables.ContainsKey(name) == true)
-        { _status = "Ese nombre ya existe. Elegí otro para agregar una variable."; return; }
+        { _status = "Ese nombre ya existe. Elegí otro para agregar una variable."; return false; }
         if (_profile == null)
         {
             _profile = new GameProfile
@@ -1077,10 +1128,33 @@ public sealed partial class CodeWindow : IDisposable
         if (saved) _status = UiText.Format($"\"{name}\" (${address:X4}) agregada al perfil de {UiText.Raw(_profile.Name)}. Sus controles se configuran en Código > Perfil y controles.");
         _newVarName = "";
         _newVarDescription = "";
+        return saved;
     }
 
     // ------------------------------------------------------------------ export
-    private string Export(IMachine m)
+    private string ExportDirectory => _exportDirectory ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "RetroEmu", "codigo");
+
+    /// <summary>
+    /// Writes the listing to a new file: the given path (refused when it exists) or the export folder with
+    /// -2, -3... after the name. A failure leaves no partial file and only reports the reason.
+    /// </summary>
+    private bool TrySaveListing(IMachine m, string? path, out string message)
+    {
+        try
+        {
+            if (_map == null) Analyze(m);
+            byte[] data = Encoding.UTF8.GetBytes(BuildListing(m));
+            message = path != null ? NewFiles.Write(path, data) : NewFiles.WriteNumbered(ExportDirectory, ScreenCapture.SafeName(_gameId), ".asm", data);
+            return true;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            message = UiText.Get("No se pudo exportar el código: ") + error.Message + " " + UiText.Get("No quedó un archivo a medias y las exportaciones anteriores no se tocaron.");
+            return false;
+        }
+    }
+
+    private string BuildListing(IMachine m)
     {
         var sb = new StringBuilder();
         sb.AppendLine(UiText.Format($"; {_gameName} - {m.DisplayName} ({m.Cpu.CpuName})"));
@@ -1112,10 +1186,6 @@ public sealed partial class CodeWindow : IDisposable
                 sb.AppendLine(UiText.Format($"        {Pretty(m, ins.Text),-28}; {a:X4}  {string.Join(" ", ins.Bytes.Select(b => b.ToString("X2")))}{comment}"));
             }
         }
-        string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "RetroEmu", "codigo");
-        Directory.CreateDirectory(dir);
-        string path = Path.Combine(dir, _gameId + UiText.Get(".asm"));
-        File.WriteAllText(path, sb.ToString());
-        return path;
+        return sb.ToString();
     }
 }

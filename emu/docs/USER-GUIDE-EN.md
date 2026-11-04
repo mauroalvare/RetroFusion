@@ -172,6 +172,15 @@ Saved patches cannot overlap: undo the earlier patch first. An old incomplete ba
 cannot reconstruct bytes that were never saved; keep the annotations and reload the
 original. Applying several saved patches reports how many succeeded, separately.
 
+The terminal reaches the same code workshop on the loaded original: references <address>
+shows the routine, its calls in both directions and the known instructions that name the
+address; patch <address> <bytes> prepares a change and shows the code before and after
+(including how leftover bytes of a longer instruction will be read) and writes it only with
+apply; patches, undo-patch and reapply-patches manage the saved ones. export-asm and
+export-profile always create new files and never leave a half-written one. add-variable
+records a one-byte value found with scan-memory, set-variable changes or freezes a variable
+and undo-variable reverts the last change or the whole session.
+
 The included English assembly, design and fusion API guides follow the selected language.
 They describe capabilities and limits without requiring a specific AI provider.
 

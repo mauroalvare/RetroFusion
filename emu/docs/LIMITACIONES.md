@@ -689,6 +689,13 @@ en el programa nuevo no promete lectura de formatos nuevos en programas anterior
   versión posterior disponible. No resuelve por sí mismo la falta de OpenGL ni repara
   cualquier instalación dañada. Windows 10, Linux gráfico y la PC de los avisos de audio
   todavía requieren una comprobación propia. [Alcance y uso](ARRANQUE-Y-RECUPERACION.md).
+- **Órdenes del taller de código (D-141):** `referencias` solo conoce las rutinas e instrucciones
+  reconstruidas hasta ese momento y reconoce direcciones escritas en el texto del desensamblado;
+  no ve accesos indirectos ni calculados. `agregar-variable` crea datos de un byte; otras
+  codificaciones, controles y arranque se editan en Código > Perfil y controles. Los parches viven
+  en memoria y en las anotaciones de la edición: no modifican el archivo del juego y se vuelven a
+  escribir con `reaplicar-parches`. Comprobado con un programa NES propio, ventana oculta y eventos
+  de consola; no con juegos comerciales ni en Linux gráfico.
 - **Atajo y carpetas de capturas (D-140):** con un atajo que lleva Ctrl, el juego puede
   recibir Ctrl por un instante antes de la tecla principal: en NES, arcade y fusiones es un
   botón, y en Spectrum, C64 y PC una tecla del equipo; con el atajo completo apretado el

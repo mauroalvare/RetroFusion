@@ -71,3 +71,19 @@ verificados para fusiones. Sin activar el guardado, duran la sesión actual.
 Sus reglas se editan como una versión nueva desde el estudio. El guardado de regreso
 completo de esta herramienta se ofrece para originales; **Código** permite revisar
 el original enfocado como herramienta técnica.
+
+## Parches, exportaciones y consola
+
+En **Código > Rutinas**, al elegir una línea y escribir bytes nuevos aparece una vista previa
+antes de **Cambiar**: muestra cómo quedará el código, incluidos los bytes sobrantes de una
+instrucción más larga, y el motivo si el cambio sale de la memoria o pisa otro parche. Nada se
+escribe hasta pulsar **Cambiar**; **Parches > Deshacer** restaura los bytes originales.
+
+**Exportar .asm** crea siempre un archivo nuevo en Documentos/RetroEmu/codigo (`juego.asm`,
+`juego-2.asm`…) y nunca reemplaza uno que hayas editado. Si no se puede escribir, el panel
+lo informa y no queda un archivo a medias.
+
+Lo mismo se hace desde la consola sobre el original cargado: `referencias`, `parche`
+(`aplicar` al final para escribirlo), `parches`, `deshacer-parche`, `reaplicar-parches`,
+`exportar-asm`, `exportar-perfil`, `agregar-variable`, `cambiar-variable` y
+`deshacer-variable`. Ver [la consola](CONSOLA.md).

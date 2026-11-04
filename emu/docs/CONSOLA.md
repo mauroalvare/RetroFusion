@@ -158,9 +158,9 @@ que la orden abre o consulta, y una parte sigue en un instrumento visual.
 | Registros, memoria, escritura, desensamblado | Completo | — |
 | Breakpoints, pasos, ejecución hasta una dirección | Completo | — |
 | Búsqueda de variables por comparación | Completo | Observación avanzada de escrituras y propuestas de IA. |
-| Variables del perfil | Parcial | Consulta por órdenes; editarlas sigue en Modificar y analizar. |
+| Variables del perfil | Parcial | `agregar-variable` (un byte), `cambiar-variable` con congelar/soltar y `deshacer-variable`. Codificaciones de varios bytes, controles y arranque siguen en Código > Perfil y controles. |
 | Comentarios, etiquetas, consulta y copia JSON de anotaciones | Completo | Importación por nombre con confirmación; no cambia bytes ni usa IA. |
-| Referencias de rutinas, parches, exportación ASM y de perfiles | Parcial | Código y rutinas, con `hacer code`. |
+| Referencias de rutinas, parches, exportación ASM y de perfiles | Completo | Pseudocódigo y explicación con IA siguen en Código y rutinas. |
 | Proyectos: listar, consultar, validar | Completo | — |
 | Preparar un original sin IA | Completo | La preparación con IA sigue en el taller de fusión. |
 | Crear y fusionar | Parcial | El diseño y la construcción usan sus talleres: `crear`, `fusionar`, `hacer inspired`. |
@@ -247,6 +247,16 @@ que coincida. `ayuda <orden>` agrega argumentos, ejemplos y errores.
 | `anotar <direccion> <texto…>` (`note`) | Guarda un comentario manual en una dirección del original actual. |
 | `etiquetar <direccion> <texto…>` (`label`) | Guarda un nombre manual para una dirección del original actual. |
 | `importar-anotaciones <confirmar>` (`import-notes`) | Incorpora anotaciones anteriores por nombre con confirmación de edición. |
+| `referencias <direccion>` (`refs`, `xref`) | Muestra la rutina de una dirección, quién la llama, a quién llama y qué instrucciones la nombran. |
+| `parches` (`patches`) | Lista los parches guardados de esta edición, con sus bytes y si la partida los usa ahora. |
+| `parche <direccion> <bytes…>` (`patch`) | Prepara un cambio de bytes y muestra el código antes y después; con aplicar, lo escribe. |
+| `deshacer-parche <direccion>` (`undo-patch`) | Restaura los bytes originales de un parche guardado y lo quita de la lista. |
+| `reaplicar-parches` (`reapply-patches`) | Vuelve a escribir en la partida todos los parches guardados de esta edición. |
+| `exportar-asm [ruta…]` (`export-asm`) | Guarda el desensamblado con nombres, comentarios y variables en un archivo nuevo. |
+| `exportar-perfil <ruta…>` (`export-profile`) | Guarda una copia JSON del perfil de este original: variables, controles y arranque. |
+| `agregar-variable <direccion> <nombre> [descripcion…]` (`add-variable`) | Agrega al perfil un dato de un byte encontrado con rastrear. |
+| `cambiar-variable <nombre> <valor> [congelar\|soltar]` (`set-variable`) | Cambia el valor de una variable del perfil en la partida y permite congelarla. |
+| `deshacer-variable [todo]` (`undo-variable`) | Deshace el último cambio de variables o restaura la partida previa a todos. |
 
 ### Proyectos
 

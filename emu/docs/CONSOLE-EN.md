@@ -82,6 +82,16 @@ Use help <command> for examples, requirements and errors.
 | `note <address> <text…>` | Save a manual comment at an address in the current original game. |
 | `label <address> <text…>` | Save a manual label for an address in the current original game. |
 | `import-notes <confirm>` | Import earlier name-based annotations after confirming the edition. |
+| `references <address>` (`refs`, `xref`) | Shows the routine of an address, who calls it, what it calls and which instructions name it. |
+| `patches` | Lists the saved patches of this edition, with their bytes and whether the game uses them now. |
+| `patch <address> <bytes…>` | Prepares a byte change and shows the code before and after; with apply, it writes it. |
+| `undo-patch <address>` | Restores the original bytes of a saved patch and removes it from the list. |
+| `reapply-patches` | Writes every saved patch of this edition into the game again. |
+| `export-asm [path…]` | Saves the disassembly with names, comments and variables to a new file. |
+| `export-profile <path…>` | Saves a JSON copy of this original's profile: variables, controls and boot. |
+| `add-variable <address> <name> [descripcion…]` | Adds a one-byte value found with scan-memory to the profile. |
+| `set-variable <name> <value> [freeze\|release]` | Changes a profile variable in the game and can freeze it. |
+| `undo-variable [all]` | Undoes the last variable change or restores the game from before all of them. |
 
 ### Tasks
 

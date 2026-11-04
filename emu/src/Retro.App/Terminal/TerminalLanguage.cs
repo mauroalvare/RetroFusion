@@ -7,6 +7,8 @@ internal static class TerminalLanguage
     {
         ["ayuda"]="help", ["como"]="how", ["limpiar"]="clear", ["historial"]="history", ["requisitos"]="requirements", ["paleta"]="palette", ["bateria"]="battery",
         ["anotaciones"]="notes", ["anotar"]="note", ["etiquetar"]="label", ["importar-anotaciones"]="import-notes", ["exportar-anotaciones"]="export-notes",
+        ["referencias"]="references", ["parches"]="patches", ["parche"]="patch", ["deshacer-parche"]="undo-patch", ["reaplicar-parches"]="reapply-patches",
+        ["exportar-asm"]="export-asm", ["exportar-perfil"]="export-profile", ["agregar-variable"]="add-variable", ["cambiar-variable"]="set-variable", ["deshacer-variable"]="undo-variable",
         ["proyectos"]="projects", ["proyecto"]="project", ["validar"]="validate", ["retomar-trabajo"]="resume-work", ["preparar"]="prepare",
         ["tareas"]="tasks", ["tarea"]="task", ["seguir"]="follow", ["cancelar"]="cancel", ["retomar"]="resume-task",
         ["jugar"]="play", ["abrir"]="open", ["continuar"]="continue", ["pausa"]="pause", ["reiniciar"]="reset",
@@ -36,7 +38,8 @@ internal static class TerminalLanguage
         ["nombre-desc"]="name-desc", ["año-desc"]="year-desc", ["agregados"]="added", ["buscar"]="search", ["vaciar"]="clear",
         ["creado"]="created", ["inspirado"]="inspired", ["sin"]="unknown", ["nunca"]="never", ["agregados7"]="added7", ["agregados30"]="added30",
         ["fusiones"]="fusions", ["herramientas"]="tools", ["opciones"]="options", ["ayuda"]="help", ["barra"]="bar", ["subrayado"]="underline",
-        ["usar"]="use", ["editar"]="edit", ["guardar"]="save", ["exportar"]="export", ["recuperar"]="restore", ["confirmar"]="confirm"
+        ["usar"]="use", ["editar"]="edit", ["guardar"]="save", ["exportar"]="export", ["recuperar"]="restore", ["confirmar"]="confirm",
+        ["congelar"]="freeze", ["soltar"]="release"
     };
     private static readonly IReadOnlyDictionary<string, string> Options = new Dictionary<string, string>(StringComparer.Ordinal)
     {

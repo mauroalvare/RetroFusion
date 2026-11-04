@@ -124,7 +124,8 @@ public sealed partial class RetroApp
         _studio = new StudioWindow(_host, _romDir, games, _ai, playOriginal:OpenFile, analyzeOriginal:OpenOriginalAnalysis);
         _code = new CodeWindow(_host, _ai, ShowInDebugger, EditCurrentStudioGame,
             new ModificationHistory(persist: !args.Contains("--autotest")), firmwareDirectory: _romDir,
-            annotationsDirectory: args.Contains("--autotest") ? Path.Combine(Environment.CurrentDirectory, "out", "autotest-annotations") : null);
+            annotationsDirectory: args.Contains("--autotest") ? Path.Combine(Environment.CurrentDirectory, "out", "autotest-annotations") : null,
+            exportDirectory: args.Contains("--autotest") ? Path.Combine(Environment.CurrentDirectory, "out", "autotest-codigo") : null);
         _code.AnnotationControlBounds = (name, min, max) => InterfaceControlBounds?.Invoke(name, min, max);
         _creator = new CreatorWindow(_romDir, _ai, OpenFile);
         _home = new HomeScreen(_library, OpenFile, PlayFusion, _browser.Open,
