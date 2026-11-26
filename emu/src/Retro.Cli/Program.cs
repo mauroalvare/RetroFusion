@@ -99,6 +99,17 @@ for (int i = 2; i < args.Length; i++)
     list.Add(value);
 }
 string? Opt(string k) => opts.TryGetValue(k, out var v) ? v[^1] : null;
+// Numeric options: a mistyped value (or a flag without one, which reads as "true") ends with a
+// clear message and exit code 2 instead of an unhandled exception and its stack trace.
+int IntOpt(string k, int fallback) => Opt(k) is { } text ? ParseNumber(text, k) : fallback;
+static int ParseNumber(string text, string option) =>
+    int.TryParse(text, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int n) ? n : BadOption(option, text);
+static int BadOption(string option, string text)
+{
+    Console.Error.WriteLine(Retro.Core.UiText.Format($"Valor inválido para --{option}: «{text}». Revisá el formato con retro-cli sin argumentos."));
+    Environment.Exit(2);
+    return 0;
+}
 if (Opt("modelo") is { } cliModel)
     Environment.SetEnvironmentVariable("RETROEMU_MODELO", cliModel);   // the model of the subscription tool, for this run
 
@@ -140,10 +151,10 @@ if (command == "studio")
 
 if (command == "compat")
     return RunCompat(mediaPath, Opt("juegos") ?? PlayerFolders.Find("ROMs") ?? ".", Opt("salida"), Opt("md"), Opt("capturas") ?? "out/compat",
-        Opt("solo"), Opt("descubrir") != null, Opt("dos-veces") != null, int.Parse(Opt("paralelo") ?? "4"));
+        Opt("solo"), Opt("descubrir") != null, Opt("dos-veces") != null, IntOpt("paralelo", 4));
 
 if (command == "lab")
-    return RunLab(mediaPath, Opt("juegos") ?? PlayerFolders.Find("ROMs") ?? ".", Opt("salida"), int.Parse(Opt("cuadros") ?? "3000"),
+    return RunLab(mediaPath, Opt("juegos") ?? PlayerFolders.Find("ROMs") ?? ".", Opt("salida"), IntOpt("cuadros", 3000),
         Opt("sin-verificar") == null, opts.GetValueOrDefault("hipotesis") ?? new List<string>());
 
 if (command == "juegos")
@@ -156,7 +167,7 @@ if (command == "crear")
 {
     string? source = args.Length > 2 && !args[2].StartsWith("--") ? args[2] : null;
     return Opt("ia") != null
-        ? await WriteGame(mediaPath, source, Opt("ia")!, Opt("pedido") ?? "", int.Parse(Opt("intentos") ?? "0"))
+        ? await WriteGame(mediaPath, source, Opt("ia")!, Opt("pedido") ?? "", IntOpt("intentos", 0))
         : CreateGame(mediaPath, source);
 }
 
@@ -167,7 +178,7 @@ if (command == "ideas")
     return await RunIdeas(mediaPath, Opt("ia"), Opt("pedido") ?? "", Opt("juegos"));
 
 if (command == "preparar")
-    return await RunPrepare(mediaPath, Opt("ia"), Opt("perfiles"), int.Parse(Opt("rondas") ?? "24"), Opt("sin-guardar") == null, Opt("carpeta"));
+    return await RunPrepare(mediaPath, Opt("ia"), Opt("perfiles"), IntOpt("rondas", 24), Opt("sin-guardar") == null, Opt("carpeta"));
 
 if (command == "fuse")
 {
@@ -318,19 +329,20 @@ else
     }
 }
 
-int frames = int.Parse(Opt("frames") ?? "500");
+int frames = IntOpt("frames", 500);
 var presses = new List<(int frame, string[] keys, int dur)>();
 if (opts.TryGetValue("press", out var pressList))
     foreach (var p in pressList)
     {
         var parts = p.Split(':');
-        presses.Add((int.Parse(parts[0]), parts[1].Replace('_', ' ').Split('+'), parts.Length > 2 ? int.Parse(parts[2]) : 5));
+        if (parts.Length < 2) BadOption("press", p);
+        presses.Add((ParseNumber(parts[0], "press"), parts[1].Replace('_', ' ').Split('+'), parts.Length > 2 ? ParseNumber(parts[2], "press") : 5));
     }
 
 if (Opt("trace") is { } traceCount)
 {
     // Instruction trace: address, bytes, disassembly and registers before each instruction.
-    int n = int.Parse(traceCount);
+    int n = ParseNumber(traceCount, "trace");
     var cpu = machine.Cpu;
     for (int i = 0; i < n; i++)
     {
@@ -345,7 +357,7 @@ string? wavPath = Opt("wav");
 var wav = new List<short>();
 var frameAudio = new short[4096];
 var sw = Stopwatch.StartNew();
-int shotEvery = int.Parse(Opt("shot-every") ?? "0");
+int shotEvery = IntOpt("shot-every", 0);
 string shotPrefix = Opt("shot-prefix") ?? "shot";
 bool untilTapeEnd = zx != null && Opt("until-tape-end") != null;
 int lastBlock = -1;
@@ -354,9 +366,10 @@ int extraAfterTape = frames;
 // --poke <frame>:<hex address>=<value>: writes memory on that frame (to test a hypothesis)
 var pokes = (opts.GetValueOrDefault("poke") ?? new List<string>()).Select(p =>
 {
-    var (f, rest) = (p.Split(':')[0], p.Split(':')[1]);
-    var kv = rest.Split('=');
-    return (frame: long.Parse(f), address: Convert.ToUInt32(kv[0].TrimStart('$'), 16), value: (byte)int.Parse(kv[1]));
+    var colon = p.Split(':');
+    var kv = colon.Length == 2 ? colon[1].Split('=') : [];
+    if (kv.Length != 2 || !uint.TryParse(kv[0].TrimStart('$'), System.Globalization.NumberStyles.HexNumber, null, out uint address)) { BadOption("poke", p); address = 0; }
+    return (frame: (long)ParseNumber(colon[0], "poke"), address, value: (byte)ParseNumber(kv[1], "poke"));
 }).ToList();
 while (true)
 {
@@ -405,7 +418,7 @@ if (opts.TryGetValue("disasm", out var disasmList))
         // --disasm <hex>:<n>: n instructions from the address, as the memory is now
         var parts = d.Split(':');
         uint at = Convert.ToUInt32(parts[0].TrimStart('$'), 16);
-        int count = parts.Length > 1 ? int.Parse(parts[1]) : 16;
+        int count = parts.Length > 1 ? ParseNumber(parts[1], "disasm") : 16;
         for (int i = 0; i < count; i++)
         {
             var ins = machine.Disassembler.Disassemble(a => machine.Memory.Peek(a), at);

@@ -4739,5 +4739,6 @@
   "todo vuelve al momento anterior al primer cambio.": "all returns to the moment before the first change.",
   "bloqueada: falta algo para seguir": "blocked: something is missing to continue",
   "Lo comprobado quedó guardado. proyectos lo lista y retomar-trabajo <n> abre el taller para resolver lo que falta.": "What was checked is saved. projects lists it and resume-work <n> opens the workshop to resolve what is missing.",
-  "bloqueada: falta una comprobación": "blocked: a check is missing"
+  "bloqueada: falta una comprobación": "blocked: a check is missing",
+  "Valor inválido para --{0}: «{1}». Revisá el formato con retro-cli sin argumentos.": "Invalid value for --{0}: \"{1}\". Run retro-cli without arguments to see the format."
 }
