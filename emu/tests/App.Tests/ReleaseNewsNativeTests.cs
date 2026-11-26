@@ -7,7 +7,7 @@ namespace App.Tests;
 [NonParallelizable]
 public sealed class ReleaseNewsNativeTests
 {
-    private const string Current = "0.4.1";
+    private const string Current = "0.4.2";
     [TearDown] public void SpanishAgain() => UiText.Language = "es";
 
     [Explicit("Ventana oculta, audio silenciado, entradas reales y datos propios; no usa la instalación del usuario.")]
@@ -15,8 +15,8 @@ public sealed class ReleaseNewsNativeTests
     [TestCase("en", 100, 1280, 840, "0.2.6")]
     [TestCase("es", 200, 640, 480, "0.2.6")]
     [TestCase("en", 200, 640, 480, null)]
-    [TestCase("es", 100, 1280, 840, "0.4.0")]
-    [TestCase("en", 200, 640, 480, "0.4.0")]
+    [TestCase("es", 100, 1280, 840, "0.4.1")]
+    [TestCase("en", 200, 640, 480, "0.4.1")]
     public void FirstLaunchAndSkippedUpdatesOfferReadableNewsAfterTheInterface(string language, int text, int width, int height, string? previous)
     {
         using var ui = new NativeHarness(width, height, text, "retro", games: 3, "--language", language);
@@ -31,7 +31,7 @@ public sealed class ReleaseNewsNativeTests
         Assert.That(prefs.PendingNewsFromVersion, Is.EqualTo(previous ?? ""));
         var versions = ReleaseNotes.Since(prefs.PendingNewsFromVersion, prefs.PendingNewsVersion!).Select(note => note.Version).ToArray();
         Assert.That(versions[0], Is.EqualTo(Current));
-        if (previous == "0.4.0") Assert.That(versions, Is.EqualTo(new[] { Current }));
+        if (previous == "0.4.1") Assert.That(versions, Is.EqualTo(new[] { Current }));
         Assert.That(((EmulatorHost)ui.Get("_host")).Paused, Is.True);
         var body = ui.Bounds["Cuerpo novedades"];
         Assert.That(body.Max.Y - body.Min.Y, Is.GreaterThanOrEqualTo(ImGui.GetTextLineHeight() * 2 + ImGui.GetStyle().WindowPadding.Y * 2),

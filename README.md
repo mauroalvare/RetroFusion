@@ -15,11 +15,12 @@ los prueba y quedan como un `.prg` o un `.tap` que corre en cualquier emulador.
 
 ## Fusiones incluidas
 
-[Versión 0.4.1](https://github.com/mauroalvare/RetroFusion/releases/tag/v0.4.1): respuestas
-de IA mejor comprobadas, consignas completas en Antigravity, cancelación y recuperación
-más fiables. Conserva las cuatro interfaces personalizables, español e inglés, recuperación
+[Versión 0.4.2](https://github.com/mauroalvare/RetroFusion/releases/tag/v0.4.2): capturas
+ordenadas por juego con atajo configurable, el taller de código desde la terminal y
+correcciones en talleres y en la línea de comandos. Conserva las mejoras de IA de 0.4.1,
+las cuatro interfaces personalizables, español e inglés, recuperación
 del arranque, baterías NES, anotaciones y novedades acumulativas al actualizar.
-[Novedades y alcance](emu/docs/NOVEDADES-0.4.1.md). Requiere Windows 10 o posterior de 64 bits,
+[Novedades y alcance](emu/docs/NOVEDADES-0.4.2.md). Requiere Windows 10 o posterior de 64 bits,
 o Linux x64 con glibc 2.38 y X11/XWayland, con gráficos compatibles con OpenGL 3.3;
 no hace falta instalar .NET. Linux incluye una comprobación previa con `sh RetroEmu.sh --check`.
 
